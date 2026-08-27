@@ -1,12 +1,13 @@
 # Vue3 Music
 
-Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun、TypeScript、Vue、Vue Router、Pinia 和 Vite 空壳搭建；旧工程完整保存在 [`legacy/`](./legacy/)。
+Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳与第一批基础设施迁移；旧工程完整保存在 [`legacy/`](./legacy/)。
 
 ## 当前阶段
 
 - 实施第 1 轮：旧工程归档到 `legacy/`——已完成；
 - 实施第 2 轮：现代根工程空壳——已完成；
-- 后续轮次：API、Router、Pinia、UI 和播放器按功能切片迁移。
+- 实施第 3 轮：API Host、Axios client、Router meta、Host/Common Pinia stores——已完成；
+- 后续轮次：业务 API、页面、UI 和播放器按功能切片迁移。
 
 完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 
@@ -14,6 +15,8 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun、TypeScri
 
 - Bun `1.4.0`；
 - TypeScript `6.0.3`（`vue-tsc` 当前兼容线）；
+- Axios `1.20.0`；
+- Vitest `4.1.11`；
 - Node.js `22.18+` 作为工具兼容运行时；
 - 现代浏览器。
 
@@ -21,6 +24,7 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun、TypeScri
 
 ```bash
 bun install
+cp .env.example .env.local
 bun run dev
 ```
 
@@ -33,8 +37,9 @@ http://localhost:3002
 ## 验证
 
 ```bash
+bun run test
 bun run typecheck
-bun run build
+bun run check
 bun run preview
 ```
 

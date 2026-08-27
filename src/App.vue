@@ -1,5 +1,16 @@
+<script setup lang="ts">
+import { storeToRefs } from 'pinia'
+
+import { useHostStore } from '@/stores/host'
+import HostSetupView from '@/views/HostSetupView.vue'
+
+const hostStore = useHostStore()
+const { isConfigured } = storeToRefs(hostStore)
+</script>
+
 <template>
-  <RouterView />
+  <RouterView v-if="isConfigured" />
+  <HostSetupView v-else />
 </template>
 
 <style>

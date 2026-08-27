@@ -462,3 +462,217 @@ git push --force-with-lease -u origin master
 但由于本地远端跟踪引用已按“清除旧记录”的目标删除，首次重建远端历史时可根据用户自己的安全策略重新 fetch/设置 lease 或明确使用强制推送。本实施过程不代替用户作出远端覆盖操作。
 
 新的根提交哈希以最终 Git 验证结果为准；本文件位于该根提交自身，不能在提交生成前预写其哈希。
+
+## 5. 实施第 3 轮：Host、HTTP、Router 与基础 stores
+
+> 执行日期：`2026-08-28`<br>
+> 状态：**已完成并通过自动与真实浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 5.1 开始边界与 legacy 证据
+
+第 3 轮开始时：
+
+```text
+HEAD 9e6f3a1b67dd507a1c96039db5c2dc3117e2a04f
+master...origin/master
+worktree clean
+```
+
+用户已在外部把单一根提交推送到新 origin。本轮不修改 remote/upstream，不执行 push。
+
+通过代码知识图谱和源文件读取确认 legacy 契约：
+
+- `legacy/src/stores/host.ts` 使用 localStorage 键 `BASE_URL`；
+- `isInit` 由 host 非空决定；
+- `setHost` 保存后执行 `location.reload()`；
+- `legacy/src/Host.vue` 使用 `/banner` 请求验证 Host；
+- `legacy/src/utils/http.ts` 修改 Axios 全局 defaults；
+- 旧 request interceptor 使用 `AxiosRequestConfig | any`；
+- 旧 HTTP 方法在 Axios Promise 外再套一层 Promise；
+- Common store 首次加载 Banner 后使用非空数组作为缓存。
+
+依赖的 17 个当前/legacy 文件和 `src`、legacy stores/utils/router scopes 均无知识图谱记录缺口；所有关键文件同时直接读取，结论不只依赖索引。
+
+### 5.2 测试先行
+
+先添加 Vitest `4.1.11`、测试 tsconfig 和 5 个测试文件，再实现目标模块。首次运行结果：
+
+```text
+Test Files 5 failed
+Tests      0
+```
+
+失败原因符合预期：
+
+- `@/config/apiHost`、`@/api/http`、`@/api/banner`、Host/Common store 尚不存在；
+- 旧根 Router 在模块加载时直接创建 hash history，Node 环境报 `location is not defined`。
+
+这组失败锁定了实现边界，随后没有删除或弱化测试来获得通过结果。
+
+### 5.3 API Host 配置
+
+新增 `src/config/apiHost.ts`：
+
+- 保留 `BASE_URL` 键；
+- trim 并移除结尾 `/`；
+- 只接受完整 HTTP/HTTPS URL；
+- 拒绝空值、相对地址、FTP、credentials、query 和 hash；
+- localStorage 不可用时安全返回；
+- storage 无效时可回退到 `VITE_API_BASE_URL`；
+- `.env.example` 提供可选环境变量入口。
+
+Host store 使用 setup store，公开：
+
+```text
+apiHost
+isConfigured
+setHost()
+clearHost()
+```
+
+保存/清除操作会同步修改应用 Axios instance 的 baseURL，不再调用 `location.reload()`。
+
+### 5.4 Axios 1 client
+
+安装：
+
+```text
+axios@1.20.0
+```
+
+新增独立 `axios.create()` client：
+
+- timeout `20_000`；
+- maxBodyLength `5 MiB`；
+- `withCredentials: true`；
+- request interceptor 保留原 params 并追加 `t`；
+- GET/POST/PUT/DELETE/upload wrapper 直接返回 `response.data`；
+- 不修改 Axios 全局 defaults；
+- 不使用 `any`；
+- 不额外创建 Promise；
+- 可在 Host 更新时直接改变 instance baseURL；
+- 对 Axios error 和普通 Error 提供安全消息收窄。
+
+Host 页面验证时使用单独的 5 秒 client 调用 `/banner?type=1`，并检查 `banners` 为数组，防止只根据 HTTP 200 保存错误服务。
+
+### 5.5 Router 与 stores
+
+Router：
+
+- `Pages` 使用 `as const`；
+- `RouteMeta` 增加 `title/menu/keepAlive/requiresApiHost`；
+- 浏览器继续使用 hash history；
+- Node 测试环境使用 memory history；
+- 根路由保持动态 import；
+- 增加 404 catch-all；
+- afterEach 更新文档标题。
+
+Common store：
+
+- 迁移 Banner model；
+- `loadBanners()` 保留非空缓存语义；
+- 支持 `force` 刷新；
+- 增加 loading/error；
+- 请求失败时记录消息并继续向调用方抛出原错误。
+
+第 2 轮的 Counter smoke store 已删除，Home 页面改为展示实际 API Host，并提供“重新配置”操作。
+
+### 5.6 自动验证
+
+最终测试：
+
+```text
+Test Files  5 passed (5)
+Tests      18 passed (18)
+```
+
+测试覆盖：
+
+- Host URL 标准化和拒绝规则；
+- `BASE_URL` 保存、读取、清除与环境 fallback；
+- Axios defaults、params 时间戳和 response data；
+- Host store 初始化、动态应用、清除；
+- Router meta 和 unknown route；
+- Common store 缓存、强制刷新、error/loading。
+
+类型检查：
+
+```text
+vue-tsc --build --force
+vue-tsc -p tsconfig.vitest.json --noEmit
+PASS
+```
+
+统一门禁：
+
+```text
+bun run check
+5 test files / 18 tests passed
+94 modules transformed
+Vite build passed
+```
+
+构建主要产物：
+
+```text
+dist/index.html                       0.53 kB
+dist/assets/NotFoundView-*.js         0.40 kB
+dist/assets/HomeView-*.js             1.35 kB
+dist/assets/index-*.js              150.52 kB
+```
+
+锁文件：
+
+```text
+bun install --frozen-lockfile --dry-run
+PASS
+```
+
+安全审计：
+
+```text
+bun audit
+No vulnerabilities found (checked 158 packages)
+```
+
+`bun outdated` 仍只报告已有兼容性固定：Node 22 types 和 TypeScript 6；Axios、Vitest 及其他直接依赖均处于目标版本。
+
+代码知识图谱刷新到 generation：
+
+```text
+2026-08-27T16:18:22Z
+```
+
+对本轮 32 个关键路径以及 `src`、`docs/migration` scopes 检查，全部为 `no_recorded_issue`，没有记录到 partial、skipped 或 excluded 路径。本结论仍属于 best-effort 索引信号；本轮关键行为另外由直接源码读取、类型检查、单元测试、构建和浏览器 smoke 证明。
+
+### 5.7 真实浏览器与 mock API 闭环
+
+使用本地 Bun mock API：
+
+```text
+http://127.0.0.1:3999/banner
+```
+
+并以 CORS credentials 允许 `http://127.0.0.1:3002`。浏览器隔离上下文验证：
+
+1. 无 `BASE_URL` 时显示“连接网易云音乐 API”；
+2. 输入 `http://127.0.0.1:3999/`；
+3. 点击“验证并保存”；
+4. `/banner` 验证成功；
+5. 不发生页面 reload，直接切换到“基础设施切片已连接”；
+6. localStorage 保存规范化值 `http://127.0.0.1:3999`；
+7. navigation entry 始终为 `1`；
+8. 访问 `#/does-not-exist` 命中 404，标题为“页面不存在 · Vue3 Music”；
+9. 返回根路由后点击“重新配置”；
+10. `BASE_URL` 被清除并立即返回 Host 表单；
+11. console error/warn/issue 为 `0`。
+
+开发服务器和 mock API 最终均已停止。
+
+### 5.8 本轮停止边界
+
+本轮只完成基础设施，不迁移 legacy 的完整业务 API、用户 store、发现页、Element Plus、Swiper、Tailwind 或播放器。
+
+下一轮建议迁移第一个垂直可见切片：Banner API + Common store → Banner 组件 → Discover 页面最小骨架；这样可以复用本轮已验证的 Host/HTTP/Router/Pinia 基础设施，同时继续把播放器和 Tailwind 主版本升级隔离在后续阶段。

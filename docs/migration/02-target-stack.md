@@ -65,13 +65,13 @@
 | `@tailwindcss/vite` | 无 | `4.3.3` | 新增，替代旧 PostCSS 接入 |
 | `postcss` | `8.4.7` | `8.5.26` | 若无其他插件则移除直接依赖 |
 | `autoprefixer` | `10.4.2` | `10.5.4` | Tailwind 4 阶段移除 |
-| `vitest` | 无 | `4.1.11` | 测试阶段候选；新增前单独确认依赖范围 |
+| `vitest` | 无 | `4.1.11` | `4.1.11`，第 3 轮用于基础设施回归测试 |
 | `@vue/test-utils` | 无 | `2.4.11` | 组件测试候选 |
 | `happy-dom` | 无 | `20.11.9` | DOM 测试环境候选 |
 | `oxlint` | 无 | `1.80.0` | lint 候选 |
 | `oxlint-tsgolint` | 无 | `7.0.2001` | TS 7 类型感知规则候选 |
 
-新增测试/lint 依赖属于质量工具扩展。实施第 2 轮只建立最小空壳，因此没有安装这些候选；进入业务回归阶段前应再次确认最终质量工具范围。
+新增测试/lint 依赖属于质量工具扩展。实施第 3 轮已添加 Vitest 作为基础设施和后续业务回归的测试运行器；Oxlint、Vue Test Utils 和浏览器 E2E 依赖仍按实际迁移切片后置。
 
 ## 3. TypeScript 7 实测与兼容版本固定
 
@@ -179,7 +179,7 @@ docs/**
 
 否则旧工程中的旧类型和旧依赖会污染新工程诊断。
 
-## 7. 第 2 轮实际脚本
+## 7. 当前实际脚本
 
 根 `package.json` 当前实际使用：
 
@@ -188,15 +188,17 @@ docs/**
   "packageManager": "bun@1.4.0",
   "scripts": {
     "dev": "bunx --bun vite",
-    "typecheck": "vue-tsc --build --force",
+    "typecheck": "vue-tsc --build --force && vue-tsc -p tsconfig.vitest.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build": "bun run typecheck && bunx --bun vite build",
     "preview": "bunx --bun vite preview --port 5050",
-    "check": "bun run build"
+    "check": "bun run test && bun run build"
   }
 }
 ```
 
-第 2 轮没有引入 Vitest、Oxlint、ESLint 或格式化器，因此没有留下不可运行的 lint/test 占位命令。质量工具应在明确进入回归测试轮次时单独加入，并同步更新 `check`。
+第 3 轮已引入 Vitest，并把测试纳入 `check`；仍没有引入 Oxlint、ESLint 或格式化器，因此不保留对应的占位命令。
 
 ## 8. Tailwind CSS 4 目标
 

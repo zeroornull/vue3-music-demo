@@ -74,6 +74,14 @@
 - **remote**：保留 `origin` URL，便于用户自行推送；本地 remote 配置本身不等于执行网络操作。
 - **远端边界**：不 fetch、不 push。远端服务器仍保留旧历史，直到用户自行执行强制推送。
 
+### D-012：基础设施迁移保持 legacy 契约、移除 reload 副作用
+
+- **状态**：已验证
+- **决策**：继续使用 legacy 的 `BASE_URL` localStorage 键和 `/banner?type=1` Host 探测语义，但 Host 保存后直接更新 Pinia state 与 Axios instance，不调用 `location.reload()`。
+- **HTTP 边界**：使用 `axios.create()` 建立应用独立 client；默认 20 秒超时、5 MiB body 上限、携带 credentials，并在 request interceptor 中追加时间戳。
+- **类型边界**：不再使用 `AxiosRequestConfig | any`，HTTP wrapper 直接返回 `response.data`。
+- **测试决策**：引入 Vitest，基础设施行为必须先有失败测试再实现；Vue Test Utils/E2E 继续后置。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：
@@ -121,32 +129,35 @@
 - `.vue` template diagnostics：当前空壳通过；
 - IDE、declaration generation 和 Oxlint type-aware：尚未纳入本轮范围。
 
-### V-003：Vue Router 5 迁移细节
+### V-003：Vue Router 5 迁移细节（基础契约已验证）
 
-需要逐项核对当前项目实际使用的：
+第 3 轮已验证：
 
-- route name；
-- route meta；
-- `router.push`；
-- redirect；
-- dynamic import；
+- `Pages` 字面量 route name；
+- `RouteMeta` 的 `title/menu/keepAlive/requiresApiHost` 类型；
 - hash history；
-- keep-alive 组合。
+- dynamic import；
+- 404 catch-all；
+- route title 更新。
 
-### V-004：Pinia 4 行为
+业务路由的 redirect、嵌套 children 和 `router.push` 仍随页面切片迁移验证。
 
-需要实测 option stores、`storeToRefs`、浏览器对象状态、HMR 和 store 中方法 `this` 推导。
+### V-004：Pinia 4 行为（Host/Common 已验证）
 
-### V-005：Axios 1
+第 3 轮已验证 setup store、`storeToRefs`、Host 持久化、Common banner 缓存/强制刷新和浏览器响应式切换。旧 option stores、HMR、播放器浏览器对象和方法 `this` 推导继续后置。
 
-需要确认：
+### V-005：Axios 1（基础 client 已验证）
 
-- interceptor config 类型；
-- `withCredentials`；
-- upload；
-- delete params；
-- error 对象；
-- API host 动态变化。
+第 3 轮已确认：
+
+- request interceptor 类型；
+- `withCredentials`、timeout、max body length；
+- GET params 与时间戳合并；
+- response data 解包；
+- API host 动态变化；
+- Axios/普通 error 消息收窄。
+
+upload、delete 与真实业务 response/error 形态将在对应 API 切片中继续验证。
 
 ### V-006：Swiper 14
 
@@ -175,9 +186,9 @@
 - `@vitejs/plugin-vue-jsx` 是否确实无动态生成的 JSX；
 - PostCSS 是否有 Tailwind 之外用途。
 
-### V-010：质量工具是否作为新增依赖纳入
+### V-010：质量工具范围
 
-本文记录了 Vitest、Vue Test Utils、happy-dom、Oxlint 候选。真正添加前需要在实施范围中明确确认；如果不新增依赖，则应使用现有能力和 Bun 内建测试构造最小回归方案，并同步修改目标脚本。
+第 3 轮已纳入 Vitest `4.1.11` 并加入 `check`。Vue Test Utils、DOM test environment、Oxlint、formatter 和 E2E 仍是后续候选，只有在对应测试或质量门禁需要时才添加。
 
 ## 4. 决策变更规则
 

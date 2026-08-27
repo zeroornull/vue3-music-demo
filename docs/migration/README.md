@@ -2,7 +2,7 @@
 
 > 文档版本：`0.1.0`<br>
 > 版本快照日期：`2026-08-27`<br>
-> 当前阶段：**本地 Git 历史已重置——仅保留一个无父 `init` 根提交，等待用户手动推送**
+> 当前阶段：**实施第 3 轮完成——Host、Axios、Router meta 与基础 Pinia store 已验证**
 
 ## 1. 本轮边界
 
@@ -182,7 +182,24 @@ build: {
 
 随后用户明确要求清除全部本地提交记录并重新创建一次 `init`。仓库已保留当前文件和 `origin` URL，但清除了旧本地分支历史、远端跟踪引用、upstream、reflog 和不可达旧对象；没有执行 fetch 或 push。远端服务器上的旧历史只有在用户手动强制推送后才会被替换。
 
-## 9. 主要官方资料
+用户已在外部完成新的根提交推送；实施第 3 轮开始和结束时 `master` 与 `origin/master` 同步。本轮没有创建 commit，也没有 push。
+
+## 9. 实施第 3 轮结果
+
+- 保留 legacy 的 `BASE_URL` 存储键和 `/banner` 探测语义；
+- 新增可验证、可持久化、SSR-safe 的 API Host 配置模块；
+- 新增 Axios `1.20.0` 独立 client，不修改全局 defaults、不使用 `any` interceptor、不重复包装 Promise；
+- Host 保存后直接更新 Axios baseURL，无需 `location.reload()`；
+- 新增 Host 配置页、清除/重新配置流程；
+- 新增 typed Router meta、页面名称常量、404 catch-all 和动态标题；
+- 迁移 Banner model 与 Common store，加入缓存、强制刷新、loading/error 状态；
+- 引入 Vitest `4.1.11`，5 个测试文件共 18 个测试通过；
+- typecheck、build、frozen lock、audit 和真实浏览器 mock API 闭环通过；
+- 本轮不 commit、不 push。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md)。
+
+## 10. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

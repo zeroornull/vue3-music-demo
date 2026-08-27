@@ -1,44 +1,44 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 
-import { useCounterStore } from '@/stores/counter'
+import { useHostStore } from '@/stores/host'
 
-const counter = useCounterStore()
-const { count, doubleCount } = storeToRefs(counter)
+const hostStore = useHostStore()
+const { apiHost } = storeToRefs(hostStore)
 </script>
 
 <template>
   <main class="shell">
     <section class="card" aria-labelledby="shell-title">
-      <p class="eyebrow">Migration round 2</p>
-      <h1 id="shell-title">Vue3 Music 现代化空壳已就绪</h1>
+      <p class="eyebrow">Migration round 3</p>
+      <h1 id="shell-title">基础设施切片已连接</h1>
       <p class="summary">
-        当前根工程使用 Bun、TypeScript、Vue、Vue Router、Pinia 与 Vite。旧应用完整保存在
-        <code>legacy/</code>，后续轮次将按功能切片迁移。
+        API Host、Axios client、Router meta 与 Pinia 基础 store 已迁移。旧应用仍完整保存在
+        <code>legacy/</code>，下一轮将继续迁移业务 API 和页面切片。
       </p>
 
       <dl class="stack">
         <div>
-          <dt>Runtime</dt>
-          <dd>Bun 1.4</dd>
+          <dt>API Host</dt>
+          <dd>已配置</dd>
         </div>
         <div>
-          <dt>Framework</dt>
-          <dd>Vue 3.5</dd>
+          <dt>HTTP</dt>
+          <dd>Axios 1.20</dd>
         </div>
         <div>
-          <dt>Language</dt>
-          <dd>TypeScript 6</dd>
+          <dt>Router</dt>
+          <dd>Typed meta</dd>
         </div>
         <div>
-          <dt>Build</dt>
-          <dd>Vite 8</dd>
+          <dt>State</dt>
+          <dd>Pinia 4</dd>
         </div>
       </dl>
 
       <div class="counter" aria-live="polite">
-        <span>Pinia smoke：{{ count }} × 2 = {{ doubleCount }}</span>
-        <button type="button" @click="counter.increment">增加计数</button>
+        <span>当前 API：<code>{{ apiHost }}</code></span>
+        <button type="button" @click="hostStore.clearHost">重新配置</button>
       </div>
     </section>
   </main>

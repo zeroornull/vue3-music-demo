@@ -1,5 +1,20 @@
 # 迁移文档变更记录
 
+## 0.6.0 - 2026-08-28
+
+### 实施第 3 轮：基础设施切片
+
+- 新增 API Host 标准化、持久化、环境 fallback 和安全校验；
+- 使用 Axios `1.20.0` 建立独立 HTTP client；
+- Host 保存后无需 reload 即可更新应用与 HTTP baseURL；
+- 新增 Host 配置页和重新配置流程；
+- 新增 typed Router meta、页面名称、404 和动态标题；
+- 迁移 Banner model 与 Common Pinia store；
+- 新增 Vitest `4.1.11` 和测试 tsconfig；
+- 5 个测试文件、18 个测试通过；
+- typecheck、build、frozen lock、audit 和浏览器 mock API 闭环通过；
+- 本轮不 commit、不 push。
+
 ## 0.5.0 - 2026-08-27
 
 ### 本地 Git 历史重置

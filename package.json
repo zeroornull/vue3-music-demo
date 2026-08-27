@@ -6,12 +6,15 @@
   "packageManager": "bun@1.4.0",
   "scripts": {
     "dev": "bunx --bun vite",
-    "typecheck": "vue-tsc --build --force",
+    "typecheck": "vue-tsc --build --force && vue-tsc -p tsconfig.vitest.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build": "bun run typecheck && bunx --bun vite build",
     "preview": "bunx --bun vite preview --port 5050",
-    "check": "bun run build"
+    "check": "bun run test && bun run build"
   },
   "dependencies": {
+    "axios": "^1.20.0",
     "pinia": "^4.0.3",
     "vue": "^3.5.42",
     "vue-router": "^5.3.0"
@@ -23,6 +26,7 @@
     "@vue/tsconfig": "^0.9.1",
     "typescript": "~6.0.3",
     "vite": "^8.2.2",
+    "vitest": "^4.1.11",
     "vue-tsc": "^3.3.11"
   },
   "engines": {
