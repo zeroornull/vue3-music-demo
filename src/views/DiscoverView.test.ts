@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getBanners } from '@/api/banner'
 import { getPersonalizedPlaylists } from '@/api/personalized'
+import { getPersonalizedNewSongs } from '@/api/newSong'
 import type { Banner } from '@/models/banner'
 import DiscoverView from '@/views/DiscoverView.vue'
 
@@ -15,6 +16,9 @@ vi.mock('@/api/banner', () => ({
 }))
 vi.mock('@/api/personalized', () => ({
   getPersonalizedPlaylists: vi.fn(),
+}))
+vi.mock('@/api/newSong', () => ({
+  getPersonalizedNewSongs: vi.fn(),
 }))
 
 const banner: Banner = {
@@ -59,12 +63,31 @@ const PersonalizedSectionStub = defineComponent({
   `,
 })
 
+const NewSongSectionStub = defineComponent({
+  name: 'NewSongSection',
+  props: {
+    error: { type: String, default: null },
+    items: { type: Array, required: true },
+    loading: { type: Boolean, required: true },
+  },
+  emits: ['retry', 'select'],
+  template: `
+    <section data-testid="new-song-stub">
+      <span data-testid="new-song-count">{{ items.length }}</span>
+      <span v-if="error" data-testid="new-song-error">{{ error }}</span>
+      <button data-testid="new-song-retry" @click="$emit('retry')">retry</button>
+      <button v-if="items[0]" data-testid="new-song-select" @click="$emit('select', items[0])">select</button>
+    </section>
+  `,
+})
+
 function mountView() {
   return mount(DiscoverView, {
     global: {
       plugins: [createPinia()],
       stubs: {
         BannerCarousel: BannerCarouselStub,
+        NewSongSection: NewSongSectionStub,
         PersonalizedSection: PersonalizedSectionStub,
         RouterLink: defineComponent({ template: '<a><slot /></a>' }),
       },
@@ -77,6 +100,8 @@ describe('DiscoverView', () => {
     vi.mocked(getBanners).mockReset()
     vi.mocked(getPersonalizedPlaylists).mockReset()
     vi.mocked(getPersonalizedPlaylists).mockResolvedValue([])
+    vi.mocked(getPersonalizedNewSongs).mockReset()
+    vi.mocked(getPersonalizedNewSongs).mockResolvedValue([])
   })
 
   it('loads banners when mounted', async () => {
@@ -133,5 +158,39 @@ describe('DiscoverView', () => {
 
     expect(getPersonalizedPlaylists).toHaveBeenCalledTimes(2)
     expect(wrapper.get('[data-testid="personalized-count"]').text()).toBe('1')
+  })
+
+  it('loads, retries and selects new songs independently', async () => {
+    vi.mocked(getBanners).mockResolvedValue([])
+    vi.mocked(getPersonalizedNewSongs)
+      .mockRejectedValueOnce(new Error('new-song offline'))
+      .mockResolvedValueOnce([
+        {
+          alg: 'featured',
+          canDislike: false,
+          id: 301,
+          name: '晚风来信',
+          picUrl: 'https://images.example.com/song.jpg',
+          song: {
+            album: { id: 501, name: '晚风来信', picUrl: 'https://images.example.com/album.jpg' },
+            artists: [{ id: 401, name: '林间电台' }],
+            id: 301,
+            name: '晚风来信',
+          },
+          type: 4,
+        },
+      ])
+
+    const wrapper = mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="new-song-error"]').text()).toBe('new-song offline')
+
+    await wrapper.get('[data-testid="new-song-retry"]').trigger('click')
+    await flushPromises()
+    expect(getPersonalizedNewSongs).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="new-song-count"]').text()).toBe('1')
+
+    await wrapper.get('[data-testid="new-song-select"]').trigger('click')
+    expect(wrapper.get('[role="status"]').text()).toContain('歌曲“晚风来信” #301')
   })
 })

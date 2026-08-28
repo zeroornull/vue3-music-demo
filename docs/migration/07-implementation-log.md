@@ -1267,3 +1267,240 @@ PlaylistPlaceholderView-*.js      HTTP 200
 ```
 
 本轮没有迁移推荐新歌、MV、完整歌单详情、Element Plus、Tailwind 或播放器。下一轮可选择推荐新歌切片，复用 Music store 的独立状态模式和 Discover section 组件结构；播放器仍应在歌曲展示稳定后单独迁移。
+
+## 8. 实施第 6 轮：推荐新歌与 typed play intent
+
+> 执行日期：`2026-08-28`<br>
+> 状态：**已完成并通过测试、浏览器与响应式视觉验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 8.1 开始边界与 legacy 证据
+
+第 6 轮开始时用户已在外部提交并推送第 5 轮：
+
+```text
+HEAD 59ca66695d59636e6363253182da0aff6a531ae6
+master...origin/master
+worktree clean
+```
+
+legacy 证据：
+
+- `GET /personalized/newsong` 返回 `{ result: PersonalizedNewSong[] }`；
+- Music store 非空缓存；
+- Discover 新歌区域为响应式两列/五列 grid；
+- 卡片显示封面、名称和第一位歌手；
+- 点击直接执行 `play(item.id)`；
+- legacy model 同时携带完整 PNSSong、音质、权限和 privilege 等大量 `any`。
+
+相关 12 个路径与 legacy discover/stores/models、当前 `src` scopes 均无记录到的图谱覆盖缺口，并直接读取关键源文件。
+
+### 8.2 测试先行
+
+实现前新增：
+
+```text
+src/api/newSong.test.ts
+src/components/discover/NewSongCard.test.ts
+src/components/discover/NewSongSection.test.ts
+```
+
+并扩展 Music store 与 Discover tests。首次运行：
+
+```text
+Test Files  5 failed | 9 passed
+Tests      31 passed
+```
+
+失败原因均为目标模块尚不存在：NewSong API/model、NewSongCard、NewSongSection 和 store/Discover 新歌集成。
+
+### 8.3 最小歌曲模型
+
+新增：
+
+```text
+SongArtistSummary { id, name }
+SongAlbumSummary { id, name, picUrl }
+SongSummary { id, name, artists, album? }
+PersonalizedNewSong { id, type, name, picUrl, canDislike, song, alg }
+```
+
+没有迁移 legacy 的 bitrate、music quality、privilege、alias、fee、copyright 等与本轮 UI/播放意图无关字段，也没有新增 `any`。
+
+API 检查 `response.result` 为数组，否则抛出：
+
+```text
+推荐新歌响应格式不正确
+```
+
+### 8.4 Music store 独立状态
+
+新增：
+
+```text
+newSongs
+newSongsLoading
+newSongsError
+loadNewSongs(force?)
+```
+
+行为与 Personalized 相同但状态隔离：首次请求、非空缓存、force refresh、并发保护、错误消息与 finally loading 恢复。
+
+### 8.5 NewSongCard 与 Section
+
+NewSongCard：
+
+- semantic article + button；
+- 64/72px cover；
+- song name；
+- 多歌手使用 ` / ` 连接；
+- 无歌手 fallback“未知歌手”；
+- 可选 album fallback；
+- “播放待迁移”状态；
+- typed select event；
+- focus-visible 和 reduced motion。
+
+NewSongSection：
+
+- loading：6 个 skeleton；
+- error：alert + retry；
+- empty：暂无推荐新歌；
+- data：desktop 两列、mobile 单列；
+- API 可返回更多，但按顺序展示前 10 条。
+
+### 8.6 播放意图边界
+
+点击新歌后 Discover 显示：
+
+```text
+歌曲“晚风来信” #3001 的播放意图已记录，播放器将在后续轮次接入。
+```
+
+本轮没有创建 Audio、请求 song URL、更新播放队列或伪造 playing 状态。该 typed item 将作为后续播放器迁移的输入边界。
+
+### 8.7 自动验证
+
+最终：
+
+```text
+Test Files  14 passed (14)
+Tests      48 passed (48)
+```
+
+新增覆盖：
+
+- NewSong API 解包和非法 result；
+- Music store newSongs cache/force/error/loading；
+- NewSongCard name/artists/album/unknown artist/select；
+- NewSongSection loading/error/empty/retry/10 条/select；
+- Discover mounted load、独立 retry 与选择提示。
+
+统一门禁：
+
+```text
+bun run check
+14 test files / 48 tests passed
+vue-tsc production + test configs passed
+159 modules transformed
+Vite build passed
+```
+
+主要产物：
+
+```text
+DiscoverView CSS  22.20 kB / gzip 4.16 kB
+DiscoverView JS  111.78 kB / gzip 33.63 kB
+Main JS          151.94 kB / gzip 58.24 kB
+```
+
+依赖未新增；frozen lock 继续通过。`bun audit`：
+
+```text
+No vulnerabilities found (checked 185 packages)
+```
+
+代码知识图谱刷新到 generation：
+
+```text
+2026-08-28T13:42:06Z
+```
+
+本轮 16 个关键路径全部为 `no_recorded_issue`；`src/api`、`src/stores`、`src/components/discover`、`src/views` 和 `docs/migration` scopes 均无记录到的覆盖缺口。该信号由直接源码、48 个测试、TypeScript、构建、HTTP、浏览器和视觉证据交叉验证。
+
+### 8.8 真实浏览器成功与错误闭环
+
+Mock API 同时返回 Banner、10 个歌单和 12 首推荐新歌；Discover 展示前 10 首。
+
+成功验证：
+
+- 三个 endpoint 同时 HTTP 200；
+- 10 个可访问歌曲 button；
+- 多歌手显示 `林间电台 / 特别来宾`；
+- 专辑显示 `晚风来信 · Single`；
+- 点击显示 #3001 typed play intent；
+- Next slices 只剩推荐 MV。
+
+独立错误：
+
+1. 仅 `/personalized/newsong` 切换 HTTP 503；
+2. Banner 与专属歌单继续正常；
+3. 新歌区域显示 `mock new-song unavailable`；
+4. 恢复 200 并点击“重新加载”；
+5. 10 首新歌恢复，无需刷新或重新配置 Host。
+
+模拟 503 时浏览器产生预期网络 error；恢复成功并 reload 后当前 console error/warn/issue 为 `0`。
+
+### 8.9 响应式视觉与 lazy image
+
+Desktop `1440 × 1100`：
+
+- Banner 三卡；
+- Personalized 五列；
+- NewSong 两列五行；
+- 名称、歌手、专辑和“播放待迁移”无重叠。
+
+Mobile `390 × 844`：
+
+- Banner 单卡；
+- Personalized 两列；
+- NewSong 单列；
+- 播放意图 badge 在窄屏隐藏，button aria-label 仍含完整歌曲/歌手；
+- 无横向溢出。
+
+Full-page screenshot 不会自动触发页面下方 lazy images，初始截图中歌曲 cover 为 placeholder。随后滚动 `.new-song-section` 到视口并等待，浏览器验证：
+
+```text
+loaded 10 / total 10
+natural size 480 × 480
+```
+
+再截取当前 viewport 确认所有封面实际渲染。截图：
+
+```text
+/tmp/vue3-music-round6-desktop.png
+/tmp/vue3-music-round6-mobile.png
+/tmp/vue3-music-round6-mobile-newsongs.png
+```
+
+### 8.10 端口与 Preview 边界
+
+预选隔离端口 `3202` 在启动时被并行进程占用。没有终止未知进程，而是让系统选择空闲端口：
+
+```text
+http://127.0.0.1:44639
+```
+
+生产 preview 验证：
+
+```text
+index.html              HTTP 200
+main index-*.js         HTTP 200
+DiscoverView-*.js       HTTP 200
+```
+
+本轮 dev/mock/preview 进程均已停止；外部并行服务未触碰。
+
+### 8.11 停止边界
+
+本轮没有迁移推荐 MV、播放器、song URL/detail、Audio adapter、完整歌单详情、Element Plus 或 Tailwind。下一轮可选择推荐 MV 作为 Discover 最后一块内容切片；随后再以已固化的 typed song intent 为输入，单独迁移播放器状态机。

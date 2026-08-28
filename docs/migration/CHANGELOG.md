@@ -1,5 +1,21 @@
 # 迁移文档变更记录
 
+## 0.9.0 - 2026-08-28
+
+### 实施第 6 轮：推荐新歌可见切片
+
+- 新增 PersonalizedNewSong 最小模型与 `/personalized/newsong` API；
+- 扩展 Music store 的独立 newSongs cache/force/loading/error；
+- 新增 NewSongCard 与 NewSongSection；
+- 支持 loading、error、empty、retry、typed select 和前 10 条限制；
+- 点击显示歌曲 ID/名称播放意图，不提前迁播放器；
+- 14 个测试文件、48 个测试通过；
+- 浏览器验证三路并行加载、新歌独立 503/retry、点击提示和响应式列表；
+- 移动 full-page lazy image 未加载时，滚动到区域确认 10 张 natural image 均已加载；
+- 端口被并行进程抢占时动态选择高位端口，未终止未知进程；
+- typecheck、build、frozen lock、audit 和 preview 通过；
+- 本轮不 commit、不 push。
+
 ## 0.8.0 - 2026-08-28
 
 ### 实施第 5 轮：专属歌单可见切片

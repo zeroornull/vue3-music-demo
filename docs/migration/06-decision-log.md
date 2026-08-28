@@ -102,6 +102,16 @@
 - **数量**：API 可以返回更多结果，但 Discover 显式只展示前 10 个，避免 legacy 原型 `sampleSize()` 带来的随机 UI 和测试不稳定。
 - **数字格式**：新增纯函数 `formatPlayCount`，不恢复 Number prototype 扩展。
 
+### D-015：推荐新歌先固化播放意图，不提前迁 Audio
+
+- **状态**：已验证
+- **决策**：迁移 `/personalized/newsong`、最小 Song/Artist/Album summaries、Music store 独立状态与响应式新歌列表；播放器状态机继续单独后置。
+- **模型**：只保留卡片和未来播放意图需要的 id/name/artists/album/picUrl，不复制 legacy 音质、权限、privilege、alias 等宽泛结构。
+- **交互**：NewSongCard 发出 typed `PersonalizedNewSong`；Discover 记录歌曲 ID/名称并明确播放器待迁移，不伪造 audio play。
+- **状态**：新歌 loading/error/cache/force 与 Banner/Personalized 隔离；单个 endpoint 503 不影响其他区域。
+- **数量**：保留 API 顺序并展示前 10 条；不引入随机重排。
+- **图片**：继续 lazy loading；移动端视觉验证必须滚动到区域并确认 naturalWidth，避免 full-page screenshot 未触发懒加载而误判。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：
@@ -186,6 +196,14 @@ upload、delete 与真实业务 response/error 形态将在对应 API 切片中�
 - store 缓存与 force refresh 已验证；
 - Axios 503 message 已能独立显示并 retry；
 - 真实 API 的字段可空性、登录态差异和推荐排序仍需后续生产数据验证。
+
+### V-005B：Personalized New Song API（本轮已验证）
+
+- `/personalized/newsong` result 必须为数组；
+- store cache/force/error/loading 已验证；
+- 多歌手、无歌手 fallback 和可选 album 已建模；
+- 真实浏览器已验证独立 503/retry 与 typed song selection；
+- 真正播放还需要 song URL/detail、Audio adapter 与播放器状态机，继续后置。
 
 ### V-006：Swiper 14（Banner 切片已验证）
 

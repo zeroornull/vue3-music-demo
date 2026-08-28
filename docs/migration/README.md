@@ -2,7 +2,7 @@
 
 > 文档版本：`0.1.0`<br>
 > 版本快照日期：`2026-08-27`<br>
-> 当前阶段：**实施第 5 轮完成——专属歌单从 API 到响应式网格已闭环**
+> 当前阶段：**实施第 6 轮完成——推荐新歌与 typed play intent 已闭环**
 
 ## 1. 本轮边界
 
@@ -232,7 +232,24 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
-## 12. 主要官方资料
+## 12. 实施第 6 轮结果
+
+- 新增 `/personalized/newsong` API、最小歌曲/歌手/专辑模型；
+- Music store 新歌状态与 Banner/Personalized 完全独立；
+- 新增 NewSongCard 和 NewSongSection；
+- 支持 loading、error、empty、retry、缓存、force、10 条上限；
+- 卡片显示封面、名称、多歌手、专辑和“播放待迁移”边界；
+- 点击发出 typed PersonalizedNewSong，并显示歌曲 ID/名称的播放意图；
+- 模型没有复制 legacy 音质、权限和 privilege 等 `any` 结构；
+- 测试先行从 5 个失败文件收敛到 14 个文件、48 个测试通过；
+- 浏览器验证 Banner/歌单/新歌三路加载、新歌独立 503/retry、点击提示和移动 lazy image；
+- 默认及预选隔离端口均被并行进程抢占时，动态选择空闲高位端口，没有终止未知进程；
+- typecheck、build、frozen lock、audit 和 preview 均通过；
+- 本轮不 commit、不 push。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md)。
+
+## 13. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)
