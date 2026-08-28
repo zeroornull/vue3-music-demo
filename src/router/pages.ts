@@ -2,6 +2,7 @@ export const Pages = {
   discover: 'discover',
   home: 'home',
   migration: 'migration',
+  mvDetail: 'mvDetail',
   notFound: 'notFound',
   playlist: 'playlist',
 } as const

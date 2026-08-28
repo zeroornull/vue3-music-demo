@@ -1,6 +1,6 @@
 # Vue3 Music
 
-Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳与第一批基础设施迁移；旧工程完整保存在 [`legacy/`](./legacy/)。
+Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳、Host/HTTP/Router 基础设施，以及 Discover 的 Banner、专属歌单、推荐新歌和推荐 MV。旧工程完整保存在 [`legacy/`](./legacy/)。
 
 ## 当前阶段
 
@@ -10,9 +10,10 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 4 轮：Discover Banner、Swiper 14、组件测试与响应式视觉验证——已完成；
 - 实施第 5 轮：Personalized API、专属歌单网格与 playlist 路由契约——已完成；
 - 实施第 6 轮：推荐新歌 API、独立状态、响应式歌曲列表与 typed play intent——已完成；
-- 后续轮次：推荐 MV、播放器、完整歌单详情与完整 UI 按功能切片迁移。
+- 实施第 7 轮：推荐 MV API、Video store、响应式 MV 网格与 mvDetail 路由——代码已落地，尚未 commit；
+- 后续轮次：播放器最小闭环，再迁完整歌单/MV 详情与应用壳。
 
-完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
+当前进度总览：[`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 
 ## 环境
 
@@ -54,7 +55,7 @@ bun run preview
 
 ```text
 .
-├── docs/migration/  # 迁移和学习文档
+├── docs/migration/  # 迁移文档；当前进度见 08-progress.md
 ├── legacy/          # 旧工程，只作为迁移参考
 ├── public/          # 新工程公共资源
 ├── src/             # 新工程源码

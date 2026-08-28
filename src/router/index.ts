@@ -50,6 +50,16 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/mvDetail',
+    name: Pages.mvDetail,
+    component: () => import('@/views/MvPlaceholderView.vue'),
+    meta: {
+      menu: 'discover',
+      requiresApiHost: true,
+      title: 'MV 详情',
+    },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: Pages.notFound,
     component: () => import('@/views/NotFoundView.vue'),

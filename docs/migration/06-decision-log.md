@@ -112,6 +112,33 @@
 - **数量**：保留 API 顺序并展示前 10 条；不引入随机重排。
 - **图片**：继续 lazy loading；移动端视觉验证必须滚动到区域并确认 naturalWidth，避免 full-page screenshot 未触发懒加载而误判。
 
+### D-016：推荐 MV 完成 Discover 内容层，播放继续后置
+
+- **状态**：已验证
+- **决策**：迁移 `/personalized/mv`、最小 MV/Artist 模型、独立 Video store、MvCard/Section 与 `mvDetail?id=` 路由边界。
+- **模型**：移除 legacy `trackNumberUpdateTime?: any`，仅保留 ID、名称、封面、时长、播放量、艺人、推荐元数据。
+- **展示**：固定 16:9、播放量、mm:ss 时长、名称和艺人；最多展示前 8 个。
+- **路由**：保留 legacy route name `mvDetail` 和 query `id`；真实 MV URL/player 尚未迁移时展示边界页。
+- **Store**：Video store 与 Common/Music stores 完全隔离，MV 503 不影响 Banner、歌单或新歌。
+- **完成信号**：Discover 的 Banner、Personalized playlists、Personalized new songs、Personalized MV 四块主要 legacy 内容均已形成现代闭环，下一阶段可转向播放器。
+
+### D-017：Discover 内容层优先于应用壳
+
+- **状态**：已执行偏离，纳入后续约束
+- **日期**：2026-08-28
+- **旧决策**：P4 推荐顺序为 Host/应用壳 → 导航菜单 → Discover → 音乐馆 → 详情 → 搜索 → 播放器 → 视频。
+- **新决策**：在没有 Header、Menu、Footer、Root、Element Plus 和 Tailwind 的前提下，先完成 Discover 四个内容模块；下一轮优先播放器最小闭环，而不是补壳或铺音乐馆。
+- **触发证据**：第 3 轮只做了 Host gate；第 4–7 轮连续做 Banner/歌单/新歌/MV，是为了把 API→store→UI 和 error isolation 变成可复用模式，避免过早引入样式主版本。
+- **影响阶段**：P3 的“主题/自动组件”和 P4 的 1、2 项后置；P4 的播放器提前。
+- **回退方式**：不回退已完成的 Discover 切片；应用壳可在播放器 footer 落地后单独补，或与 footer 同轮最小拼装。
+
+### D-018：测试与实现同目录
+
+- **状态**：已验证
+- **决策**：不创建顶层 `tests/`。单元和组件测试文件紧邻实现，例如 `src/api/mv.ts` 配 `src/api/mv.test.ts`。
+- **原因**：当前切片边界就是模块边界；同目录更容易在测试先行时发现“文件尚不存在”的失败。
+- **例外**：E2E 若引入 Playwright，再单独建目录，不与 Vitest 文件混放。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：
@@ -205,6 +232,12 @@ upload、delete 与真实业务 response/error 形态将在对应 API 切片中�
 - 真实浏览器已验证独立 503/retry 与 typed song selection；
 - 真正播放还需要 song URL/detail、Audio adapter 与播放器状态机，继续后置。
 
+### V-005C：Personalized MV API（本轮已验证）
+
+- `/personalized/mv` result array、store cache/force/error/loading 已验证；
+- 播放量、duration、artist fallback、8 卡上限和 `mvDetail?id=` 路由已验证；
+- 真实 MV URL、视频元素生命周期、播放错误和详情 API 继续后置。
+
 ### V-006：Swiper 14（Banner 切片已验证）
 
 第 4 轮已确认：
@@ -240,7 +273,11 @@ upload、delete 与真实业务 response/error 形态将在对应 API 切片中�
 
 ### V-010：质量工具范围
 
-第 3 轮纳入 Vitest；第 4 轮纳入 Vue Test Utils `2.5.0` 与 happy-dom `20.11.12`。Oxlint、formatter 和 E2E 仍是后续候选，只有在对应质量门禁需要时才添加。
+第 3 轮纳入 Vitest；第 4 轮纳入 Vue Test Utils `2.5.0` 与 happy-dom `20.11.12`。测试文件与实现同目录（D-018）。Oxlint、formatter 和 E2E 仍是后续候选，只有在对应质量门禁需要时才添加。
+
+### V-011：数字格式纯函数单测
+
+`formatPlayCount` 与 `formatDuration` 已由 PlaylistCard / MvCard 组件测试间接覆盖，尚无 `src/utils/number.test.ts`。不阻塞播放器轮次；补测时应覆盖 0、负数、非有限值、万/亿分界和毫秒进位。
 
 ## 4. 决策变更规则
 

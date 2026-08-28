@@ -15,9 +15,9 @@
 
 “依赖已升级”“页面看起来正常”“TypeScript 已完成”都不能只根据文件内容判断。
 
-## 2. 当前文档阶段的验证边界
+## 2. 文档第 1 轮的验证边界（历史）
 
-本轮已确认：
+当时已确认：
 
 - 仓库根目录和 Git 工作区；
 - Bun、Node、npm 是否存在及版本；
@@ -41,7 +41,21 @@
 - 在线演示是否仍与源码一致；
 - 最新依赖组合在本项目中的真实运行结果。
 
-这些是下一轮/实施阶段必须补齐的验证项，不应被写成已知成功。
+这些在文档第 1 轮不应被写成已知成功。实施后的当前门禁结果见 [08-progress.md](./08-progress.md) 第 3 节。
+
+### 2.1 2026-08-28 已落地的验证
+
+| 门禁 | 状态 |
+| --- | --- |
+| `bun run test` | 18 文件 / 59 测试通过 |
+| `vue-tsc` production + vitest configs | 通过 |
+| `bun run build` → `dist/` | 170 modules，不写入 `docs/` |
+| `bun install --frozen-lockfile --dry-run` | 通过 |
+| `bun audit` | 185 packages，无漏洞 |
+| Host / Banner / 歌单 / 新歌 / MV 浏览器 mock | 第 3–7 轮已做；截图在 `/tmp` |
+| 旧工程在当前环境安装启动 | 未做（V-001） |
+| 播放器 / 音乐馆 / 搜索 / Tailwind 视觉 | 未做 |
+| lint / E2E / CI | 未纳入 |
 
 ## 3. 实施后的统一门禁
 
@@ -138,7 +152,7 @@ bun ci
 | 模块 | 必测行为 |
 | --- | --- |
 | collection utils | 空数组、首尾元素、随机取样数量、chunk 边界 |
-| number/date utils | 0、负数、大数、无效时间戳、格式参数 |
+| number/date utils | 0、负数、大数、无效时间戳、格式参数。`formatPlayCount` / `formatDuration` 目前仅被卡片测试间接覆盖（V-011） |
 | host store | 保存、读取、更新、无效 host |
 | HTTP client | baseURL、时间戳参数、超时、credentials、错误收窄 |
 | Router | name/path 对应、redirect、meta、未知路由 |

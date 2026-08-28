@@ -1,5 +1,35 @@
 # 迁移文档变更记录
 
+## 0.11.0 - 2026-08-28
+
+### 进度盘点与文档对齐
+
+- 新增 [08-progress.md](./08-progress.md) 作为后续轮次入口；
+- 补齐 [07-implementation-log.md](./07-implementation-log.md) 实施第 7 轮（此前 CHANGELOG 0.10.0 已写、日志漏记）；
+- 明确 01 为迁移前快照，08 为当前状态；
+- 记录 P4 实际顺序偏离：Discover 内容层优先于应用壳（D-017）；
+- 记录测试与实现同目录（D-018）；
+- 复核未提交第 7 轮工作区：18 文件 / 59 测试、typecheck、170 modules build、frozen lock、audit 通过；
+- 浏览器证据沿用 `/tmp` 第 7 轮截图，本轮未重跑 DevTools；
+- 建议下一轮为播放器最小闭环；
+- 本轮不 commit、不 push。
+
+## 0.10.0 - 2026-08-28
+
+### 实施第 7 轮：推荐 MV 可见切片
+
+- 新增 PersonalizedMv 最小模型与 `/personalized/mv` API；
+- 新增独立 Video Pinia store；
+- 新增 MvCard/MvSection 与 16:9 响应式网格；
+- 支持 loading/error/empty/retry、播放量、时长、艺人和 8 卡上限；
+- 保留 `mvDetail?id=` 路由并增加详情播放边界页；
+- 18 个测试文件、59 个测试通过；
+- 浏览器验证 MV 独立 503/retry、详情路由和 desktop/mobile lazy image；
+- mock 脚本语法错误仅发生在 `/tmp` 并已修复；
+- 动态端口隔离，未终止并行服务；
+- typecheck、build、frozen lock、audit 和 preview 通过；
+- 本轮不 commit、不 push。
+
 ## 0.9.0 - 2026-08-28
 
 ### 实施第 6 轮：推荐新歌可见切片

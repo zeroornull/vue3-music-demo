@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import BannerCarousel from '@/components/discover/BannerCarousel.vue'
+import MvSection from '@/components/discover/MvSection.vue'
 import NewSongSection from '@/components/discover/NewSongSection.vue'
 import PersonalizedSection from '@/components/discover/PersonalizedSection.vue'
 import type { Banner } from '@/models/banner'
@@ -11,10 +12,12 @@ import { Pages } from '@/router/pages'
 import { useCommonStore } from '@/stores/common'
 import { useHostStore } from '@/stores/host'
 import { useMusicStore } from '@/stores/music'
+import { useVideoStore } from '@/stores/video'
 
 const commonStore = useCommonStore()
 const hostStore = useHostStore()
 const musicStore = useMusicStore()
+const videoStore = useVideoStore()
 const { banners, error, loading } = storeToRefs(commonStore)
 const {
   newSongs,
@@ -24,6 +27,7 @@ const {
   personalizedError,
   personalizedLoading,
 } = storeToRefs(musicStore)
+const { mvs, mvsError, mvsLoading } = storeToRefs(videoStore)
 const notice = ref<string | null>(null)
 
 function requestBanners(force = false) {
@@ -51,10 +55,15 @@ function selectNewSong(item: PersonalizedNewSong) {
   notice.value = `歌曲“${songName}” #${songId} 的播放意图已记录，播放器将在后续轮次接入。`
 }
 
+function requestMvs(force = false) {
+  void videoStore.loadMvs(force).catch(() => undefined)
+}
+
 onMounted(() => {
   requestBanners()
   requestPersonalized()
   requestNewSongs()
+  requestMvs()
 })
 </script>
 
@@ -97,13 +106,15 @@ onMounted(() => {
       @select="selectNewSong"
     />
 
+    <MvSection :mvs="mvs" :error="mvsError" :loading="mvsLoading" @retry="requestMvs(true)" />
+
     <section class="next-slices" aria-labelledby="next-slices-title">
       <div>
         <p class="eyebrow">Next slices</p>
         <h2 id="next-slices-title">推荐页仍在渐进迁移</h2>
       </div>
       <ul>
-        <li>推荐 MV</li>
+        <li>播放器</li>
       </ul>
     </section>
   </main>

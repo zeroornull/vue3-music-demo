@@ -1,11 +1,12 @@
 # 01. 当前工程审计
 
 > 审计日期：`2026-08-27`<br>
-> 证据范围：仓库源码、配置文件、锁文件、npm registry 元数据和官方文档。
+> 证据范围：当时仓库源码、配置文件、锁文件、npm registry 元数据和官方文档。<br>
+> 时态：**迁移前快照**。当前根工程状态以 [08-progress.md](./08-progress.md) 为准，不要用本文的 `src/`、`docs/` 职责和“没有测试”描述新工程。
 
 ## 1. 摘要
 
-当前工程是一个 2022 年左右技术栈的 Vue 3 + TypeScript 音乐播放器。工程已经具备 Composition API、`<script setup>`、Pinia、Vue Router、Vite、Element Plus、Tailwind CSS 和按路由懒加载等基础，但依赖版本跨度大、缺少自动测试和 lint 门禁，类型系统存在较多宽泛边界。
+当时工程是一个 2022 年左右技术栈的 Vue 3 + TypeScript 音乐播放器。工程已经具备 Composition API、`<script setup>`、Pinia、Vue Router、Vite、Element Plus、Tailwind CSS 和按路由懒加载等基础，但依赖版本跨度大、缺少自动测试和 lint 门禁，类型系统存在较多宽泛边界。
 
 迁移风险主要来自以下四类变化：
 

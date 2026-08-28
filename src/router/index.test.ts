@@ -44,4 +44,13 @@ describe('router contract', () => {
     expect(route.query.id).toBe('101')
     expect(route.meta.title).toBe('歌单详情')
   })
+
+  it('preserves the legacy MV detail route name and query id', () => {
+    const router = createAppRouter(createMemoryHistory())
+    const route = router.resolve({ name: Pages.mvDetail, query: { id: 701 } })
+
+    expect(route.path).toBe('/mvDetail')
+    expect(route.query.id).toBe('701')
+    expect(route.meta.title).toBe('MV 详情')
+  })
 })

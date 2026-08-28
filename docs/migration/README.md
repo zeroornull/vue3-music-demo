@@ -1,20 +1,14 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.1.0`<br>
-> 版本快照日期：`2026-08-27`<br>
-> 当前阶段：**实施第 6 轮完成——推荐新歌与 typed play intent 已闭环**
+> 文档版本：`0.11.0`<br>
+> 版本快照日期：`2026-08-28`<br>
+> 当前阶段：**实施第 7 轮代码已落地（未 commit）；Discover 内容层闭环；下一轮播放器**
 
-## 1. 本轮边界
+先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
-本轮只编写文档，不执行工程迁移：
+## 1. 文档定位
 
-- 不移动现有源码；
-- 不创建 `legacy/`；
-- 不安装或升级依赖；
-- 不生成 `bun.lock`；
-- 不修改业务代码和构建配置；
-- 不运行可能清空 `docs/` 的构建命令；
-- 不创建 Git commit。
+这套目录同时包含**迁移前快照**和**实施后活记录**。文档第 1 轮的“只写文档、不改代码”已经结束，不再适用于当前工作区。
 
 后续文档和实现中的 `/legacy`，统一解释为**仓库根目录下的 `legacy/`**，即：
 
@@ -38,9 +32,11 @@
 
 ## 3. 第一轮盘点得到的关键结论
 
+以下结论描述 **2026-08-27 迁移前** 的仓库，不是当前根工程。当前状态见 [08-progress.md](./08-progress.md)。
+
 ### 3.1 项目已经使用 TypeScript
 
-当前项目并不是纯 JavaScript 项目：
+当时项目并不是纯 JavaScript 项目：
 
 - `src/` 中有 35 个 `.ts` 文件；
 - 有 50 个 Vue SFC，全部声明了 `<script setup lang="ts">`；
@@ -49,9 +45,9 @@
 
 因此，本次 TypeScript 工作应定义为**TypeScript 严格化与边界治理**，而不是形式上的“JS 转 TS”。
 
-### 3.2 `docs/` 当前是构建输出目录
+### 3.2 当时 `docs/` 是构建输出目录
 
-`vite.config.ts` 当前配置了：
+当时 `vite.config.ts` 配置了：
 
 ```ts
 build: {
@@ -77,20 +73,21 @@ build: {
 
 ## 4. 文档导航
 
-| 文档 | 内容 | 状态 |
+| 文档 | 内容 | 时态 |
 | --- | --- | --- |
-| [01-current-state-audit.md](./01-current-state-audit.md) | 当前工程、依赖、架构、TypeScript 债务和风险 | 已完成 |
-| [02-target-stack.md](./02-target-stack.md) | 目标技术栈、版本快照、删减项和版本策略 | 已完成 |
-| [03-migration-roadmap.md](./03-migration-roadmap.md) | `legacy/` 搬迁、新根工程和分阶段迁移路线 | 已完成 |
-| [04-learning-guide.md](./04-learning-guide.md) | Bun、Vue、TypeScript、Vite 等学习路线 | 已完成 |
-| [05-verification.md](./05-verification.md) | 类型、测试、构建、浏览器和依赖验收 | 已完成 |
-| [06-decision-log.md](./06-decision-log.md) | 已确定决策、默认假设和待验证事项 | 已完成 |
-| [07-implementation-log.md](./07-implementation-log.md) | 实施阶段的实际操作、证据、结果和剩余边界 | 持续更新 |
-| [CHANGELOG.md](./CHANGELOG.md) | 多轮文档更新记录 | 持续更新 |
+| [08-progress.md](./08-progress.md) | **当前进度总览、路线图对照、下一轮建议** | 活文档 |
+| [01-current-state-audit.md](./01-current-state-audit.md) | 迁移前工程、依赖、架构和风险 | 2026-08-27 快照 |
+| [02-target-stack.md](./02-target-stack.md) | 目标技术栈、版本快照和兼容性固定 | 目标 + 已验证回退 |
+| [03-migration-roadmap.md](./03-migration-roadmap.md) | `legacy/` 搬迁和分阶段路线；P4 顺序已被 D-017 修正 | 计划 |
+| [04-learning-guide.md](./04-learning-guide.md) | Bun、Vue、TypeScript、Vite 学习路线 | 学习材料 |
+| [05-verification.md](./05-verification.md) | 类型、测试、构建、浏览器和依赖验收矩阵 | 全量方案 |
+| [06-decision-log.md](./06-decision-log.md) | 已确定决策、默认假设和待验证事项 | 只追加 |
+| [07-implementation-log.md](./07-implementation-log.md) | 实施阶段的实际操作、证据、结果和剩余边界 | 只追加 |
+| [CHANGELOG.md](./CHANGELOG.md) | 多轮文档更新记录 | 只追加 |
 
 ## 5. 文档轮次
 
-### 第 1 轮：基线与路线（本轮）
+### 第 1 轮：基线与路线（已完成）
 
 - 记录现状证据；
 - 给出目标版本快照；
@@ -98,22 +95,19 @@ build: {
 - 定义实现阶段、学习路径和验收门禁；
 - 明确仍需通过实际安装或测试确认的事项。
 
-### 第 2 轮：依赖专项与最终执行清单
+### 第 2 轮：依赖专项与最终执行清单（未单独成文）
 
-在开始改代码前，补充或修订：
+原计划在改代码前补一份依赖专项。实际做法是：每实施轮次在 07 日志里记录真实安装版本和破坏性变更，不再另写一份未经验证的草案。仍未单独成文、且尚未实施的专项：
 
-- Vue Router 4 → 5；
-- Pinia 2 → 4；
-- Axios 0.x → 1.x；
-- Swiper 8 → 14；
 - Tailwind CSS 3 → 4；
-- Vite 2 → 8 / Rolldown；
-- 最终 `package.json`、`tsconfig` 和 Vite 配置草案；
-- 旧功能的可观察行为基线。
+- Element Plus 2.14；
+- 旧工程可观察运行基线（V-001）。
 
-### 第 3 轮：实施日志
+已在实施中验证：Vue Router 5、Pinia 4、Axios 1、Swiper 14、Vite 8。
 
-迁移执行时逐阶段记录：
+### 第 3 轮：实施日志（进行中）
+
+迁移执行时逐阶段记录，见 [07-implementation-log.md](./07-implementation-log.md)：
 
 - 实际命令；
 - 实际解析版本；
@@ -123,7 +117,7 @@ build: {
 - 回退和修复记录；
 - 每阶段验证证据。
 
-### 第 4 轮：学习总结与维护手册
+### 第 4 轮：学习总结与维护手册（未开始）
 
 迁移完成后沉淀：
 
@@ -249,7 +243,23 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
-## 13. 主要官方资料
+## 13. 实施第 7 轮结果
+
+- 新增 `/personalized/mv` API、最小 MV/Artist 模型和独立 Video store；
+- 新增 MvCard/MvSection，支持 16:9、播放量、时长、艺人、loading/error/empty/retry 和 8 卡上限；
+- 保留 legacy `mvDetail?id=` route name/query，完整播放前使用明确边界页；
+- 新增 `formatDuration` 纯函数，不恢复 prototype 扩展；
+- Discover 四个主要 legacy 模块 Banner/歌单/新歌/MV 全部成为现代 API→store→UI 链路；
+- 测试先行从 6 个失败文件收敛到 18 个文件、59 个测试通过；
+- 浏览器验证 MV 独立 503/retry、详情路由、8 卡上限、16:9 lazy image 和桌面/移动视觉；
+- mock 脚本首次语法错误在 `/tmp` 修复，不影响仓库；
+- 动态选择空闲端口，未终止并行服务；
+- typecheck、build、frozen lock、audit 和 preview 均通过；
+- 本轮不 commit、不 push。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md)。
+
+## 14. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

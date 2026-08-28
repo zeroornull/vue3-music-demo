@@ -1504,3 +1504,223 @@ DiscoverView-*.js       HTTP 200
 ### 8.11 停止边界
 
 本轮没有迁移推荐 MV、播放器、song URL/detail、Audio adapter、完整歌单详情、Element Plus 或 Tailwind。下一轮可选择推荐 MV 作为 Discover 最后一块内容切片；随后再以已固化的 typed song intent 为输入，单独迁移播放器状态机。
+
+## 9. 实施第 7 轮：推荐 MV 可见切片
+
+> 执行日期：`2026-08-28`<br>
+> 状态：**代码已落地并通过测试、typecheck、build 与浏览器截图证据；工作区尚未 commit**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+本节在文档 0.11.0 对齐时补写。第 7 轮源码、测试、CHANGELOG 0.10.0 和 `/tmp` 验证产物当时已经存在，但本实施日志漏记。下面同时收录当时留下的浏览器证据，以及 2026-08-28 文档对齐时对未提交工作区的复核结果。
+
+### 9.1 开始边界与 legacy 证据
+
+第 7 轮开始时第 6 轮已推送：
+
+```text
+HEAD 46bfa4341f187c21d0805a6498b56566c7b0acbb
+master...origin/master
+```
+
+legacy 证据：
+
+- Discover 实际渲染 Banner、Personalized、PersonalizedNewSong、Mv；`DjProgram.vue` 存在但未被 Discover 引用；
+- `GET /personalized/mv` 返回 `{ result: PersonalizedMv[] }`；
+- Video store 对 `personalizedMv` 做非空缓存；
+- 卡片使用 16:9 封面、播放量、名称、`artistName`；
+- 点击 `router.push({ name: mvDetail, query: { id } })`；
+- legacy `PersonalizedMv` 含 `trackNumberUpdateTime?: any`，本轮不复制。
+
+### 9.2 测试先行
+
+实现前新增：
+
+```text
+src/api/mv.test.ts
+src/stores/video.test.ts
+src/components/discover/MvCard.test.ts
+src/components/discover/MvSection.test.ts
+```
+
+并扩展 Discover 与 Router 测试。CHANGELOG 0.10.0 记录首次运行：
+
+```text
+Test Files  6 failed
+```
+
+失败原因均为目标模块尚不存在：MV API/model、Video store、MvCard、MvSection、Discover 接入和 `mvDetail?id=` 路由。随后没有削弱这些契约。
+
+### 9.3 最小模型、API 与 Video store
+
+新增 `PersonalizedMv` / `MvArtistSummary`，字段仅限当前卡片和路由使用：
+
+```text
+id/type/name/copywriter/picUrl/canDislike
+duration/playCount/subed/artists/artistName/artistId/alg
+```
+
+没有迁移 `trackNumberUpdateTime?: any`，也没有迁 MV URL、清晰度或 `<video>` 生命周期。
+
+API：
+
+```text
+GET /personalized/mv
+```
+
+`response.result` 必须为数组，否则抛出：
+
+```text
+推荐 MV 响应格式不正确
+```
+
+独立 Video store：
+
+```text
+mvs
+mvsLoading
+mvsError
+loadMvs(force?)
+```
+
+行为与 Music store 相同但状态隔离：首次请求、非空缓存、force refresh、并发保护、错误消息与 finally loading 恢复。MV 失败不影响 Banner、歌单或新歌。
+
+### 9.4 MvCard、MvSection 与时长格式
+
+MvCard：
+
+- semantic `article` + `RouterLink`；
+- route name `mvDetail`，query `{ id: mv.id }`；
+- 16:9 lazy image；
+- `formatPlayCount` 播放量；
+- `formatDuration` 毫秒 → `mm:ss`；
+- 艺人 fallback：`artistName` → `artists` 连接 → “未知艺人”。
+
+新增纯函数：
+
+```text
+formatDuration(238_000) → 03:58
+```
+
+没有恢复 Number prototype 扩展。`formatPlayCount` / `formatDuration` 目前没有专用 `number.test.ts`，由 MvCard 组件测试间接覆盖；记入进度缺口，不在本轮补测试。
+
+MvSection：
+
+- loading：4 个 skeleton；
+- error：alert + retry；
+- empty：暂无推荐 MV；
+- data：desktop 四列、窄屏两列、移动单列；
+- API 可返回更多，页面按顺序展示前 8 个。
+
+### 9.5 MV 路由边界
+
+新增：
+
+```text
+/mvDetail
+name: mvDetail
+query: id
+title: MV 详情
+```
+
+完整播放尚未迁移，因此 `MvPlaceholderView` 明确显示：
+
+```text
+MV 详情与播放将在后续轮次迁移
+当前选择的 MV ID 为 701
+```
+
+Discover 的 Next slices 只保留“播放器”。
+
+### 9.6 自动验证（文档对齐时复核未提交工作区）
+
+```text
+Test Files  18 passed (18)
+Tests      59 passed (59)
+```
+
+新增覆盖：
+
+- MV API 解包和非法 result；
+- Video store cache/force/error/loading；
+- MvCard 播放量、时长、艺人、`mvDetail?id=`；
+- MvSection loading/error/empty/retry/8 卡上限；
+- Discover 独立 MV retry；
+- Router `mvDetail` name/query/meta。
+
+类型检查：
+
+```text
+vue-tsc --build --force
+vue-tsc -p tsconfig.vitest.json --noEmit
+PASS
+```
+
+构建：
+
+```text
+170 modules transformed
+dist/assets/DiscoverView-*.css              25.78 kB / gzip 4.47 kB
+dist/assets/DiscoverView-*.js              114.84 kB / gzip 34.19 kB
+dist/assets/MvPlaceholderView-*.js           0.91 kB / gzip 0.66 kB
+dist/assets/index-*.js                     152.22 kB / gzip 58.31 kB
+```
+
+```text
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+```
+
+依赖未新增。`docs/migration/` 在 build 后仍完整。
+
+### 9.7 当时留下的浏览器与 mock 证据
+
+第 7 轮实施时的临时产物（不进仓库）：
+
+```text
+/tmp/vue3-music-round7-mock.ts
+/tmp/vue3-music-round7-port          → 45365
+/tmp/vue3-music-round7-desktop.png
+/tmp/vue3-music-round7-mobile-mv.png
+/tmp/vue3-music-round7-frozen.txt
+```
+
+Mock API 返回 4 个 Banner、10 个歌单、10 首新歌、10 个 MV；可通过 `/control/mv?fail=1` 单独让 `/personalized/mv` 返回 503。开发服务动态端口：
+
+```text
+http://127.0.0.1:45365
+```
+
+没有终止并行占用 3002 的进程。CHANGELOG 0.10.0 记录 mock 脚本曾在 `/tmp` 出现语法错误并已就地修复，仓库不受影响。
+
+桌面截图 `1440` 宽：
+
+- Banner 三卡；
+- Personalized 五列两行、10 张；
+- NewSong 两列五行、10 首；
+- MV 四列两行、8 张；
+- 播放量与 `mm:ss` 叠在 16:9 封面上；
+- Next slices 仅“播放器”。
+
+移动截图只保存了 MV 区域 viewport，不是完整首页：
+
+- 单列 16:9；
+- 第一张 `晚风来信 · Live` / `328 万` / `03:18`；
+- lazy image 在滚动到区域后加载（与第 6 轮相同约束）。
+
+文档对齐时没有重跑浏览器闭环；浏览器结论以上述截图和 CHANGELOG 0.10.0 为准。若截图已从 `/tmp` 清理，需要在下一轮开始前按 [05-verification.md](./05-verification.md) 重做 smoke。
+
+### 9.8 停止边界
+
+本轮完成 Discover 内容层。没有迁移：
+
+- 播放器 / song URL / Audio；
+- 完整歌单详情；
+- MV URL 与 `<video>`；
+- Header / Menu / Footer / Root；
+- Element Plus、Tailwind、Sass。
+
+工作区在文档对齐结束时仍包含第 7 轮源码与部分文档的未提交变更。下一轮建议见 [08-progress.md](./08-progress.md)：播放器最小闭环。

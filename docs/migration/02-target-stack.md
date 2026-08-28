@@ -1,7 +1,8 @@
 # 02. 目标技术栈与版本策略
 
 > 版本查询日期：`2026-08-27`<br>
-> 数据来源：npm registry 的 `latest` dist-tag、包的 engines/peerDependencies 和官方迁移文档。
+> 数据来源：npm registry 的 `latest` dist-tag、包的 engines/peerDependencies 和官方迁移文档。<br>
+> 已安装版本以根 `package.json` / `bun.lock` 和 [08-progress.md](./08-progress.md) 为准。
 
 ## 1. 版本选择原则
 
@@ -152,7 +153,7 @@ vue3-music/
 │   ├── yarn.lock
 │   └── ...
 ├── public/
-├── src/                    # 新工程源码
+├── src/                    # 新工程源码；Vitest 文件与实现同目录（D-018）
 │   ├── api/
 │   ├── assets/
 │   ├── components/
@@ -161,7 +162,6 @@ vue3-music/
 │   ├── stores/
 │   ├── utils/
 │   └── views/
-├── tests/                  # 若质量工具范围获确认
 ├── dist/                   # 构建产物，不跟踪
 ├── bun.lock
 ├── package.json

@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getBanners } from '@/api/banner'
 import { getPersonalizedPlaylists } from '@/api/personalized'
 import { getPersonalizedNewSongs } from '@/api/newSong'
+import { getPersonalizedMvs } from '@/api/mv'
 import type { Banner } from '@/models/banner'
 import DiscoverView from '@/views/DiscoverView.vue'
 
@@ -19,6 +20,9 @@ vi.mock('@/api/personalized', () => ({
 }))
 vi.mock('@/api/newSong', () => ({
   getPersonalizedNewSongs: vi.fn(),
+}))
+vi.mock('@/api/mv', () => ({
+  getPersonalizedMvs: vi.fn(),
 }))
 
 const banner: Banner = {
@@ -81,6 +85,23 @@ const NewSongSectionStub = defineComponent({
   `,
 })
 
+const MvSectionStub = defineComponent({
+  name: 'MvSection',
+  props: {
+    error: { type: String, default: null },
+    loading: { type: Boolean, required: true },
+    mvs: { type: Array, required: true },
+  },
+  emits: ['retry'],
+  template: `
+    <section data-testid="mv-stub">
+      <span data-testid="mv-count">{{ mvs.length }}</span>
+      <span v-if="error" data-testid="mv-error">{{ error }}</span>
+      <button data-testid="mv-retry" @click="$emit('retry')">retry</button>
+    </section>
+  `,
+})
+
 function mountView() {
   return mount(DiscoverView, {
     global: {
@@ -88,6 +109,7 @@ function mountView() {
       stubs: {
         BannerCarousel: BannerCarouselStub,
         NewSongSection: NewSongSectionStub,
+        MvSection: MvSectionStub,
         PersonalizedSection: PersonalizedSectionStub,
         RouterLink: defineComponent({ template: '<a><slot /></a>' }),
       },
@@ -102,6 +124,8 @@ describe('DiscoverView', () => {
     vi.mocked(getPersonalizedPlaylists).mockResolvedValue([])
     vi.mocked(getPersonalizedNewSongs).mockReset()
     vi.mocked(getPersonalizedNewSongs).mockResolvedValue([])
+    vi.mocked(getPersonalizedMvs).mockReset()
+    vi.mocked(getPersonalizedMvs).mockResolvedValue([])
   })
 
   it('loads banners when mounted', async () => {
@@ -192,5 +216,38 @@ describe('DiscoverView', () => {
 
     await wrapper.get('[data-testid="new-song-select"]').trigger('click')
     expect(wrapper.get('[role="status"]').text()).toContain('歌曲“晚风来信” #301')
+  })
+
+  it('loads and retries MVs independently', async () => {
+    vi.mocked(getBanners).mockResolvedValue([])
+    vi.mocked(getPersonalizedMvs)
+      .mockRejectedValueOnce(new Error('mv offline'))
+      .mockResolvedValueOnce([
+        {
+          alg: 'featured',
+          artistId: 401,
+          artistName: '林间电台',
+          artists: [{ id: 401, name: '林间电台' }],
+          canDislike: false,
+          copywriter: '热门推荐',
+          duration: 238_000,
+          id: 701,
+          name: '晚风来信 · Live',
+          picUrl: 'https://images.example.com/mv.jpg',
+          playCount: 3_280_000,
+          subed: false,
+          type: 1,
+        },
+      ])
+
+    const wrapper = mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="mv-error"]').text()).toBe('mv offline')
+
+    await wrapper.get('[data-testid="mv-retry"]').trigger('click')
+    await flushPromises()
+
+    expect(getPersonalizedMvs).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="mv-count"]').text()).toBe('1')
   })
 })

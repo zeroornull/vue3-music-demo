@@ -1,5 +1,11 @@
 # 04. 迁移学习指南
 
+> 本文是学习材料，练习题不随实施轮次改写。已完成的实践对照见 [08-progress.md](./08-progress.md)。
+>
+> 已经实际演练：Bun 工作流、Vite 8 空壳、TypeScript 6 固定、Router 5 meta、Pinia setup store、Axios 1 client、Swiper 14、Vue Test Utils 组件状态、Discover 四路独立 loading/error。
+>
+> 尚未演练：播放器副作用与 Audio adapter、Tailwind 4、Element Plus、CI/`bun ci` 发布。
+
 ## 1. 学习目标
 
 完成迁移后，应能回答并实际演示：
