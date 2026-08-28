@@ -14,7 +14,7 @@ const { apiHost } = storeToRefs(hostStore)
       <h1 id="shell-title">基础设施切片已连接</h1>
       <p class="summary">
         API Host、Axios client、Router meta 与 Pinia 基础 store 已迁移。旧应用仍完整保存在
-        <code>legacy/</code>，下一轮将继续迁移业务 API 和页面切片。
+        <code>legacy/</code>，Discover Banner 切片已经可以在浏览器中访问。
       </p>
 
       <dl class="stack">
@@ -38,7 +38,10 @@ const { apiHost } = storeToRefs(hostStore)
 
       <div class="counter" aria-live="polite">
         <span>当前 API：<code>{{ apiHost }}</code></span>
-        <button type="button" @click="hostStore.clearHost">重新配置</button>
+        <div class="actions">
+          <RouterLink :to="{ name: 'discover' }">查看推荐页</RouterLink>
+          <button type="button" @click="hostStore.clearHost">重新配置</button>
+        </div>
       </div>
     </section>
   </main>
@@ -125,6 +128,17 @@ dd {
   padding-top: 24px;
   border-top: 1px solid #e4eaf2;
   color: #435169;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.actions a {
+  color: #087c62;
+  font-weight: 700;
 }
 
 button {

@@ -2,7 +2,7 @@
 
 > 文档版本：`0.1.0`<br>
 > 版本快照日期：`2026-08-27`<br>
-> 当前阶段：**实施第 3 轮完成——Host、Axios、Router meta 与基础 Pinia store 已验证**
+> 当前阶段：**实施第 4 轮完成——Discover Banner、Swiper 14 与组件/视觉验证已闭环**
 
 ## 1. 本轮边界
 
@@ -199,7 +199,23 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
-## 10. 主要官方资料
+## 10. 实施第 4 轮结果
+
+- 根路由现在跳转到真实 `#/discover` 推荐页；
+- 新增 Discover 页面、BannerCarousel 和迁移状态路由；
+- 升级到 Swiper `14.2.0`，使用官方 `swiper/vue`、core CSS、Pagination、Keyboard 与 A11y modules；
+- Banner 组件具备 loading、error、empty、retry 和 select 状态；
+- Banner 点击保留 typed 选择语义，对尚未迁移的播放器/详情给出明确状态提示；
+- 新增 Vue Test Utils `2.5.0` 和 happy-dom `20.11.12`；
+- 测试从测试先行的 3 个失败文件收敛到 7 个文件、25 个测试通过；
+- 真实浏览器验证成功数据、503 错误、重试、Swiper A11y、Banner 点击、桌面/移动视口；
+- 视觉 smoke 发现并修复图片固有高度导致的移动端裁切；
+- typecheck、build、frozen lock、audit 和 preview 均通过；
+- 本轮不 commit、不 push。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md)。
+
+## 11. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)
@@ -210,3 +226,4 @@ build: {
 - [Tailwind CSS：Upgrade guide](https://tailwindcss.com/docs/upgrade-guide)
 - [Vue Router 文档](https://router.vuejs.org/)
 - [Pinia 文档](https://pinia.vuejs.org/)
+- [Swiper Vue 文档](https://swiperjs.com/vue)

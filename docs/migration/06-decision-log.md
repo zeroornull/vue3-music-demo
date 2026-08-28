@@ -82,6 +82,16 @@
 - **类型边界**：不再使用 `AxiosRequestConfig | any`，HTTP wrapper 直接返回 `response.data`。
 - **测试决策**：引入 Vitest，基础设施行为必须先有失败测试再实现；Vue Test Utils/E2E 继续后置。
 
+### D-013：Banner 作为首个可见业务切片
+
+- **状态**：已验证
+- **决策**：先迁移 Banner API → Common store → BannerCarousel → Discover route，暂不同时迁移歌单、新歌、MV、播放器或 Tailwind。
+- **Swiper**：使用 `swiper/vue` 和按需 modules/CSS，不引入 bundle CSS；启用 Pagination、Keyboard 与 A11y。
+- **播放器边界**：Banner 保留 typed `select` 事件；歌曲类型目标只显示“播放器待迁移”状态，不伪造播放成功。
+- **状态边界**：组件必须显式支持 loading、error、empty、retry 和 data 状态。
+- **测试边界**：Vue Test Utils + happy-dom 负责组件状态，Swiper 在组件测试中 stub；实际 Swiper 行为由真实浏览器 smoke 证明。
+- **视觉修复**：通过桌面/移动截图发现 `<img>` 固有高度问题，显式 `height:auto` 后再验收。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：
@@ -159,15 +169,21 @@
 
 upload、delete 与真实业务 response/error 形态将在对应 API 切片中继续验证。
 
-### V-006：Swiper 14
+### V-006：Swiper 14（Banner 切片已验证）
 
-当前只在 Banner 中发现使用，需要核对：
+第 4 轮已确认：
 
 - `swiper/vue` import；
-- CSS import；
-- props/event；
-- 构建 tree-shaking；
-- 轮播视觉和交互。
+- core、a11y、pagination CSS import；
+- A11y/Keyboard/Pagination modules；
+- responsive breakpoints；
+- lazy image；
+- Banner select event；
+- 独立 Discover chunk；
+- 桌面三卡、移动单卡布局；
+- error/retry 后重建 Swiper。
+
+后续仍需在真实生产图片和更多 Banner 数量下继续观察 loop、尺寸与资源性能。
 
 ### V-007：Element Plus 2.14
 
@@ -188,7 +204,7 @@ upload、delete 与真实业务 response/error 形态将在对应 API 切片中�
 
 ### V-010：质量工具范围
 
-第 3 轮已纳入 Vitest `4.1.11` 并加入 `check`。Vue Test Utils、DOM test environment、Oxlint、formatter 和 E2E 仍是后续候选，只有在对应测试或质量门禁需要时才添加。
+第 3 轮纳入 Vitest；第 4 轮纳入 Vue Test Utils `2.5.0` 与 happy-dom `20.11.12`。Oxlint、formatter 和 E2E 仍是后续候选，只有在对应质量门禁需要时才添加。
 
 ## 4. 决策变更规则
 

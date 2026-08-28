@@ -12,10 +12,29 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: Pages.home,
+    redirect: { name: Pages.discover },
+    meta: {
+      title: '推荐',
+    },
+  },
+  {
+    path: '/discover',
+    name: Pages.discover,
+    component: () => import('@/views/DiscoverView.vue'),
+    meta: {
+      keepAlive: true,
+      menu: 'discover',
+      requiresApiHost: true,
+      title: '推荐',
+    },
+  },
+  {
+    path: '/migration',
+    name: Pages.migration,
     component: () => import('@/views/HomeView.vue'),
     meta: {
       keepAlive: true,
-      menu: 'home',
+      menu: 'migration',
       requiresApiHost: true,
       title: '迁移控制台',
     },

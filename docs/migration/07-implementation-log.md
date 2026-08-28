@@ -676,3 +676,291 @@ http://127.0.0.1:3999/banner
 本轮只完成基础设施，不迁移 legacy 的完整业务 API、用户 store、发现页、Element Plus、Swiper、Tailwind 或播放器。
 
 下一轮建议迁移第一个垂直可见切片：Banner API + Common store → Banner 组件 → Discover 页面最小骨架；这样可以复用本轮已验证的 Host/HTTP/Router/Pinia 基础设施，同时继续把播放器和 Tailwind 主版本升级隔离在后续阶段。
+
+## 6. 实施第 4 轮：Discover Banner 可见业务切片
+
+> 执行日期：`2026-08-28`<br>
+> 状态：**已完成并通过组件、构建与真实浏览器视觉验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 6.1 开始边界与 legacy 行为
+
+第 4 轮开始时用户已在外部提交并推送第 3 轮：
+
+```text
+HEAD 0f1eb9d77b7ded5f4728c7c25127f03497f54e57
+master...origin/master
+worktree clean
+```
+
+通过知识图谱和直接源文件读取确认：
+
+- legacy Discover 标题为“推荐”；
+- legacy Banner 使用 `Swiper` / `SwiperSlide` 和 `swiper/css`；
+- legacy 桌面按断点展示多张 Banner；
+- Banner 使用 `bannerId` 作为 key；
+- `targetType === 1` 时点击会调用播放器；
+- Common store 在 banners 非空时跳过重复请求。
+
+相关 14 个 legacy/当前文件以及 legacy common/discover 和 `src` scopes 均无记录到的图谱覆盖缺口。
+
+### 6.2 依赖与官方用法
+
+实时 registry 版本：
+
+```text
+swiper@14.2.0
+@vue/test-utils@2.5.0
+happy-dom@20.11.12
+```
+
+根据 Swiper 官方 Vue 文档：
+
+- `Swiper`、`SwiperSlide` 从 `swiper/vue` 导入；
+- modules 从 `swiper/modules` 导入；
+- core 和每个 module CSS 按需导入；
+- Navigation/Pagination 等元素可由 Vue component 根据 props 自动创建。
+
+本轮仅使用：
+
+```text
+A11y
+Keyboard
+Pagination
+```
+
+没有引入全量 bundle CSS。
+
+### 6.3 测试先行
+
+实现组件/页面/路由前先添加：
+
+```text
+src/components/discover/BannerCarousel.test.ts
+src/views/DiscoverView.test.ts
+```
+
+并更新 Router contract 测试。第一次运行：
+
+```text
+Test Files  3 failed | 4 passed
+Tests       2 failed | 17 passed
+```
+
+失败原因：
+
+- `BannerCarousel.vue` 尚不存在；
+- `DiscoverView.vue` 尚不存在；
+- root route 尚未 redirect；
+- `Pages.discover` 和 Discover meta 尚不存在。
+
+这证明新增测试确实在实现前失败；之后没有删减这些验收条件。
+
+### 6.4 Discover 与路由
+
+路由现在是：
+
+```text
+/           → redirect discover
+/discover   → DiscoverView
+/migration  → HomeView 迁移控制台
+/*          → NotFoundView
+```
+
+Discover meta：
+
+```text
+title: 推荐
+menu: discover
+keepAlive: true
+requiresApiHost: true
+```
+
+Host 未配置时 App gate 仍优先显示 HostSetup；配置成功后当前 `#/discover` 立即渲染真实推荐页。
+
+### 6.5 BannerCarousel 状态契约
+
+输入 props：
+
+```text
+banners
+loading
+error
+```
+
+输出 events：
+
+```text
+retry
+select(Banner)
+```
+
+显式状态：
+
+- loading：3 个可访问 skeleton，`aria-busy=true`；
+- error：`role=alert`、错误消息和“重新加载”；
+- empty：“暂无推荐内容”；
+- data：真实 Swiper slides；
+- select：向页面上报完整 Banner。
+
+Swiper 配置：
+
+```text
+mobile  1 slide
+>=720   2 slides
+>=1120  3 slides
+18px gap
+loop when banner count > 3
+keyboard enabled
+clickable pagination
+a11y enabled
+```
+
+图片使用 lazy loading、async decoding、宽高属性、alt 和固定 Banner 比例。
+
+### 6.6 播放器未迁移边界
+
+legacy 对歌曲类型 Banner 会立即播放歌曲，但播放器 store、Audio、副作用和错误状态尚未迁移。
+
+本轮没有伪造播放。点击 Banner 时：
+
+- `targetType === 1`：显示歌曲 ID，并明确“将在播放器迁移轮次恢复播放”；
+- 其他类型：显示详情页将在后续切片迁移。
+
+因此 UI 保留可发现的交互和 typed event，同时不越过本轮边界。
+
+### 6.7 自动验证
+
+最终测试：
+
+```text
+Test Files  7 passed (7)
+Tests      25 passed (25)
+```
+
+新增组件测试覆盖：
+
+- loading skeleton 数量与 aria-busy；
+- error alert 与 retry event；
+- empty state；
+- Banner 图片和 alt；
+- select event；
+- Discover mounted load；
+- 请求失败后的 retry；
+- root redirect 和 Discover meta。
+
+Swiper 在组件测试中使用 stub，避免把第三方内部 DOM 当成本项目单元测试契约；实际 Swiper 由浏览器 smoke 验证。
+
+统一门禁：
+
+```text
+bun run check
+7 test files / 25 tests passed
+vue-tsc production + test configs passed
+140 modules transformed
+Vite build passed
+```
+
+主要构建产物：
+
+```text
+dist/assets/DiscoverView-*.css  14.30 kB / gzip 3.06 kB
+dist/assets/DiscoverView-*.js  104.93 kB / gzip 31.85 kB
+dist/assets/index-*.js         151.59 kB / gzip 58.12 kB
+```
+
+Swiper 被打入懒加载的 Discover chunk，没有进入首次加载前必须执行的 route component 代码。
+
+锁文件与审计：
+
+```text
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+```
+
+`bun outdated` 仍只报告 Node 22 types 与 TypeScript 6 两项已有兼容性固定。
+
+代码知识图谱刷新到 generation：
+
+```text
+2026-08-27T16:51:42Z
+```
+
+本轮 19 个关键路径全部为 `no_recorded_issue`；`src/components/discover`、`src/views`、`src/router` 和 `docs/migration` 四个 scope 均无记录到的覆盖缺口。图谱信号仍属于 best-effort，实际完成结论同时由直接源码、25 个测试、TypeScript、构建、HTTP、浏览器和截图证据支持。
+
+### 6.8 真实浏览器成功、错误与重试
+
+使用本地 Bun mock API，返回 4 个 Banner 和本地 SVG 图片，并支持切换 `/banner` 为 HTTP 503。
+
+成功流程：
+
+1. HostSetup 验证 `http://127.0.0.1:3999/`；
+2. 自动进入 `#/discover`；
+3. 页面 title 为“推荐 · Vue3 Music”；
+4. A11y tree 出现 4 个“选择推荐”按钮；
+5. Swiper 自动创建 4 个 “Go to slide” pagination buttons；
+6. 所有 4 张图片返回 HTTP 200；
+7. 点击歌曲 Banner 显示 `歌曲 #1001 将在播放器迁移轮次恢复播放`。
+
+错误/重试流程：
+
+1. mock `/banner` 切换为 503；
+2. reload 后显示 `role=alert`；
+3. 错误信息为 `mock banner unavailable`；
+4. mock 恢复 200；
+5. 点击“重新加载”；
+6. 4 张 Banner 和 Swiper pagination 恢复。
+
+浏览器 console error/warn/issue：`0`。
+
+### 6.9 视觉 smoke 发现并修复的缺陷
+
+首次移动视口截图发现 Banner 高度异常且图片内容横向严重裁切。浏览器计算值显示：
+
+```text
+image width  342px
+image height 420px
+```
+
+原因是 `<img width="1080" height="420">` 的固有高度仍生效，单独声明 `aspect-ratio` 没有把 height 改为 auto。修复：
+
+```css
+.banner-card img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 18 / 7;
+}
+```
+
+修复后的移动计算值：
+
+```text
+width  342px
+height 133px
+ratio  2.571
+```
+
+最终视觉验证：
+
+- desktop `1440 × 900`：三卡可见、标题/工具区/next slices 无重叠；
+- mobile `390 × 844`：单卡 Swiper、导航换行、next slices 纵向排列、无横向溢出；
+- 保存截图到 `/tmp/vue3-music-round4-desktop-final.png` 和 `/tmp/vue3-music-round4-mobile-final.png`；
+- 临时截图不进入仓库。
+
+### 6.10 Preview 与停止边界
+
+生产 preview 验证：
+
+```text
+index.html                 HTTP 200
+main index-*.js            HTTP 200
+DiscoverView-*.js          HTTP 200
+```
+
+开发服务器、preview 和 mock API 均已停止。
+
+本轮不迁移 Personalized、NewSong、MV、Element Plus、Tailwind 或播放器。下一轮可选择“专属歌单”作为第二个 Discover 垂直切片，复用本轮的响应式卡片、组件测试和 error/retry 模式。

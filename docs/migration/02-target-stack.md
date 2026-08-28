@@ -66,12 +66,12 @@
 | `postcss` | `8.4.7` | `8.5.26` | 若无其他插件则移除直接依赖 |
 | `autoprefixer` | `10.4.2` | `10.5.4` | Tailwind 4 阶段移除 |
 | `vitest` | 无 | `4.1.11` | `4.1.11`，第 3 轮用于基础设施回归测试 |
-| `@vue/test-utils` | 无 | `2.4.11` | 组件测试候选 |
-| `happy-dom` | 无 | `20.11.9` | DOM 测试环境候选 |
+| `@vue/test-utils` | 无 | `2.5.0` | `2.5.0`，第 4 轮加入组件状态测试 |
+| `happy-dom` | 无 | `20.11.12` | `20.11.12`，仅组件测试文件按需启用 |
 | `oxlint` | 无 | `1.80.0` | lint 候选 |
 | `oxlint-tsgolint` | 无 | `7.0.2001` | TS 7 类型感知规则候选 |
 
-新增测试/lint 依赖属于质量工具扩展。实施第 3 轮已添加 Vitest 作为基础设施和后续业务回归的测试运行器；Oxlint、Vue Test Utils 和浏览器 E2E 依赖仍按实际迁移切片后置。
+新增测试/lint 依赖属于质量工具扩展。实施第 3 轮添加 Vitest；第 4 轮在迁移首个可见业务切片时加入 Vue Test Utils 与 happy-dom。Oxlint、formatter 和浏览器 E2E 依赖仍按实际质量门禁后置。
 
 ## 3. TypeScript 7 实测与兼容版本固定
 

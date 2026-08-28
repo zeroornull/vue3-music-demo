@@ -1,5 +1,20 @@
 # 迁移文档变更记录
 
+## 0.7.0 - 2026-08-28
+
+### 实施第 4 轮：Discover Banner 可见切片
+
+- 新增 Discover route、DiscoverView 和 BannerCarousel；
+- 根路由重定向到 `#/discover`，迁移控制台移动到 `#/migration`；
+- 安装 Swiper `14.2.0` 并启用 Pagination、Keyboard、A11y；
+- 增加 loading、error、empty、retry、select 状态；
+- 安装 Vue Test Utils `2.5.0` 和 happy-dom `20.11.12`；
+- 7 个测试文件、25 个测试通过；
+- 真实浏览器验证成功/503/重试/Banner 点击/响应式视口；
+- 视觉 smoke 发现并修复移动端 Banner 图片高度裁切；
+- typecheck、build、frozen lock、audit 和 preview 通过；
+- 本轮不 commit、不 push。
+
 ## 0.6.0 - 2026-08-28
 
 ### 实施第 3 轮：基础设施切片

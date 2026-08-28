@@ -5,17 +5,27 @@ import { createAppRouter, routes } from '@/router'
 import { Pages } from '@/router/pages'
 
 describe('router contract', () => {
-  it('defines typed metadata for the home route', () => {
+  it('redirects the root route to Discover', () => {
     const home = routes.find((route) => route.name === Pages.home)
 
     expect(home).toMatchObject({
       path: '/',
       name: Pages.home,
+      redirect: { name: Pages.discover },
+    })
+  })
+
+  it('defines typed metadata for Discover', () => {
+    const discover = routes.find((route) => route.name === Pages.discover)
+
+    expect(discover).toMatchObject({
+      path: '/discover',
+      name: Pages.discover,
       meta: {
         keepAlive: true,
-        menu: 'home',
+        menu: 'discover',
         requiresApiHost: true,
-        title: '迁移控制台',
+        title: '推荐',
       },
     })
   })
