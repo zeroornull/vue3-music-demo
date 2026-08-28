@@ -92,6 +92,16 @@
 - **测试边界**：Vue Test Utils + happy-dom 负责组件状态，Swiper 在组件测试中 stub；实际 Swiper 行为由真实浏览器 smoke 证明。
 - **视觉修复**：通过桌面/移动截图发现 `<img>` 固有高度问题，显式 `height:auto` 后再验收。
 
+### D-014：Personalized 使用最小模型与显式 route boundary
+
+- **状态**：已验证
+- **决策**：只迁移 `/personalized` 当前歌单卡片使用的 11 个字段，不复制 legacy `personalized.ts` 中与新歌、MV、歌曲 privilege 相关的大量 `any`。
+- **Store**：Music store 复用 Common store 的缓存、force、loading/error 模式，但保持独立请求和错误状态，避免 Banner 失败影响歌单。
+- **卡片**：使用语义化 `article` + `RouterLink`，显示图片、播放量、精品标记、名称、copywriter 和曲目数。
+- **路由**：保留 legacy route name `playlist` 与 query `id`；完整详情未迁移前展示明确的边界页，不伪造详情。
+- **数量**：API 可以返回更多结果，但 Discover 显式只展示前 10 个，避免 legacy 原型 `sampleSize()` 带来的随机 UI 和测试不稳定。
+- **数字格式**：新增纯函数 `formatPlayCount`，不恢复 Number prototype 扩展。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：
@@ -168,6 +178,14 @@
 - Axios/普通 error 消息收窄。
 
 upload、delete 与真实业务 response/error 形态将在对应 API 切片中继续验证。
+
+### V-005A：Personalized API（本轮已验证）
+
+- `/personalized` response result 必须为数组；
+- response 无效时抛出明确格式错误；
+- store 缓存与 force refresh 已验证；
+- Axios 503 message 已能独立显示并 retry；
+- 真实 API 的字段可空性、登录态差异和推荐排序仍需后续生产数据验证。
 
 ### V-006：Swiper 14（Banner 切片已验证）
 

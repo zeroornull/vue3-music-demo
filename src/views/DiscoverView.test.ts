@@ -6,11 +6,15 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getBanners } from '@/api/banner'
+import { getPersonalizedPlaylists } from '@/api/personalized'
 import type { Banner } from '@/models/banner'
 import DiscoverView from '@/views/DiscoverView.vue'
 
 vi.mock('@/api/banner', () => ({
   getBanners: vi.fn(),
+}))
+vi.mock('@/api/personalized', () => ({
+  getPersonalizedPlaylists: vi.fn(),
 }))
 
 const banner: Banner = {
@@ -38,12 +42,30 @@ const BannerCarouselStub = defineComponent({
   `,
 })
 
+const PersonalizedSectionStub = defineComponent({
+  name: 'PersonalizedSection',
+  props: {
+    error: { type: String, default: null },
+    loading: { type: Boolean, required: true },
+    playlists: { type: Array, required: true },
+  },
+  emits: ['retry'],
+  template: `
+    <section data-testid="personalized-stub">
+      <span data-testid="personalized-count">{{ playlists.length }}</span>
+      <span v-if="error" data-testid="personalized-error">{{ error }}</span>
+      <button data-testid="personalized-retry" @click="$emit('retry')">retry</button>
+    </section>
+  `,
+})
+
 function mountView() {
   return mount(DiscoverView, {
     global: {
       plugins: [createPinia()],
       stubs: {
         BannerCarousel: BannerCarouselStub,
+        PersonalizedSection: PersonalizedSectionStub,
         RouterLink: defineComponent({ template: '<a><slot /></a>' }),
       },
     },
@@ -53,6 +75,8 @@ function mountView() {
 describe('DiscoverView', () => {
   beforeEach(() => {
     vi.mocked(getBanners).mockReset()
+    vi.mocked(getPersonalizedPlaylists).mockReset()
+    vi.mocked(getPersonalizedPlaylists).mockResolvedValue([])
   })
 
   it('loads banners when mounted', async () => {
@@ -78,5 +102,36 @@ describe('DiscoverView', () => {
 
     expect(getBanners).toHaveBeenCalledTimes(2)
     expect(wrapper.get('[data-testid="banner-count"]').text()).toBe('1')
+  })
+
+  it('loads and retries personalized playlists independently', async () => {
+    vi.mocked(getBanners).mockResolvedValue([])
+    vi.mocked(getPersonalizedPlaylists)
+      .mockRejectedValueOnce(new Error('playlist offline'))
+      .mockResolvedValueOnce([
+        {
+          alg: 'featured',
+          canDislike: false,
+          copywriter: '根据你的音乐口味推荐',
+          highQuality: true,
+          id: 101,
+          name: '凌晨听歌指南',
+          picUrl: 'https://images.example.com/playlist.jpg',
+          playCount: 128_000,
+          trackCount: 50,
+          trackNumberUpdateTime: 0,
+          type: 0,
+        },
+      ])
+
+    const wrapper = mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="personalized-error"]').text()).toBe('playlist offline')
+
+    await wrapper.get('[data-testid="personalized-retry"]').trigger('click')
+    await flushPromises()
+
+    expect(getPersonalizedPlaylists).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="personalized-count"]').text()).toBe('1')
   })
 })

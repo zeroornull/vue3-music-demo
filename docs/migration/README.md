@@ -2,7 +2,7 @@
 
 > 文档版本：`0.1.0`<br>
 > 版本快照日期：`2026-08-27`<br>
-> 当前阶段：**实施第 4 轮完成——Discover Banner、Swiper 14 与组件/视觉验证已闭环**
+> 当前阶段：**实施第 5 轮完成——专属歌单从 API 到响应式网格已闭环**
 
 ## 1. 本轮边界
 
@@ -215,7 +215,24 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
-## 11. 主要官方资料
+## 11. 实施第 5 轮结果
+
+- 新增 `/personalized` API、最小 PersonalizedPlaylist 模型和 Music store；
+- 模型只保留当前切片实际字段，没有复制 legacy 新歌/MV相关的宽泛 `any`；
+- 新增 PlaylistCard 和 PersonalizedSection；
+- 支持 loading、error、empty、retry、缓存、强制刷新和 10 卡上限；
+- 播放量使用新的显式 utility 格式化，不扩展 Number prototype；
+- 保留 legacy `playlist?id=` route name/query 契约，详情页暂用明确迁移边界页面；
+- Discover 同时独立加载 Banner 与 Personalized，任一失败不阻塞另一切片；
+- 测试先行从 6 个失败文件收敛到 11 个文件、36 个测试通过；
+- 浏览器验证 10 卡上限、播放量、精品标记、route query、Personalized 独立 503/retry 和桌面/移动网格；
+- 默认端口被外部进程占用时使用隔离端口验证，没有终止未知进程；
+- typecheck、build、frozen lock、audit 和 preview 均通过；
+- 本轮不 commit、不 push。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md)。
+
+## 12. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

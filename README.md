@@ -8,7 +8,8 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 2 轮：现代根工程空壳——已完成；
 - 实施第 3 轮：API Host、Axios client、Router meta、Host/Common Pinia stores——已完成；
 - 实施第 4 轮：Discover Banner、Swiper 14、组件测试与响应式视觉验证——已完成；
-- 后续轮次：专属歌单、新歌、MV、完整 UI 和播放器按功能切片迁移。
+- 实施第 5 轮：Personalized API、专属歌单网格与 playlist 路由契约——已完成；
+- 后续轮次：推荐新歌、MV、完整歌单详情、完整 UI 和播放器按功能切片迁移。
 
 完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 

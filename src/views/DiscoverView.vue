@@ -3,14 +3,22 @@ import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import BannerCarousel from '@/components/discover/BannerCarousel.vue'
+import PersonalizedSection from '@/components/discover/PersonalizedSection.vue'
 import type { Banner } from '@/models/banner'
 import { Pages } from '@/router/pages'
 import { useCommonStore } from '@/stores/common'
 import { useHostStore } from '@/stores/host'
+import { useMusicStore } from '@/stores/music'
 
 const commonStore = useCommonStore()
 const hostStore = useHostStore()
+const musicStore = useMusicStore()
 const { banners, error, loading } = storeToRefs(commonStore)
+const {
+  personalized,
+  personalizedError,
+  personalizedLoading,
+} = storeToRefs(musicStore)
 const notice = ref<string | null>(null)
 
 function requestBanners(force = false) {
@@ -24,7 +32,14 @@ function selectBanner(banner: Banner) {
       : `已选择“${banner.typeTitle || '音乐推荐'}”，对应详情页将在后续切片迁移。`
 }
 
-onMounted(() => requestBanners())
+function requestPersonalized(force = false) {
+  void musicStore.loadPersonalized(force).catch(() => undefined)
+}
+
+onMounted(() => {
+  requestBanners()
+  requestPersonalized()
+})
 </script>
 
 <template>
@@ -51,13 +66,19 @@ onMounted(() => requestBanners())
 
     <p v-if="notice" class="notice" role="status">{{ notice }}</p>
 
+    <PersonalizedSection
+      :playlists="personalized"
+      :error="personalizedError"
+      :loading="personalizedLoading"
+      @retry="requestPersonalized(true)"
+    />
+
     <section class="next-slices" aria-labelledby="next-slices-title">
       <div>
         <p class="eyebrow">Next slices</p>
         <h2 id="next-slices-title">推荐页仍在渐进迁移</h2>
       </div>
       <ul>
-        <li>专属歌单</li>
         <li>推荐新歌</li>
         <li>推荐 MV</li>
       </ul>

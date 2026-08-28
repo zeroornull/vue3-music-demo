@@ -1,5 +1,21 @@
 # 迁移文档变更记录
 
+## 0.8.0 - 2026-08-28
+
+### 实施第 5 轮：专属歌单可见切片
+
+- 新增 PersonalizedPlaylist 最小模型与 `/personalized` API；
+- 新增 Music Pinia store 的缓存、force、loading/error；
+- 新增 PlaylistCard 与 PersonalizedSection；
+- 支持 loading、error、empty、retry 和前 10 个结果限制；
+- 新增播放量纯函数，避免 Number prototype 扩展；
+- 保留 `playlist?id=` 路由契约并增加详情迁移边界页；
+- 11 个测试文件、36 个测试通过；
+- 真实浏览器验证成功、独立 503/retry、路由 query 和响应式网格；
+- 默认端口被外部进程占用时改用隔离端口，没有终止未知进程；
+- typecheck、build、frozen lock、audit 和 preview 通过；
+- 本轮不 commit、不 push。
+
 ## 0.7.0 - 2026-08-28
 
 ### 实施第 4 轮：Discover Banner 可见切片

@@ -964,3 +964,306 @@ DiscoverView-*.js          HTTP 200
 开发服务器、preview 和 mock API 均已停止。
 
 本轮不迁移 Personalized、NewSong、MV、Element Plus、Tailwind 或播放器。下一轮可选择“专属歌单”作为第二个 Discover 垂直切片，复用本轮的响应式卡片、组件测试和 error/retry 模式。
+
+## 7. 实施第 5 轮：Personalized 专属歌单切片
+
+> 执行日期：`2026-08-28`<br>
+> 状态：**已完成并通过测试、路由、浏览器和响应式视觉验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 7.1 开始边界与 legacy 证据
+
+第 5 轮开始时用户已在外部提交并推送第 4 轮：
+
+```text
+HEAD f7ed08a2bb2166772d438537d497092be3bfe5d9
+master...origin/master
+worktree clean
+```
+
+通过图谱和直接源文件确认 legacy：
+
+- `/personalized` 返回 `{ result: Personalized[] }`；
+- Music store 在 personalized 非空后跳过重复请求；
+- Discover 的“你的专属歌单”最多展示 10 个随机结果；
+- 卡片显示封面、播放量、名称；
+- 点击使用 route name `playlist` 和 query `id`；
+- CoverPlay 依赖 Element Plus、IconPark 和播放器，本轮不直接搬运；
+- legacy Personalized 模型文件同时包含新歌/MV/歌曲权限等大量与本切片无关的 `any`。
+
+相关 11 个文件与 legacy discover/stores/models、当前 `src` scopes 均无记录到的图谱覆盖缺口，并直接读取了关键源文件。
+
+### 7.2 测试先行
+
+实现前先添加：
+
+```text
+src/api/personalized.test.ts
+src/stores/music.test.ts
+src/components/discover/PlaylistCard.test.ts
+src/components/discover/PersonalizedSection.test.ts
+```
+
+并扩展 Discover 与 Router 测试。首次运行：
+
+```text
+Test Files  6 failed | 5 passed
+Tests       1 failed | 23 passed
+```
+
+失败项正是：
+
+- Personalized API 不存在；
+- Music store 不存在；
+- PlaylistCard 不存在；
+- PersonalizedSection 不存在；
+- Discover 未接入 Personalized；
+- `playlist?id=` route 不存在。
+
+随后只实现这些契约，没有削弱测试。
+
+### 7.3 最小模型与 API
+
+新增 `PersonalizedPlaylist`，只包含当前卡片和路由实际使用字段：
+
+```text
+id/type/name/copywriter/picUrl/canDislike
+trackNumberUpdateTime/playCount/trackCount/highQuality/alg
+```
+
+没有复制 legacy 文件中与 PersonalizedNewSong、MV、song privilege 和音质结构相关的类型，也没有引入 `any`。
+
+API：
+
+```text
+GET /personalized
+```
+
+要求 `response.result` 为数组；否则抛出：
+
+```text
+个性化歌单响应格式不正确
+```
+
+### 7.4 Music store
+
+新增：
+
+```text
+personalized
+personalizedLoading
+personalizedError
+loadPersonalized(force?)
+```
+
+行为：
+
+- 首次加载请求；
+- 非空数组缓存；
+- `force=true` 强制刷新；
+- loading 防重复并发；
+- Banner 与 Personalized 错误互相独立；
+- 失败记录消息并继续抛出原错误。
+
+### 7.5 PlaylistCard 与播放量
+
+PlaylistCard 使用：
+
+- `article`；
+- typed `PersonalizedPlaylist` prop；
+- `RouterLink`；
+- route name `playlist`；
+- query `{ id: playlist.id }`；
+- lazy image 与 async decoding；
+- 1:1 cover；
+- 播放量；
+- 精品标记；
+- 名称、copywriter、track count；
+- focus-visible 与 reduced motion。
+
+新增纯函数：
+
+```text
+formatPlayCount(128000) → 12.8 万
+```
+
+没有恢复 legacy `Number.prototype.numberFormat()`。
+
+### 7.6 PersonalizedSection 状态与数量
+
+显式支持：
+
+- loading：5 个 skeleton；
+- error：alert + retry；
+- empty：暂无专属歌单；
+- data：响应式歌单 grid。
+
+API 可返回任意数量，但当前页面只展示：
+
+```text
+playlists.slice(0, 10)
+```
+
+没有保留 legacy `sampleSize(10)` 的随机选择，因为随机 UI 会导致内容抖动、缓存不一致和测试不稳定；前 10 个保留 API 推荐顺序。
+
+Grid：
+
+```text
+desktop  5 columns
+<=1050   4 columns
+<=800    3 columns
+<=580    2 columns
+```
+
+### 7.7 Playlist route boundary
+
+新增 route：
+
+```text
+/playlist
+name: playlist
+query: id
+title: 歌单详情
+```
+
+完整详情尚未迁移，因此新增 `PlaylistPlaceholderView` 明确显示：
+
+```text
+歌单详情将在后续轮次迁移
+当前选择的歌单 ID 为 2001
+```
+
+这样保留 legacy 跳转契约，但不伪造详情数据。
+
+### 7.8 自动验证
+
+最终：
+
+```text
+Test Files  11 passed (11)
+Tests      36 passed (36)
+```
+
+新增覆盖：
+
+- Personalized API result 解包与格式错误；
+- Music store cache/force/error/loading；
+- PlaylistCard alt、播放量、曲目数、精品标记与 route query；
+- Personalized loading/error/empty/retry；
+- 10 个结果上限；
+- Discover Personalized mount load 与独立 retry；
+- playlist route name/query/meta。
+
+统一门禁：
+
+```text
+bun run check
+11 test files / 36 tests passed
+vue-tsc production + test configs passed
+152 modules transformed
+Vite build passed
+```
+
+主要产物：
+
+```text
+DiscoverView CSS              18.38 kB / gzip 3.65 kB
+DiscoverView JS              108.45 kB / gzip 32.84 kB
+PlaylistPlaceholderView JS     0.94 kB / gzip 0.66 kB
+Main JS                      151.94 kB / gzip 58.24 kB
+```
+
+依赖未新增；frozen lock 继续通过。`bun audit`：
+
+```text
+No vulnerabilities found (checked 185 packages)
+```
+
+代码知识图谱刷新到 generation：
+
+```text
+2026-08-28T13:15:26Z
+```
+
+本轮 21 个关键路径全部为 `no_recorded_issue`；`src/api`、`src/stores`、`src/components/discover`、`src/views` 和 `docs/migration` scopes 均无记录到的覆盖缺口。该信号仍由直接源码读取、36 个测试、TypeScript、构建、HTTP、浏览器与截图证据交叉验证。
+
+### 7.9 真实浏览器成功、路由与错误闭环
+
+Mock API 返回：
+
+- 4 个 Banner；
+- 12 个 Personalized playlists；
+- 12 个本地 SVG cover；
+- 可独立切换 `/personalized` 为 503。
+
+成功流程：
+
+1. Host 配置后进入 Discover；
+2. Banner 正常显示；
+3. Personalized 只显示前 10 个；
+4. 播放量显示 `12.8 万`、`16.6 万` 等；
+5. highQuality 项显示“精品”；
+6. 卡片展示名称、copywriter 和 `30 首` 等曲目数；
+7. 点击第一张卡片进入 `#/playlist?id=2001`；
+8. 页面 title 为“歌单详情 · Vue3 Music”；
+9. 边界页显示 ID `2001`；
+10. 返回推荐页正常。
+
+独立错误流程：
+
+1. 仅 `/personalized` 切换为 HTTP 503；
+2. Banner 仍正常显示；
+3. Personalized 显示 `mock personalized unavailable`；
+4. 恢复 200 后点击“重新加载”；
+5. 10 张卡片恢复，无需刷新或重新配置 Host。
+
+模拟 503 时浏览器会记录一条资源 503 console error，这是预期网络诊断；恢复成功后 reload 的当前 console error/warn/issue 为 `0`。
+
+### 7.10 视觉验证与端口隔离
+
+默认端口 `3002` 已被用户/外部 Vite 进程占用；尝试隔离端口 `3003` 时也被占用。没有终止未知进程，最终本轮 dev smoke 使用：
+
+```text
+http://127.0.0.1:3102
+```
+
+默认项目配置仍保持端口 3002。
+
+Desktop `1440 × 1000`：
+
+- Banner 三卡；
+- Personalized 五列两行；
+- 10 张卡片均可读；
+- cover 比例正确；
+- 无标题/工具/卡片重叠；
+- Next slices 收敛为新歌和 MV。
+
+Mobile `390 × 844`：
+
+- Banner 单卡；
+- Personalized 两列五行；
+- cover、名称、copywriter、播放量和精品标记无横向溢出；
+- Next slices 纵向排列。
+
+截图：
+
+```text
+/tmp/vue3-music-round5-desktop.png
+/tmp/vue3-music-round5-mobile.png
+```
+
+截图和 mock script 位于 `/tmp`，不进入仓库。本轮 dev/mock/preview 进程已停止；外部原有 3002 进程未触碰。
+
+### 7.11 Preview 与停止边界
+
+生产 preview 验证：
+
+```text
+index.html                        HTTP 200
+main index-*.js                   HTTP 200
+DiscoverView-*.js                 HTTP 200
+PlaylistPlaceholderView-*.js      HTTP 200
+```
+
+本轮没有迁移推荐新歌、MV、完整歌单详情、Element Plus、Tailwind 或播放器。下一轮可选择推荐新歌切片，复用 Music store 的独立状态模式和 Discover section 组件结构；播放器仍应在歌曲展示稳定后单独迁移。

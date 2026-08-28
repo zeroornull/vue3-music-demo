@@ -35,4 +35,13 @@ describe('router contract', () => {
 
     expect(router.resolve('/does-not-exist').name).toBe(Pages.notFound)
   })
+
+  it('preserves the legacy playlist route name and query id', () => {
+    const router = createAppRouter(createMemoryHistory())
+    const route = router.resolve({ name: Pages.playlist, query: { id: 101 } })
+
+    expect(route.path).toBe('/playlist')
+    expect(route.query.id).toBe('101')
+    expect(route.meta.title).toBe('歌单详情')
+  })
 })
