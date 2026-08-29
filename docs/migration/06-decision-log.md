@@ -182,6 +182,16 @@
 - **导航**：标签栏始终补上「全部」，当前项 `aria-pressed`；卡片进入已有 `playlist?id=`。
 - **Store**：独立 Category store；`setCat` 清空当前列表后重拉；`loadMore` 用 `lasttime`/`before` 追加；失败刷新视为缓存未命中；Host 重新配置 `reset()` 并递增 tags/playlist 世代号。
 
+### D-023：精选复用 Banner/MV，独家放送进 mvDetail，电台后置
+
+- **状态**：已验证
+- **日期**：2026-08-29
+- **决策**：第 13 轮迁移精选时，复用已有 Banner 与推荐 MV，并新增 `/personalized/privatecontent/list`（limit 4）作为独家放送。推荐电台不进入本轮。
+- **原因**：legacy `Picked.vue` 是 Banner + Video + DjProgram + Mv。电台卡片进入未迁的 `video` 路由。独家放送在 legacy 中已经 `push` 到 `mvDetail?id=`，可以立刻形成可点闭环。
+- **导航**：`/music` 仍重定向到 `picked`。卡片进入已有 `mvDetail?id=`。
+- **Store**：exclusive videos 放进现有 Video store，与推荐 MV 共享 Host `reset()` 和世代号丢弃。Banner 走 Common store，Host 重新配置同样 `commonStore.reset()` 并丢弃在途请求。
+- **布局**：精选容器使用 `grid-template-columns: minmax(0, 1fr)`，避免 Swiper 把音乐馆列撑出横向滚动。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

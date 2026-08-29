@@ -5,25 +5,38 @@ import { getBanners } from '@/api/banner'
 import { getErrorMessage } from '@/api/http'
 import type { Banner } from '@/models/banner'
 
+let bannerSerial = 0
+
 export const useCommonStore = defineStore('common', () => {
   const banners = ref<Banner[]>([])
   const error = ref<string | null>(null)
   const loading = ref(false)
 
-  async function loadBanners(force = false) {
-    if (loading.value || (banners.value.length && !force)) return
+  function reset() {
+    bannerSerial++
+    banners.value = []
+    error.value = null
+    loading.value = false
+  }
 
+  async function loadBanners(force = false) {
+    if (banners.value.length && !force && !error.value) return
+
+    const serial = ++bannerSerial
     loading.value = true
     error.value = null
     try {
-      banners.value = await getBanners()
+      const next = await getBanners()
+      if (serial !== bannerSerial) return
+      banners.value = next
     } catch (requestError) {
+      if (serial !== bannerSerial) return
       error.value = getErrorMessage(requestError)
       throw requestError
     } finally {
-      loading.value = false
+      if (serial === bannerSerial) loading.value = false
     }
   }
 
-  return { banners, error, loadBanners, loading }
+  return { banners, error, loadBanners, loading, reset }
 })

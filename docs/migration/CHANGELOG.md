@@ -1,5 +1,19 @@
 # 迁移文档变更记录
 
+## 0.17.0 - 2026-08-29
+
+### 实施第 13 轮：精选
+
+- 用 `PickedPage` 替换音乐馆 `picked` 边界页；
+- 复用 Banner 与推荐 MV；新增 `/personalized/privatecontent/list` 独家放送（limit 4）；
+- 独家放送进入已有 `mvDetail?id=`；推荐电台本轮不迁；
+- Video store 增加 exclusive videos 缓存、失败未命中、世代号和 Host `reset()`；Banner 的 Common store 同样 reset；
+- 精选页网格 `minmax(0, 1fr)`，避免 Swiper 在移动端撑开横向滚动；
+- 50 个测试文件、178 个测试通过；typecheck、build（236 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:46775` + mock `127.0.0.1:48155`，覆盖 Host→Discover→精选→MV 详情、503/retry、桌面/移动布局；
+- 第 12 轮提交为 `175d4ab`，第 13 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移歌手详情。
+
 ## 0.16.0 - 2026-08-29
 
 ### 实施第 12 轮：分类歌单

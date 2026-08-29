@@ -10,6 +10,7 @@ import { getMvUrl } from '@/api/mv'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useMvStore } from '@/stores/mv'
+import { useVideoStore } from '@/stores/video'
 import MvView from '@/views/MvView.vue'
 
 vi.mock('@/api/mv', () => ({
@@ -125,6 +126,24 @@ describe('MvView', () => {
     expect(wrapper.get('[data-testid="mv-player"]').attributes('src')).toBe(
       next.url,
     )
+  })
+
+  it('uses exclusive video name when personalized MV cache misses', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue({
+      id: 801,
+      url: playback.url,
+    })
+    const wrapper = await mountView({ id: '801' })
+    useVideoStore().privateContents = [
+      {
+        id: 801,
+        name: '林间现场',
+        sPicUrl: 'https://images.example.com/cover.jpg',
+      },
+    ]
+    await flushPromises()
+
+    expect(wrapper.get('h1').text()).toBe('林间现场')
   })
 
   it('resets cached playback when the route id is removed', async () => {

@@ -8,9 +8,11 @@ import App from '@/App.vue'
 import { getSongUrl } from '@/api/song'
 import { setAudioAdapter, usePlayerStore } from '@/stores/player'
 import { useCategoryStore } from '@/stores/category'
+import { useCommonStore } from '@/stores/common'
 import { useMusicStore } from '@/stores/music'
 import { useMvStore } from '@/stores/mv'
 import { usePlaylistStore } from '@/stores/playlist'
+import { useVideoStore } from '@/stores/video'
 import { useHostStore } from '@/stores/host'
 
 vi.mock('@/api/song', () => ({
@@ -61,6 +63,62 @@ describe('App host gate', () => {
 
     expect(categoryStore.playlists).toEqual([])
     expect(categoryStore.cat).toBe('全部')
+  })
+
+  it('clears banner cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const commonStore = useCommonStore()
+    commonStore.banners = [
+      {
+        bannerId: 1,
+        pic: 'https://images.example.com/banner.jpg',
+        targetId: 2,
+        targetType: 1,
+        typeTitle: '新歌首发',
+      },
+    ]
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(commonStore.banners).toEqual([])
+  })
+
+  it('clears exclusive video cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const videoStore = useVideoStore()
+    videoStore.privateContents = [
+      {
+        id: 801,
+        name: '林间现场',
+        sPicUrl: 'https://images.example.com/cover.jpg',
+      },
+    ]
+    videoStore.mvs = [
+      {
+        alg: '',
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [],
+        canDislike: false,
+        copywriter: '',
+        duration: 1,
+        id: 701,
+        name: '晚风来信 · Live',
+        picUrl: '',
+        playCount: 1,
+        subed: false,
+        type: 1,
+      },
+    ]
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(videoStore.privateContents).toEqual([])
+    expect(videoStore.mvs).toEqual([])
   })
 
   it('clears music-hall top-list cache when the host gate closes', async () => {

@@ -14,7 +14,7 @@ const mvStore = useMvStore()
 const playerStore = usePlayerStore()
 const videoStore = useVideoStore()
 const { playback, loading, error } = storeToRefs(mvStore)
-const { mvs } = storeToRefs(videoStore)
+const { mvs, privateContents } = storeToRefs(videoStore)
 
 const mvId = computed(() => {
   const value = route.query.id
@@ -26,10 +26,15 @@ const mvId = computed(() => {
 const related = computed(
   () => mvs.value.find((item) => item.id === mvId.value) ?? null,
 )
+const exclusive = computed(
+  () => privateContents.value.find((item) => item.id === mvId.value) ?? null,
+)
 const title = computed(() => {
-  const name =
+  const relatedName =
     typeof related.value?.name === 'string' ? related.value.name.trim() : ''
-  return name || `MV #${mvId.value ?? '未知'}`
+  const exclusiveName =
+    typeof exclusive.value?.name === 'string' ? exclusive.value.name.trim() : ''
+  return relatedName || exclusiveName || `MV #${mvId.value ?? '未知'}`
 })
 const artists = computed(() => {
   if (!related.value) return ''
@@ -82,7 +87,7 @@ watch(
 
     <div v-if="mvId === null" class="state-card" data-testid="mv-missing">
       <strong>缺少 MV ID</strong>
-      <p>请从推荐页打开一个 MV，或在地址中提供有效的 <code>id</code> 参数。</p>
+      <p>请从推荐页或精选打开一个 MV，或在地址中提供有效的 <code>id</code> 参数。</p>
     </div>
 
     <div

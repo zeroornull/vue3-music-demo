@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.16.0`<br>
+> 文档版本：`0.17.0`<br>
 > 版本快照日期：`2026-08-29`<br>
-> 当前阶段：**实施第 12 轮分类歌单已落地（未 commit）；下一轮精选**
+> 当前阶段：**实施第 13 轮精选已落地（未 commit）；下一轮歌手详情**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -315,12 +315,23 @@ build: {
 - 独立 Category store、标签栏、分页网格和已有歌单详情接线；
 - 精选/歌手仍为明确边界页；
 - 45 个测试文件、163 个测试通过；typecheck、build（223 modules）、frozen lock、audit 和 `git diff --check` 通过；
-- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 已完成本地 mock API 浏览器 smoke；随后提交为 `175d4ab`；
 - 下一轮建议迁移精选。
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 19. 主要官方资料
+## 19. 实施第 13 轮结果
+
+- 精选 Banner、独家放送 `/personalized/privatecontent/list` 和推荐 MV；
+- 独家放送进入已有 `mvDetail?id=`；推荐电台后置；
+- 歌手仍为明确边界页；
+- 50 个测试文件、178 个测试通过；typecheck、build（236 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 下一轮建议迁移歌手详情。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 20. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

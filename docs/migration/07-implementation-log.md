@@ -2230,3 +2230,83 @@ mock API http://127.0.0.1:47035
 ### 14.4 本轮结果
 
 分类歌单已在工作区形成。第 11 轮提交 `98c6a62` 仍是当前 HEAD；第 12 轮尚未 commit / push。下一轮建议迁移精选。
+
+随后该轮以 `175d4ab` 提交。
+
+## 15. 实施第 13 轮：精选（工作区）
+
+> 执行日期：`2026-08-29`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 15.1 开始边界与范围
+
+第 13 轮开始时第 12 轮已经提交并与 origin 同步：
+
+```text
+HEAD 175d4ab
+master...origin/master
+```
+
+工作区从该提交继续。本轮把音乐馆 `picked` 从边界页换成精选拼盘。不迁歌手、电台、Tailwind 4、播放器增强或 CI。
+
+范围：
+
+- 复用 `GET /banner` 与 `GET /personalized/mv`；
+- 新增 `GET /personalized/privatecontent/list`（limit 4）作为独家放送；
+- 独家放送卡片进入已有 `mvDetail?id=`；
+- 推荐电台明确后置，因为 `video` / `dj` 未迁；
+- Video store 增加 private content 的 loading/error/retry、失败缓存未命中、世代号和 `reset()`；
+- Host 重新配置 `videoStore.reset()`；
+- 精选页网格 `minmax(0, 1fr)`，避免 Swiper 撑开移动端。
+
+### 15.2 自动验证
+
+```text
+bun run test
+Test Files  50 passed (50)
+Tests       178 passed (178)
+
+bun run typecheck
+PASS
+
+bun run build
+236 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。审查后为 Common store 增加 `reset()` 与世代号，避免 Host 重配后精选继续展示旧 Banner；MV 详情会回退到独家放送名称。最终测试数为 178。
+
+### 15.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用，改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:46775
+mock API http://127.0.0.1:48155
+```
+
+验证步骤：
+
+1. Host 保存后进入 Discover，点击「音乐馆」到达 `#/music/picked`，标题为「精选 · Vue3 Music」，当前栏目 `aria-current` 为精选；
+2. 今日推荐 Banner、独家放送「林间现场 / 秋日电台」、推荐 MV「晚风来信 · Live」可见；
+3. 点击「林间现场」进入 `#/mvDetail?id=801`，原生 video 可播放；
+4. mock 503 显示 `mock private unavailable`，推荐 MV 仍在；重试后独家放送恢复；
+5. 歌手仍是边界页，并提供前往精选的入口；
+6. 桌面 `1440×900` 为 4 列网格，移动 `390×844` 为 1 列网格，均无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round13-desktop.png` 和 `/tmp/vue3-music-round13-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+### 15.4 本轮结果
+
+精选已在工作区形成。第 12 轮提交 `175d4ab` 仍是当前 HEAD；第 13 轮尚未 commit / push。下一轮建议迁移歌手详情。

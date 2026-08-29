@@ -63,8 +63,9 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'picked',
         name: Pages.picked,
-        component: () => import('@/views/music/MusicPlaceholderView.vue'),
+        component: () => import('@/views/music/PickedPage.vue'),
         meta: {
+          keepAlive: true,
           menu: 'music',
           requiresApiHost: true,
           title: '精选',

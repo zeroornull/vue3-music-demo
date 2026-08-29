@@ -38,5 +38,8 @@ describe('MusicView', () => {
       '分类歌单',
     ])
     expect(wrapper.get('[aria-current="page"]').text()).toBe('排行')
+    expect(wrapper.get('.summary').text()).toBe(
+      '精选、排行榜和分类歌单已接入；歌手仍是明确边界。',
+    )
   })
 })

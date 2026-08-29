@@ -11,15 +11,16 @@ import MusicPlaceholderView from '@/views/music/MusicPlaceholderView.vue'
 describe('MusicPlaceholderView', () => {
   it('names the pending music-hall tab and points to the live toplist', async () => {
     const router = createAppRouter(createMemoryHistory())
-    await router.push({ name: Pages.picked })
+    await router.push({ name: Pages.artist })
     const wrapper = mount(MusicPlaceholderView, {
       global: { plugins: [router] },
     })
 
-    expect(wrapper.get('h2').text()).toContain('精选')
+    expect(wrapper.get('h2').text()).toContain('歌手')
     expect(wrapper.text()).toContain('后续轮次迁移')
     expect(wrapper.get('[data-testid="toplist-shortcut"]').text()).toContain(
       '排行榜',
     )
+    expect(wrapper.text()).toContain('精选')
   })
 })

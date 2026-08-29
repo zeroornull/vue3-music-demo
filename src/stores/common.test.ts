@@ -45,4 +45,21 @@ describe('common store', () => {
     expect(store.error).toBe('offline')
     expect(store.loading).toBe(false)
   })
+
+  it('drops in-flight banners after reset', async () => {
+    let resolveBanners!: (value: typeof banner[]) => void
+    vi.mocked(getBanners).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveBanners = resolve
+      }),
+    )
+    const store = useCommonStore()
+    const pending = store.loadBanners()
+    store.reset()
+    resolveBanners([banner])
+    await pending
+
+    expect(store.banners).toEqual([])
+    expect(store.loading).toBe(false)
+  })
 })
