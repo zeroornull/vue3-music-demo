@@ -5,6 +5,7 @@ import { watch } from 'vue'
 import { useHostStore } from '@/stores/host'
 import HostSetupView from '@/views/HostSetupView.vue'
 import PlayerBar from '@/components/player/PlayerBar.vue'
+import { useCategoryStore } from '@/stores/category'
 import { useMusicStore } from '@/stores/music'
 import { useMvStore } from '@/stores/mv'
 import { usePlayerStore } from '@/stores/player'
@@ -15,6 +16,7 @@ const playerStore = usePlayerStore()
 const playlistStore = usePlaylistStore()
 const mvStore = useMvStore()
 const musicStore = useMusicStore()
+const categoryStore = useCategoryStore()
 const { isConfigured } = storeToRefs(hostStore)
 
 watch(isConfigured, (configured) => {
@@ -23,6 +25,7 @@ watch(isConfigured, (configured) => {
     playlistStore.reset()
     mvStore.reset()
     musicStore.reset()
+    categoryStore.reset()
   }
 })
 </script>

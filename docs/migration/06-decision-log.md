@@ -172,6 +172,16 @@
 - **展示**：前 4 条为官方榜（封面 + 最多 3 首），其余为特色榜封面网格。
 - **Host**：重新配置时 `musicStore.reset()` 并递增排行榜请求世代号，丢弃在途结果，避免旧 Host 数据写回。
 
+### D-022：分类歌单走精品标签和精品列表
+
+- **状态**：已验证
+- **日期**：2026-08-29
+- **决策**：第 12 轮迁移分类歌单时，使用 `/playlist/highquality/tags` 和 `/top/playlist/highquality`，而不是 `/playlist/hot` 或普通 `/top/playlist`。
+- **原因**：legacy `PlaylistHot.vue` 名义热门分类，实际请求的是精品标签；默认分类是「全部」。新工程沿用这条已验证路径，避免同时维护两套分类接口。
+- **分页**：新工程每页 20 条；legacy 为 35。20 更接近现有 Discover/排行榜卡片密度，也便于 mock 与测试固定。
+- **导航**：标签栏始终补上「全部」，当前项 `aria-pressed`；卡片进入已有 `playlist?id=`。
+- **Store**：独立 Category store；`setCat` 清空当前列表后重拉；`loadMore` 用 `lasttime`/`before` 追加；失败刷新视为缓存未命中；Host 重新配置 `reset()` 并递增 tags/playlist 世代号。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

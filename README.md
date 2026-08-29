@@ -1,6 +1,6 @@
 # Vue3 Music
 
-Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳、Host/HTTP/Router 基础设施、Discover、播放器最小闭环、完整歌单详情、MV 播放，以及音乐馆排行榜。旧工程完整保存在 [`legacy/`](./legacy/)。
+Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳、Host/HTTP/Router 基础设施、Discover、播放器最小闭环、完整歌单详情、MV 播放、音乐馆排行榜和分类歌单。旧工程完整保存在 [`legacy/`](./legacy/)。
 
 ## 当前阶段
 
@@ -13,9 +13,10 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 7 轮：推荐 MV API、Video store、响应式 MV 网格与 `mvDetail` 路由——已完成；
 - 实施第 8 轮：歌曲 URL/详情 API、Audio adapter、Player store、Discover 播放入口与全局 PlayerBar——已完成；
 - 实施第 9 轮：完整歌单详情、Playlist store、播放全部/单曲接入 Player——已完成；
-- 实施第 10 轮：`/mv/url`、独立 MV store、16:9 原生 video 详情页——已完成并位于当前 HEAD `b37d1db`；
-- 实施第 11 轮：音乐馆路由骨架与排行榜——代码已落地，当前工作区尚未 commit；
-- 下一轮：分类歌单；精选、歌手、播放器进度和音量另行增强。
+- 实施第 10 轮：`/mv/url`、独立 MV store、16:9 原生 video 详情页——已完成并提交 `b37d1db`；
+- 实施第 11 轮：音乐馆路由骨架与排行榜——已完成并位于当前 HEAD `98c6a62`；
+- 实施第 12 轮：分类歌单 tags + highquality 网格——代码已落地，当前工作区尚未 commit；
+- 下一轮：精选；歌手、播放器进度和音量另行增强。
 
 当前进度总览：[`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 
@@ -67,5 +68,5 @@ bun run preview
 └── package.json
 ```
 
-### 第 11 轮音乐馆排行榜进度
-当前已完成音乐馆嵌套路由和排行榜：`/toplist/detail`、官方榜/特色榜，点击进入已有歌单详情。精选、歌手、分类仍是边界页。第 11 轮已在 Vite `127.0.0.1:48625` + mock API `127.0.0.1:45907` 完成本地浏览器 smoke，但未验证外部真实网易云 API。
+### 第 12 轮分类歌单进度
+当前已完成音乐馆分类歌单：`/playlist/highquality/tags`、`/top/playlist/highquality`（每页 20 条），点击进入已有歌单详情。精选和歌手仍是边界页。第 12 轮已在 Vite `127.0.0.1:46279` + mock API `127.0.0.1:47035` 完成本地浏览器 smoke，但未验证外部真实网易云 API。

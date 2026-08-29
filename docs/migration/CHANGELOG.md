@@ -1,5 +1,19 @@
 # 迁移文档变更记录
 
+## 0.16.0 - 2026-08-29
+
+### 实施第 12 轮：分类歌单
+
+- 新增 `/playlist/highquality/tags` 与 `/top/playlist/highquality` 最小模型和 API；
+- 新增独立 Category Pinia store，覆盖 tags/list 的 loading/error/retry、分类切换、分页、过期请求丢弃和 reset；
+- 用 `CategoryPage` 替换音乐馆 `category` 边界页；标签栏始终包含「全部」，默认分类为「全部」；
+- 每页 20 条精品歌单，卡片进入已有 `playlist?id=`；
+- Host 重新配置会 `categoryStore.reset()`；
+- 45 个测试文件、163 个测试通过；typecheck、build（223 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:46279` + mock `127.0.0.1:47035`，覆盖 Host→Discover→音乐馆→分类→歌单详情、加载更多、503/retry、桌面/移动布局；
+- 第 11 轮提交为 `98c6a62`，第 12 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移精选。
+
 ## 0.15.0 - 2026-08-29
 
 ### 实施第 11 轮：音乐馆骨架 + 排行榜

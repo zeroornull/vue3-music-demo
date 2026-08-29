@@ -12,10 +12,13 @@ const tabTitle = computed(() => String(route.meta.title || '该页面'))
   <section class="placeholder" aria-labelledby="music-placeholder-title">
     <p class="eyebrow">Music hall boundary</p>
     <h2 id="music-placeholder-title">{{ tabTitle }}将在后续轮次迁移</h2>
-    <p>音乐馆已保留 legacy 的子路由。当前可打开已经迁移的排行榜。</p>
-    <RouterLink :to="{ name: Pages.toplist }" data-testid="toplist-shortcut">
-      前往排行榜
-    </RouterLink>
+    <p>音乐馆已保留 legacy 的子路由。当前可打开已经迁移的排行榜和分类歌单。</p>
+    <p class="shortcuts">
+      <RouterLink :to="{ name: Pages.toplist }" data-testid="toplist-shortcut">
+        前往排行榜
+      </RouterLink>
+      <RouterLink :to="{ name: Pages.category }">前往分类歌单</RouterLink>
+    </p>
   </section>
 </template>
 
@@ -46,6 +49,12 @@ p:not(.eyebrow) {
   margin: 16px 0;
   color: #5f6c82;
   line-height: 1.6;
+}
+
+.shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 a {

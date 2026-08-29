@@ -94,8 +94,9 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'category',
         name: Pages.category,
-        component: () => import('@/views/music/MusicPlaceholderView.vue'),
+        component: () => import('@/views/music/CategoryPage.vue'),
         meta: {
+          keepAlive: true,
           menu: 'music',
           requiresApiHost: true,
           title: '分类歌单',

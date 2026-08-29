@@ -2147,3 +2147,86 @@ mock API http://127.0.0.1:45907
 ### 13.4 本轮结果
 
 音乐馆壳和排行榜已在工作区形成。第 10 轮提交 `b37d1db` 仍是当前 HEAD；第 11 轮尚未 commit / push。下一轮建议迁移分类歌单。
+
+随后该轮以 `98c6a62` 提交。
+
+## 14. 实施第 12 轮：分类歌单（工作区）
+
+> 执行日期：`2026-08-29`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 14.1 开始边界与范围
+
+第 12 轮开始时第 11 轮已经提交并与 origin 同步：
+
+```text
+HEAD 98c6a62
+master...origin/master
+```
+
+工作区从该提交继续。本轮把音乐馆 `category` 从边界页换成精品分类歌单。不迁精选、歌手、Tailwind 4、播放器增强或 CI。
+
+范围：
+
+- `GET /playlist/highquality/tags` 与 `GET /top/playlist/highquality`；
+- 独立 Category store：`loadTags` / `loadPlaylists` / `setCat` / `loadMore` / `reset`；
+- 标签栏始终包含「全部」，默认分类为「全部」；
+- 每页 20 条（legacy PlaylistHot 为 35）；
+- 卡片进入已有 `playlist?id=`；
+- loading / error / retry / 空列表 / 加载更多；
+- Host 重新配置 `categoryStore.reset()`，并丢弃在途 tags/playlist 请求。
+
+### 14.2 自动验证
+
+```text
+bun run test
+Test Files  45 passed (45)
+Tests       163 passed (163)
+
+bun run typecheck
+PASS
+
+bun run build
+223 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。store 使用 `CATEGORY_PAGE_SIZE`；测试 mock 通过 `importOriginal` 保留该常量。`setCat` / `loadMore` 的失败在 `CategoryPage` 内捕获，避免 Vue 把拒绝的 Promise 当成未处理错误。失败刷新不再被当成有效命中。`loadPlaylists` 不再因 `playlistsLoading` 直接返回，切换分类会丢弃在途请求并重新拉取，避免 loading 卡死。加载更多失败会在已有网格下显示错误；再次点击当前标签不会清空已追加的列表。
+
+### 14.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用，改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:46279
+mock API http://127.0.0.1:47035
+```
+
+验证步骤：
+
+1. Host 保存后进入 Discover，点击「音乐馆」到达 `#/music/picked` 边界页；
+2. 点击「分类歌单」到达 `#/music/category`，标题为「分类歌单 · Vue3 Music」，当前栏目 `aria-current` 为分类歌单；
+3. 默认「全部歌单」；标签 全部 / 华语 / 流行；4 张卡片和「加载更多」；
+4. 切换「华语」后标题变为「华语歌单」，卡片替换为华语歌单 1–4；
+5. 「加载更多」追加华语歌单 21、22，「加载更多」按钮消失；
+6. 点击「华语歌单 1」进入 `#/playlist?id=501`，`/playlist/detail` 与 `/playlist/track/all` 返回 200；
+7. mock 503 显示 `mock category unavailable`，重试后列表恢复；
+8. 桌面 `1440×900` 为 5 列网格，移动 `390×844` 为 2 列网格，均无横向溢出；
+9. 精选仍是边界页，排行榜页仍可打开。
+
+截图保存在 `/tmp/vue3-music-round12-desktop.png` 和 `/tmp/vue3-music-round12-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+### 14.4 本轮结果
+
+分类歌单已在工作区形成。第 11 轮提交 `98c6a62` 仍是当前 HEAD；第 12 轮尚未 commit / push。下一轮建议迁移精选。
