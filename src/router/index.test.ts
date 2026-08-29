@@ -78,4 +78,13 @@ describe('router contract', () => {
     expect(route.query.id).toBe('701')
     expect(route.meta.title).toBe('MV 详情')
   })
+
+  it('preserves the legacy dj route name and query id', () => {
+    const router = createAppRouter(createMemoryHistory())
+    const route = router.resolve({ name: Pages.dj, query: { id: 901 } })
+
+    expect(route.path).toBe('/dj')
+    expect(route.query.id).toBe('901')
+    expect(route.meta.title).toBe('电台')
+  })
 })

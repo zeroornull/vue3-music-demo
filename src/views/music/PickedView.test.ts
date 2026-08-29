@@ -22,6 +22,14 @@ const PrivateStub = defineComponent({
     '<section data-testid="picked-private"><span>{{ items.length }}</span><button data-testid="private-retry" @click="$emit(\'retry\')" /></section>',
 })
 
+const DjStub = defineComponent({
+  name: 'DjProgramSection',
+  props: ['error', 'loading', 'programs'],
+  emits: ['retry'],
+  template:
+    '<section data-testid="picked-dj"><h2>推荐电台</h2><span>{{ programs.length }}</span><button data-testid="dj-retry" @click="$emit(\'retry\')" /></section>',
+})
+
 const MvStub = defineComponent({
   name: 'MvSection',
   props: ['error', 'loading', 'mvs'],
@@ -52,13 +60,23 @@ const privateContent = {
   sPicUrl: 'https://images.example.com/cover.jpg',
 }
 
+const djProgram = {
+  copywriter: '睡前电台',
+  id: 901,
+  name: '深夜民谣',
+  picUrl: 'https://images.example.com/dj.jpg',
+}
+
 describe('PickedView', () => {
-  it('composes banner, exclusive videos and recommended MVs', async () => {
+  it('composes banner, exclusive videos, radio and recommended MVs', async () => {
     const wrapper = mount(PickedView, {
       props: {
         banners: [],
         bannersError: null,
         bannersLoading: false,
+        djError: null,
+        djLoading: false,
+        djPrograms: [djProgram],
         mvs: [mv],
         mvsError: null,
         mvsLoading: false,
@@ -69,6 +87,7 @@ describe('PickedView', () => {
       global: {
         stubs: {
           BannerCarousel: BannerStub,
+          DjProgramSection: DjStub,
           MvSection: MvStub,
           PrivateContentSection: PrivateStub,
         },
@@ -77,14 +96,16 @@ describe('PickedView', () => {
 
     expect(wrapper.get('[data-testid="picked-banners"]').text()).toContain('retry')
     expect(wrapper.get('[data-testid="picked-private"]').text()).toContain('1')
+    expect(wrapper.get('[data-testid="picked-dj"]').text()).toContain('推荐电台')
     expect(wrapper.get('[data-testid="picked-mvs"]').text()).toContain('1')
-    expect(wrapper.text()).not.toContain('推荐电台')
 
     await wrapper.get('[data-testid="banner-retry"]').trigger('click')
     await wrapper.get('[data-testid="private-retry"]').trigger('click')
+    await wrapper.get('[data-testid="dj-retry"]').trigger('click')
     await wrapper.get('[data-testid="mv-retry"]').trigger('click')
     expect(wrapper.emitted('retry-banners')).toHaveLength(1)
     expect(wrapper.emitted('retry-private')).toHaveLength(1)
+    expect(wrapper.emitted('retry-dj')).toHaveLength(1)
     expect(wrapper.emitted('retry-mvs')).toHaveLength(1)
   })
 })

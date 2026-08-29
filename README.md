@@ -16,9 +16,11 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 10 轮：`/mv/url`、独立 MV store、16:9 原生 video 详情页——已完成并提交 `b37d1db`；
 - 实施第 11 轮：音乐馆路由骨架与排行榜——已完成并提交 `98c6a62`；
 - 实施第 12 轮：分类歌单 tags + highquality 网格——已完成并提交 `175d4ab`；
-- 实施第 13 轮：精选 Banner + 独家放送 + 推荐 MV——已完成并位于当前 HEAD `5fa2d24`；
-- 实施第 14 轮：歌手详情 + 热门歌曲播放——代码已落地，当前工作区尚未 commit；
-- 下一轮：歌手馆列表；电台、播放器进度和音量另行增强。
+- 实施第 13 轮：精选 Banner + 独家放送 + 推荐 MV——已完成并提交 `5fa2d24`；
+- 实施第 14 轮：歌手详情 + 热门歌曲播放——已完成并提交 `4feee83`；
+- 实施第 15 轮：歌手馆列表 + 语种筛选——已完成并提交 `11535de`；
+- 实施第 16 轮：精选推荐电台 + `#/dj?id=` 节目详情——代码已落地，当前工作区尚未 commit；
+- 下一轮：搜索；应用壳、播放器进度和音量另行增强。
 
 当前进度总览：[`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 
@@ -70,5 +72,4 @@ bun run preview
 └── package.json
 ```
 
-### 第 14 轮歌手详情进度
-当前已完成歌手详情：`/artist/detail`、`/artist/songs` 热门歌曲，歌单里的歌手名可进入详情并播放。歌手馆仍是边界页。第 14 轮已在 Vite `127.0.0.1:45967` + mock API `127.0.0.1:48503` 完成本地浏览器 smoke，但未验证外部真实网易云 API。
+当前已完成到第 16 轮：精选推荐电台与 `#/dj?id=` 节目详情可播放。下一轮是搜索。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。

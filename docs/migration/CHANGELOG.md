@@ -1,5 +1,19 @@
 # 迁移文档变更记录
 
+## 0.20.0 - 2026-08-29
+
+### 实施第 16 轮：推荐电台
+
+- 精选接入 `GET /personalized/djprogram` 推荐电台；卡片进入 `#/dj?id=`；
+- `GET /dj/program/detail` 最小节目详情，`mainSong` 走已有 Player；
+- 独立 DJ store，列表与详情分世代号；缺失 ID 只走 `resetDetail()`；Host 重新配置 `djStore.reset()`；
+- 不迁电台大厅 Banner/分类，也不复用 legacy 点进 `video` 的未完成路径；
+- 审查后补了详情过期请求丢弃、精选 private 重试和节目头/播放提示测试；
+- 64 个测试文件、223 个测试通过；typecheck、build（267 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:46179` + mock `127.0.0.1:46515`，覆盖 Host→Discover→精选→节目详情→播放、503/retry、桌面/移动布局；
+- 第 15 轮提交为 `11535de`，第 16 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移搜索。
+
 ## 0.19.0 - 2026-08-29
 
 ### 实施第 15 轮：歌手馆列表

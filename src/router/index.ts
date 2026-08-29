@@ -117,6 +117,16 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/dj',
+    name: Pages.dj,
+    component: () => import('@/views/DjView.vue'),
+    meta: {
+      menu: 'music',
+      requiresApiHost: true,
+      title: '电台',
+    },
+  },
+  {
     path: '/mvDetail',
     name: Pages.mvDetail,
     component: () => import('@/views/MvView.vue'),

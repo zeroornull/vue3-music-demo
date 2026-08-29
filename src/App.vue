@@ -7,6 +7,7 @@ import HostSetupView from '@/views/HostSetupView.vue'
 import PlayerBar from '@/components/player/PlayerBar.vue'
 import { useArtistStore } from '@/stores/artist'
 import { useCategoryStore } from '@/stores/category'
+import { useDjStore } from '@/stores/dj'
 import { useCommonStore } from '@/stores/common'
 import { useMusicStore } from '@/stores/music'
 import { useMvStore } from '@/stores/mv'
@@ -23,6 +24,7 @@ const categoryStore = useCategoryStore()
 const videoStore = useVideoStore()
 const commonStore = useCommonStore()
 const artistStore = useArtistStore()
+const djStore = useDjStore()
 const { isConfigured } = storeToRefs(hostStore)
 
 watch(isConfigured, (configured) => {
@@ -35,6 +37,7 @@ watch(isConfigured, (configured) => {
     videoStore.reset()
     commonStore.reset()
     artistStore.reset()
+    djStore.reset()
   }
 })
 </script>

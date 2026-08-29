@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 
 import type { Banner } from '@/models/banner'
 import { useCommonStore } from '@/stores/common'
+import { useDjStore } from '@/stores/dj'
 import { usePlayerStore } from '@/stores/player'
 import { useVideoStore } from '@/stores/video'
 import PickedView from '@/views/music/PickedView.vue'
@@ -11,6 +12,7 @@ import PickedView from '@/views/music/PickedView.vue'
 const commonStore = useCommonStore()
 const playerStore = usePlayerStore()
 const videoStore = useVideoStore()
+const djStore = useDjStore()
 const { banners, error, loading } = storeToRefs(commonStore)
 const {
   mvs,
@@ -20,6 +22,7 @@ const {
   privateContentsError,
   privateContentsLoading,
 } = storeToRefs(videoStore)
+const { programs, programsError, programsLoading } = storeToRefs(djStore)
 const notice = ref<string | null>(null)
 
 function requestBanners(force = false) {
@@ -32,6 +35,10 @@ function requestPrivateContents(force = false) {
 
 function requestMvs(force = false) {
   void videoStore.loadMvs(force).catch(() => undefined)
+}
+
+function requestDjPrograms(force = false) {
+  void djStore.loadPrograms(force).catch(() => undefined)
 }
 
 function selectBanner(banner: Banner) {
@@ -52,6 +59,7 @@ function selectBanner(banner: Banner) {
 onMounted(() => {
   requestBanners()
   requestPrivateContents()
+  requestDjPrograms()
   requestMvs()
 })
 </script>
@@ -63,6 +71,9 @@ onMounted(() => {
       :banners="banners"
       :banners-error="error"
       :banners-loading="loading"
+      :dj-error="programsError"
+      :dj-loading="programsLoading"
+      :dj-programs="programs"
       :mvs="mvs"
       :mvs-error="mvsError"
       :mvs-loading="mvsLoading"
@@ -70,6 +81,7 @@ onMounted(() => {
       :private-error="privateContentsError"
       :private-loading="privateContentsLoading"
       @retry-banners="requestBanners(true)"
+      @retry-dj="requestDjPrograms(true)"
       @retry-mvs="requestMvs(true)"
       @retry-private="requestPrivateContents(true)"
       @select-banner="selectBanner"

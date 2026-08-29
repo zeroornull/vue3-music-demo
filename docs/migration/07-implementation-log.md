@@ -2468,3 +2468,81 @@ mock API http://127.0.0.1:47537
 ### 17.4 本轮结果
 
 歌手馆列表已在工作区形成。第 14 轮提交 `4feee83` 仍是当前 HEAD；第 15 轮尚未 commit / push。下一轮建议迁移电台。
+
+随后该轮以 `11535de` 提交。
+
+## 18. 实施第 16 轮：推荐电台（工作区）
+
+> 执行日期：`2026-08-29`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 18.1 开始边界与范围
+
+第 16 轮开始时第 15 轮已经提交并与 origin 同步：
+
+```text
+HEAD 11535de
+master...origin/master
+```
+
+工作区从该提交继续。本轮把推荐电台接回精选，并用 `#/dj?id=` 形成可点可播闭环。不迁电台大厅、Discover 电台区块、搜索、Tailwind 4、播放器增强或 CI。
+
+范围：
+
+- `GET /personalized/djprogram` 与 `GET /dj/program/detail`；
+- 独立 DJ store：列表缓存、详情按 ID 缓存、`resetDetail()`、世代号和 Host `reset()`；
+- 精选 `DjProgramSection` 卡片进入 `#/dj?id=`；
+- `mainSong` 接入已有 Player。
+
+### 18.2 自动验证
+
+```text
+bun run test
+Test Files  64 passed (64)
+Tests       223 passed (223)
+
+bun run typecheck
+PASS
+
+bun run build
+267 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。审查后补了详情过期请求丢弃、失败视为缓存未命中、精选 private 重试和节目头/播放提示测试。最终测试数为 223。
+
+### 18.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:46179
+mock API http://127.0.0.1:46515
+```
+
+验证步骤：
+
+1. Host 保存后进入 Discover，点击音乐馆到达 `#/music/picked`；
+2. 推荐电台可见「深夜民谣」「秋日电台」；点击「深夜民谣」到达 `#/dj?id=901`；
+3. 封面、简介、电台名和「播放节目」可见；点击后出现「正在播放“晚风来信”。」，PlayerBar 显示该曲；
+4. Host 重新配置后 mock 503 显示 `mock radio unavailable`，重试后列表恢复；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出（`scrollWidth === clientWidth`）。
+
+截图保存在 `/tmp/vue3-music-round16-desktop.png` 和 `/tmp/vue3-music-round16-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。503 验证期间浏览器记录了一次资源 503。
+
+### 18.4 本轮结果
+
+推荐电台已在工作区形成。第 15 轮提交 `11535de` 仍是当前 HEAD；第 16 轮尚未 commit / push。下一轮建议迁移搜索。

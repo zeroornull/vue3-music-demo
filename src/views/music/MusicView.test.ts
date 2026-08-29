@@ -39,7 +39,7 @@ describe('MusicView', () => {
     ])
     expect(wrapper.get('[aria-current="page"]').text()).toBe('排行')
     expect(wrapper.get('.summary').text()).toBe(
-      '精选、排行榜、分类歌单、歌手详情和歌手馆已接入。',
+      '精选、排行榜、分类歌单、歌手详情、歌手馆和电台已接入。',
     )
   })
 })

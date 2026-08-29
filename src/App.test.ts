@@ -13,6 +13,7 @@ import { useCommonStore } from '@/stores/common'
 import { useMusicStore } from '@/stores/music'
 import { useMvStore } from '@/stores/mv'
 import { usePlaylistStore } from '@/stores/playlist'
+import { useDjStore } from '@/stores/dj'
 import { useVideoStore } from '@/stores/video'
 import { useHostStore } from '@/stores/host'
 
@@ -148,6 +149,27 @@ describe('App host gate', () => {
 
     expect(videoStore.privateContents).toEqual([])
     expect(videoStore.mvs).toEqual([])
+  })
+
+  it('clears recommended radio cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const djStore = useDjStore()
+    djStore.programs = [
+      {
+        copywriter: '',
+        id: 901,
+        name: '深夜民谣',
+        picUrl: 'https://images.example.com/dj.jpg',
+      },
+    ]
+    djStore.loadedId = 901
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(djStore.programs).toEqual([])
+    expect(djStore.loadedId).toBeNull()
   })
 
   it('clears music-hall top-list cache when the host gate closes', async () => {

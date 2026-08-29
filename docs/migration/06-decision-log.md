@@ -213,6 +213,17 @@
 - **Store**：列表与详情共用 `useArtistStore`，但用独立 `listSerial`。无效或缺失详情 `id` 只走 `resetDetail()`（清详情字段并递增 `requestSerial`），避免误清歌手馆缓存。`setArea` 会丢弃在途列表请求、清空当前行并强制重载。
 - **Host**：重新配置时现有 `artistStore.reset()` 同时清详情和歌手馆（语种回到全部）。
 
+### D-026：电台从精选推荐节目闭环，不迁空大厅
+
+- **状态**：已验证
+- **日期**：2026-08-29
+- **决策**：第 16 轮把推荐电台接回音乐馆精选，并用 `#/dj?id=` 做最小节目详情和播放。不迁 Discover 电台区块（legacy Discover 本来就没挂 `DjProgram`），也不迁空的电台大厅。
+- **原因**：legacy `DJ.vue` 是空模板；精选才是真实入口。卡片当时 `push` 到 `video?id=`，而 `Video.vue` 不读该 id，闭环从未完成。新工程用已有 Player 播 `mainSong`，立刻可点可播。
+- **路由**：保留 legacy 名称 `dj`，query 契约与 `playlist?id=` 一致。无 `id` 显示缺 ID 空态。
+- **API**：列表 `GET /personalized/djprogram`；详情 `GET /dj/program/detail`。封面回退 `coverUrl` → `blurCoverUrl` → `radio.picUrl`。
+- **Store**：独立 `useDjStore`。列表 `listSerial` 与详情 `requestSerial` 分离。缺失或无效 ID 只走 `resetDetail()`，避免误清精选电台缓存。
+- **Host**：重新配置时 `djStore.reset()`。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：
