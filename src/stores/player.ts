@@ -94,6 +94,19 @@ export const usePlayerStore = defineStore('player', {
         if (serial === requestSerial) this.loading = false
       }
     },
+    async playAll(songs: Song[]) {
+      const unique: Song[] = []
+      const seen = new Set<number>()
+      for (const item of songs) {
+        if (seen.has(item.id)) continue
+        seen.add(item.id)
+        unique.push(item)
+      }
+      const first = unique[0]
+      if (!first) return false
+      this.queue = unique
+      return this.play(first)
+    },
     pause() {
       if (!injectedAdapter || !this.current) return
       injectedAdapter.pause()

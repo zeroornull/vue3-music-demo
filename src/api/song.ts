@@ -1,24 +1,13 @@
 import { http, type HttpClient } from '@/api/http'
-import type { Song, SongArtist, SongAlbum, SongUrl } from '@/models/song'
+import {
+  normalizeSong,
+  type NetworkSong,
+  type Song,
+  type SongUrl,
+} from '@/models/song'
 
 interface SongUrlResponse {
   data?: SongUrl[]
-}
-
-interface NetworkAlbum {
-  id: number
-  name: string
-  picUrl?: string
-}
-
-interface NetworkSong {
-  id: number
-  name: string
-  ar?: SongArtist[]
-  al?: NetworkAlbum
-  artists?: SongArtist[]
-  album?: SongAlbum
-  picUrl?: string
 }
 
 interface SongDetailResponse {
@@ -35,24 +24,6 @@ export async function getSongUrl(
     throw new Error('歌曲暂无可播放地址')
   }
   return item
-}
-
-function normalizeSong(song: NetworkSong): Song {
-  return {
-    id: song.id,
-    name: song.name,
-    artists: song.artists ?? song.ar ?? [],
-    album:
-      song.album ??
-      (song.al
-        ? {
-            id: song.al.id,
-            name: song.al.name,
-            picUrl: song.al.picUrl,
-          }
-        : undefined),
-    picUrl: song.picUrl ?? song.al?.picUrl,
-  }
 }
 
 export async function getSongDetail(

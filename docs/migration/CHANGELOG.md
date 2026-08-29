@@ -1,5 +1,22 @@
 # 迁移文档变更记录
 
+## 0.13.0 - 2026-08-29
+
+### 实施第 9 轮：完整歌单详情
+
+- 新增 `/playlist/detail` 与 `/playlist/track/all` 的最小模型和 API；
+- 详情只保留封面、名称、介绍、标签、播放量、曲目数、精品和创建者，不复制 subscribers/tracks/privilege 等宽结构；
+- 歌曲列表复用 `Song`，并从 `dt` 读取可选时长；
+- 新增独立 Playlist Pinia store，覆盖 loading/error/empty/retry、按 ID 缓存、force 和过期请求丢弃；
+- 用真实 `PlaylistView` 替换 `playlist?id=` 边界页；
+- Player store 新增 `playAll`：按 ID 去重后替换队列并播放第一首；单曲点击复用 `play(song)`；
+- 歌曲行始终提供可访问播放按钮，当前歌曲使用 `aria-current`；先展示 10 首并可加载更多；
+- 29 个测试文件、114 个测试通过；typecheck、build（188 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 本轮完成本地 mock API 浏览器 smoke，但未验证外部真实网易云 API 或真实网络媒体；
+- smoke 使用 Vite `127.0.0.1:45377` + mock API `127.0.0.1:46673`，覆盖 Host→Discover→歌单详情、detail/track 200、播放全部/单曲、加载更多、缺少 ID、503/retry、桌面/移动布局和返回 Discover 后 PlayerBar 仍在；
+- 第 8 轮提交为 `a666d98`，第 9 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移 MV 播放，播放器进度/音量/高级队列控制另行增强。
+
 ## 0.12.0 - 2026-08-29
 
 ### 实施第 8 轮：播放器最小闭环

@@ -6,13 +6,18 @@ import { useHostStore } from '@/stores/host'
 import HostSetupView from '@/views/HostSetupView.vue'
 import PlayerBar from '@/components/player/PlayerBar.vue'
 import { usePlayerStore } from '@/stores/player'
+import { usePlaylistStore } from '@/stores/playlist'
 
 const hostStore = useHostStore()
 const playerStore = usePlayerStore()
+const playlistStore = usePlaylistStore()
 const { isConfigured } = storeToRefs(hostStore)
 
 watch(isConfigured, (configured) => {
-  if (!configured) playerStore.clear()
+  if (!configured) {
+    playerStore.clear()
+    playlistStore.reset()
+  }
 })
 </script>
 

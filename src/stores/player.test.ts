@@ -306,6 +306,33 @@ describe('Player store', () => {
     expect(player.current?.id).toBe(2)
   })
 
+  it('replaces the queue and plays the first song when playing all', async () => {
+    const play = vi.fn(async () => {})
+    setAudioAdapter({
+      src: '',
+      volume: 1,
+      paused: true,
+      play,
+      pause: vi.fn(),
+      on: () => () => {},
+    })
+    const player = usePlayerStore()
+    await player.play(song(9))
+
+    await expect(player.playAll([song(1), song(2), song(1)])).resolves.toBe(true)
+
+    expect(player.queue.map((item) => item.id)).toEqual([1, 2])
+    expect(player.current?.id).toBe(1)
+    expect(player.isPlaying).toBe(true)
+  })
+
+  it('does not change state when play-all receives no songs', async () => {
+    const player = usePlayerStore()
+    await expect(player.playAll([])).resolves.toBe(false)
+    expect(player.queue).toHaveLength(0)
+    expect(player.current).toBeNull()
+  })
+
   it('clears a previous toggle error when retrying successfully', async () => {
     const play = vi
       .fn()

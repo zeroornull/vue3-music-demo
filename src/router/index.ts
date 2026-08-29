@@ -42,7 +42,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/playlist',
     name: Pages.playlist,
-    component: () => import('@/views/PlaylistPlaceholderView.vue'),
+    component: () => import('@/views/PlaylistView.vue'),
     meta: {
       menu: 'discover',
       requiresApiHost: true,

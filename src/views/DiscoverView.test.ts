@@ -152,10 +152,10 @@ describe('DiscoverView', () => {
 
     expect(wrapper.get('h1').text()).toBe('推荐')
     expect(wrapper.get('.summary').text()).toBe(
-      '四个推荐内容模块与最小播放器已接入。',
+      '四个推荐内容模块、最小播放器和歌单详情已接入。',
     )
-    expect(wrapper.get('.next-slices').text()).toContain('完整歌单详情')
-    expect(wrapper.get('.next-slices').text()).not.toContain('播放器')
+    expect(wrapper.get('.next-slices').text()).toContain('MV 播放')
+    expect(wrapper.get('.next-slices').text()).not.toContain('完整歌单详情')
     expect(wrapper.get('[data-testid="banner-count"]').text()).toBe('1')
     expect(getBanners).toHaveBeenCalledTimes(1)
   })

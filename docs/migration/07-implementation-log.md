@@ -1855,3 +1855,141 @@ PASS
 ### 10.9 本轮结果
 
 播放器最小闭环已在工作区形成：Discover 的歌曲入口可以请求歌曲详情/URL，使用 Audio adapter 播放，并由全局 PlayerBar 展示最小控制状态。Host 重新配置会 clear 播放器并使在途播放失效；pending toggle 在 Host clear/新选歌后不会恢复旧状态，重试成功清旧错误。第 7 轮提交 `5f2155c` 仍是当前 HEAD；第 8 轮源码和文档均尚未 commit / push。下一轮建议迁移完整歌单详情，复用当前 Player store；播放器进度、音量和高级队列控制另行增强。
+
+## 11. 实施第 9 轮：完整歌单详情（工作区）
+
+> 执行日期：`2026-08-29`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 11.1 开始边界与范围
+
+第 9 轮开始时第 8 轮已经提交并与 origin 同步：
+
+```text
+HEAD a666d98
+master...origin/master
+worktree clean
+```
+
+本轮承接 Discover 专属歌单的 `playlist?id=` 契约和第 8 轮 Player store，迁移完整歌单详情：
+
+- `/playlist/detail` 最小 metadata 模型与 API；
+- `/playlist/track/all` 完整曲目，而不是截断的 `playlist.tracks`；
+- 独立 Playlist store：loading/error/empty/retry、按 ID 缓存、force、过期请求丢弃；
+- `PlaylistView` 替换边界页；
+- `playAll` 替换队列并播放第一首；单曲点击复用 `play(song)`；
+- 先展示 10 首，可加载更多；播放按钮始终可见。
+
+本轮不迁移 MV `<video>`、播放器进度/音量/上一首下一首、Tailwind 4、Element Plus、评论/收藏或发布 CI。
+
+### 11.2 测试先行
+
+实现前先添加失败测试：
+
+```text
+src/api/playlist.test.ts
+src/stores/playlist.test.ts
+src/stores/player.test.ts          # 新增 playAll
+src/components/playlist/*.test.ts
+src/views/PlaylistView.test.ts
+```
+
+首次运行结果：
+
+```text
+Test Files  7 failed | 22 passed
+Tests       2 failed | 86 passed
+```
+
+失败原因符合预期：playlist API/store/组件/页面尚不存在，`player.playAll` 不是函数。随后没有删减这些验收条件。
+
+### 11.3 模型、API 与 store
+
+`PlaylistDetail` 只保留页面使用的字段。创建者缺失时回退为“未知用户”。`Song` 增加可选 `duration`，由 `normalizeSong` 从 `dt` 映射，供列表展示 mm:ss。
+
+API：
+
+```text
+GET /playlist/detail     { id }
+GET /playlist/track/all  { id }
+```
+
+没有沿用 legacy 的 `s=8` 订阅者参数。曲目 endpoint 使用前导 `/`，与其他新 API 一致。
+
+Playlist store 按歌单 ID 缓存成功结果；切换 ID 立即清空旧详情，避免闪现上一张歌单；请求序列号丢弃过期并发结果。非法 ID 不发网络请求。带错误的缓存不会被当成命中；缺少 `id` 或 Host 重新配置会 `reset()`。
+
+Player store 新增：
+
+```text
+playAll(songs) → 按 ID 去重、替换 queue、play(first)
+```
+
+空列表返回 `false` 且不改状态。单曲仍然 `play(song)`，不在本轮加入队列导航。
+
+### 11.4 页面与可访问交互
+
+- 路由组件从 `PlaylistPlaceholderView` 换成 `PlaylistView`，name/query 契约不变；
+- Header 展示封面、名称、创建者、标签、精品、介绍、播放量和“播放全部”；
+- 歌曲行是完整的播放按钮，带 `aria-label`；当前歌曲 `aria-current="true"`；
+- 移动端堆叠封面、隐藏专辑列，播放控制仍然可见；
+- Discover 的 next-slices 从“完整歌单详情”改为“MV 播放”。
+
+### 11.5 自动验证
+
+```text
+bun run test
+Test Files  29 passed (29)
+Tests       114 passed (114)
+
+bun run typecheck
+PASS
+
+bun run build
+188 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。审查后补上 Host/`id` 缺失时的 `reset()`、错误态不命中缓存，以及 loading/missing-id 测试；最终测试数为 114。
+
+### 11.6 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被其他进程占用，本轮没有终止未知进程，改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:45377
+mock API http://127.0.0.1:46673
+```
+
+验证步骤：
+
+1. 隔离浏览器上下文填写 Host 并进入 Discover；
+2. 点击“打开歌单：凌晨听歌指南”，hash 为 `#/playlist?id=101`，标题为“歌单详情 · Vue3 Music”；
+3. `/playlist/detail?id=101` 与 `/playlist/track/all?id=101` 返回 200；
+4. 可见封面、创建者、#独立/#民谣、12.8 万次播放、12 首和前 10 条歌曲；
+5. “播放全部”后 notice 为“正在播放歌单。”，PlayerBar 显示“歌曲 1”；`/song/url?id=301` 返回 200；
+6. 点击歌曲 2 后 PlayerBar 更新为“歌曲 2”；`/song/url?id=302` 返回 200；
+7. “加载更多”展开歌曲 11/12，加载按钮消失；
+8. 缺少 `id` 显示“缺少歌单 ID”，不发 playlist 请求；
+9. `id=202` 在 mock 503 时显示 `mock playlist unavailable` 和“重新加载”；恢复后重试显示“歌单 202”；
+10. 桌面 `1440×900` 无横向溢出；移动 `390×844` 专辑列 `display:none`，播放全部仍可见，无横向溢出；
+11. 通过“返回推荐页” RouterLink 回到 Discover 后，PlayerBar 仍显示“歌曲 3”；
+12. 成功路径控制台无 error/warn/issue；503 验证期间浏览器记录了两次资源 503。
+
+截图保存在 `/tmp/vue3-music-round9-desktop.png` 和 `/tmp/vue3-music-round9-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+未验证外部真实网易云 API、真实网络媒体、跨域资源和网络中断恢复。
+
+### 11.7 本轮结果
+
+完整歌单详情已在工作区形成：Discover 歌单卡片进入真实详情页，可以播放全部或单曲，并复用第 8 轮 PlayerBar。第 8 轮提交 `a666d98` 仍是当前 HEAD；第 9 轮源码和文档均尚未 commit / push。下一轮建议迁移 MV 播放；播放器进度、音量和高级队列控制另行增强。

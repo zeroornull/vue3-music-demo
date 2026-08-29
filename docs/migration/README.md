@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.12.0`<br>
+> 文档版本：`0.13.0`<br>
 > 版本快照日期：`2026-08-29`<br>
-> 当前阶段：**实施第 8 轮播放器最小闭环已落地（未 commit）；下一轮完整歌单详情**
+> 当前阶段：**实施第 9 轮完整歌单详情已落地（未 commit）；下一轮 MV 播放**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -274,7 +274,20 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 15. 主要官方资料
+## 15. 实施第 9 轮结果
+
+- 新增 `/playlist/detail` 与 `/playlist/track/all` 的最小 API/model；
+- 新增独立 Playlist store，覆盖 loading/error/empty/retry、按 ID 缓存和过期请求丢弃；
+- 用 `PlaylistView` 替换歌单详情边界页，保留 `playlist?id=` 路由契约；
+- “播放全部”替换播放队列；单曲点击接入现有 Player store；
+- 歌曲列表先展示 10 首，可加载更多；播放按钮始终可见；
+- 29 个测试文件、114 个测试通过；typecheck、build（188 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未验证外部真实网易云 API 或真实网络媒体；未 commit、未 push；
+- 下一轮建议迁移 MV 播放。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 16. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)
