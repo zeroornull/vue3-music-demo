@@ -106,6 +106,16 @@ export const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/artistDetail',
+    name: Pages.artistDetail,
+    component: () => import('@/views/ArtistView.vue'),
+    meta: {
+      menu: 'music',
+      requiresApiHost: true,
+      title: '歌手详情',
+    },
+  },
+  {
     path: '/mvDetail',
     name: Pages.mvDetail,
     component: () => import('@/views/MvView.vue'),

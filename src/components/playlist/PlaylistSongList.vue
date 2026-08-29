@@ -4,15 +4,19 @@ import { computed, ref, watch } from 'vue'
 import PlaylistSongItem from '@/components/playlist/PlaylistSongItem.vue'
 import type { Song } from '@/models/song'
 
-const PAGE_SIZE = 10
-
 const props = withDefaults(
   defineProps<{
     currentId?: number | null
+    emptyDescription?: string
+    paginate?: boolean
+    pageSize?: number
     songs: Song[]
   }>(),
   {
     currentId: null,
+    emptyDescription: '这个歌单还没有可播放的曲目。',
+    paginate: true,
+    pageSize: 10,
   },
 )
 
@@ -22,10 +26,12 @@ defineEmits<{
 
 const page = ref(1)
 const visibleSongs = computed(() =>
-  props.songs.slice(0, PAGE_SIZE * page.value),
+  props.paginate
+    ? props.songs.slice(0, props.pageSize * page.value)
+    : props.songs,
 )
 const canLoadMore = computed(
-  () => visibleSongs.value.length < props.songs.length,
+  () => props.paginate && visibleSongs.value.length < props.songs.length,
 )
 
 watch(
@@ -53,7 +59,7 @@ watch(
       data-testid="playlist-songs-empty"
     >
       <strong>暂无歌曲</strong>
-      <p>这个歌单还没有可播放的曲目。</p>
+      <p>{{ emptyDescription }}</p>
     </div>
 
     <ol v-else class="songs">

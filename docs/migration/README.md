@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.17.0`<br>
+> 文档版本：`0.18.0`<br>
 > 版本快照日期：`2026-08-29`<br>
-> 当前阶段：**实施第 13 轮精选已落地（未 commit）；下一轮歌手详情**
+> 当前阶段：**实施第 14 轮歌手详情已落地（未 commit）；下一轮歌手馆列表**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -326,12 +326,23 @@ build: {
 - 独家放送进入已有 `mvDetail?id=`；推荐电台后置；
 - 歌手仍为明确边界页；
 - 50 个测试文件、178 个测试通过；typecheck、build（236 modules）、frozen lock、audit 和 `git diff --check` 通过；
-- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 已完成本地 mock API 浏览器 smoke；随后提交为 `5fa2d24`；
 - 下一轮建议迁移歌手详情。
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 20. 主要官方资料
+## 20. 实施第 14 轮结果
+
+- 歌手详情 `/artist/detail` 与热门歌曲 `/artist/songs`；
+- 歌单歌手名进入详情，播放接入已有 Player；
+- 歌手馆仍为明确边界页；
+- 54 个测试文件、192 个测试通过；typecheck、build（244 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 下一轮建议迁移歌手馆列表。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 21. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

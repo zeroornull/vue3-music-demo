@@ -61,6 +61,15 @@ describe('router contract', () => {
     expect(router.resolve({ name: Pages.toplist }).meta.title).toBe('排行榜')
   })
 
+  it('preserves the legacy artist detail route name and query id', () => {
+    const router = createAppRouter(createMemoryHistory())
+    const route = router.resolve({ name: Pages.artistDetail, query: { id: 401 } })
+
+    expect(route.path).toBe('/artistDetail')
+    expect(route.query.id).toBe('401')
+    expect(route.meta.title).toBe('歌手详情')
+  })
+
   it('preserves the legacy MV detail route name and query id', () => {
     const router = createAppRouter(createMemoryHistory())
     const route = router.resolve({ name: Pages.mvDetail, query: { id: 701 } })

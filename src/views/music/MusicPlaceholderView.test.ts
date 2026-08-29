@@ -18,6 +18,7 @@ describe('MusicPlaceholderView', () => {
 
     expect(wrapper.get('h2').text()).toContain('歌手')
     expect(wrapper.text()).toContain('后续轮次迁移')
+    expect(wrapper.text()).toContain('歌手详情')
     expect(wrapper.get('[data-testid="toplist-shortcut"]').text()).toContain(
       '排行榜',
     )

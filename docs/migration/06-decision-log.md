@@ -192,6 +192,16 @@
 - **Store**：exclusive videos 放进现有 Video store，与推荐 MV 共享 Host `reset()` 和世代号丢弃。Banner 走 Common store，Host 重新配置同样 `commonStore.reset()` 并丢弃在途请求。
 - **布局**：精选容器使用 `grid-template-columns: minmax(0, 1fr)`，避免 Swiper 把音乐馆列撑出横向滚动。
 
+### D-024：先迁歌手详情，而不是歌手馆筛选
+
+- **状态**：已验证
+- **日期**：2026-08-29
+- **决策**：第 14 轮只做 `artistDetail?id=` 最小详情（封面、简介、热门歌曲、播放），不迁 `/music/artist` 筛选列表，也不迁专辑/视频/详情 tab。
+- **原因**：歌手馆依赖 `artist/list` 和一组筛选控件；详情是单一 ID 页，且歌单行已经有歌手 ID，可以立刻点进闭环。播放复用已有 Player。
+- **分页**：热门歌曲每页 10 首（legacy 歌曲 tab 为 20）。10 与歌单详情的首屏密度一致。
+- **入口**：歌单 `PlaylistSongItem` 把 `artist.id > 0` 的名字做成 `artistDetail?id=` 链接，播放按钮只包歌名。
+- **Host**：重新配置时 `artistStore.reset()` 并递增请求世代号。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

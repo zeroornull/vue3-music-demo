@@ -1,5 +1,6 @@
 export const Pages = {
   artist: 'artist',
+  artistDetail: 'artistDetail',
   category: 'category',
   discover: 'discover',
   home: 'home',

@@ -2310,3 +2310,81 @@ mock API http://127.0.0.1:48155
 ### 15.4 本轮结果
 
 精选已在工作区形成。第 12 轮提交 `175d4ab` 仍是当前 HEAD；第 13 轮尚未 commit / push。下一轮建议迁移歌手详情。
+
+随后该轮以 `5fa2d24` 提交。
+
+## 16. 实施第 14 轮：歌手详情（工作区）
+
+> 执行日期：`2026-08-29`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 16.1 开始边界与范围
+
+第 14 轮开始时第 13 轮已经提交并与 origin 同步：
+
+```text
+HEAD 5fa2d24
+master...origin/master
+```
+
+工作区从该提交继续。本轮接入 legacy `artistDetail?id=` 最小详情：封面、简介、热门歌曲和播放。不迁歌手馆筛选、专辑/视频/详情 tab、电台、Tailwind 4、播放器增强或 CI。
+
+范围：
+
+- `GET /artist/detail` 与 `GET /artist/songs`（`order=hot`，每页 10 首）；
+- 独立 Artist store：按 ID 缓存、force、loadMore、失败未命中、世代号和 `reset()`；
+- 歌单行歌手名进入 `artistDetail?id=`；
+- 单曲和播放热门歌曲接入已有 Player；
+- Host 重新配置 `artistStore.reset()`。
+
+### 16.2 自动验证
+
+```text
+bun run test
+Test Files  54 passed (54)
+Tests       192 passed (192)
+
+bun run typecheck
+PASS
+
+bun run build
+244 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。审查后歌曲列表用 `paginate` 代替魔法 `pageSize=0`，歌手空态不再复用歌单文案。最终测试数为 192。
+
+### 16.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用，改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:45967
+mock API http://127.0.0.1:48503
+```
+
+验证步骤：
+
+1. Host 保存后进入 Discover，点击专属歌单进入 `#/playlist?id=101`；
+2. 点击歌曲行歌手名「林间电台」到达 `#/artistDetail?id=401`；
+3. 封面、简介、计数和热门歌曲可见；点击「晚风来信」后出现「正在播放“晚风来信”。」，PlayerBar 显示该曲；
+4. mock 503 显示 `mock artist unavailable`，重试后详情恢复；
+5. 缺少 `id` 显示「缺少歌手 ID」；
+6. 桌面 `1440×900` 与移动 `390×844` 无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round14-desktop.png` 和 `/tmp/vue3-music-round14-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+### 16.4 本轮结果
+
+歌手详情已在工作区形成。第 13 轮提交 `5fa2d24` 仍是当前 HEAD；第 14 轮尚未 commit / push。下一轮建议迁移歌手馆列表。

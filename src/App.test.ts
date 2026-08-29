@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '@/App.vue'
 import { getSongUrl } from '@/api/song'
 import { setAudioAdapter, usePlayerStore } from '@/stores/player'
+import { useArtistStore } from '@/stores/artist'
 import { useCategoryStore } from '@/stores/category'
 import { useCommonStore } from '@/stores/common'
 import { useMusicStore } from '@/stores/music'
@@ -63,6 +64,28 @@ describe('App host gate', () => {
 
     expect(categoryStore.playlists).toEqual([])
     expect(categoryStore.cat).toBe('全部')
+  })
+
+  it('clears artist detail cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const artistStore = useArtistStore()
+    artistStore.artist = {
+      albumSize: 1,
+      briefDesc: '',
+      cover: '',
+      id: 401,
+      musicSize: 1,
+      mvSize: 0,
+      name: '林间电台',
+    }
+    artistStore.loadedId = 401
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(artistStore.artist).toBeNull()
+    expect(artistStore.loadedId).toBeNull()
   })
 
   it('clears banner cache when the host gate closes', async () => {

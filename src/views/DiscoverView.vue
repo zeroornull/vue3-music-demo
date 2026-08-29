@@ -97,7 +97,7 @@ onMounted(() => {
       <div>
         <p class="eyebrow">Discover</p>
         <h1>推荐</h1>
-        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单和精选已接入。</p>
+        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选和歌手详情已接入。</p>
       </div>
       <nav aria-label="迁移工具">
         <RouterLink :to="{ name: Pages.music }">音乐馆</RouterLink>
@@ -144,7 +144,7 @@ onMounted(() => {
         <h2 id="next-slices-title">推荐页仍在渐进迁移</h2>
       </div>
       <ul>
-        <li>歌手</li>
+        <li>歌手馆</li>
       </ul>
     </section>
   </main>

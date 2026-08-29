@@ -22,7 +22,7 @@ const currentTab = computed(() => route.name)
       <div>
         <p class="eyebrow">Music hall</p>
         <h1>音乐馆</h1>
-        <p class="summary">精选、排行榜和分类歌单已接入；歌手仍是明确边界。</p>
+        <p class="summary">精选、排行榜、分类歌单和歌手详情已接入；歌手馆仍是明确边界。</p>
       </div>
       <nav aria-label="页面导航">
         <RouterLink :to="{ name: Pages.discover }">返回推荐页</RouterLink>

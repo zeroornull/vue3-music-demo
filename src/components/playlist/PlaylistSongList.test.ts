@@ -24,7 +24,12 @@ const SongItemStub = defineComponent({
 })
 
 function mountList(
-  props: Partial<{ currentId: number | null; songs: Song[] }> = {},
+  props: Partial<{
+    currentId: number | null
+    emptyDescription: string
+    paginate: boolean
+    songs: Song[]
+  }> = {},
 ) {
   return mount(PlaylistSongList, {
     props: {
@@ -53,6 +58,22 @@ describe('PlaylistSongList', () => {
     expect(wrapper.findAll('[data-testid="song-item"]')).toHaveLength(12)
     expect(wrapper.find('[data-testid="playlist-load-more"]').exists()).toBe(
       false,
+    )
+  })
+
+  it('renders every song and a custom empty copy when paging is off', () => {
+    const songs = Array.from({ length: 12 }, (_, index) => song(index + 1))
+    const pagedOff = mountList({ paginate: false, songs })
+    expect(pagedOff.findAll('[data-testid="song-item"]')).toHaveLength(12)
+    expect(pagedOff.find('[data-testid="playlist-load-more"]').exists()).toBe(
+      false,
+    )
+
+    const empty = mountList({
+      emptyDescription: '这位歌手暂时没有可播放的热门歌曲。',
+    })
+    expect(empty.get('[data-testid="playlist-songs-empty"]').text()).toContain(
+      '这位歌手暂时没有可播放的热门歌曲。',
     )
   })
 

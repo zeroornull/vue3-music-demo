@@ -1,5 +1,19 @@
 # 迁移文档变更记录
 
+## 0.18.0 - 2026-08-29
+
+### 实施第 14 轮：歌手详情
+
+- 保留 legacy `artistDetail?id=` 路由契约，新增最小 `ArtistView`；
+- `GET /artist/detail` 与 `GET /artist/songs`（hot，每页 10 首）；
+- 独立 Artist store，覆盖 loading/error/retry、按 ID 缓存、loadMore、过期请求丢弃和 Host `reset()`；
+- 歌单歌曲行的歌手名进入详情；单曲和播放热门歌曲接入已有 Player；
+- 歌手馆 `/music/artist` 仍是边界页；不迁专辑/视频/详情 tab；
+- 54 个测试文件、192 个测试通过；typecheck、build（244 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:45967` + mock `127.0.0.1:48503`，覆盖 Host→Discover→歌单→歌手详情→播放、503/retry、缺少 ID、桌面/移动布局；
+- 第 13 轮提交为 `5fa2d24`，第 14 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移歌手馆列表。
+
 ## 0.17.0 - 2026-08-29
 
 ### 实施第 13 轮：精选
