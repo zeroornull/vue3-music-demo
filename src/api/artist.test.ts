@@ -2,8 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
 import {
+  ARTIST_LIST_PAGE_SIZE,
   ARTIST_SONG_PAGE_SIZE,
   getArtistDetail,
+  getArtistList,
   getArtistSongs,
 } from '@/api/artist'
 
@@ -96,5 +98,85 @@ describe('Artist API', () => {
     await expect(
       getArtistSongs({ id: 401 }, client({ songs: null }).client),
     ).rejects.toThrow('歌手歌曲响应格式不正确')
+  })
+
+  it('unwraps /artist/list and keeps id/name/cover', async () => {
+    const request = client({
+      artists: [
+        {
+          extra: true,
+          id: 401,
+          img1v1Url: 'https://images.example.com/a.jpg',
+          name: '林间电台',
+          picUrl: 'https://images.example.com/b.jpg',
+        },
+      ],
+    })
+
+    await expect(
+      getArtistList({ area: 7, offset: 0 }, request.client),
+    ).resolves.toEqual({
+      more: false,
+      artists: [
+        {
+          id: 401,
+          img1v1Url: 'https://images.example.com/a.jpg',
+          name: '林间电台',
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/artist/list', {
+      area: 7,
+      initial: '-1',
+      limit: ARTIST_LIST_PAGE_SIZE,
+      offset: 0,
+      type: -1,
+    })
+  })
+
+  it('falls back to picUrl and rejects a missing artists array', async () => {
+    const request = client({
+      artists: [{ id: 402, name: '城市电台', picUrl: 'https://images.example.com/c.jpg' }],
+    })
+    await expect(getArtistList({}, request.client)).resolves.toEqual({
+      more: false,
+      artists: [
+        {
+          id: 402,
+          img1v1Url: 'https://images.example.com/c.jpg',
+          name: '城市电台',
+        },
+      ],
+    })
+    await expect(
+      getArtistList({}, client({ artists: null }).client),
+    ).rejects.toThrow('歌手列表响应格式不正确')
+  })
+
+  it('prefers the response more flag over page length', async () => {
+    await expect(
+      getArtistList(
+        {},
+        client({
+          more: true,
+          artists: [
+            {
+              id: 401,
+              img1v1Url: 'https://images.example.com/a.jpg',
+              name: '林间电台',
+            },
+          ],
+        }).client,
+      ),
+    ).resolves.toEqual({
+      more: true,
+      artists: [
+        {
+          id: 401,
+          img1v1Url: 'https://images.example.com/a.jpg',
+          name: '林间电台',
+        },
+      ],
+    })
   })
 })

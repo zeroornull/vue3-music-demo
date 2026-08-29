@@ -1,7 +1,13 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ARTIST_SONG_PAGE_SIZE, getArtistDetail, getArtistSongs } from '@/api/artist'
+import {
+  ARTIST_LIST_PAGE_SIZE,
+  ARTIST_SONG_PAGE_SIZE,
+  getArtistDetail,
+  getArtistList,
+  getArtistSongs,
+} from '@/api/artist'
 import { useArtistStore } from '@/stores/artist'
 
 vi.mock('@/api/artist', async (importOriginal) => {
@@ -9,6 +15,7 @@ vi.mock('@/api/artist', async (importOriginal) => {
   return {
     ...actual,
     getArtistDetail: vi.fn(),
+    getArtistList: vi.fn(),
     getArtistSongs: vi.fn(),
   }
 })
@@ -42,6 +49,7 @@ describe('artist store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.mocked(getArtistDetail).mockReset()
+    vi.mocked(getArtistList).mockReset()
     vi.mocked(getArtistSongs).mockReset()
   })
 
@@ -116,5 +124,83 @@ describe('artist store', () => {
     expect(store.artist).toEqual(artist)
     expect(store.error).toBeNull()
     expect(getArtistDetail).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads the hall list once and appends on load more', async () => {
+    const hallArtist = {
+      id: 401,
+      img1v1Url: 'https://images.example.com/a.jpg',
+      name: '林间电台',
+    }
+    const next = { ...hallArtist, id: 402, name: '城市电台' }
+    vi.mocked(getArtistList)
+      .mockResolvedValueOnce({ more: true, artists: [hallArtist] })
+      .mockResolvedValueOnce({ more: false, artists: [next] })
+    const store = useArtistStore()
+
+    await store.loadArtists()
+    await store.loadArtists()
+    await store.loadMoreArtists()
+
+    expect(store.artists.map((item) => item.id)).toEqual([401, 402])
+    expect(store.artistsMore).toBe(false)
+    expect(getArtistList).toHaveBeenNthCalledWith(2, {
+      area: -1,
+      initial: '-1',
+      limit: ARTIST_LIST_PAGE_SIZE,
+      offset: 1,
+      type: -1,
+    })
+  })
+
+  it('replaces an in-flight hall page when the area changes', async () => {
+    const pendingList = deferred<{
+      more: boolean
+      artists: { id: number; img1v1Url: string; name: string }[]
+    }>()
+    const next = {
+      id: 403,
+      img1v1Url: 'https://images.example.com/h.jpg',
+      name: '华语歌手',
+    }
+    vi.mocked(getArtistList)
+      .mockReturnValueOnce(pendingList.promise)
+      .mockResolvedValueOnce({ more: false, artists: [next] })
+    const store = useArtistStore()
+    const pending = store.loadArtists()
+    const switched = store.setArea(7)
+    pendingList.resolve({
+      more: true,
+      artists: [{ id: 401, img1v1Url: '', name: '林间电台' }],
+    })
+    await pending
+    await switched
+
+    expect(store.area).toBe(7)
+    expect(store.artists).toEqual([next])
+    expect(store.artistsLoading).toBe(false)
+    expect(getArtistList).toHaveBeenCalledTimes(2)
+  })
+
+  it('rejects an invalid artist id without wiping the hall list', async () => {
+    const hallArtist = {
+      id: 401,
+      img1v1Url: 'https://images.example.com/a.jpg',
+      name: '林间电台',
+    }
+    vi.mocked(getArtistList).mockResolvedValue({
+      more: false,
+      artists: [hallArtist],
+    })
+    const store = useArtistStore()
+    await store.loadArtists()
+    store.area = 7
+
+    await expect(store.load(0)).rejects.toThrow('缺少有效的歌手 ID')
+    expect(getArtistDetail).not.toHaveBeenCalled()
+    expect(store.artists).toEqual([hallArtist])
+    expect(store.area).toBe(7)
+    expect(store.artist).toBeNull()
+    expect(store.error).toBe('缺少有效的歌手 ID')
   })
 })

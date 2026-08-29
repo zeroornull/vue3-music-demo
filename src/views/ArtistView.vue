@@ -68,7 +68,7 @@ watch(
     notice.value = null
     playSerial += 1
     if (id === null) {
-      artistStore.reset()
+      artistStore.resetDetail()
       return
     }
     requestArtist()

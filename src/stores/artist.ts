@@ -2,15 +2,18 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import {
+  ARTIST_LIST_PAGE_SIZE,
   ARTIST_SONG_PAGE_SIZE,
   getArtistDetail,
+  getArtistList,
   getArtistSongs,
 } from '@/api/artist'
 import { getErrorMessage } from '@/api/http'
-import type { ArtistDetail } from '@/models/artist'
+import type { ArtistDetail, HallArtist } from '@/models/artist'
 import type { Song } from '@/models/song'
 
 let requestSerial = 0
+let listSerial = 0
 
 export const useArtistStore = defineStore('artist', () => {
   const artist = ref<ArtistDetail | null>(null)
@@ -19,8 +22,15 @@ export const useArtistStore = defineStore('artist', () => {
   const loading = ref(false)
   const more = ref(false)
   const loadedId = ref<number | null>(null)
+  const artists = ref<HallArtist[]>([])
+  const artistsError = ref<string | null>(null)
+  const artistsLoading = ref(false)
+  const artistsMore = ref(false)
+  const area = ref(-1)
+  const type = ref(-1)
+  const initial = ref('-1')
 
-  function reset() {
+  function resetDetail() {
     requestSerial++
     artist.value = null
     songs.value = []
@@ -30,9 +40,21 @@ export const useArtistStore = defineStore('artist', () => {
     loadedId.value = null
   }
 
+  function reset() {
+    resetDetail()
+    listSerial++
+    artists.value = []
+    artistsError.value = null
+    artistsLoading.value = false
+    artistsMore.value = false
+    area.value = -1
+    type.value = -1
+    initial.value = '-1'
+  }
+
   async function load(id: number, force = false): Promise<boolean> {
     if (!Number.isInteger(id) || id <= 0) {
-      reset()
+      resetDetail()
       error.value = '缺少有效的歌手 ID'
       throw new Error('缺少有效的歌手 ID')
     }
@@ -94,9 +116,66 @@ export const useArtistStore = defineStore('artist', () => {
     }
   }
 
+  async function loadArtists(options: { append?: boolean; force?: boolean } = {}) {
+    const append = Boolean(options.append)
+    const force = Boolean(options.force)
+    if (
+      !append &&
+      !force &&
+      artists.value.length &&
+      !artistsError.value
+    ) {
+      return
+    }
+
+    const serial = ++listSerial
+    artistsLoading.value = true
+    artistsError.value = null
+    const offset = append ? artists.value.length : 0
+    try {
+      const page = await getArtistList({
+        area: area.value,
+        initial: initial.value,
+        limit: ARTIST_LIST_PAGE_SIZE,
+        offset,
+        type: type.value,
+      })
+      if (serial !== listSerial) return
+      artists.value = append ? [...artists.value, ...page.artists] : page.artists
+      artistsMore.value = page.more
+    } catch (requestError) {
+      if (serial !== listSerial) return
+      artistsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === listSerial) artistsLoading.value = false
+    }
+  }
+
+  async function loadMoreArtists() {
+    if (!artistsMore.value || artistsLoading.value) return
+    return loadArtists({ append: true })
+  }
+
+  async function setArea(next: number) {
+    if (next === area.value && artists.value.length) {
+      return
+    }
+    listSerial++
+    area.value = next
+    artists.value = []
+    artistsError.value = null
+    artistsMore.value = false
+    return loadArtists({ force: true })
+  }
+
   return {
     load,
     loadMore,
+    loadArtists,
+    loadMoreArtists,
+    setArea,
+    resetDetail,
     reset,
     artist,
     songs,
@@ -104,5 +183,12 @@ export const useArtistStore = defineStore('artist', () => {
     loading,
     more,
     loadedId,
+    artists,
+    artistsError,
+    artistsLoading,
+    artistsMore,
+    area,
+    type,
+    initial,
   }
 })

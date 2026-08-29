@@ -1,8 +1,22 @@
 import { http, type HttpClient } from '@/api/http'
-import type { ArtistDetail, ArtistSongPage } from '@/models/artist'
+import type {
+  ArtistDetail,
+  ArtistListPage,
+  ArtistSongPage,
+  HallArtist,
+} from '@/models/artist'
 import { normalizeSong, type NetworkSong, type Song } from '@/models/song'
 
 export const ARTIST_SONG_PAGE_SIZE = 10
+export const ARTIST_LIST_PAGE_SIZE = 30
+
+export interface ArtistListQuery {
+  area?: number
+  initial?: string
+  limit?: number
+  offset?: number
+  type?: number
+}
 
 export interface ArtistSongQuery {
   id: number
@@ -63,5 +77,48 @@ export async function getArtistSongs(
   return {
     more: songs.length >= limit,
     songs,
+  }
+}
+
+function readHallArtist(value: unknown): HallArtist | null {
+  if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
+    return null
+  }
+  const cover =
+    typeof value.img1v1Url === 'string' && value.img1v1Url
+      ? value.img1v1Url
+      : typeof value.picUrl === 'string'
+        ? value.picUrl
+        : ''
+  return { id: value.id, name: value.name, img1v1Url: cover }
+}
+
+export async function getArtistList(
+  query: ArtistListQuery = {},
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<ArtistListPage> {
+  const limit = query.limit ?? ARTIST_LIST_PAGE_SIZE
+  const response = await client.get<{ artists?: unknown; more?: unknown }>(
+    '/artist/list',
+    {
+      area: query.area ?? -1,
+      initial: query.initial ?? '-1',
+      limit,
+      offset: query.offset ?? 0,
+      type: query.type ?? -1,
+    },
+  )
+  if (!Array.isArray(response.artists)) {
+    throw new Error('歌手列表响应格式不正确')
+  }
+  const artists = response.artists
+    .map(readHallArtist)
+    .filter((item): item is HallArtist => item !== null)
+  return {
+    more:
+      typeof response.more === 'boolean'
+        ? response.more
+        : artists.length >= limit,
+    artists,
   }
 }

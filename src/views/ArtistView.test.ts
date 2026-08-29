@@ -118,6 +118,36 @@ describe('ArtistView', () => {
     expect(getArtistDetail).not.toHaveBeenCalled()
   })
 
+  it('does not wipe the hall list when the detail id is missing', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const store = useArtistStore()
+    store.artists = [
+      { id: 401, img1v1Url: 'https://images.example.com/a.jpg', name: '林间电台' },
+    ]
+    store.area = 7
+    const router = createAppRouter(createMemoryHistory())
+    await router.push({ name: Pages.artistDetail })
+    const wrapper = mount(ArtistView, {
+      global: {
+        plugins: [pinia, router],
+        stubs: {
+          ArtistHeader: HeaderStub,
+          PlaylistSongList: SongListStub,
+          RouterLink: defineComponent({ template: '<a><slot /></a>' }),
+        },
+      },
+    })
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="artist-missing"]').text()).toContain(
+      '缺少歌手 ID',
+    )
+    expect(store.artists).toHaveLength(1)
+    expect(store.area).toBe(7)
+    expect(store.artist).toBeNull()
+  })
+
   it('loads the artist, retries, plays songs and loads more', async () => {
     vi.mocked(getArtistDetail).mockRejectedValueOnce(new Error('artist offline'))
 

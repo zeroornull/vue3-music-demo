@@ -85,8 +85,9 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'artist',
         name: Pages.artist,
-        component: () => import('@/views/music/MusicPlaceholderView.vue'),
+        component: () => import('@/views/music/ArtistHallPage.vue'),
         meta: {
+          keepAlive: true,
           menu: 'music',
           requiresApiHost: true,
           title: '歌手',

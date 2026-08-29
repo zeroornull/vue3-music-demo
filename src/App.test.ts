@@ -79,6 +79,10 @@ describe('App host gate', () => {
       name: '林间电台',
     }
     artistStore.loadedId = 401
+    artistStore.artists = [
+      { id: 401, img1v1Url: '', name: '林间电台' },
+    ]
+    artistStore.area = 7
     mountApp()
 
     useHostStore().clearHost()
@@ -86,6 +90,8 @@ describe('App host gate', () => {
 
     expect(artistStore.artist).toBeNull()
     expect(artistStore.loadedId).toBeNull()
+    expect(artistStore.artists).toEqual([])
+    expect(artistStore.area).toBe(-1)
   })
 
   it('clears banner cache when the host gate closes', async () => {

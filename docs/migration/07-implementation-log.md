@@ -2388,3 +2388,83 @@ mock API http://127.0.0.1:48503
 ### 16.4 本轮结果
 
 歌手详情已在工作区形成。第 13 轮提交 `5fa2d24` 仍是当前 HEAD；第 14 轮尚未 commit / push。下一轮建议迁移歌手馆列表。
+
+随后该轮以 `4feee83` 提交。
+
+## 17. 实施第 15 轮：歌手馆列表（工作区）
+
+> 执行日期：`2026-08-29`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 17.1 开始边界与范围
+
+第 15 轮开始时第 14 轮已经提交并与 origin 同步：
+
+```text
+HEAD 4feee83
+master...origin/master
+```
+
+工作区从该提交继续。本轮接入 legacy `#/music/artist` 最小可见列表：一组语种筛选、卡片进入已有歌手详情。不迁分类/字母全套筛选、专辑/视频/详情 tab、电台、Tailwind 4、播放器增强或 CI。
+
+范围：
+
+- `GET /artist/list`（`type=-1`、`initial="-1"`、`area` 语种、每页 30 人）；
+- Artist store 列表字段与独立 `listSerial`：`loadArtists` / `setArea` / `loadMoreArtists`、失败未命中、过期请求丢弃；
+- 无效详情 `id` 不清歌手馆列表；`reset()` 同时清详情和列表；
+- `ArtistHallPage` 替换 `artist` 子路由；`keepAlive: true`；
+- Host 重新配置继续 `artistStore.reset()`。
+
+### 17.2 自动验证
+
+```text
+bun run test
+Test Files  58 passed (58)
+Tests       204 passed (204)
+
+bun run typecheck
+PASS
+
+bun run build
+253 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。`more` 在实现中优先读取响应布尔值，以便 mock 用 4 条首屏加 `more: true` 验证加载更多。审查后详情缺 ID 改为 `resetDetail()`（不再 `reset()` 整店），并补了 invalid-id 保留列表、`more: true` 短列表、load-more/`setArea` 失败吞掉的测试。最终测试数为 204。
+
+### 17.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1092123`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:45179
+mock API http://127.0.0.1:47537
+```
+
+验证步骤：
+
+1. Host 保存后进入 Discover，点击音乐馆 → 歌手，到达 `#/music/artist`；
+2. 可见「全部歌手 1–4」和「加载更多」；点击「全部歌手 1」到达 `#/artistDetail?id=401`；
+3. 返回歌手馆后切换「华语」，列表变为「华语歌手 1–4」；「加载更多」追加「华语歌手 5–6」；
+4. mock 503 显示 `mock artist hall unavailable`，重试后全部列表恢复；
+5. Host 重新配置后再进入歌手馆，列表重新加载；
+6. 桌面 `1440×900` 与移动 `390×844` 无横向溢出（`scrollWidth === clientWidth`）。
+
+截图保存在 `/tmp/vue3-music-round15-desktop.png` 和 `/tmp/vue3-music-round15-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。503 验证期间浏览器记录了一次资源 503。
+
+### 17.4 本轮结果
+
+歌手馆列表已在工作区形成。第 14 轮提交 `4feee83` 仍是当前 HEAD；第 15 轮尚未 commit / push。下一轮建议迁移电台。

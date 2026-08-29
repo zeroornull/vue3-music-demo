@@ -1,5 +1,21 @@
 # 迁移文档变更记录
 
+## 0.19.0 - 2026-08-29
+
+### 实施第 15 轮：歌手馆列表
+
+- 用 `ArtistHallPage` 替换音乐馆 `artist` 边界页；
+- `GET /artist/list`，默认 `type=-1`、`initial="-1"`（热门）；本轮只迁语种 `area`；
+- 每页 30 人（legacy 为 60）；`more` 优先响应布尔值；封面 `img1v1Url` 回退 `picUrl`；
+- Artist store 增加独立 `listSerial`、`loadArtists` / `setArea` / `loadMoreArtists`；缺失或无效详情 ID 只走 `resetDetail()`，不清歌手馆列表；
+- 卡片进入已有 `artistDetail?id=`；Host 重新配置会 `artistStore.reset()`；
+- 不迁分类/字母筛选、专辑/视频 tab、电台；
+- 审查后补了 missing-id / more 标志 / load-more 失败测试；
+- 58 个测试文件、204 个测试通过；typecheck、build（253 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:45179` + mock `127.0.0.1:47537`，覆盖 Host→Discover→歌手馆→详情、语种切换、加载更多、503/retry、桌面/移动布局；
+- 第 14 轮提交为 `4feee83`，第 15 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移电台。
+
 ## 0.18.0 - 2026-08-29
 
 ### 实施第 14 轮：歌手详情
