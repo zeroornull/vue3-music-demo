@@ -1,5 +1,20 @@
 # 迁移文档变更记录
 
+## 0.14.0 - 2026-08-29
+
+### 实施第 10 轮：MV 播放
+
+- 新增 `/mv/url` 最小模型和 API；空地址、ID 不匹配或缺失 url 会拒绝；
+- 新增独立 MV Pinia store，覆盖 loading/error/empty/retry、按 ID 缓存、force、过期请求丢弃和 reset；
+- 用 `MvView` + 16:9 原生 `<video controls playsinline>` 替换 `mvDetail?id=` 边界页；不自动播放；
+- 若 Discover 已缓存同一条推荐 MV，详情页显示名称、艺人和封面；
+- 拿到可播放地址后暂停音频播放器，离开页面不自动恢复；
+- Host 重新配置或缺少 `id` 会清空 MV 缓存；
+- 32 个测试文件、131 个测试通过；typecheck、build（192 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:45141` + mock API `127.0.0.1:47741`，覆盖 Host→Discover→MV、url/media 200、原生播放、16:9、缺少 ID、503/retry 和桌面/移动布局；
+- 第 9 轮提交为 `fff3895`，第 10 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移音乐馆。
+
 ## 0.13.0 - 2026-08-29
 
 ### 实施第 9 轮：完整歌单详情

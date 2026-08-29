@@ -150,6 +150,17 @@
 - **交互**：歌曲行始终提供可访问播放按钮，不沿用 legacy 的 hover-only 图标；先展示 10 首，再“加载更多”。
 - **路由**：继续使用 legacy `playlist?id=`；删除边界页。
 
+### D-020：MV 播放只用 `/mv/url` 和原生 video
+
+- **状态**：已验证
+- **日期**：2026-08-29
+- **决策**：MV 详情页只请求 `/mv/url`。legacy `useMvDetail` 是空实现，因此本轮不迁 `/mv/detail`、相关推荐侧栏或 Element Plus。
+- **播放器**：使用原生 `<video controls playsinline>`，16:9，不自动播放，避免浏览器自动播放策略和不可访问的自定义控件。
+- **音频**：拿到可播放地址后调用现有 `player.pause()`，并且 `pause()` 会作废在途 `play()`；离开页面不自动恢复，避免 1 秒后突然出声。离开 `mvDetail` 时不 `reset()`，以便同一 ID 的缓存仍可用。
+- **Store**：独立 MV store，按 ID 缓存；切换 ID 立即清空；force 刷新；过期请求丢弃；缺少 `id` 或 Host 重新配置会 `reset()`。
+- **文案**：若 Discover 的 Video store 已有同一 ID，显示名称、艺人和 poster；否则显示 `MV #id`。
+- **路由**：继续使用 legacy `mvDetail?id=`；删除边界页。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

@@ -3,6 +3,13 @@ export interface MvArtistSummary {
   name: string
 }
 
+export interface MvUrl {
+  id: number
+  url: string
+  r?: number
+  size?: number
+}
+
 export interface PersonalizedMv {
   alg: string
   artistId: number

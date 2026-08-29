@@ -1993,3 +1993,88 @@ mock API http://127.0.0.1:46673
 ### 11.7 本轮结果
 
 完整歌单详情已在工作区形成：Discover 歌单卡片进入真实详情页，可以播放全部或单曲，并复用第 8 轮 PlayerBar。第 8 轮提交 `a666d98` 仍是当前 HEAD；第 9 轮源码和文档均尚未 commit / push。下一轮建议迁移 MV 播放；播放器进度、音量和高级队列控制另行增强。
+
+## 12. 实施第 10 轮：MV 播放（工作区）
+
+> 执行日期：`2026-08-29`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 12.1 开始边界与范围
+
+第 10 轮开始时第 9 轮已经提交并与 origin 同步：
+
+```text
+HEAD fff3895
+master...origin/master
+worktree clean
+```
+
+本轮承接 Discover 推荐 MV 的 `mvDetail?id=` 契约：
+
+- `/mv/url` 最小模型与 API；
+- 独立 MV store：loading/error/empty/retry、按 ID 缓存、force、过期请求丢弃、reset；
+- `MvView` 替换边界页；
+- 16:9 原生 `<video controls playsinline>`，不自动播放；
+- 拿到可播放地址后暂停音频播放器。
+
+本轮不迁移 `/mv/detail`、相关推荐侧栏、播放器进度/音量、Tailwind 4、Element Plus 或发布 CI。legacy `useMvDetail` 为空实现，因此不把它当成缺口。
+
+### 12.2 测试先行
+
+实现前先添加失败测试：API URL 解包、MV store、MvPlayer、MvView。首次运行 4 个文件失败，`getMvUrl` 尚不存在。随后没有删减这些验收条件。
+
+### 12.3 自动验证
+
+```text
+bun run test
+Test Files  32 passed (32)
+Tests       131 passed (131)
+
+bun run typecheck
+PASS
+
+bun run build
+192 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。审查后让 `player.pause()` 作废在途 `play()`，并避免离开 `mvDetail` 时误清 MV 缓存；最终测试数为 131。
+
+### 12.4 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被其他进程占用，改用隔离端口，没有终止未知进程：
+
+```text
+Vite     http://127.0.0.1:45141
+mock API http://127.0.0.1:47741
+```
+
+验证步骤：
+
+1. 隔离上下文保存 Host 并进入 Discover；
+2. 点击“打开 MV：晚风来信 · Live”，hash 为 `#/mvDetail?id=701`，标题为“MV 详情 · Vue3 Music”；
+3. `/mv/url?id=701` 与 `/media/mv.mp4` 返回 200；
+4. 原生 video 可播放，时长 3 秒，画面 640×360，盒子比例 1.778；
+5. 缺少 `id` 显示“缺少 MV ID”；
+6. `id=702` 在 mock 503 时显示 `mock mv unavailable`；恢复后重试显示 `MV #702`；
+7. 桌面 `1440×900` 无横向溢出；移动 `390×844` 视频 342×192，controls 仍在；
+8. 成功路径控制台无 error/warn/issue。
+
+截图保存在 `/tmp/vue3-music-round10-desktop.png` 和 `/tmp/vue3-music-round10-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。音频暂停由组件测试覆盖；本轮 mock 未提供 `/song/detail`，浏览器未重复“先播歌再进 MV”。
+
+未验证外部真实网易云 API 或真实 CDN 跨域媒体。
+
+### 12.5 本轮结果
+
+MV 播放已在工作区形成：Discover 推荐 MV 进入真实 16:9 video 页，并在拿到 URL 后暂停音频。第 9 轮提交 `fff3895` 仍是当前 HEAD；第 10 轮源码和文档均尚未 commit / push。下一轮建议迁移音乐馆。

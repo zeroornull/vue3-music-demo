@@ -306,6 +306,31 @@ describe('Player store', () => {
     expect(player.current?.id).toBe(2)
   })
 
+  it('lets pause abort an in-flight play request', async () => {
+    const nextUrl = deferred<{ id: number; url: string }>()
+    vi.mocked(getSongUrl).mockReturnValueOnce(nextUrl.promise)
+    const play = vi.fn(async () => {})
+    const pause = vi.fn()
+    setAudioAdapter({
+      src: '',
+      volume: 1,
+      paused: true,
+      play,
+      pause,
+      on: () => () => {},
+    })
+    const player = usePlayerStore()
+    const pending = player.play(song(1))
+    await Promise.resolve()
+    player.pause()
+    nextUrl.resolve({ id: 1, url: 'x' })
+
+    await expect(pending).resolves.toBe(false)
+    expect(player.isPlaying).toBe(false)
+    expect(player.loading).toBe(false)
+    expect(play).not.toHaveBeenCalled()
+  })
+
   it('replaces the queue and plays the first song when playing all', async () => {
     const play = vi.fn(async () => {})
     setAudioAdapter({

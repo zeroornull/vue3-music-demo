@@ -52,7 +52,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/mvDetail',
     name: Pages.mvDetail,
-    component: () => import('@/views/MvPlaceholderView.vue'),
+    component: () => import('@/views/MvView.vue'),
     meta: {
       menu: 'discover',
       requiresApiHost: true,

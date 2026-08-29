@@ -108,9 +108,10 @@ export const usePlayerStore = defineStore('player', {
       return this.play(first)
     },
     pause() {
-      if (!injectedAdapter || !this.current) return
-      injectedAdapter.pause()
+      requestSerial++
+      injectedAdapter?.pause()
       this.isPlaying = false
+      this.loading = false
     },
     async toggle() {
       if (this.isPlaying) {

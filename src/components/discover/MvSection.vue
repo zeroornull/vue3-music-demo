@@ -24,7 +24,7 @@ const visibleMvs = computed(() => props.mvs.slice(0, 8))
         <p class="eyebrow">Music videos</p>
         <h2 id="mv-title">推荐 MV</h2>
       </div>
-      <p>MV 详情与播放将在后续视频轮次接入</p>
+      <p>点击封面即可打开 MV 并播放</p>
     </div>
 
     <div v-if="loading" class="mv-grid" data-testid="mv-loading" aria-busy="true" aria-label="正在加载推荐 MV">

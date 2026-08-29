@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.13.0`<br>
+> 文档版本：`0.14.0`<br>
 > 版本快照日期：`2026-08-29`<br>
-> 当前阶段：**实施第 9 轮完整歌单详情已落地（未 commit）；下一轮 MV 播放**
+> 当前阶段：**实施第 10 轮 MV 播放已落地（未 commit）；下一轮音乐馆**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -287,7 +287,18 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 16. 主要官方资料
+## 16. 实施第 10 轮结果
+
+- 新增 `/mv/url` 最小 API/model 与独立 MV store；
+- 用 `MvView` 替换 MV 边界页，保留 `mvDetail?id=` 路由契约；
+- 16:9 原生 `<video controls>`，不自动播放；进入页面后暂停音频；
+- 32 个测试文件、131 个测试通过；typecheck、build（192 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未验证外部真实网易云 API；未 commit、未 push；
+- 下一轮建议迁移音乐馆。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 17. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '@/App.vue'
 import { getSongUrl } from '@/api/song'
 import { setAudioAdapter, usePlayerStore } from '@/stores/player'
+import { useMvStore } from '@/stores/mv'
 import { usePlaylistStore } from '@/stores/playlist'
 import { useHostStore } from '@/stores/host'
 
@@ -36,6 +37,20 @@ describe('App host gate', () => {
     localStorage.clear()
     setActivePinia(createPinia())
     vi.mocked(getSongUrl).mockReset()
+  })
+
+  it('clears MV playback cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const mvStore = useMvStore()
+    mvStore.playback = { id: 701, url: 'https://media.example.com/mv.mp4' }
+    mvStore.loadedId = 701
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(mvStore.playback).toBeNull()
+    expect(mvStore.loadedId).toBeNull()
   })
 
   it('clears playlist cache when the host gate closes', async () => {
