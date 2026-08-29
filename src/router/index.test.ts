@@ -87,4 +87,13 @@ describe('router contract', () => {
     expect(route.query.id).toBe('901')
     expect(route.meta.title).toBe('电台')
   })
+
+  it('defines the search route and keyword query', () => {
+    const router = createAppRouter(createMemoryHistory())
+    const route = router.resolve({ name: Pages.search, query: { q: '深夜' } })
+
+    expect(route.path).toBe('/search')
+    expect(route.query.q).toBe('深夜')
+    expect(route.meta.title).toBe('搜索')
+  })
 })

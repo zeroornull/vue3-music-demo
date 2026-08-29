@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.20.0`<br>
+> 文档版本：`0.21.0`<br>
 > 版本快照日期：`2026-08-29`<br>
-> 当前阶段：**实施第 16 轮推荐电台已落地（未 commit）；下一轮搜索**
+> 当前阶段：**实施第 17 轮搜索已落地（未 commit）；下一轮应用壳**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -357,12 +357,22 @@ build: {
 - 精选推荐电台 `/personalized/djprogram` 与节目详情 `/dj/program/detail`；
 - 卡片进入 `#/dj?id=`，`mainSong` 接入已有 Player；
 - 64 个测试文件、223 个测试通过；typecheck、build（267 modules）、frozen lock、audit 和 `git diff --check` 通过；
-- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 已完成本地 mock API 浏览器 smoke；随后提交为 `c3061db`；
 - 下一轮建议迁移搜索。
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 23. 主要官方资料
+## 23. 实施第 17 轮结果
+
+- `#/search` 热搜与 `/search/suggest` 单曲播放；
+- Discover 提供搜索入口；不迁 Header 弹出层和多类型结果；
+- 68 个测试文件、240 个测试通过；typecheck、build（275 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 下一轮建议迁移应用壳。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 24. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

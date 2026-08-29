@@ -14,6 +14,7 @@ import { useMusicStore } from '@/stores/music'
 import { useMvStore } from '@/stores/mv'
 import { usePlaylistStore } from '@/stores/playlist'
 import { useDjStore } from '@/stores/dj'
+import { useSearchStore } from '@/stores/search'
 import { useVideoStore } from '@/stores/video'
 import { useHostStore } from '@/stores/host'
 
@@ -170,6 +171,30 @@ describe('App host gate', () => {
 
     expect(djStore.programs).toEqual([])
     expect(djStore.loadedId).toBeNull()
+  })
+
+  it('clears search cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const searchStore = useSearchStore()
+    searchStore.hots = [
+      { content: '', score: 1, searchWord: '深夜民谣' },
+    ]
+    searchStore.keyword = '深夜'
+    searchStore.songs = [
+      {
+        artists: [{ id: 401, name: '林间电台' }],
+        id: 301,
+        name: '晚风来信',
+      },
+    ]
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(searchStore.hots).toEqual([])
+    expect(searchStore.songs).toEqual([])
+    expect(searchStore.keyword).toBe('')
   })
 
   it('clears music-hall top-list cache when the host gate closes', async () => {

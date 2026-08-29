@@ -2546,3 +2546,81 @@ mock API http://127.0.0.1:46515
 ### 18.4 本轮结果
 
 推荐电台已在工作区形成。第 15 轮提交 `11535de` 仍是当前 HEAD；第 16 轮尚未 commit / push。下一轮建议迁移搜索。
+
+随后该轮以 `c3061db` 提交。
+
+## 19. 实施第 17 轮：搜索（工作区）
+
+> 执行日期：`2026-08-29`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 19.1 开始边界与范围
+
+第 17 轮开始时第 16 轮已经提交并与 origin 同步：
+
+```text
+HEAD c3061db
+master...origin/master
+```
+
+工作区从该提交继续。本轮新增 `#/search`：热搜空态 + suggest 单曲播放。不迁 Header 弹出层、多类型结果、电台大厅、Tailwind 4、播放器增强或 CI。
+
+范围：
+
+- `GET /search/hot/detail` 与 `GET /search/suggest`（只取 songs，最多 10 首）；
+- 独立 Search store：热搜缓存、关键词搜索、过期请求丢弃、Host `reset()`；
+- Discover 入口链接；热词和表单写入 `?q=`；
+- 单曲复用 `PlaylistSongList` 接入已有 Player。
+
+### 19.2 自动验证
+
+```text
+bun run test
+Test Files  68 passed (68)
+Tests       240 passed (240)
+
+bun run typecheck
+PASS
+
+bun run build
+275 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。实现中途发现换关键词失败会留下旧歌曲，改为请求开始时清空结果。审查后热搜行避免横向撑开，同词提交强制重试，并补了过期热搜/搜索请求测试。最终测试数为 240。
+
+### 19.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:47511
+mock API http://127.0.0.1:46665
+```
+
+验证步骤：
+
+1. Host 保存后进入 Discover，点击搜索到达 `#/search`；
+2. 热门搜索可见「深夜民谣」「秋日电台」；点击「深夜民谣」到达 `#/search?q=深夜民谣`；
+3. 结果「晚风来信」可播放，PlayerBar 出现「正在播放“晚风来信”。」；
+4. 改搜「秋日电台」时 mock 503 显示 `mock search unavailable`，重试后结果恢复；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出（`scrollWidth === clientWidth`）。
+
+截图保存在 `/tmp/vue3-music-round17-desktop.png` 和 `/tmp/vue3-music-round17-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。503 验证期间浏览器记录了资源 503。
+
+### 19.4 本轮结果
+
+搜索已在工作区形成。第 16 轮提交 `c3061db` 仍是当前 HEAD；第 17 轮尚未 commit / push。下一轮建议迁移应用壳。

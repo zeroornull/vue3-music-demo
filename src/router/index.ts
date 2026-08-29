@@ -127,6 +127,16 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/search',
+    name: Pages.search,
+    component: () => import('@/views/SearchView.vue'),
+    meta: {
+      menu: 'discover',
+      requiresApiHost: true,
+      title: '搜索',
+    },
+  },
+  {
     path: '/mvDetail',
     name: Pages.mvDetail,
     component: () => import('@/views/MvView.vue'),

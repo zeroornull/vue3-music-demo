@@ -1,5 +1,19 @@
 # 迁移文档变更记录
 
+## 0.21.0 - 2026-08-29
+
+### 实施第 17 轮：搜索
+
+- 新增 `#/search`：空态热搜 `GET /search/hot/detail`，关键词 `?q=` 走 `GET /search/suggest` 单曲；
+- 热词和表单都会写入 query；单曲复用 `PlaylistSongList` 并接入已有 Player；
+- 独立 Search store，热搜与搜索分世代号；新关键词会清空旧结果；Host 重新配置 `searchStore.reset()`；
+- 不迁 Header 弹出层、debounce 建议、专辑/歌手/歌单多类型结果；
+- 审查后热搜行用 `minmax(0, 40%)` 避免横向撑开，同词提交会强制重试，并补了过期热搜/搜索请求测试；
+- 68 个测试文件、240 个测试通过；typecheck、build（275 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:47511` + mock `127.0.0.1:46665`，覆盖 Host→Discover→搜索→热词→播放、503/retry、桌面/移动布局；
+- 第 16 轮提交为 `c3061db`，第 17 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移应用壳。
+
 ## 0.20.0 - 2026-08-29
 
 ### 实施第 16 轮：推荐电台

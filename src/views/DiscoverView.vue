@@ -97,10 +97,11 @@ onMounted(() => {
       <div>
         <p class="eyebrow">Discover</p>
         <h1>推荐</h1>
-        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手馆和电台已接入。</p>
+        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手馆、电台和搜索已接入。</p>
       </div>
       <nav aria-label="迁移工具">
         <RouterLink :to="{ name: Pages.music }">音乐馆</RouterLink>
+        <RouterLink :to="{ name: Pages.search }">搜索</RouterLink>
         <RouterLink :to="{ name: Pages.migration }">迁移状态</RouterLink>
         <button type="button" @click="hostStore.clearHost">重新配置 API</button>
       </nav>
@@ -144,7 +145,7 @@ onMounted(() => {
         <h2 id="next-slices-title">推荐页仍在渐进迁移</h2>
       </div>
       <ul>
-        <li>搜索</li>
+        <li>应用壳</li>
       </ul>
     </section>
   </main>

@@ -224,6 +224,16 @@
 - **Store**：独立 `useDjStore`。列表 `listSerial` 与详情 `requestSerial` 分离。缺失或无效 ID 只走 `resetDetail()`，避免误清精选电台缓存。
 - **Host**：重新配置时 `djStore.reset()`。
 
+### D-027：搜索做独立页，只闭环热搜和单曲
+
+- **状态**：已验证
+- **日期**：2026-08-29
+- **决策**：第 17 轮新增 `#/search`，空态展示热搜，关键词结果只取 `/search/suggest` 的单曲并播放。不迁 Header 弹出层，也不迁专辑/歌手/歌单多类型结果。
+- **原因**：还没有应用壳，无法原样移植 `SearchPop`。Suggest 单曲立刻能进已有 Player；热搜本身没有歌曲 ID，必须再搜才能闭环。`?q=` 让热词、表单和刷新共用一条路径。
+- **范围**：热搜最多 10 条；单曲最多 10 首。不引入 lodash debounce，不请求 `/cloudsearch`。
+- **Store**：独立 `useSearchStore`。`hotSerial` 与 `searchSerial` 分离。空白关键词只清结果，不清热搜。新关键词或重新请求会先清空旧歌曲，避免失败时继续展示上一词的结果。
+- **Host**：重新配置时 `searchStore.reset()`。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

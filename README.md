@@ -19,8 +19,9 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 13 轮：精选 Banner + 独家放送 + 推荐 MV——已完成并提交 `5fa2d24`；
 - 实施第 14 轮：歌手详情 + 热门歌曲播放——已完成并提交 `4feee83`；
 - 实施第 15 轮：歌手馆列表 + 语种筛选——已完成并提交 `11535de`；
-- 实施第 16 轮：精选推荐电台 + `#/dj?id=` 节目详情——代码已落地，当前工作区尚未 commit；
-- 下一轮：搜索；应用壳、播放器进度和音量另行增强。
+- 实施第 16 轮：精选推荐电台 + `#/dj?id=` 节目详情——已完成并提交 `c3061db`；
+- 实施第 17 轮：`#/search` 热搜 + suggest 单曲播放——代码已落地，当前工作区尚未 commit；
+- 下一轮：应用壳；播放器进度和音量另行增强。
 
 当前进度总览：[`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 
@@ -72,4 +73,4 @@ bun run preview
 └── package.json
 ```
 
-当前已完成到第 16 轮：精选推荐电台与 `#/dj?id=` 节目详情可播放。下一轮是搜索。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。
+当前已完成到第 17 轮：`#/search` 热搜与单曲播放。下一轮是应用壳。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。

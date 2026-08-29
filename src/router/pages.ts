@@ -11,6 +11,7 @@ export const Pages = {
   notFound: 'notFound',
   picked: 'picked',
   playlist: 'playlist',
+  search: 'search',
   toplist: 'toplist',
 } as const
 
