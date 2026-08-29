@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '@/App.vue'
 import { getSongUrl } from '@/api/song'
 import { setAudioAdapter, usePlayerStore } from '@/stores/player'
+import { useMusicStore } from '@/stores/music'
 import { useMvStore } from '@/stores/mv'
 import { usePlaylistStore } from '@/stores/playlist'
 import { useHostStore } from '@/stores/host'
@@ -37,6 +38,27 @@ describe('App host gate', () => {
     localStorage.clear()
     setActivePinia(createPinia())
     vi.mocked(getSongUrl).mockReset()
+  })
+
+  it('clears music-hall top-list cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const musicStore = useMusicStore()
+    musicStore.topLists = [
+      {
+        coverImgUrl: 'https://images.example.com/soar.jpg',
+        id: 19723756,
+        name: '飙升榜',
+        playCount: 10,
+        tracks: [],
+        updateFrequency: '',
+      },
+    ]
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(musicStore.topLists).toEqual([])
   })
 
   it('clears MV playback cache when the host gate closes', async () => {

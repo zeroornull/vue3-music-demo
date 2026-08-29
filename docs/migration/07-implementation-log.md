@@ -2078,3 +2078,72 @@ mock API http://127.0.0.1:47741
 ### 12.5 本轮结果
 
 MV 播放已在工作区形成：Discover 推荐 MV 进入真实 16:9 video 页，并在拿到 URL 后暂停音频。第 9 轮提交 `fff3895` 仍是当前 HEAD；第 10 轮源码和文档均尚未 commit / push。下一轮建议迁移音乐馆。
+
+## 13. 实施第 11 轮：音乐馆骨架 + 排行榜（工作区）
+
+> 执行日期：`2026-08-29`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 13.1 开始边界与范围
+
+第 11 轮开始时第 10 轮已经提交并与 origin 同步：
+
+```text
+HEAD b37d1db
+master...origin/master
+worktree clean
+```
+
+本轮建立音乐馆嵌套路由，并把排行榜做成第一个完整子页。精选、歌手、分类只放边界页。不迁 Element Plus、电台/数字专辑空 tab、歌手详情或分类筛选。
+
+### 13.2 自动验证
+
+```text
+bun run test
+Test Files  39 passed (39)
+Tests       146 passed (146)
+
+bun run typecheck
+PASS
+
+bun run build
+210 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。审查后为 `loadTopLists` 增加世代号，避免 Host reset 后旧请求写回缓存；失败刷新不再被当成有效命中。最终测试数为 146。
+
+### 13.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用，改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:48625
+mock API http://127.0.0.1:45907
+```
+
+验证步骤：
+
+1. Host 保存后进入 Discover，点击「音乐馆」到达 `#/music/picked` 边界页；
+2. 点击「排行」到达 `#/music/toplist`，标题为「排行榜 · Vue3 Music」，当前栏目 `aria-current` 为排行；
+3. `/toplist/detail` 返回 200；官方榜 4 张、特色榜 2 张；
+4. 点击飙升榜进入 `#/playlist?id=19723756`，`/playlist/detail` 与 `/playlist/track/all` 返回 200；
+5. mock 503 显示 `mock toplist unavailable`，重试后榜单恢复；
+6. 桌面 `1440×900` 与移动 `390×844` 无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round11-desktop.png` 和 `/tmp/vue3-music-round11-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+### 13.4 本轮结果
+
+音乐馆壳和排行榜已在工作区形成。第 10 轮提交 `b37d1db` 仍是当前 HEAD；第 11 轮尚未 commit / push。下一轮建议迁移分类歌单。

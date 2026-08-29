@@ -45,6 +45,22 @@ describe('router contract', () => {
     expect(route.meta.title).toBe('歌单详情')
   })
 
+  it('preserves the legacy music-hall nested routes', () => {
+    const router = createAppRouter(createMemoryHistory())
+    const music = routes.find((route) => route.name === Pages.music)
+
+    expect(music).toMatchObject({
+      path: '/music',
+      name: Pages.music,
+      redirect: { name: Pages.picked },
+    })
+    expect(router.resolve({ name: Pages.picked }).path).toBe('/music/picked')
+    expect(router.resolve({ name: Pages.toplist }).path).toBe('/music/toplist')
+    expect(router.resolve({ name: Pages.artist }).path).toBe('/music/artist')
+    expect(router.resolve({ name: Pages.category }).path).toBe('/music/category')
+    expect(router.resolve({ name: Pages.toplist }).meta.title).toBe('排行榜')
+  })
+
   it('preserves the legacy MV detail route name and query id', () => {
     const router = createAppRouter(createMemoryHistory())
     const route = router.resolve({ name: Pages.mvDetail, query: { id: 701 } })

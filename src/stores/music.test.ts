@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getPersonalizedPlaylists } from '@/api/personalized'
 import { getPersonalizedNewSongs } from '@/api/newSong'
+import { getTopLists } from '@/api/toplist'
 import { useMusicStore } from '@/stores/music'
 
 vi.mock('@/api/personalized', () => ({
@@ -10,6 +11,9 @@ vi.mock('@/api/personalized', () => ({
 }))
 vi.mock('@/api/newSong', () => ({
   getPersonalizedNewSongs: vi.fn(),
+}))
+vi.mock('@/api/toplist', () => ({
+  getTopLists: vi.fn(),
 }))
 
 const playlist = {
@@ -46,6 +50,7 @@ describe('music store', () => {
     setActivePinia(createPinia())
     vi.mocked(getPersonalizedPlaylists).mockReset()
     vi.mocked(getPersonalizedNewSongs).mockReset()
+    vi.mocked(getTopLists).mockReset()
   })
 
   it('loads personalized playlists once and caches the result', async () => {
@@ -84,6 +89,102 @@ describe('music store', () => {
     expect(store.newSongs).toEqual([newSong])
     expect(getPersonalizedNewSongs).toHaveBeenCalledTimes(1)
     expect(store.newSongsError).toBeNull()
+  })
+
+  it('loads and caches top lists independently', async () => {
+    const topList = {
+      coverImgUrl: 'https://images.example.com/soar.jpg',
+      id: 19723756,
+      name: '飙升榜',
+      playCount: 10,
+      tracks: [],
+      updateFrequency: '每天更新',
+    }
+    vi.mocked(getTopLists).mockResolvedValue([topList])
+    const store = useMusicStore()
+
+    await store.loadTopLists()
+    await store.loadTopLists()
+
+    expect(store.topLists).toEqual([topList])
+    expect(getTopLists).toHaveBeenCalledTimes(1)
+    expect(store.topListsError).toBeNull()
+  })
+
+  it('supports top-list forced refresh, errors and reset', async () => {
+    const topList = {
+      coverImgUrl: 'https://images.example.com/soar.jpg',
+      id: 19723756,
+      name: '飙升榜',
+      playCount: 10,
+      tracks: [],
+      updateFrequency: '',
+    }
+    vi.mocked(getTopLists)
+      .mockResolvedValueOnce([topList])
+      .mockRejectedValueOnce(new Error('toplist offline'))
+    const store = useMusicStore()
+
+    await store.loadTopLists()
+    await expect(store.loadTopLists(true)).rejects.toThrow('toplist offline')
+    expect(store.topListsError).toBe('toplist offline')
+    expect(store.topListsLoading).toBe(false)
+
+    store.reset()
+    expect(store.topLists).toEqual([])
+    expect(store.personalized).toEqual([])
+    expect(store.newSongs).toEqual([])
+  })
+
+  it('does not cache a top-list success while an error is still set', async () => {
+    const topList = {
+      coverImgUrl: 'https://images.example.com/soar.jpg',
+      id: 19723756,
+      name: '飙升榜',
+      playCount: 10,
+      tracks: [],
+      updateFrequency: '',
+    }
+    vi.mocked(getTopLists)
+      .mockResolvedValueOnce([topList])
+      .mockRejectedValueOnce(new Error('toplist offline'))
+      .mockResolvedValueOnce([topList])
+    const store = useMusicStore()
+
+    await store.loadTopLists()
+    await expect(store.loadTopLists(true)).rejects.toThrow('toplist offline')
+    await store.loadTopLists()
+
+    expect(getTopLists).toHaveBeenCalledTimes(3)
+    expect(store.topListsError).toBeNull()
+  })
+
+  it('drops in-flight top-list results after reset', async () => {
+    let resolveList!: (value: { id: number; name: string; coverImgUrl: string; playCount: number; tracks: never[]; updateFrequency: string }[]) => void
+    vi.mocked(getTopLists).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveList = resolve
+      }),
+    )
+    const store = useMusicStore()
+    const pending = store.loadTopLists()
+    store.reset()
+    resolveList([
+      {
+        coverImgUrl: 'https://images.example.com/soar.jpg',
+        id: 19723756,
+        name: '飙升榜',
+        playCount: 10,
+        tracks: [],
+        updateFrequency: '',
+      },
+    ])
+    await pending
+
+    expect(store.topLists).toEqual([])
+    vi.mocked(getTopLists).mockResolvedValueOnce([])
+    await store.loadTopLists()
+    expect(getTopLists).toHaveBeenCalledTimes(2)
   })
 
   it('supports new-song forced refresh and error state', async () => {

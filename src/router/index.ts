@@ -50,6 +50,60 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/music',
+    name: Pages.music,
+    component: () => import('@/views/music/MusicView.vue'),
+    redirect: { name: Pages.picked },
+    meta: {
+      menu: 'music',
+      requiresApiHost: true,
+      title: '音乐馆',
+    },
+    children: [
+      {
+        path: 'picked',
+        name: Pages.picked,
+        component: () => import('@/views/music/MusicPlaceholderView.vue'),
+        meta: {
+          menu: 'music',
+          requiresApiHost: true,
+          title: '精选',
+        },
+      },
+      {
+        path: 'toplist',
+        name: Pages.toplist,
+        component: () => import('@/views/music/TopListPage.vue'),
+        meta: {
+          keepAlive: true,
+          menu: 'music',
+          requiresApiHost: true,
+          title: '排行榜',
+        },
+      },
+      {
+        path: 'artist',
+        name: Pages.artist,
+        component: () => import('@/views/music/MusicPlaceholderView.vue'),
+        meta: {
+          menu: 'music',
+          requiresApiHost: true,
+          title: '歌手',
+        },
+      },
+      {
+        path: 'category',
+        name: Pages.category,
+        component: () => import('@/views/music/MusicPlaceholderView.vue'),
+        meta: {
+          menu: 'music',
+          requiresApiHost: true,
+          title: '分类歌单',
+        },
+      },
+    ],
+  },
+  {
     path: '/mvDetail',
     name: Pages.mvDetail,
     component: () => import('@/views/MvView.vue'),

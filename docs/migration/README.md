@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.14.0`<br>
+> 文档版本：`0.15.0`<br>
 > 版本快照日期：`2026-08-29`<br>
-> 当前阶段：**实施第 10 轮 MV 播放已落地（未 commit）；下一轮音乐馆**
+> 当前阶段：**实施第 11 轮音乐馆排行榜已落地（未 commit）；下一轮分类歌单**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -298,7 +298,18 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 17. 主要官方资料
+## 17. 实施第 11 轮结果
+
+- 音乐馆嵌套路由骨架与可访问栏目导航；
+- 排行榜 `/toplist/detail`、官方榜/特色榜和已有歌单详情接线；
+- 精选/歌手/分类为明确边界页；
+- 39 个测试文件、146 个测试通过；typecheck、build（210 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 下一轮建议迁移分类歌单。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 18. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

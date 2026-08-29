@@ -1,5 +1,20 @@
 # 迁移文档变更记录
 
+## 0.15.0 - 2026-08-29
+
+### 实施第 11 轮：音乐馆骨架 + 排行榜
+
+- 保留 legacy 嵌套路由：`/music` 重定向 `picked`，子路由 `picked` / `toplist` / `artist` / `category`；
+- 音乐馆壳使用可访问 RouterLink 栏目，不迁 Element Plus tabs，也不迁未实现的电台/数字专辑项；
+- 新增 `/toplist/detail` 最小模型和 API；前 4 条官方榜展示封面和前 3 首，其余为特色榜封面网格；
+- 榜单卡片进入已有 `playlist?id=` 详情；
+- 精选、歌手、分类使用明确边界页，并提供前往排行榜的入口；
+- Host 重新配置会 `musicStore.reset()`；
+- 39 个测试文件、146 个测试通过；typecheck、build（210 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:48625` + mock `127.0.0.1:45907`，覆盖 Host→Discover→音乐馆→排行→歌单详情、503/retry、桌面/移动布局；
+- 第 10 轮提交为 `b37d1db`，第 11 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移分类歌单。
+
 ## 0.14.0 - 2026-08-29
 
 ### 实施第 10 轮：MV 播放

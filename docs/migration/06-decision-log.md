@@ -161,6 +161,17 @@
 - **文案**：若 Discover 的 Video store 已有同一 ID，显示名称、艺人和 poster；否则显示 `MV #id`。
 - **路由**：继续使用 legacy `mvDetail?id=`；删除边界页。
 
+### D-021：音乐馆先迁排行榜，而不是精选
+
+- **状态**：已验证
+- **日期**：2026-08-29
+- **决策**：第 11 轮建立音乐馆嵌套路由骨架，但只把排行榜做成完整可见切片。
+- **原因**：精选是 Banner/Video/电台/MV 拼盘；歌手依赖未迁的 `artistDetail`；分类需要热门标签和分页。排行榜是单一 `/toplist/detail`，且点击可复用已有歌单详情。
+- **路由**：保留 legacy `music` / `picked` / `toplist` / `artist` / `category` 名称；`/music` 仍重定向到 `picked`。不迁 MusicController 里没有路由的「有声电台」「数字专辑」。
+- **导航**：用 RouterLink 栏目代替 Element Plus tabs；当前项 `aria-current="page"`。
+- **展示**：前 4 条为官方榜（封面 + 最多 3 首），其余为特色榜封面网格。
+- **Host**：重新配置时 `musicStore.reset()` 并递增排行榜请求世代号，丢弃在途结果，避免旧 Host 数据写回。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：
