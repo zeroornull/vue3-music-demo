@@ -2,6 +2,7 @@
 import { storeToRefs } from 'pinia'
 import { watch } from 'vue'
 
+import AppShell from '@/components/layout/AppShell.vue'
 import { useHostStore } from '@/stores/host'
 import HostSetupView from '@/views/HostSetupView.vue'
 import PlayerBar from '@/components/player/PlayerBar.vue'
@@ -46,7 +47,9 @@ watch(isConfigured, (configured) => {
 </script>
 
 <template>
-  <RouterView v-if="isConfigured" />
+  <AppShell v-if="isConfigured">
+    <RouterView />
+  </AppShell>
   <HostSetupView v-else />
   <PlayerBar v-if="isConfigured" />
 </template>

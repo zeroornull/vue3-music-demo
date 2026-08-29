@@ -26,11 +26,15 @@ vi.mock('@/api/song', () => ({
 const RouterStub = { template: '<div data-testid="router-view" />' }
 const HostStub = { template: '<div data-testid="host-setup" />' }
 const PlayerStub = { template: '<div data-testid="player-bar" />' }
+const AppShellStub = {
+  template: '<div data-testid="app-shell"><slot /></div>',
+}
 
 function mountApp() {
   return mount(App, {
     global: {
       stubs: {
+        AppShell: AppShellStub,
         RouterView: RouterStub,
         HostSetupView: HostStub,
         PlayerBar: PlayerStub,
@@ -44,6 +48,21 @@ describe('App host gate', () => {
     localStorage.clear()
     setActivePinia(createPinia())
     vi.mocked(getSongUrl).mockReset()
+  })
+
+  it('wraps the router in the app shell after the host is configured', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const wrapper = mountApp()
+    expect(wrapper.find('[data-testid="app-shell"]').exists()).toBe(true)
+    expect(
+      wrapper.get('[data-testid="app-shell"]').find('[data-testid="router-view"]').exists(),
+    ).toBe(true)
+    expect(wrapper.find('[data-testid="host-setup"]').exists()).toBe(false)
+
+    useHostStore().clearHost()
+    await flushPromises()
+    expect(wrapper.find('[data-testid="app-shell"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="host-setup"]').exists()).toBe(true)
   })
 
   it('clears category playlist cache when the host gate closes', async () => {

@@ -24,9 +24,6 @@ const currentTab = computed(() => route.name)
         <h1>音乐馆</h1>
         <p class="summary">精选、排行榜、分类歌单、歌手详情、歌手馆和电台已接入。</p>
       </div>
-      <nav aria-label="页面导航">
-        <RouterLink :to="{ name: Pages.discover }">返回推荐页</RouterLink>
-      </nav>
     </header>
 
     <nav class="hall-nav" aria-label="音乐馆栏目">
@@ -85,12 +82,6 @@ h1 {
   color: #65738a;
 }
 
-.page-header a {
-  color: #087c62;
-  font-weight: 720;
-  text-decoration: none;
-}
-
 .hall-nav {
   display: flex;
   flex-wrap: wrap;
@@ -116,8 +107,7 @@ h1 {
   color: #17614f;
 }
 
-.hall-nav a:focus-visible,
-.page-header a:focus-visible {
+.hall-nav a:focus-visible {
   outline: 3px solid #32b58e;
   outline-offset: 3px;
 }

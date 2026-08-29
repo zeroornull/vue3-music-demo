@@ -93,10 +93,6 @@ onMounted(() => {
 
 <template>
   <main class="search-shell">
-    <nav class="back-nav" aria-label="页面导航">
-      <RouterLink :to="{ name: Pages.discover }">返回推荐页</RouterLink>
-    </nav>
-
     <header class="page-header">
       <p class="eyebrow">Search</p>
       <h1>搜索</h1>
@@ -175,12 +171,6 @@ onMounted(() => {
   gap: 24px;
   padding: clamp(24px, 5vw, 64px);
   padding-bottom: 120px;
-}
-
-.back-nav a {
-  color: #087c62;
-  font-weight: 720;
-  text-decoration: none;
 }
 
 .page-header h1,

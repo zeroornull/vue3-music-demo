@@ -131,7 +131,7 @@ export const routes: RouteRecordRaw[] = [
     name: Pages.search,
     component: () => import('@/views/SearchView.vue'),
     meta: {
-      menu: 'discover',
+      menu: 'search',
       requiresApiHost: true,
       title: '搜索',
     },

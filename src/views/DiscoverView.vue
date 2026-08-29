@@ -8,15 +8,12 @@ import NewSongSection from '@/components/discover/NewSongSection.vue'
 import PersonalizedSection from '@/components/discover/PersonalizedSection.vue'
 import type { Banner } from '@/models/banner'
 import type { PersonalizedNewSong } from '@/models/newSong'
-import { Pages } from '@/router/pages'
 import { useCommonStore } from '@/stores/common'
-import { useHostStore } from '@/stores/host'
 import { useMusicStore } from '@/stores/music'
 import { useVideoStore } from '@/stores/video'
 import { usePlayerStore } from '@/stores/player'
 
 const commonStore = useCommonStore()
-const hostStore = useHostStore()
 const musicStore = useMusicStore()
 const videoStore = useVideoStore()
 const playerStore = usePlayerStore()
@@ -97,14 +94,8 @@ onMounted(() => {
       <div>
         <p class="eyebrow">Discover</p>
         <h1>推荐</h1>
-        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手馆、电台和搜索已接入。</p>
+        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手馆、电台、搜索和应用壳已接入。</p>
       </div>
-      <nav aria-label="迁移工具">
-        <RouterLink :to="{ name: Pages.music }">音乐馆</RouterLink>
-        <RouterLink :to="{ name: Pages.search }">搜索</RouterLink>
-        <RouterLink :to="{ name: Pages.migration }">迁移状态</RouterLink>
-        <button type="button" @click="hostStore.clearHost">重新配置 API</button>
-      </nav>
     </header>
 
     <BannerCarousel
@@ -145,7 +136,7 @@ onMounted(() => {
         <h2 id="next-slices-title">推荐页仍在渐进迁移</h2>
       </div>
       <ul>
-        <li>应用壳</li>
+        <li>播放器增强</li>
       </ul>
     </section>
   </main>
@@ -190,33 +181,6 @@ onMounted(() => {
 .summary {
   margin-top: 18px !important;
   color: #65738a;
-}
-
-nav {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-nav a,
-nav button {
-  min-height: 40px;
-  padding: 0 15px;
-  border: 1px solid #c5cfdd;
-  border-radius: 999px;
-  background: white;
-  color: #344156;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 680;
-  line-height: 38px;
-  text-decoration: none;
-}
-
-nav a:hover,
-nav button:hover {
-  border-color: #087c62;
-  color: #087c62;
 }
 
 .notice {
@@ -265,10 +229,6 @@ nav button:hover {
   .next-slices {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  nav {
-    flex-wrap: wrap;
   }
 
   .next-slices ul {

@@ -69,7 +69,6 @@ async function mountView(query: Record<string, string> = {}) {
       plugins: [pinia, router],
       stubs: {
         PlaylistSongList: SongListStub,
-        RouterLink: defineComponent({ template: '<a><slot /></a>' }),
       },
     },
   })
@@ -90,6 +89,7 @@ describe('SearchView', () => {
     const { router, wrapper } = await mountView()
     await flushPromises()
     expect(wrapper.get('h2').text()).toBe('热门搜索')
+    expect(wrapper.find('nav[aria-label="页面导航"]').exists()).toBe(false)
     expect(getSearchSuggestSongs).not.toHaveBeenCalled()
 
     await wrapper.get('[data-testid="search-hot-word"]').trigger('click')

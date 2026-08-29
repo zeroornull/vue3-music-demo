@@ -95,5 +95,6 @@ describe('router contract', () => {
     expect(route.path).toBe('/search')
     expect(route.query.q).toBe('深夜')
     expect(route.meta.title).toBe('搜索')
+    expect(route.meta.menu).toBe('search')
   })
 })

@@ -2624,3 +2624,81 @@ mock API http://127.0.0.1:46665
 ### 19.4 本轮结果
 
 搜索已在工作区形成。第 16 轮提交 `c3061db` 仍是当前 HEAD；第 17 轮尚未 commit / push。下一轮建议迁移应用壳。
+
+随后该轮以 `8298562` 提交。
+
+## 20. 实施第 18 轮：应用壳（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 20.1 开始边界与范围
+
+第 18 轮开始时第 17 轮已经提交并与 origin 同步：
+
+```text
+HEAD 8298562
+master...origin/master
+```
+
+工作区从该提交继续。本轮接入最小顶部应用壳。不迁侧栏、视频/电台菜单、Header 搜索弹出层、播放器增强、Tailwind 4 或 CI。
+
+范围：
+
+- `AppShell`：推荐 / 音乐馆 / 搜索，`aria-current` 来自 `route.meta.menu`；
+- 搜索 `meta.menu` 改为 `search`；
+- Host 重新配置从壳发出；
+- Discover / 音乐馆 / 搜索去掉重复的全局跳转。
+
+### 20.2 自动验证
+
+```text
+bun run test
+Test Files  69 passed (69)
+Tests       244 passed (244)
+
+bun run typecheck
+PASS
+
+bun run build
+278 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。审查后补上壳包裹 `RouterView` 的断言、清掉 Discover/音乐馆死 CSS，并让移动端导航链接真正居中。
+
+### 20.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:46779
+mock API http://127.0.0.1:47205
+```
+
+验证步骤：
+
+1. Host 保存后 Discover 顶栏可见「Vue3 Music」「推荐 / 音乐馆 / 搜索」，当前项为「推荐」；
+2. 点击音乐馆到达 `#/music/picked`，顶栏仍在，栏目仍是精选/排行/歌手/分类；
+3. 点击搜索到达 `#/search`，热搜可见；再点推荐回到 Discover；
+4. 「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出（`scrollWidth === clientWidth`）。
+
+截图保存在 `/tmp/vue3-music-round18-desktop.png` 和 `/tmp/vue3-music-round18-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。
+
+### 20.4 本轮结果
+
+顶部应用壳已在工作区形成。第 17 轮提交 `8298562` 仍是当前 HEAD；第 18 轮尚未 commit / push。下一轮建议迁移播放器增强。
