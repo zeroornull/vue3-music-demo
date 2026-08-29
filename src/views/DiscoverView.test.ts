@@ -25,12 +25,25 @@ vi.mock('@/api/mv', () => ({
   getPersonalizedMvs: vi.fn(),
 }))
 
+const playSong = vi.fn().mockResolvedValue(true)
+vi.mock('@/stores/player', () => ({
+  usePlayerStore: () => ({ play: playSong, error: null }),
+}))
+
 const banner: Banner = {
   bannerId: 1,
   pic: 'https://images.example.com/banner.jpg',
   targetId: 1001,
   targetType: 1,
   typeTitle: '新歌首发',
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise
+  })
+  return { promise, resolve }
 }
 
 const BannerCarouselStub = defineComponent({
@@ -46,6 +59,7 @@ const BannerCarouselStub = defineComponent({
       <span data-testid="banner-count">{{ banners.length }}</span>
       <span v-if="error" role="alert">{{ error }}</span>
       <button data-testid="retry" @click="$emit('retry')">retry</button>
+      <button v-if="banners[0]" data-testid="banner-select" @click="$emit('select', banners[0])">select</button>
     </section>
   `,
 })
@@ -119,6 +133,8 @@ function mountView() {
 
 describe('DiscoverView', () => {
   beforeEach(() => {
+    playSong.mockReset()
+    playSong.mockResolvedValue(true)
     vi.mocked(getBanners).mockReset()
     vi.mocked(getPersonalizedPlaylists).mockReset()
     vi.mocked(getPersonalizedPlaylists).mockResolvedValue([])
@@ -135,12 +151,57 @@ describe('DiscoverView', () => {
     await flushPromises()
 
     expect(wrapper.get('h1').text()).toBe('推荐')
+    expect(wrapper.get('.summary').text()).toBe(
+      '四个推荐内容模块与最小播放器已接入。',
+    )
+    expect(wrapper.get('.next-slices').text()).toContain('完整歌单详情')
+    expect(wrapper.get('.next-slices').text()).not.toContain('播放器')
     expect(wrapper.get('[data-testid="banner-count"]').text()).toBe('1')
     expect(getBanners).toHaveBeenCalledTimes(1)
   })
 
+  it('plays song banners but ignores non-song banners', async () => {
+    vi.mocked(getBanners).mockResolvedValue([banner])
+    const wrapper = mountView()
+    await flushPromises()
+    await wrapper.get("[data-testid='banner-select']").trigger('click')
+    await flushPromises()
+    expect(playSong).toHaveBeenCalledWith(1001)
+    expect(wrapper.get('[role="status"]').text()).toContain('正在播放推荐歌曲')
+
+    playSong.mockClear()
+    vi.mocked(getBanners).mockResolvedValue([{ ...banner, targetType: 0 }])
+    await wrapper.get("[data-testid='retry']").trigger('click')
+    await flushPromises()
+    await wrapper.get("[data-testid='banner-select']").trigger('click')
+    expect(playSong).not.toHaveBeenCalled()
+    expect(wrapper.get('[role="status"]').text()).toContain('后续切片迁移')
+  })
+
+  it('does not let a stale play result overwrite the latest notice', async () => {
+    const first = deferred<boolean>()
+    const second = deferred<boolean>()
+    playSong
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise)
+    vi.mocked(getBanners).mockResolvedValue([banner])
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get("[data-testid='banner-select']").trigger('click')
+    await wrapper.get("[data-testid='banner-select']").trigger('click')
+    first.resolve(false)
+    await flushPromises()
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    second.resolve(true)
+    await flushPromises()
+    expect(wrapper.get('[role="status"]').text()).toContain('正在播放推荐歌曲')
+  })
+
   it('retries a failed banner request', async () => {
-    vi.mocked(getBanners).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([banner])
+    vi.mocked(getBanners)
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce([banner])
 
     const wrapper = mountView()
     await flushPromises()
@@ -175,7 +236,9 @@ describe('DiscoverView', () => {
 
     const wrapper = mountView()
     await flushPromises()
-    expect(wrapper.get('[data-testid="personalized-error"]').text()).toBe('playlist offline')
+    expect(wrapper.get('[data-testid="personalized-error"]').text()).toBe(
+      'playlist offline',
+    )
 
     await wrapper.get('[data-testid="personalized-retry"]').trigger('click')
     await flushPromises()
@@ -196,7 +259,11 @@ describe('DiscoverView', () => {
           name: '晚风来信',
           picUrl: 'https://images.example.com/song.jpg',
           song: {
-            album: { id: 501, name: '晚风来信', picUrl: 'https://images.example.com/album.jpg' },
+            album: {
+              id: 501,
+              name: '晚风来信',
+              picUrl: 'https://images.example.com/album.jpg',
+            },
             artists: [{ id: 401, name: '林间电台' }],
             id: 301,
             name: '晚风来信',
@@ -207,7 +274,9 @@ describe('DiscoverView', () => {
 
     const wrapper = mountView()
     await flushPromises()
-    expect(wrapper.get('[data-testid="new-song-error"]').text()).toBe('new-song offline')
+    expect(wrapper.get('[data-testid="new-song-error"]').text()).toBe(
+      'new-song offline',
+    )
 
     await wrapper.get('[data-testid="new-song-retry"]').trigger('click')
     await flushPromises()
@@ -215,7 +284,12 @@ describe('DiscoverView', () => {
     expect(wrapper.get('[data-testid="new-song-count"]').text()).toBe('1')
 
     await wrapper.get('[data-testid="new-song-select"]').trigger('click')
-    expect(wrapper.get('[role="status"]').text()).toContain('歌曲“晚风来信” #301')
+    expect(wrapper.get('[role="status"]').text()).toContain(
+      '正在播放“晚风来信”',
+    )
+    expect(playSong).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 301, name: '晚风来信' }),
+    )
   })
 
   it('loads and retries MVs independently', async () => {

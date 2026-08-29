@@ -1723,4 +1723,135 @@ http://127.0.0.1:45365
 - Header / Menu / Footer / Root；
 - Element Plus、Tailwind、Sass。
 
-工作区在文档对齐结束时仍包含第 7 轮源码与部分文档的未提交变更。下一轮建议见 [08-progress.md](./08-progress.md)：播放器最小闭环。
+该轮对应提交 `5f2155c`，已在当前 HEAD 完成。播放器未迁移属于当时的停止边界；后续第 8 轮已在工作区补上播放器最小闭环。
+
+
+## 10. 实施第 8 轮：播放器最小闭环（工作区）
+
+### 10.1 范围与停止边界
+
+本轮承接第 6 轮的 typed song selection，并把第 7 轮之后仍缺失的歌曲播放最小链路接入 Discover：
+
+- 新增 `/song/detail` 与 `/song/url` 的最小 API/model；
+- 新增不依赖 DOM selector 的可注入 Audio adapter；
+- 新增 Player Pinia store，管理队列、当前歌曲、加载、播放和错误状态；
+- 将歌曲 Banner 和推荐新歌接入 `PlayerStore.play`；
+- 在已配置 API Host 的应用根部挂载全局最小 `PlayerBar`；
+- 保留完整播放器之外的明确停止边界：进度、音量、上一首/下一首、循环/随机、播放历史、歌单详情和 MV 播放不在本轮范围内。
+
+本轮不新增依赖，不迁移 Tailwind 4、Element Plus、Header/Menu/Root 完整应用壳或发布 CI。代码已落地于当前工作区，尚未 commit / push。
+
+### 10.2 legacy 证据与测试先行
+
+legacy 的播放器由 `player` store 和 Audio 播放对象共同承担播放状态与媒体控制；legacy API 导出中包含歌曲详情、歌曲 URL 等接口。本轮只迁移支撑 Discover 播放入口所需的最小字段，没有声称复刻旧播放器的进度、音量或高级队列行为。
+
+开始实现前先锁定本轮边界和测试形状：
+
+1. Song API 测试 URL 解包、详情标准化、缺失/非法响应；
+2. Audio adapter 测试 `src`、`play`、`pause` 和事件解绑委托；
+3. Player store 测试播放、暂停、队列去重、API 错误和清理；
+4. PlayerBar 测试歌曲/艺人展示、可访问播放切换和 loading/error 状态；
+5. Discover 测试歌曲选择调用 Player store，并保留独立请求/重试行为。
+
+### 10.3 模型与 API
+
+新增 `src/models/song.ts` 的最小类型：
+
+```text
+SongArtist: id / name
+SongAlbum: id / name / picUrl?
+Song: id / name / artists / album? / picUrl?
+SongUrl: id / url / size? / br? / time? / level?
+```
+
+新增 `src/api/song.ts`：
+
+```text
+GET /song/detail  { ids: id }
+GET /song/url     { id }
+```
+
+`getSongDetail` 同时兼容网易云返回的 `artists`/`album` 和 `ar`/`al` 字段，并在找不到目标歌曲时抛出 `歌曲详情不存在`。`getSongUrl` 要求响应中存在目标歌曲且 `url` 为非空字符串，否则抛出 `歌曲暂无可播放地址`。API 函数支持注入只含 `get` 的 client，便于测试而不访问真实服务。
+
+### 10.4 Audio adapter 与 Player store
+
+`src/audio/audioAdapter.ts` 将 `HTMLAudioElement` 的 `src`、`volume`、`paused`、`play()`、`pause()` 和 `ended`/`error` 事件封装为小接口。`createAudioAdapter` 接受可选的 Audio-like 对象；生产默认创建 `new Audio()`，测试通过 `setAudioAdapter()` 注入 double。适配器只使用事件 API，不查询 DOM selector。
+
+`src/stores/player.ts` 的最小状态和动作如下：
+
+```text
+state: queue / current / loading / isPlaying / error
+getters: hasSong
+actions: play(songOrId) / pause() / toggle() / clearError() / clear()
+```
+
+播放流程是：歌曲 ID 先请求详情（结构化 `Song` 则直接复用）→ 加入去重队列 → 请求 URL → 设置 `src` → 调用 `play()`。请求序列号忽略过期并发结果；URL/播放失败写入错误并恢复 loading；`ended` 将 `isPlaying` 置为 false，Audio `error` 更新可见错误。`clear()` 会暂停并解绑事件、清空 `src` 和状态。
+
+### 10.5 Discover 接线与 PlayerBar
+
+- `DiscoverView` 的歌曲 Banner（`targetType === 1`）调用 `playerStore.play(targetId)`；成功显示“正在播放推荐歌曲”，失败显示 store 错误。
+- 推荐新歌传递结构化歌曲对象，避免重复请求详情；成功显示当前歌曲名称，失败显示 store 错误。
+- `NewSongCard` 的按钮文案从“播放待迁移”改为“播放”，仍通过 typed `select` 事件保持组件边界。
+- `App.vue` 在 Host 已配置时渲染 `PlayerBar`；未配置时仍只显示 HostSetup，避免在 Host gate 前创建播放入口。
+- `PlayerBar` 展示当前歌曲和艺人，提供可访问的播放/暂停按钮，并在加载或错误时显示对应状态；Discover 页底部增加空间避免内容被固定条遮挡。
+
+### 10.6 并发、错误与未验证边界
+
+本轮明确处理以下边界：
+
+- 同一歌曲重复播放不会重复加入队列；
+- 连续播放请求用递增序列号丢弃旧请求的结果；
+- URL 缺失、歌曲详情为空、Audio `play()` reject 和 Audio `error` 都进入可见错误状态；
+- `loading` 在当前请求完成或失败后恢复；
+- 播放器未初始化、无当前歌曲时，暂停/切换动作安全返回；
+- 清理播放器会取消过期请求影响，并解除事件监听。
+
+本轮未验证外部真实网易云 API、真实网络媒体、跨域资源和网络中断恢复；已在本地 mock API 上完成浏览器 smoke，并通过 DevTools 注入的 `HTMLMediaElement.play()` `NotAllowedError` 验证自动播放错误显示。播放进度/音量控制、队列导航、循环/随机和播放历史仍未做。也未 commit / push。
+
+并发与切歌摘要：播放请求返回当前/过期结果，最新选择胜出；切歌清旧 source，URL 失败禁止重播上一首。
+
+### 10.7 本地 mock API 浏览器 smoke
+
+本轮完成的是本地可重复 smoke，不是外部真实服务验证：
+
+- Vite 开发服务：`http://127.0.0.1:4318`；mock API：`http://127.0.0.1:3999`；
+- 在 HostSetup 保存 mock API 地址后进入 Discover；
+- `/banner`、`/personalized`、`/personalized/newsong`、`/personalized/mv` 四个内容 endpoint 均返回 HTTP 200；
+- 点击推荐新歌后，PlayerBar 显示歌曲和艺人；执行播放 → 暂停 → 恢复，状态按预期切换；
+- 点击歌曲 Banner 后，`/song/detail?ids=301` 和 `/song/url?id=301` 均返回 HTTP 200，并显示播放器；
+- 通过 DevTools 注入 `HTMLMediaElement.play()` 的 `NotAllowedError`，Discover 的 status 和 PlayerBar 的 `role=alert` 均显示 `Autoplay blocked by smoke test`；
+- 控制台无消息。
+
+上述证据只覆盖本地 mock API、浏览器接线和错误展示；未验证外部真实网易云 API、真实网络媒体、跨域资源或真实网络中断恢复。
+
+### 10.8 实际执行命令与输出
+
+以下命令在当前工作区实际执行：
+
+```text
+bun run test
+Test Files  23 passed (23)
+Tests       86 passed (86)
+
+bun run typecheck
+PASS
+
+bun run build
+176 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+第 8 轮测试文件总数为 23，测试总数为 86；新增测试覆盖 Song API、Audio adapter、Player store、PlayerBar、Discover 播放接线和 Host gate 集成。构建和类型检查均通过，未因本轮新增代码改变直接依赖版本。
+
+### 10.9 本轮结果
+
+播放器最小闭环已在工作区形成：Discover 的歌曲入口可以请求歌曲详情/URL，使用 Audio adapter 播放，并由全局 PlayerBar 展示最小控制状态。Host 重新配置会 clear 播放器并使在途播放失效；pending toggle 在 Host clear/新选歌后不会恢复旧状态，重试成功清旧错误。第 7 轮提交 `5f2155c` 仍是当前 HEAD；第 8 轮源码和文档均尚未 commit / push。下一轮建议迁移完整歌单详情，复用当前 Player store；播放器进度、音量和高级队列控制另行增强。

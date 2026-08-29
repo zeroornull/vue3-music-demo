@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.11.0`<br>
-> 版本快照日期：`2026-08-28`<br>
-> 当前阶段：**实施第 7 轮代码已落地（未 commit）；Discover 内容层闭环；下一轮播放器**
+> 文档版本：`0.12.0`<br>
+> 版本快照日期：`2026-08-29`<br>
+> 当前阶段：**实施第 8 轮播放器最小闭环已落地（未 commit）；下一轮完整歌单详情**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -259,7 +259,22 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
-## 14. 主要官方资料
+## 14. 实施第 8 轮结果
+
+- 新增歌曲详情 `/song/detail` 与歌曲 URL `/song/url` 的最小 API/model；
+- 新增可注入 Audio adapter，封装音频源、播放/暂停和 `ended`/`error` 事件；
+- 新增 Player store，支持当前歌曲、队列去重、播放/暂停、并发失效、错误和清理；
+- Discover 的歌曲 Banner 和推荐新歌已接入播放器；
+- 新增全局最小 PlayerBar，Host 配置后显示当前歌曲和播放状态；
+- 23 个测试文件、86 个测试通过；typecheck、build（176 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- Host 重新配置会 clear 播放器并使在途播放失效；
+- pending toggle 在 Host clear/新选歌后不会恢复旧状态，重试成功清旧错误；
+- 已完成本地 mock API 浏览器 smoke；未验证外部真实网易云 API 或真实网络媒体；未 commit、未 push；
+- 下一轮建议迁移完整歌单详情，播放器进度/音量/高级队列控制另行增强。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 15. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

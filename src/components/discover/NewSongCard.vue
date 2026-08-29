@@ -41,7 +41,7 @@ const albumName = computed(() => props.item.song.album?.name.trim() || '专辑�
       </span>
       <span class="play-intent" aria-hidden="true">
         <span>▶</span>
-        播放待迁移
+        播放
       </span>
     </button>
   </article>

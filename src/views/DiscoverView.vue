@@ -13,11 +13,13 @@ import { useCommonStore } from '@/stores/common'
 import { useHostStore } from '@/stores/host'
 import { useMusicStore } from '@/stores/music'
 import { useVideoStore } from '@/stores/video'
+import { usePlayerStore } from '@/stores/player'
 
 const commonStore = useCommonStore()
 const hostStore = useHostStore()
 const musicStore = useMusicStore()
 const videoStore = useVideoStore()
+const playerStore = usePlayerStore()
 const { banners, error, loading } = storeToRefs(commonStore)
 const {
   newSongs,
@@ -35,10 +37,18 @@ function requestBanners(force = false) {
 }
 
 function selectBanner(banner: Banner) {
-  notice.value =
-    banner.targetType === 1
-      ? `歌曲 #${banner.targetId} 将在播放器迁移轮次恢复播放。`
-      : `已选择“${banner.typeTitle || '音乐推荐'}”，对应详情页将在后续切片迁移。`
+  if (banner.targetType === 1) {
+    void playerStore
+      .play(banner.targetId)
+      .then((started) => {
+        if (started) notice.value = '正在播放推荐歌曲。'
+      })
+      .catch(() => {
+        notice.value = playerStore.error || '歌曲播放失败，请稍后重试。'
+      })
+  } else {
+    notice.value = `已选择“${banner.typeTitle || '音乐推荐'}”，对应详情页将在后续切片迁移。`
+  }
 }
 
 function requestPersonalized(force = false) {
@@ -52,7 +62,21 @@ function requestNewSongs(force = false) {
 function selectNewSong(item: PersonalizedNewSong) {
   const songId = item.song.id || item.id
   const songName = item.song.name || item.name
-  notice.value = `歌曲“${songName}” #${songId} 的播放意图已记录，播放器将在后续轮次接入。`
+  notice.value = `歌曲“${songName}” #${songId} 正在准备播放。`
+  void playerStore
+    .play({
+      id: songId,
+      name: songName,
+      artists: item.song.artists,
+      album: item.song.album,
+      picUrl: item.picUrl,
+    })
+    .then((started) => {
+      if (started) notice.value = `正在播放“${songName}”。`
+    })
+    .catch(() => {
+      notice.value = playerStore.error || '歌曲播放失败，请稍后重试。'
+    })
 }
 
 function requestMvs(force = false) {
@@ -73,7 +97,7 @@ onMounted(() => {
       <div>
         <p class="eyebrow">Discover</p>
         <h1>推荐</h1>
-        <p class="summary">第一个从 API、Pinia 到可见 UI 的完整业务切片。</p>
+        <p class="summary">四个推荐内容模块与最小播放器已接入。</p>
       </div>
       <nav aria-label="迁移工具">
         <RouterLink :to="{ name: Pages.migration }">迁移状态</RouterLink>
@@ -106,7 +130,12 @@ onMounted(() => {
       @select="selectNewSong"
     />
 
-    <MvSection :mvs="mvs" :error="mvsError" :loading="mvsLoading" @retry="requestMvs(true)" />
+    <MvSection
+      :mvs="mvs"
+      :error="mvsError"
+      :loading="mvsLoading"
+      @retry="requestMvs(true)"
+    />
 
     <section class="next-slices" aria-labelledby="next-slices-title">
       <div>
@@ -114,7 +143,7 @@ onMounted(() => {
         <h2 id="next-slices-title">推荐页仍在渐进迁移</h2>
       </div>
       <ul>
-        <li>播放器</li>
+        <li>完整歌单详情</li>
       </ul>
     </section>
   </main>
@@ -126,6 +155,7 @@ onMounted(() => {
   min-height: 100vh;
   margin: 0 auto;
   padding: clamp(24px, 5vw, 64px);
+  padding-bottom: 120px;
 }
 
 .page-header {

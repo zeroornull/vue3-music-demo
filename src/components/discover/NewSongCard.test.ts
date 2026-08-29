@@ -32,7 +32,7 @@ describe('NewSongCard', () => {
     expect(wrapper.text()).toContain('晚风来信')
     expect(wrapper.text()).toContain('林间电台 / 海岸信号')
     expect(wrapper.text()).toContain('专辑：晚风来信')
-    expect(wrapper.text()).toContain('播放待迁移')
+    expect(wrapper.text()).toContain('播放')
   })
 
   it('emits a typed song selection', async () => {

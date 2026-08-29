@@ -66,6 +66,15 @@ describe('NewSongSection', () => {
     expect(wrapper.get('[data-testid="new-song-empty"]').text()).toContain('暂无推荐新歌')
   })
 
+  it('describes the connected minimal player instead of a future migration', () => {
+    const wrapper = mountSection({ items: [newSong] })
+    const heading = wrapper.get('.section-heading').text()
+
+    expect(heading).toContain('即可使用最小播放器播放')
+    expect(heading).not.toContain('播放器在后续轮次接入')
+    expect(heading).not.toContain('保留播放意图')
+  })
+
   it('limits the list to ten songs and forwards selection', async () => {
     const items = Array.from({ length: 12 }, (_, index) => ({
       ...newSong,

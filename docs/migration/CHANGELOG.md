@@ -1,5 +1,23 @@
 # 迁移文档变更记录
 
+## 0.12.0 - 2026-08-29
+
+### 实施第 8 轮：播放器最小闭环
+
+- 新增歌曲详情 `/song/detail` 与歌曲 URL `/song/url` 的最小模型和 API；
+- 新增可注入 Audio adapter，封装 `src`、`play`、`pause` 和媒体事件；
+- 新增 Player Pinia store，支持队列去重、当前歌曲、播放/暂停、清理、并发请求失效和错误状态；
+- 并发与切歌摘要：播放请求返回当前/过期结果，最新选择胜出；切歌清旧 source，URL 失败禁止重播上一首；
+- Host 重新配置会 clear 播放器并使在途播放失效；
+- pending toggle 在 Host clear/新选歌后不会恢复旧状态，重试成功清旧错误；
+- 将歌曲 Banner 与推荐新歌接入播放器；
+- 新增全局最小 `PlayerBar`，在 API Host 配置后显示当前歌曲和播放状态；
+- 23 个测试文件、86 个测试通过；typecheck、build、frozen lock、audit 和 `git diff --check` 通过；
+- 本轮完成本地 mock API 浏览器 smoke，但未验证外部真实网易云 API 或真实网络媒体；
+- smoke 使用 Vite `127.0.0.1:4318` + mock API `127.0.0.1:3999`，覆盖 Host→Discover、四个内容 endpoint 200、新歌播放/暂停/恢复、歌曲 Banner 的 detail/url 200、自动播放拒绝错误展示和无 console 消息；
+- 第 7 轮提交为 `5f2155c`，第 8 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移完整歌单详情，播放器进度/音量/高级队列控制另行增强。
+
 ## 0.11.0 - 2026-08-28
 
 ### 进度盘点与文档对齐

@@ -31,7 +31,7 @@ const visibleItems = computed(() => props.items.slice(0, 10))
         <p class="eyebrow">Fresh tracks</p>
         <h2 id="new-song-title">推荐新音乐</h2>
       </div>
-      <p>点击歌曲将保留播放意图，播放器在后续轮次接入</p>
+      <p>点击歌曲即可使用最小播放器播放</p>
     </div>
 
     <div
