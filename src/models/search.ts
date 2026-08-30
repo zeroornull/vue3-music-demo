@@ -18,8 +18,15 @@ export interface SearchArtist {
   img1v1Url: string
 }
 
+export interface SearchAlbum {
+  id: number
+  name: string
+  picUrl: string
+}
+
 export interface SearchSuggestPage {
   songs: Song[]
   playlists: SearchPlaylist[]
   artists: SearchArtist[]
+  albums: SearchAlbum[]
 }

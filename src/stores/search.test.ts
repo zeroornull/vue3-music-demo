@@ -38,7 +38,14 @@ const artist = {
   name: '林间电台',
 }
 
+const album = {
+  id: 501,
+  name: '夜航',
+  picUrl: 'https://images.example.com/album.jpg',
+}
+
 const suggest = {
+  albums: [album],
   artists: [artist],
   playlists: [playlist],
   songs: [song],
@@ -74,7 +81,7 @@ describe('search store', () => {
     expect(getSearchHotDetail).toHaveBeenCalledTimes(2)
   })
 
-  it('searches songs, playlists and artists once per keyword', async () => {
+  it('searches songs, playlists, artists and albums once per keyword', async () => {
     vi.mocked(getSearchHotDetail).mockResolvedValue([hot])
     vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     const store = useSearchStore()
@@ -87,6 +94,7 @@ describe('search store', () => {
     expect(store.songs).toEqual([song])
     expect(store.playlists).toEqual([playlist])
     expect(store.artists).toEqual([artist])
+    expect(store.albums).toEqual([album])
     expect(store.hots).toEqual([hot])
     expect(getSearchSuggest).toHaveBeenCalledTimes(1)
   })
@@ -103,6 +111,7 @@ describe('search store', () => {
     expect(store.songs).toEqual([])
     expect(store.playlists).toEqual([])
     expect(store.artists).toEqual([])
+    expect(store.albums).toEqual([])
     expect(store.songsError).toBe('search offline')
   })
 
@@ -119,6 +128,7 @@ describe('search store', () => {
     expect(store.songs).toEqual([])
     expect(store.playlists).toEqual([])
     expect(store.artists).toEqual([])
+    expect(store.albums).toEqual([])
     expect(store.keyword).toBe('')
     expect(store.hots).toEqual([hot])
   })
@@ -126,6 +136,7 @@ describe('search store', () => {
   it('drops an in-flight first keyword when a second search starts', async () => {
     const pendingFirst = deferred<typeof suggest>()
     const second = {
+      albums: [{ ...album, id: 502, name: '秋日' }],
       artists: [{ ...artist, id: 402, name: '城市电台' }],
       playlists: [{ ...playlist, id: 102, name: '秋日电台' }],
       songs: [{ ...song, id: 302, name: '下一首' }],
@@ -144,6 +155,7 @@ describe('search store', () => {
     expect(store.songs).toEqual(second.songs)
     expect(store.playlists).toEqual(second.playlists)
     expect(store.artists).toEqual(second.artists)
+    expect(store.albums).toEqual(second.albums)
   })
 
   it('drops in-flight hot search after reset', async () => {
@@ -171,6 +183,7 @@ describe('search store', () => {
     expect(store.songs).toEqual([])
     expect(store.playlists).toEqual([])
     expect(store.artists).toEqual([])
+    expect(store.albums).toEqual([])
     expect(store.songsLoading).toBe(false)
     expect(store.hots).toEqual([])
   })

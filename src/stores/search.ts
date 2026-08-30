@@ -3,7 +3,12 @@ import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
 import { getSearchHotDetail, getSearchSuggest } from '@/api/search'
-import type { SearchArtist, SearchHot, SearchPlaylist } from '@/models/search'
+import type {
+  SearchAlbum,
+  SearchArtist,
+  SearchHot,
+  SearchPlaylist,
+} from '@/models/search'
 import type { Song } from '@/models/song'
 
 let hotSerial = 0
@@ -17,6 +22,7 @@ export const useSearchStore = defineStore('search', () => {
   const songs = ref<Song[]>([])
   const playlists = ref<SearchPlaylist[]>([])
   const artists = ref<SearchArtist[]>([])
+  const albums = ref<SearchAlbum[]>([])
   const songsError = ref<string | null>(null)
   const songsLoading = ref(false)
 
@@ -24,6 +30,7 @@ export const useSearchStore = defineStore('search', () => {
     songs.value = []
     playlists.value = []
     artists.value = []
+    albums.value = []
     songsError.value = null
     songsLoading.value = false
   }
@@ -82,6 +89,7 @@ export const useSearchStore = defineStore('search', () => {
     songs.value = []
     playlists.value = []
     artists.value = []
+    albums.value = []
     songsLoading.value = true
     songsError.value = null
     try {
@@ -90,6 +98,7 @@ export const useSearchStore = defineStore('search', () => {
       songs.value = page.songs
       playlists.value = page.playlists
       artists.value = page.artists
+      albums.value = page.albums
     } catch (requestError) {
       if (serial !== searchSerial) return
       songsError.value = getErrorMessage(requestError)
@@ -110,6 +119,7 @@ export const useSearchStore = defineStore('search', () => {
     songs,
     playlists,
     artists,
+    albums,
     songsError,
     songsLoading,
   }

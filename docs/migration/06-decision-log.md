@@ -272,6 +272,16 @@
 - **Store**：一次 suggest 请求同时写入 songs / playlists / artists。换关键词或 Host `reset()` 会三组一起清空。
 - **本轮不做**：专辑、电台大厅、Header 弹出层。
 
+### D-032：专辑详情优先于电台大厅，并接上搜索专辑
+
+- **状态**：已验证
+- **日期**：2026-08-30
+- **决策**：第 22 轮先做 `#/album?id=`。`GET /album` 一次返回 `{ album, songs }`，歌曲接入已有 Player。搜索 suggest 同时解析 `result.albums`（最多 10 条），点进 `#/album?id=`。不迁评论/收藏 tab。
+- **原因**：第 21 轮故意跳过专辑，是因为没有落地页。专辑详情能把搜索最后一类接上。legacy 电台大厅是空页，产品价值更低。
+- **Store**：独立 album store，按 ID 缓存，换 ID 丢掉进行中的请求。Host `reset()` 清专辑缓存。搜索 albums 与 songs/playlists/artists 一起清空。
+- **封面**：`picUrl` 缺失时回退 `blurPicUrl`。发行日期用 `Asia/Shanghai` 格式化为 `YYYY/MM/DD`。
+- **本轮不做**：电台大厅、歌手详情 tab、`#/video`、上一首/下一首、Header 弹出层。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

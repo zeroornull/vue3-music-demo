@@ -52,4 +52,19 @@ describe('SearchHitList', () => {
     expect(wrapper.get('a').attributes('href')).toContain('"name":"artistDetail"')
     expect(wrapper.get('a').attributes('aria-label')).toBe('打开歌手：林间电台')
   })
+
+  it('opens album detail for album hits', () => {
+    const wrapper = mount(SearchHitList, {
+      props: {
+        hits: [{ cover: '', id: 501, name: '夜航' }],
+        kind: '专辑',
+        title: '专辑',
+        toName: Pages.album,
+      },
+      global: { stubs: { RouterLink: LinkStub } },
+    })
+    expect(wrapper.get('a').attributes('href')).toContain('"name":"album"')
+    expect(wrapper.get('a').attributes('href')).toContain('"id":501')
+    expect(wrapper.get('a').attributes('aria-label')).toBe('打开专辑：夜航')
+  })
 })

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
 import {
+  SEARCH_ALBUM_LIMIT,
   SEARCH_ARTIST_LIMIT,
   SEARCH_PLAYLIST_LIMIT,
   SEARCH_SONG_LIMIT,
@@ -46,10 +47,17 @@ describe('Search API', () => {
     ).rejects.toThrow('热门搜索响应格式不正确')
   })
 
-  it('unwraps /search/suggest songs, playlists and artists', async () => {
+  it('unwraps /search/suggest songs, playlists, artists and albums', async () => {
     const request = client({
       result: {
-        albums: [{ id: 9, name: 'ignored' }],
+        albums: [
+          {
+            extra: true,
+            id: 501,
+            name: '夜航',
+            picUrl: 'https://images.example.com/album.jpg',
+          },
+        ],
         artists: [
           {
             extra: true,
@@ -58,7 +66,7 @@ describe('Search API', () => {
             name: '林间电台',
           },
         ],
-        order: ['songs', 'playlists', 'artists'],
+        order: ['songs', 'playlists', 'artists', 'albums'],
         playlists: [
           {
             coverImgUrl: 'https://images.example.com/p.jpg',
@@ -81,6 +89,13 @@ describe('Search API', () => {
     })
 
     await expect(getSearchSuggest('深夜', request.client)).resolves.toEqual({
+      albums: [
+        {
+          id: 501,
+          name: '夜航',
+          picUrl: 'https://images.example.com/album.jpg',
+        },
+      ],
       artists: [
         {
           id: 401,
@@ -114,7 +129,7 @@ describe('Search API', () => {
   it('returns empty groups when suggest has no hits and slices each group', async () => {
     await expect(
       getSearchSuggest('无结果', client({ result: { order: [] } }).client),
-    ).resolves.toEqual({ artists: [], playlists: [], songs: [] })
+    ).resolves.toEqual({ albums: [], artists: [], playlists: [], songs: [] })
 
     const manySongs = Array.from({ length: 12 }, (_, index) => ({
       artists: [{ id: 401, name: '林间电台' }],
@@ -133,10 +148,16 @@ describe('Search API', () => {
       name: `人 ${index + 1}`,
       picUrl: 'https://images.example.com/f.jpg',
     }))
+    const manyAlbums = Array.from({ length: 12 }, (_, index) => ({
+      blurPicUrl: 'https://images.example.com/b.jpg',
+      id: 500 + index,
+      name: `专 ${index + 1}`,
+    }))
     const page = await getSearchSuggest(
       '很多',
       client({
         result: {
+          albums: manyAlbums,
           artists: manyArtists,
           playlists: manyPlaylists,
           songs: manySongs,
@@ -146,7 +167,9 @@ describe('Search API', () => {
     expect(page.songs).toHaveLength(SEARCH_SONG_LIMIT)
     expect(page.playlists).toHaveLength(SEARCH_PLAYLIST_LIMIT)
     expect(page.artists).toHaveLength(SEARCH_ARTIST_LIMIT)
+    expect(page.albums).toHaveLength(SEARCH_ALBUM_LIMIT)
     expect(page.artists[0]?.img1v1Url).toBe('https://images.example.com/f.jpg')
+    expect(page.albums[0]?.picUrl).toBe('https://images.example.com/b.jpg')
   })
 
   it('rejects a missing suggest payload', async () => {

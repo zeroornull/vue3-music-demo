@@ -45,6 +45,16 @@ describe('router contract', () => {
     expect(route.meta.title).toBe('歌单详情')
   })
 
+  it('preserves the legacy album route name and query id', () => {
+    const router = createAppRouter(createMemoryHistory())
+    const route = router.resolve({ name: Pages.album, query: { id: 501 } })
+
+    expect(route.path).toBe('/album')
+    expect(route.query.id).toBe('501')
+    expect(route.meta.title).toBe('专辑详情')
+    expect(route.meta.menu).toBe('discover')
+  })
+
   it('preserves the legacy music-hall nested routes', () => {
     const router = createAppRouter(createMemoryHistory())
     const music = routes.find((route) => route.name === Pages.music)

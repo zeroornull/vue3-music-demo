@@ -24,8 +24,9 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 18 轮：顶部应用壳（推荐 / 音乐馆 / 搜索）——已完成并提交 `38c70cc`；
 - 实施第 19 轮：PlayerBar 进度条 + 音量——已完成并提交 `b036bf6`；
 - 实施第 20 轮：歌手馆分类 + 字母筛选——已完成并提交 `37ad825`；
-- 实施第 21 轮：搜索 suggest 歌单 + 歌手——代码已落地，当前工作区尚未 commit；
-- 下一轮：电台大厅或专辑详情。
+- 实施第 21 轮：搜索 suggest 歌单 + 歌手——已完成并提交 `6565803`；
+- 实施第 22 轮：`#/album` 专辑详情 + 搜索专辑——代码已落地，当前工作区尚未 commit；
+- 下一轮：电台大厅。
 
 当前进度总览：[`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 
@@ -77,4 +78,4 @@ bun run preview
 └── package.json
 ```
 
-当前已完成到第 21 轮：搜索结果除了单曲，还可以打开歌单和歌手详情。下一轮是电台大厅或专辑详情。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。
+当前已完成到第 22 轮：搜索结果可以打开歌单、歌手和专辑详情。下一轮是电台大厅。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。

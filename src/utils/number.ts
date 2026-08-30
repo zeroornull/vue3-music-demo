@@ -19,3 +19,18 @@ export function formatClock(seconds: number): string {
 export function formatDuration(milliseconds: number): string {
   return formatClock(milliseconds / 1000)
 }
+
+export function formatPublishDate(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return ''
+  const parts = new Intl.DateTimeFormat('en-US', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+  }).formatToParts(new Date(value))
+  const year = parts.find((part) => part.type === 'year')?.value
+  const month = parts.find((part) => part.type === 'month')?.value
+  const day = parts.find((part) => part.type === 'day')?.value
+  if (!year || !month || !day) return ''
+  return `${year}/${month}/${day}`
+}

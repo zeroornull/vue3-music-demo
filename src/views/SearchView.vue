@@ -22,6 +22,7 @@ const {
   keyword,
   playlists,
   artists,
+  albums,
   songs,
   songsError,
   songsLoading,
@@ -32,7 +33,12 @@ const notice = ref<string | null>(null)
 let playSerial = 0
 
 const hasHits = computed(
-  () => songs.value.length + playlists.value.length + artists.value.length > 0,
+  () =>
+    songs.value.length +
+      playlists.value.length +
+      artists.value.length +
+      albums.value.length >
+    0,
 )
 
 const playlistHits = computed(() =>
@@ -46,6 +52,14 @@ const playlistHits = computed(() =>
 const artistHits = computed(() =>
   artists.value.map((item) => ({
     cover: item.img1v1Url,
+    id: item.id,
+    name: item.name,
+  })),
+)
+
+const albumHits = computed(() =>
+  albums.value.map((item) => ({
+    cover: item.picUrl,
     id: item.id,
     name: item.name,
   })),
@@ -119,7 +133,7 @@ onMounted(() => {
     <header class="page-header">
       <p class="eyebrow">Search</p>
       <h1>搜索</h1>
-      <p>输入关键词或点选热门搜索。单曲可以播放，歌单和歌手会打开已有详情页。</p>
+      <p>输入关键词或点选热门搜索。单曲可以播放，歌单、歌手和专辑会打开已有详情页。</p>
     </header>
 
     <form data-testid="search-submit" @submit.prevent="submit">
@@ -131,7 +145,7 @@ onMounted(() => {
           name="q"
           type="search"
           autocomplete="off"
-          placeholder="搜索歌曲、歌单或歌手"
+          placeholder="搜索歌曲、歌单、歌手或专辑"
         />
         <button type="submit">搜索</button>
       </div>
@@ -147,7 +161,7 @@ onMounted(() => {
       aria-busy="true"
     >
       <strong>正在搜索</strong>
-      <p>正在查找“{{ keyword }}”的单曲、歌单和歌手。</p>
+      <p>正在查找“{{ keyword }}”的单曲、歌单、歌手和专辑。</p>
     </div>
 
     <div
@@ -188,6 +202,14 @@ onMounted(() => {
         :hits="artistHits"
         :to-name="Pages.artistDetail"
       />
+      <SearchHitList
+        v-if="albums.length"
+        data-testid="search-albums"
+        kind="专辑"
+        title="专辑"
+        :hits="albumHits"
+        :to-name="Pages.album"
+      />
     </div>
 
     <div
@@ -196,7 +218,7 @@ onMounted(() => {
       data-testid="search-empty"
     >
       <strong>没有找到结果</strong>
-      <p>没有找到可播放的单曲或可打开的歌单、歌手。</p>
+      <p>没有找到可播放的单曲或可打开的歌单、歌手、专辑。</p>
     </div>
 
     <SearchHotList

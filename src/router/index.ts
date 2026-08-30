@@ -50,6 +50,16 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/album',
+    name: Pages.album,
+    component: () => import('@/views/AlbumView.vue'),
+    meta: {
+      menu: 'discover',
+      requiresApiHost: true,
+      title: '专辑详情',
+    },
+  },
+  {
     path: '/music',
     name: Pages.music,
     component: () => import('@/views/music/MusicView.vue'),

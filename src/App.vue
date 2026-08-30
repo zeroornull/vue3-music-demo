@@ -6,6 +6,7 @@ import AppShell from '@/components/layout/AppShell.vue'
 import { useHostStore } from '@/stores/host'
 import HostSetupView from '@/views/HostSetupView.vue'
 import PlayerBar from '@/components/player/PlayerBar.vue'
+import { useAlbumStore } from '@/stores/album'
 import { useArtistStore } from '@/stores/artist'
 import { useCategoryStore } from '@/stores/category'
 import { useDjStore } from '@/stores/dj'
@@ -20,6 +21,7 @@ import { useVideoStore } from '@/stores/video'
 const hostStore = useHostStore()
 const playerStore = usePlayerStore()
 const playlistStore = usePlaylistStore()
+const albumStore = useAlbumStore()
 const mvStore = useMvStore()
 const musicStore = useMusicStore()
 const categoryStore = useCategoryStore()
@@ -34,6 +36,7 @@ watch(isConfigured, (configured) => {
   if (!configured) {
     playerStore.clear()
     playlistStore.reset()
+    albumStore.reset()
     mvStore.reset()
     musicStore.reset()
     categoryStore.reset()

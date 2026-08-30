@@ -43,6 +43,13 @@ const song = {
 }
 
 const suggest = {
+  albums: [
+    {
+      id: 501,
+      name: '夜航',
+      picUrl: 'https://images.example.com/album.jpg',
+    },
+  ],
   artists: [
     {
       id: 401,
@@ -132,7 +139,10 @@ describe('SearchView', () => {
     expect(
       wrapper.get('[aria-label="打开歌手：林间电台"]').attributes('href'),
     ).toContain('artistDetail')
-    expect(wrapper.find('[aria-label^="打开专辑"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="search-albums"]').text()).toContain('夜航')
+    expect(
+      wrapper.get('[aria-label="打开专辑：夜航"]').attributes('href'),
+    ).toContain('album?id=501')
   })
 
   it('retries a failed song search and plays a result', async () => {
@@ -152,8 +162,9 @@ describe('SearchView', () => {
     expect(wrapper.get('[role="status"]').text()).toContain('正在播放“晚风来信”。')
   })
 
-  it('shows an empty card when suggest has no songs, playlists or artists', async () => {
+  it('shows an empty card when suggest has no songs, playlists, artists or albums', async () => {
     vi.mocked(getSearchSuggest).mockResolvedValue({
+      albums: [],
       artists: [],
       playlists: [],
       songs: [],
@@ -162,6 +173,21 @@ describe('SearchView', () => {
     await flushPromises()
     expect(wrapper.get('[data-testid="search-empty"]').text()).toContain(
       '没有找到结果',
+    )
+  })
+
+  it('keeps album-only hits out of the empty card', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      albums: [{ id: 501, name: '夜航', picUrl: '' }],
+      artists: [],
+      playlists: [],
+      songs: [],
+    })
+    const { wrapper } = await mountView({ q: '夜航' })
+    await flushPromises()
+    expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
+    expect(wrapper.get('[aria-label="打开专辑：夜航"]').attributes('href')).toContain(
+      'album?id=501',
     )
   })
 })

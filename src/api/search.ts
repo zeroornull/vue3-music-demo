@@ -1,5 +1,6 @@
 import { http, type HttpClient } from '@/api/http'
 import type {
+  SearchAlbum,
   SearchArtist,
   SearchHot,
   SearchPlaylist,
@@ -10,6 +11,7 @@ import { normalizeSong, type NetworkSong } from '@/models/song'
 export const SEARCH_SONG_LIMIT = 10
 export const SEARCH_PLAYLIST_LIMIT = 10
 export const SEARCH_ARTIST_LIMIT = 10
+export const SEARCH_ALBUM_LIMIT = 10
 export const SEARCH_HOT_LIMIT = 10
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -59,6 +61,19 @@ function readArtist(value: unknown): SearchArtist | null {
   return { id: value.id, name: value.name, img1v1Url: cover }
 }
 
+function readAlbum(value: unknown): SearchAlbum | null {
+  if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
+    return null
+  }
+  const picUrl =
+    typeof value.picUrl === 'string' && value.picUrl
+      ? value.picUrl
+      : typeof value.blurPicUrl === 'string'
+        ? value.blurPicUrl
+        : ''
+  return { id: value.id, name: value.name, picUrl }
+}
+
 export async function getSearchHotDetail(
   client: Pick<HttpClient, 'get'> = http,
 ): Promise<SearchHot[]> {
@@ -86,6 +101,7 @@ export async function getSearchSuggest(
   const songs = Array.isArray(result.songs) ? result.songs : []
   const playlists = Array.isArray(result.playlists) ? result.playlists : []
   const artists = Array.isArray(result.artists) ? result.artists : []
+  const albums = Array.isArray(result.albums) ? result.albums : []
   return {
     songs: songs
       .filter(isNetworkSong)
@@ -99,5 +115,9 @@ export async function getSearchSuggest(
       .map(readArtist)
       .filter((item): item is SearchArtist => item !== null)
       .slice(0, SEARCH_ARTIST_LIMIT),
+    albums: albums
+      .map(readAlbum)
+      .filter((item): item is SearchAlbum => item !== null)
+      .slice(0, SEARCH_ALBUM_LIMIT),
   }
 }

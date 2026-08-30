@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '@/App.vue'
 import { getSongUrl } from '@/api/song'
 import { setAudioAdapter, usePlayerStore } from '@/stores/player'
+import { useAlbumStore } from '@/stores/album'
 import { useArtistStore } from '@/stores/artist'
 import { useCategoryStore } from '@/stores/category'
 import { useCommonStore } from '@/stores/common'
@@ -216,6 +217,9 @@ describe('App host gate', () => {
     searchStore.artists = [
       { id: 401, img1v1Url: '', name: '林间电台' },
     ]
+    searchStore.albums = [
+      { id: 501, name: '夜航', picUrl: '' },
+    ]
     mountApp()
 
     useHostStore().clearHost()
@@ -225,7 +229,32 @@ describe('App host gate', () => {
     expect(searchStore.songs).toEqual([])
     expect(searchStore.playlists).toEqual([])
     expect(searchStore.artists).toEqual([])
+    expect(searchStore.albums).toEqual([])
     expect(searchStore.keyword).toBe('')
+  })
+
+  it('clears album cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const albumStore = useAlbumStore()
+    albumStore.album = {
+      artist: { id: 401, name: '林间电台' },
+      description: '夜航第一张专辑',
+      id: 501,
+      name: '夜航',
+      picUrl: 'https://images.example.com/album.jpg',
+      publishTime: 1_609_459_200_000,
+      size: 1,
+    }
+    albumStore.songs = [{ id: 301, name: '晚风来信', artists: [] }]
+    albumStore.loadedId = 501
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(albumStore.album).toBeNull()
+    expect(albumStore.songs).toHaveLength(0)
+    expect(albumStore.loadedId).toBeNull()
   })
 
   it('clears music-hall top-list cache when the host gate closes', async () => {
