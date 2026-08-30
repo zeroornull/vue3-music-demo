@@ -6,6 +6,7 @@ function fakeAudio() {
   const audio = {
     src: "",
     volume: 1,
+    muted: false,
     currentTime: 0,
     duration: Number.NaN,
     paused: true,
@@ -30,8 +31,11 @@ describe("audio adapter", () => {
     const adapter = createAudioAdapter(fixture.audio);
     adapter.src = "https://example.com/song.mp3";
     adapter.volume = 0.4;
+    adapter.muted = true;
     expect(adapter.src).toBe(fixture.audio.src);
     expect(adapter.volume).toBe(0.4);
+    expect(adapter.muted).toBe(true);
+    expect(fixture.audio.muted).toBe(true);
     await expect(adapter.play()).resolves.toBeUndefined();
     adapter.pause();
     expect(fixture.audio.pause).toHaveBeenCalledOnce();

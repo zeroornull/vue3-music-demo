@@ -14,6 +14,7 @@ const {
   currentTime,
   duration,
   volume,
+  muted,
   canSkip,
   loopMode,
 } = storeToRefs(player)
@@ -123,12 +124,22 @@ function onVolumeInput(event: Event) {
       </div>
     </div>
     <div v-if="current" class="player-volume">
+      <button
+        type="button"
+        class="skip"
+        :aria-label="muted ? '取消静音' : '静音'"
+        :aria-pressed="muted ? 'true' : 'false'"
+        @click="player.toggleMuted()"
+      >
+        {{ muted ? '取消静音' : '静音' }}
+      </button>
       <input
         type="range"
         min="0"
         max="100"
         step="1"
         :value="Math.round(volume * 100)"
+        :disabled="muted"
         aria-label="音量"
         @input="onVolumeInput"
       />
@@ -218,7 +229,9 @@ function onVolumeInput(event: Event) {
 }
 .player-volume {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
 }
 .player-bar button {
   padding: 7px 16px;
@@ -242,7 +255,7 @@ function onVolumeInput(event: Event) {
     grid-template-columns: minmax(0, 1fr);
   }
   .player-volume {
-    max-width: 160px;
+    max-width: none;
   }
 }
 </style>

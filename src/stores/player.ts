@@ -105,6 +105,7 @@ export const usePlayerStore = defineStore('player', {
     currentTime: 0,
     duration: 0,
     volume: 1,
+    muted: false,
     loopMode: 'one' as LoopMode,
   }),
   getters: {
@@ -148,6 +149,7 @@ export const usePlayerStore = defineStore('player', {
         const audio = injectedAdapter ?? createAudioAdapter()
         if (!injectedAdapter) injectedAdapter = audio
         audio.volume = this.volume
+        audio.muted = this.muted
         unbindAudio = bindPlayback(audio, this, () => {
           void this.onTrackEnded().catch(() => {
             // The store already recorded the error for the bar.
@@ -314,6 +316,10 @@ export const usePlayerStore = defineStore('player', {
       this.volume = next
       if (injectedAdapter) injectedAdapter.volume = next
     },
+    toggleMuted() {
+      this.muted = !this.muted
+      if (injectedAdapter) injectedAdapter.muted = this.muted
+    },
     clearError() {
       this.error = null
     },
@@ -326,6 +332,7 @@ export const usePlayerStore = defineStore('player', {
       if (injectedAdapter) {
         injectedAdapter.src = ''
         injectedAdapter.volume = 1
+        injectedAdapter.muted = false
       }
       this.queue = []
       this.current = null
@@ -336,6 +343,7 @@ export const usePlayerStore = defineStore('player', {
       this.currentTime = 0
       this.duration = 0
       this.volume = 1
+      this.muted = false
       this.loopMode = 'one'
     },
   },

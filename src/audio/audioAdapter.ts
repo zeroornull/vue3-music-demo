@@ -3,6 +3,7 @@ export type AudioAdapterEvent = 'ended' | 'error' | 'timeupdate' | 'durationchan
 export interface AudioAdapter {
   src: string
   volume: number
+  muted: boolean
   currentTime: number
   readonly duration: number
   readonly paused: boolean
@@ -14,6 +15,7 @@ export interface AudioAdapter {
 export interface AudioElementLike {
   src: string
   volume: number
+  muted: boolean
   currentTime: number
   duration: number
   paused: boolean
@@ -37,6 +39,12 @@ export function createAudioAdapter(element?: AudioElementLike): AudioAdapter {
     },
     set volume(value: number) {
       audio.volume = value
+    },
+    get muted() {
+      return audio.muted
+    },
+    set muted(value: boolean) {
+      audio.muted = value
     },
     get currentTime() {
       return audio.currentTime

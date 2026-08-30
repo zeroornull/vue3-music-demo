@@ -32,6 +32,7 @@ function mockAdapter(overrides: Partial<AudioAdapter> = {}) {
   return {
     src: '',
     volume: 1,
+    muted: false,
     currentTime: 0,
     duration: Number.NaN,
     paused: true,
@@ -187,6 +188,8 @@ describe('Player store', () => {
     expect(player.duration).toBe(0)
     expect(player.volume).toBe(1)
     expect(adapter.volume).toBe(1)
+    expect(player.muted).toBe(false)
+    expect(adapter.muted).toBe(false)
   })
 
   it('lets the last concurrent selection win and resolves stale work false', async () => {
@@ -439,6 +442,46 @@ describe('Player store', () => {
     expect(adapter.volume).toBe(0)
   })
 
+  it('toggles mute without changing volume and reapplies it on play', async () => {
+    const adapter = mockAdapter()
+    setAudioAdapter(adapter)
+    const player = usePlayerStore()
+    player.setVolume(0.4)
+    player.toggleMuted()
+    expect(player.muted).toBe(true)
+    expect(adapter.muted).toBe(true)
+    expect(player.volume).toBe(0.4)
+    expect(adapter.volume).toBe(0.4)
+
+    player.setVolume(0.2)
+    expect(player.muted).toBe(true)
+    expect(adapter.muted).toBe(true)
+    expect(player.volume).toBe(0.2)
+
+    player.toggleMuted()
+    expect(player.muted).toBe(false)
+    expect(adapter.muted).toBe(false)
+
+    player.toggleMuted()
+    await player.play(song(1))
+    expect(adapter.muted).toBe(true)
+    expect(adapter.volume).toBe(0.2)
+  })
+
+  it('applies a mute decided before the adapter exists', async () => {
+    const player = usePlayerStore()
+    player.setVolume(0.4)
+    player.toggleMuted()
+    expect(player.muted).toBe(true)
+    expect(player.volume).toBe(0.4)
+
+    const adapter = mockAdapter({ muted: false, volume: 1 })
+    setAudioAdapter(adapter)
+    await player.play(song(1))
+    expect(adapter.muted).toBe(true)
+    expect(adapter.volume).toBe(0.4)
+  })
+
   it('keeps timeupdate and ended listeners after pause then toggle', async () => {
     const adapter = mockAdapter({ duration: 180 })
     setAudioAdapter(adapter)
@@ -474,11 +517,14 @@ describe('Player store', () => {
     await next
     expect(player.currentTime).toBe(0)
     player.setVolume(0.3)
+    player.toggleMuted()
     player.clear()
     expect(player.currentTime).toBe(0)
     expect(player.duration).toBe(0)
     expect(player.volume).toBe(1)
     expect(adapter.volume).toBe(1)
+    expect(player.muted).toBe(false)
+    expect(adapter.muted).toBe(false)
   })
 
   it('skips to the next and previous songs and wraps the queue', async () => {
@@ -660,5 +706,6 @@ describe('Player store', () => {
     player.toggleLoop()
     player.clear()
     expect(player.loopMode).toBe('one')
+    expect(player.muted).toBe(false)
   })
 })

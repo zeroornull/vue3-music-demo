@@ -347,6 +347,15 @@
 - **Store**：`loadDesc` 用独立 `descSerial`。点进详情 tab 才请求。`resetDetail()` 和换歌手会清掉介绍。四个 tabpanel 保持挂载，用 `hidden` 切换。
 - **本轮不做**：精选 tab、静音、播放列表抽屉、Header 弹出层。
 
+### D-040：播放器本轮只做静音
+
+- **状态**：已验证
+- **日期**：2026-08-30
+- **决策**：第 30 轮给全局 PlayerBar 加上静音。`muted` 独立于 `volume`，走 `HTMLAudioElement.muted`。点静音不改音量数字；拖动音量不自动取消静音。静音时音量滑块禁用，与 legacy 一致。Host `clear()` 收回 `muted=false`。
+- **原因**：音量已经在第 19 轮接入。静音是同一组能力，比播放列表抽屉小，能立刻在现有栏上闭环。音量仍不写 localStorage。
+- **Store**：`toggleMuted()`；`play()` 把当前 `muted` 写到 adapter。无 adapter 时先记 store，等 `play()` 再应用。
+- **本轮不做**：播放列表抽屉、音量 localStorage、精选 tab、Header 弹出层。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

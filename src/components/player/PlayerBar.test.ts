@@ -14,6 +14,7 @@ function mockAdapter(overrides: Partial<AudioAdapter> = {}) {
   return {
     src: 'x',
     volume: 1,
+    muted: false,
     currentTime: 0,
     duration: 180,
     paused: true,
@@ -206,5 +207,32 @@ describe('PlayerBar', () => {
     await wrapper.get('input[aria-label="音量"]').setValue('25')
     expect(player.volume).toBe(0.25)
     expect(adapter.volume).toBe(0.25)
+  })
+
+  it('toggles mute from the bar and disables volume while muted', async () => {
+    const player = usePlayerStore()
+    const adapter = mockAdapter()
+    setAudioAdapter(adapter)
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.hasPlayableSource = true
+    player.volume = 0.4
+    const wrapper = mount(PlayerBar)
+    const mute = wrapper.get('button[aria-label="静音"]')
+    expect(mute.attributes('aria-pressed')).toBe('false')
+    expect(wrapper.get('input[aria-label="音量"]').attributes('disabled')).toBeUndefined()
+
+    await mute.trigger('click')
+    expect(player.muted).toBe(true)
+    expect(adapter.muted).toBe(true)
+    expect(player.volume).toBe(0.4)
+    expect(wrapper.get('button[aria-label="取消静音"]').attributes('aria-pressed')).toBe(
+      'true',
+    )
+    expect(wrapper.get('input[aria-label="音量"]').attributes('disabled')).toBeDefined()
+
+    await wrapper.get('button[aria-label="取消静音"]').trigger('click')
+    expect(player.muted).toBe(false)
+    expect(adapter.muted).toBe(false)
+    expect(wrapper.get('input[aria-label="音量"]').attributes('disabled')).toBeUndefined()
   })
 })
