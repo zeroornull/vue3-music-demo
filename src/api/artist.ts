@@ -2,6 +2,8 @@ import { http, type HttpClient } from '@/api/http'
 import type {
   ArtistAlbum,
   ArtistAlbumPage,
+  ArtistDesc,
+  ArtistDescSection,
   ArtistDetail,
   ArtistListPage,
   ArtistMv,
@@ -169,6 +171,37 @@ function readArtistAlbum(value: unknown): ArtistAlbum | null {
     picUrl,
     publishTime: typeof value.publishTime === 'number' ? value.publishTime : 0,
     size: typeof value.size === 'number' ? value.size : 0,
+  }
+}
+
+function readDescSection(value: unknown): ArtistDescSection | null {
+  if (!isRecord(value) || typeof value.txt !== 'string') {
+    return null
+  }
+  const text = value.txt
+  if (!text) return null
+  return {
+    title: typeof value.ti === 'string' ? value.ti.trim() : '',
+    text,
+  }
+}
+
+export async function getArtistDesc(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<ArtistDesc> {
+  const response = await client.get<{ briefDesc?: unknown; introduction?: unknown }>(
+    '/artist/desc',
+    { id },
+  )
+  if (!Array.isArray(response.introduction)) {
+    throw new Error('歌手介绍响应格式不正确')
+  }
+  return {
+    briefDesc: typeof response.briefDesc === 'string' ? response.briefDesc : '',
+    introduction: response.introduction
+      .map(readDescSection)
+      .filter((item): item is ArtistDescSection => item !== null),
   }
 }
 

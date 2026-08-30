@@ -42,6 +42,16 @@ export interface ArtistAlbumPage {
   more: boolean
 }
 
+export interface ArtistDescSection {
+  title: string
+  text: string
+}
+
+export interface ArtistDesc {
+  briefDesc: string
+  introduction: ArtistDescSection[]
+}
+
 export interface HallArtist {
   id: number
   name: string

@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
 import ArtistAlbumSection from '@/components/artist/ArtistAlbumSection.vue'
+import ArtistDescSection from '@/components/artist/ArtistDescSection.vue'
 import ArtistHeader from '@/components/artist/ArtistHeader.vue'
 import ArtistMvSection from '@/components/artist/ArtistMvSection.vue'
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
@@ -29,10 +30,13 @@ const {
   albumsError,
   albumsLoading,
   albumsMore,
+  desc,
+  descError,
+  descLoading,
 } = storeToRefs(artistStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
-const tab = ref<'songs' | 'albums' | 'mvs'>('songs')
+const tab = ref<'songs' | 'albums' | 'mvs' | 'desc'>('songs')
 let playSerial = 0
 
 const artistId = computed(() => {
@@ -83,6 +87,17 @@ function retryMvs() {
 
 function loadMoreMvs() {
   void Promise.resolve(artistStore.loadMoreMvs()).catch(() => undefined)
+}
+
+function showDesc() {
+  tab.value = 'desc'
+  if (artistId.value === null) return
+  void artistStore.loadDesc(artistId.value).catch(() => undefined)
+}
+
+function retryDesc() {
+  if (artistId.value === null) return
+  void artistStore.loadDesc(artistId.value, true).catch(() => undefined)
 }
 
 function playAll() {
@@ -215,6 +230,17 @@ watch(
         >
           视频 {{ artist.mvSize }}
         </button>
+        <button
+          id="artist-tab-desc"
+          type="button"
+          role="tab"
+          data-testid="artist-tab-desc"
+          :aria-selected="tab === 'desc' ? 'true' : 'false'"
+          aria-controls="artist-panel-desc"
+          @click="showDesc"
+        >
+          详情
+        </button>
       </div>
       <div
         id="artist-panel-songs"
@@ -268,6 +294,19 @@ watch(
           :mvs="mvs"
           @load-more="loadMoreMvs"
           @retry="retryMvs"
+        />
+      </div>
+      <div
+        id="artist-panel-desc"
+        role="tabpanel"
+        aria-labelledby="artist-tab-desc"
+        :hidden="tab !== 'desc'"
+      >
+        <ArtistDescSection
+          :desc="desc"
+          :error="descError"
+          :loading="descLoading"
+          @retry="retryDesc"
         />
       </div>
     </template>

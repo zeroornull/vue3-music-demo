@@ -7,19 +7,21 @@ import {
   ARTIST_MV_PAGE_SIZE,
   ARTIST_SONG_PAGE_SIZE,
   getArtistAlbums,
+  getArtistDesc,
   getArtistDetail,
   getArtistList,
   getArtistMvs,
   getArtistSongs,
 } from '@/api/artist'
 import { getErrorMessage } from '@/api/http'
-import type { ArtistAlbum, ArtistDetail, ArtistMv, HallArtist } from '@/models/artist'
+import type { ArtistAlbum, ArtistDesc, ArtistDetail, ArtistMv, HallArtist } from '@/models/artist'
 import type { Song } from '@/models/song'
 
 let requestSerial = 0
 let listSerial = 0
 let mvSerial = 0
 let albumSerial = 0
+let descSerial = 0
 
 export const useArtistStore = defineStore('artist', () => {
   const artist = ref<ArtistDetail | null>(null)
@@ -38,6 +40,10 @@ export const useArtistStore = defineStore('artist', () => {
   const albumsLoading = ref(false)
   const albumsMore = ref(false)
   const albumsLoadedId = ref<number | null>(null)
+  const desc = ref<ArtistDesc | null>(null)
+  const descError = ref<string | null>(null)
+  const descLoading = ref(false)
+  const descLoadedId = ref<number | null>(null)
   const artists = ref<HallArtist[]>([])
   const artistsError = ref<string | null>(null)
   const artistsLoading = ref(false)
@@ -64,6 +70,14 @@ export const useArtistStore = defineStore('artist', () => {
     albumsLoadedId.value = null
   }
 
+  function clearDesc() {
+    descSerial++
+    desc.value = null
+    descError.value = null
+    descLoading.value = false
+    descLoadedId.value = null
+  }
+
   function resetDetail() {
     requestSerial++
     artist.value = null
@@ -74,6 +88,7 @@ export const useArtistStore = defineStore('artist', () => {
     loadedId.value = null
     clearMvs()
     clearAlbums()
+    clearDesc()
   }
 
   function reset() {
@@ -107,6 +122,7 @@ export const useArtistStore = defineStore('artist', () => {
       more.value = false
       clearMvs()
       clearAlbums()
+      clearDesc()
     }
     loading.value = true
     error.value = null
@@ -219,6 +235,34 @@ export const useArtistStore = defineStore('artist', () => {
       throw requestError
     } finally {
       if (serial === albumSerial) albumsLoading.value = false
+    }
+  }
+
+  async function loadDesc(id: number, force = false) {
+    if (!Number.isInteger(id) || id <= 0) return
+    if (!force && descLoading.value) return
+    if (!force && descLoadedId.value === id && !descError.value) {
+      return
+    }
+
+    const serial = ++descSerial
+    if (descLoadedId.value !== id) {
+      desc.value = null
+      descLoadedId.value = null
+    }
+    descLoading.value = true
+    descError.value = null
+    try {
+      const next = await getArtistDesc(id)
+      if (serial !== descSerial) return
+      desc.value = next
+      descLoadedId.value = id
+    } catch (requestError) {
+      if (serial !== descSerial) return
+      descError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === descSerial) descLoading.value = false
     }
   }
 
@@ -350,6 +394,7 @@ export const useArtistStore = defineStore('artist', () => {
     loadMoreMvs,
     loadAlbums,
     loadMoreAlbums,
+    loadDesc,
     loadArtists,
     loadMoreArtists,
     setArea,
@@ -373,6 +418,10 @@ export const useArtistStore = defineStore('artist', () => {
     albumsLoading,
     albumsMore,
     albumsLoadedId,
+    desc,
+    descError,
+    descLoading,
+    descLoadedId,
     artists,
     artistsError,
     artistsLoading,

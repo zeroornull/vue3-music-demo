@@ -112,6 +112,11 @@ describe('App host gate', () => {
         playCount: 1,
       },
     ]
+    artistStore.desc = {
+      briefDesc: '林间电台的简介',
+      introduction: [{ text: '从校园电台出发。', title: '经历' }],
+    }
+    artistStore.descLoadedId = 401
     artistStore.artists = [
       { id: 401, img1v1Url: '', name: '林间电台' },
     ]
@@ -126,6 +131,8 @@ describe('App host gate', () => {
     expect(artistStore.artist).toBeNull()
     expect(artistStore.loadedId).toBeNull()
     expect(artistStore.mvs).toEqual([])
+    expect(artistStore.desc).toBeNull()
+    expect(artistStore.descLoadedId).toBeNull()
     expect(artistStore.artists).toEqual([])
     expect(artistStore.area).toBe(-1)
     expect(artistStore.type).toBe(-1)

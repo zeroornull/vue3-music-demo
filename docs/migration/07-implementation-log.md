@@ -3458,4 +3458,78 @@ mock API http://127.0.0.1:48731
 
 ### 30.4 本轮结果
 
-歌手专辑 tab 已在工作区形成。独立审查 PASS WITH FINDINGS：补了过期专辑请求丢弃测试、picUrl 优先于 blurPicUrl 的锁定，以及 tabpanel `hidden` 断言。第 27 轮提交 `26c47df` 仍是当前 HEAD；第 28 轮尚未 commit / push。下一轮建议迁移歌手详情 tab 或静音。
+歌手专辑 tab 已在工作区形成。独立审查 PASS WITH FINDINGS：补了过期专辑请求丢弃测试、picUrl 优先于 blurPicUrl 的锁定，以及 tabpanel `hidden` 断言。第 28 轮随后以 `a2d6039` 提交。下一轮建议迁移歌手详情 tab 或静音。
+
+## 31. 实施第 29 轮：歌手详情介绍 tab（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 31.1 开始边界与范围
+
+第 29 轮开始时第 28 轮已经提交：
+
+```text
+HEAD a2d6039
+master...origin/master
+```
+
+工作区从该提交继续。本轮给歌手详情补上介绍 tab。不迁精选 tab、静音、播放列表抽屉、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- 原生 歌曲 / 专辑 / 视频 / 详情 tab；
+- `GET /artist/desc` 懒加载；
+- 介绍段落纯文本渲染。
+
+### 31.2 自动验证
+
+```text
+bun run test
+Test Files  89 passed (89)
+Tests       362 passed (362)
+
+bun run typecheck
+PASS
+
+bun run build
+330 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 31.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:48821
+mock API http://127.0.0.1:48831
+```
+
+验证步骤：
+
+1. Host 保存后打开 `#/artistDetail?id=401`，看到「详情」；
+2. 点详情 tab，出现「经历」「代表作」；含 `<img src=x>` 的文案按文本显示，没有图片节点；
+3. 「重新配置 API」回到 Host 表单；
+4. 桌面 `1440×900` 与移动 `390×844`（详情 tab 可见）无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round29-desktop.png` 和 `/tmp/vue3-music-round29-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 31.4 本轮结果
+
+歌手介绍 tab 已在工作区形成。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；补了 Host 重新配置清介绍的断言、空介绍空状态测试，并修正进度表第 8 轮日期。独立核验 PASS：复跑 89/362、typecheck、330 modules、frozen lock、audit、whitespace；隔离 smoke Vite `127.0.0.1:48921` + mock `127.0.0.1:48931`。第 28 轮提交 `a2d6039` 仍是当前 HEAD；第 29 轮尚未 commit / push。下一轮建议迁移静音或播放列表抽屉。

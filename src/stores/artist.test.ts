@@ -7,6 +7,7 @@ import {
   ARTIST_MV_PAGE_SIZE,
   ARTIST_SONG_PAGE_SIZE,
   getArtistAlbums,
+  getArtistDesc,
   getArtistDetail,
   getArtistList,
   getArtistMvs,
@@ -19,6 +20,7 @@ vi.mock('@/api/artist', async (importOriginal) => {
   return {
     ...actual,
     getArtistAlbums: vi.fn(),
+    getArtistDesc: vi.fn(),
     getArtistDetail: vi.fn(),
     getArtistList: vi.fn(),
     getArtistMvs: vi.fn(),
@@ -72,6 +74,7 @@ describe('artist store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.mocked(getArtistAlbums).mockReset()
+    vi.mocked(getArtistDesc).mockReset()
     vi.mocked(getArtistDetail).mockReset()
     vi.mocked(getArtistList).mockReset()
     vi.mocked(getArtistMvs).mockReset()
@@ -426,5 +429,45 @@ describe('artist store', () => {
 
     expect(store.albums).toEqual([])
     expect(store.albumsLoading).toBe(false)
+  })
+
+  it('loads artist desc once and treats a failed page as a cache miss', async () => {
+    const desc = {
+      briefDesc: '林间电台的简介',
+      introduction: [{ text: '从校园电台出发。', title: '经历' }],
+    }
+    vi.mocked(getArtistDesc)
+      .mockRejectedValueOnce(new Error('desc offline'))
+      .mockResolvedValueOnce(desc)
+    const store = useArtistStore()
+
+    await expect(store.loadDesc(401)).rejects.toThrow('desc offline')
+    await store.loadDesc(401)
+    await store.loadDesc(401)
+
+    expect(store.desc).toEqual(desc)
+    expect(store.descError).toBeNull()
+    expect(getArtistDesc).toHaveBeenCalledTimes(2)
+    expect(getArtistDesc).toHaveBeenCalledWith(401)
+  })
+
+  it('clears desc when the artist id changes and drops in-flight work', async () => {
+    const desc = {
+      briefDesc: '',
+      introduction: [{ text: '从校园电台出发。', title: '经历' }],
+    }
+    const pending = deferred<typeof desc>()
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getArtistDesc).mockReturnValueOnce(pending.promise)
+    const store = useArtistStore()
+    const inflight = store.loadDesc(401)
+    await store.load(402)
+    pending.resolve(desc)
+    await inflight
+
+    expect(store.desc).toBeNull()
+    expect(store.descLoadedId).toBeNull()
+    expect(store.descLoading).toBe(false)
   })
 })

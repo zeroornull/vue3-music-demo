@@ -6,7 +6,13 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getArtistAlbums, getArtistDetail, getArtistMvs, getArtistSongs } from '@/api/artist'
+import {
+  getArtistAlbums,
+  getArtistDesc,
+  getArtistDetail,
+  getArtistMvs,
+  getArtistSongs,
+} from '@/api/artist'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useArtistStore } from '@/stores/artist'
@@ -17,6 +23,7 @@ vi.mock('@/api/artist', async (importOriginal) => {
   return {
     ...actual,
     getArtistAlbums: vi.fn(),
+    getArtistDesc: vi.fn(),
     getArtistDetail: vi.fn(),
     getArtistMvs: vi.fn(),
     getArtistSongs: vi.fn(),
@@ -79,6 +86,19 @@ const AlbumSectionStub = defineComponent({
   `,
 })
 
+const DescSectionStub = defineComponent({
+  name: 'ArtistDescSection',
+  props: ['desc', 'error', 'loading'],
+  emits: ['retry'],
+  template: `
+    <section data-testid="artist-desc">
+      <span v-if="desc">{{ desc.introduction[0] && desc.introduction[0].title }}</span>
+      <p v-if="error" role="alert">{{ error }}</p>
+      <button v-if="error" data-testid="artist-desc-retry" @click="$emit('retry')">retry</button>
+    </section>
+  `,
+})
+
 const MvSectionStub = defineComponent({
   name: 'ArtistMvSection',
   props: ['error', 'loading', 'more', 'mvs'],
@@ -121,6 +141,7 @@ async function mountView(query: Record<string, string> = { id: '401' }) {
       stubs: {
         ArtistHeader: HeaderStub,
         ArtistAlbumSection: AlbumSectionStub,
+        ArtistDescSection: DescSectionStub,
         ArtistMvSection: MvSectionStub,
         PlaylistSongList: SongListStub,
         RouterLink: defineComponent({ template: '<a><slot /></a>' }),
@@ -135,6 +156,7 @@ describe('ArtistView', () => {
     playSong.mockClear()
     playAllSongs.mockClear()
     vi.mocked(getArtistAlbums).mockReset()
+    vi.mocked(getArtistDesc).mockReset()
     vi.mocked(getArtistDetail).mockReset()
     vi.mocked(getArtistMvs).mockReset()
     vi.mocked(getArtistSongs).mockReset()
@@ -164,6 +186,10 @@ describe('ArtistView', () => {
           size: 8,
         },
       ],
+    })
+    vi.mocked(getArtistDesc).mockResolvedValue({
+      briefDesc: '林间电台的简介',
+      introduction: [{ text: '从校园电台出发。', title: '经历' }],
     })
   })
 
@@ -366,5 +392,34 @@ describe('ArtistView', () => {
       offset: 1,
     })
     expect(wrapper.get('[data-testid="artist-albums"]').text()).toContain('晨雾')
+  })
+
+  it('loads desc when the detail tab is selected and can retry', async () => {
+    vi.mocked(getArtistDesc)
+      .mockRejectedValueOnce(new Error('desc offline'))
+      .mockResolvedValueOnce({
+        briefDesc: '林间电台的简介',
+        introduction: [{ text: '从校园电台出发。', title: '经历' }],
+      })
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(getArtistDesc).not.toHaveBeenCalled()
+
+    await wrapper.get('[data-testid="artist-tab-desc"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-tab-desc"]').attributes('aria-selected')).toBe(
+      'true',
+    )
+    expect(wrapper.get('#artist-panel-desc').attributes('hidden')).toBeUndefined()
+    expect(wrapper.get('#artist-panel-songs').attributes('hidden')).toBeDefined()
+    expect(wrapper.get('#artist-panel-albums').attributes('hidden')).toBeDefined()
+    expect(wrapper.get('#artist-panel-mvs').attributes('hidden')).toBeDefined()
+    expect(wrapper.get('[role="alert"]').text()).toContain('desc offline')
+
+    await wrapper.get('[data-testid="artist-desc-retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-desc"]').text()).toContain('经历')
+    expect(getArtistDesc).toHaveBeenCalledTimes(2)
+    expect(getArtistDesc).toHaveBeenCalledWith(401)
   })
 })

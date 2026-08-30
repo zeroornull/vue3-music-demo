@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.32.0`<br>
+> 文档版本：`0.33.0`<br>
 > 版本快照日期：`2026-08-30`<br>
-> 当前阶段：**实施第 28 轮歌手专辑 tab 已落地（未 commit）；下一轮歌手详情 tab 或静音**
+> 当前阶段：**实施第 29 轮歌手介绍 tab 已落地（未 commit）；下一轮静音或播放列表抽屉**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -472,7 +472,16 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 35. 主要官方资料
+## 35. 实施第 29 轮结果
+
+- 歌手详情原生「详情」tab；`GET /artist/desc` 纯文本介绍；
+- 89 个测试文件、362 个测试通过；typecheck、build（330 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 下一轮建议迁移静音或播放列表抽屉。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 36. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

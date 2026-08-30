@@ -31,8 +31,9 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 25 轮：播放器上一首/下一首——已完成并提交 `dda5d3e`；
 - 实施第 26 轮：播放器循环/随机 + 播完自动切歌——已完成并提交 `dda5d3e`；
 - 实施第 27 轮：`#/video` 大厅 + 视频详情——已完成并提交 `26c47df`；
-- 实施第 28 轮：歌手详情专辑 tab——代码已落地，当前工作区尚未 commit；
-- 下一轮：歌手详情 tab 或静音。
+- 实施第 28 轮：歌手详情专辑 tab——已完成并提交 `a2d6039`；
+- 实施第 29 轮：歌手详情介绍 tab——代码已落地，当前工作区尚未 commit；
+- 下一轮：静音或播放列表抽屉。
 
 当前进度总览：[`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 
@@ -84,4 +85,4 @@ bun run preview
 └── package.json
 ```
 
-当前已完成到第 28 轮：歌手详情可以看专辑并打开 `#/album`。下一轮是歌手详情 tab 或静音。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。
+当前已完成到第 29 轮：歌手详情可以看介绍。下一轮是静音或播放列表抽屉。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。

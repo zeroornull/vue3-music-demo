@@ -338,6 +338,15 @@
 - **Store**：`loadAlbums` / `loadMoreAlbums` 用独立 `albumSerial`。点进专辑 tab 才请求。`resetDetail()` 和换歌手会清掉专辑。三个 tabpanel 保持挂载，用 `hidden` 切换。
 - **本轮不做**：详情 tab、精选 tab、静音、播放列表抽屉、Header 弹出层。
 
+### D-039：歌手详情本轮只补介绍 tab
+
+- **状态**：已验证
+- **日期**：2026-08-30
+- **决策**：第 29 轮给 `#/artistDetail` 加上原生「详情」tab，放在视频后面。文案走 `GET /artist/desc` 的 `introduction`（`ti` / `txt`）。没有段落时回退 `briefDesc`。正文用文本节点渲染，不使用 HTML。
+- **原因**：legacy 详情 tab 单独请求 `/artist/desc`。`briefDesc` 已经在 `/artist/detail` 里，但介绍段落不在。精选 tab 在 legacy 是空的，本轮仍跳过。
+- **Store**：`loadDesc` 用独立 `descSerial`。点进详情 tab 才请求。`resetDetail()` 和换歌手会清掉介绍。四个 tabpanel 保持挂载，用 `hidden` 切换。
+- **本轮不做**：精选 tab、静音、播放列表抽屉、Header 弹出层。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

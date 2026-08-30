@@ -7,6 +7,7 @@ import {
   ARTIST_MV_PAGE_SIZE,
   ARTIST_SONG_PAGE_SIZE,
   getArtistAlbums,
+  getArtistDesc,
   getArtistDetail,
   getArtistList,
   getArtistMvs,
@@ -205,6 +206,32 @@ describe('Artist API', () => {
       limit: ARTIST_ALBUM_PAGE_SIZE,
       offset: 0,
     })
+  })
+
+  it('unwraps artist desc sections and skips invalid rows', async () => {
+    const request = client({
+      briefDesc: '林间电台的简介',
+      extra: true,
+      introduction: [
+        { extra: true, ti: '经历', txt: '从校园电台出发。' },
+        { ti: '忽略', txt: 12 },
+        { ti: '代表作', txt: '晚风来信' },
+      ],
+    })
+    await expect(getArtistDesc(401, request.client)).resolves.toEqual({
+      briefDesc: '林间电台的简介',
+      introduction: [
+        { text: '从校园电台出发。', title: '经历' },
+        { text: '晚风来信', title: '代表作' },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/artist/desc', { id: 401 })
+  })
+
+  it('rejects a missing introduction array', async () => {
+    await expect(
+      getArtistDesc(401, client({ briefDesc: 'x', introduction: null }).client),
+    ).rejects.toThrow('歌手介绍响应格式不正确')
   })
 
   it('rejects a missing hotAlbums array', async () => {
