@@ -3,6 +3,8 @@ import { computed } from 'vue'
 
 import ArtistAreaBar from '@/components/music/ArtistAreaBar.vue'
 import ArtistHallCard from '@/components/music/ArtistHallCard.vue'
+import ArtistInitialBar from '@/components/music/ArtistInitialBar.vue'
+import ArtistTypeBar from '@/components/music/ArtistTypeBar.vue'
 import { ARTIST_AREAS } from '@/models/artist'
 import type { HallArtist } from '@/models/artist'
 
@@ -11,8 +13,10 @@ const props = withDefaults(
     area: number
     artists: HallArtist[]
     error?: string | null
+    initial: string
     loading?: boolean
     more?: boolean
+    type: number
   }>(),
   {
     error: null,
@@ -25,6 +29,8 @@ defineEmits<{
   'load-more': []
   retry: []
   'select-area': [area: number]
+  'select-initial': [initial: string]
+  'select-type': [type: number]
 }>()
 
 const areaName = computed(
@@ -35,7 +41,21 @@ const areaName = computed(
 <template>
   <section class="artist-hall" aria-labelledby="artist-hall-title">
     <h2 id="artist-hall-title">{{ areaName }}歌手</h2>
-    <ArtistAreaBar :selected="area" @select="$emit('select-area', $event)" />
+    <div class="filter-row">
+      <p class="filter-label">语种</p>
+      <ArtistAreaBar :selected="area" @select="$emit('select-area', $event)" />
+    </div>
+    <div class="filter-row">
+      <p class="filter-label">分类</p>
+      <ArtistTypeBar :selected="type" @select="$emit('select-type', $event)" />
+    </div>
+    <div class="filter-row">
+      <p class="filter-label">筛选</p>
+      <ArtistInitialBar
+        :selected="initial"
+        @select="$emit('select-initial', $event)"
+      />
+    </div>
 
     <div
       v-if="loading && !artists.length"
@@ -46,7 +66,7 @@ const areaName = computed(
       aria-label="正在加载歌手列表"
     >
       <strong>正在加载歌手列表</strong>
-      <p>正在读取 {{ areaName }} 歌手。</p>
+      <p>正在读取当前筛选的歌手。</p>
     </div>
 
     <div
@@ -69,7 +89,7 @@ const areaName = computed(
       data-testid="artist-hall-empty"
     >
       <strong>暂无歌手</strong>
-      <p>当前语种没有返回可打开的歌手。</p>
+      <p>当前筛选没有返回可打开的歌手。</p>
     </div>
 
     <div v-else class="artist-grid">
@@ -118,6 +138,22 @@ const areaName = computed(
 h2 {
   margin: 0;
   font-size: 1.2rem;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 12px;
+  align-items: start;
+  min-width: 0;
+}
+
+.filter-label {
+  margin: 0;
+  padding-top: 8px;
+  color: #6c7890;
+  font-size: 0.82rem;
+  white-space: nowrap;
 }
 
 .artist-grid {
@@ -178,6 +214,10 @@ h2 {
 }
 
 @media (max-width: 560px) {
+  .filter-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .artist-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

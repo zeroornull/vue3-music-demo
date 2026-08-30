@@ -34,3 +34,48 @@ export const ARTIST_AREAS = [
   { area: 16, name: '韩国' },
   { area: 0, name: '其他' },
 ] as const
+
+export const ARTIST_TYPES = [
+  { type: -1, name: '全部' },
+  { type: 1, name: '男歌手' },
+  { type: 2, name: '女歌手' },
+  { type: 3, name: '乐队组合' },
+] as const
+
+const LETTERS = [
+  'a',
+  'b',
+  'c',
+  'd',
+  'e',
+  'f',
+  'g',
+  'h',
+  'i',
+  'j',
+  'k',
+  'l',
+  'm',
+  'n',
+  'o',
+  'p',
+  'q',
+  'r',
+  's',
+  't',
+  'u',
+  'v',
+  'w',
+  'x',
+  'y',
+  'z',
+] as const
+
+export const ARTIST_INITIALS = [
+  { initial: '-1', name: '热门' },
+  ...LETTERS.map((letter) => ({
+    initial: letter,
+    name: letter.toUpperCase(),
+  })),
+  { initial: '0', name: '#' },
+] as const

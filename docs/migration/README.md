@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.23.0`<br>
+> 文档版本：`0.24.0`<br>
 > 版本快照日期：`2026-08-30`<br>
-> 当前阶段：**实施第 19 轮播放器增强已落地（未 commit）；下一轮歌手馆分类/字母筛选**
+> 当前阶段：**实施第 20 轮歌手馆分类/字母已落地（未 commit）；下一轮搜索多类型**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -386,12 +386,21 @@ build: {
 
 - 全局 PlayerBar 原生进度条 + 音量；不迁上一首/下一首、循环或静音；
 - 70 个测试文件、263 个测试通过；typecheck、build（278 modules）、frozen lock、audit 和 `git diff --check` 通过；
-- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 已完成本地 mock API 浏览器 smoke；随后提交为 `b036bf6`；
 - 下一轮建议迁移歌手馆分类/字母筛选。
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 26. 主要官方资料
+## 26. 实施第 20 轮结果
+
+- 歌手馆分类 + 字母筛选；`setType` / `setInitial` 走 `listSerial`；
+- 72 个测试文件、268 个测试通过；typecheck、build（284 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 下一轮建议迁移搜索多类型结果。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 27. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

@@ -2779,4 +2779,79 @@ mock API http://127.0.0.1:47831
 
 ### 21.4 本轮结果
 
-播放器进度和音量已在工作区形成。第 18 轮提交 `38c70cc` 仍是当前 HEAD；第 19 轮尚未 commit / push。下一轮建议迁移歌手馆分类/字母筛选。
+播放器进度和音量已在工作区形成。第 18 轮提交 `38c70cc` 仍是当时 HEAD；第 19 轮随后以 `b036bf6` 提交。下一轮建议迁移歌手馆分类/字母筛选。
+
+## 22. 实施第 20 轮：歌手馆分类/字母筛选（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 22.1 开始边界与范围
+
+第 20 轮开始时第 19 轮已经提交并与 origin 同步：
+
+```text
+HEAD b036bf6
+master...origin/master
+```
+
+工作区从该提交继续。本轮给歌手馆补上分类和字母筛选。不迁电台大厅、搜索多类型、上一首/下一首、歌手详情 tab、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `ARTIST_TYPES` / `ARTIST_INITIALS` 与原生 chip 条；
+- store `setType` / `setInitial` 复用 `listSerial`，切筛选会丢掉进行中的列表请求；
+- Host `reset()` 已把 type/initial 收回默认值。
+
+### 22.2 自动验证
+
+```text
+bun run test
+Test Files  72 passed (72)
+Tests       268 passed (268)
+
+bun run typecheck
+PASS
+
+bun run build
+284 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。审查后字母 chip 改为不收缩，并补了 `setInitial` 过期请求和分类失败路径测试。最终测试数为 268。
+
+### 22.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:47921
+mock API http://127.0.0.1:47931
+```
+
+验证步骤：
+
+1. Host 保存后进入音乐馆歌手页，可见语种/分类/筛选，默认列表「林间电台」「城市电台」；
+2. 点「男歌手」列表换成「北岸男声」，分类按钮为当前项；
+3. 点「A」列表换成「Amber Radio」，字母当前项为 A，分类仍为男歌手；
+4. 「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出（`scrollWidth === clientWidth`）。
+
+截图保存在 `/tmp/vue3-music-round20-desktop.png` 和 `/tmp/vue3-music-round20-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 22.4 本轮结果
+
+歌手馆分类和字母筛选已在工作区形成。第 19 轮提交 `b036bf6` 仍是当前 HEAD；第 20 轮尚未 commit / push。下一轮建议迁移搜索多类型结果。

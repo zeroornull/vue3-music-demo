@@ -1,23 +1,23 @@
 <script setup lang="ts">
-import { ARTIST_AREAS } from '@/models/artist'
+import { ARTIST_TYPES } from '@/models/artist'
 
 defineProps<{
   selected: number
 }>()
 
 defineEmits<{
-  select: [area: number]
+  select: [type: number]
 }>()
 </script>
 
 <template>
-  <div class="area-bar" role="group" aria-label="歌手语种">
+  <div class="type-bar" role="group" aria-label="歌手分类">
     <button
-      v-for="item in ARTIST_AREAS"
-      :key="item.area"
+      v-for="item in ARTIST_TYPES"
+      :key="item.type"
       type="button"
-      :aria-pressed="selected === item.area ? 'true' : 'false'"
-      @click="$emit('select', item.area)"
+      :aria-pressed="selected === item.type ? 'true' : 'false'"
+      @click="$emit('select', item.type)"
     >
       {{ item.name }}
     </button>
@@ -25,7 +25,7 @@ defineEmits<{
 </template>
 
 <style scoped>
-.area-bar {
+.type-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

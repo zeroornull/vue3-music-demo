@@ -18,14 +18,16 @@ vi.mock('@/api/artist', async (importOriginal) => {
 
 const HallViewStub = defineComponent({
   name: 'ArtistHallView',
-  props: ['area', 'artists', 'error', 'loading', 'more'],
-  emits: ['load-more', 'retry', 'select-area'],
+  props: ['area', 'artists', 'error', 'initial', 'loading', 'more', 'type'],
+  emits: ['load-more', 'retry', 'select-area', 'select-initial', 'select-type'],
   template: `
     <section>
       <span data-testid="hall-count">{{ artists.length }}</span>
       <span v-if="error" data-testid="hall-error">{{ error }}</span>
       <button data-testid="page-retry" @click="$emit('retry')">retry</button>
       <button data-testid="page-area" @click="$emit('select-area', 7)">area</button>
+      <button data-testid="page-type" @click="$emit('select-type', 1)">type</button>
+      <button data-testid="page-initial" @click="$emit('select-initial', 'a')">initial</button>
       <button data-testid="page-more" @click="$emit('load-more')">more</button>
     </section>
   `,
@@ -70,6 +72,26 @@ describe('ArtistHallPage', () => {
           },
         ],
       })
+      .mockResolvedValueOnce({
+        more: false,
+        artists: [
+          {
+            id: 404,
+            img1v1Url: 'https://images.example.com/m.jpg',
+            name: '男歌手',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        more: false,
+        artists: [
+          {
+            id: 405,
+            img1v1Url: 'https://images.example.com/a.jpg',
+            name: 'A 组',
+          },
+        ],
+      })
 
     const wrapper = mount(ArtistHallPage, {
       global: { stubs: { ArtistHallView: HallViewStub } },
@@ -90,6 +112,26 @@ describe('ArtistHallPage', () => {
       offset: 0,
       type: -1,
     })
+
+    await wrapper.get('[data-testid="page-type"]').trigger('click')
+    await flushPromises()
+    expect(getArtistList).toHaveBeenLastCalledWith({
+      area: 7,
+      initial: '-1',
+      limit: ARTIST_LIST_PAGE_SIZE,
+      offset: 0,
+      type: 1,
+    })
+
+    await wrapper.get('[data-testid="page-initial"]').trigger('click')
+    await flushPromises()
+    expect(getArtistList).toHaveBeenLastCalledWith({
+      area: 7,
+      initial: 'a',
+      limit: ARTIST_LIST_PAGE_SIZE,
+      offset: 0,
+      type: 1,
+    })
   })
 
   it('keeps setArea and load-more failures inside the page', async () => {
@@ -106,6 +148,7 @@ describe('ArtistHallPage', () => {
       })
       .mockRejectedValueOnce(new Error('more failed'))
       .mockRejectedValueOnce(new Error('area failed'))
+      .mockRejectedValueOnce(new Error('type failed'))
 
     const wrapper = mount(ArtistHallPage, {
       global: { stubs: { ArtistHallView: HallViewStub } },
@@ -121,5 +164,9 @@ describe('ArtistHallPage', () => {
     await flushPromises()
     expect(wrapper.get('[data-testid="hall-error"]').text()).toBe('area failed')
     expect(wrapper.get('[data-testid="hall-count"]').text()).toBe('0')
+
+    await wrapper.get('[data-testid="page-type"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="hall-error"]').text()).toBe('type failed')
   })
 })

@@ -20,6 +20,22 @@ const AreaStub = defineComponent({
     '<button data-testid="area" @click="$emit(\'select\', 7)">area</button>',
 })
 
+const TypeStub = defineComponent({
+  name: 'ArtistTypeBar',
+  props: ['selected'],
+  emits: ['select'],
+  template:
+    '<button data-testid="type" @click="$emit(\'select\', 1)">type</button>',
+})
+
+const InitialStub = defineComponent({
+  name: 'ArtistInitialBar',
+  props: ['selected'],
+  emits: ['select'],
+  template:
+    '<button data-testid="initial" @click="$emit(\'select\', \'a\')">initial</button>',
+})
+
 const CardStub = defineComponent({
   name: 'ArtistHallCard',
   props: ['artist'],
@@ -31,8 +47,10 @@ function mountView(
     area: number
     artists: typeof artist[]
     error: string | null
+    initial: string
     loading: boolean
     more: boolean
+    type: number
   }> = {},
 ) {
   return mount(ArtistHallView, {
@@ -40,14 +58,18 @@ function mountView(
       area: -1,
       artists: [],
       error: null,
+      initial: '-1',
       loading: false,
       more: false,
+      type: -1,
       ...props,
     },
     global: {
       stubs: {
         ArtistAreaBar: AreaStub,
         ArtistHallCard: CardStub,
+        ArtistInitialBar: InitialStub,
+        ArtistTypeBar: TypeStub,
       },
     },
   })
@@ -77,6 +99,10 @@ describe('ArtistHallView', () => {
 
     await data.get('[data-testid="area"]').trigger('click')
     expect(data.emitted('select-area')?.[0]).toEqual([7])
+    await data.get('[data-testid="type"]').trigger('click')
+    expect(data.emitted('select-type')?.[0]).toEqual([1])
+    await data.get('[data-testid="initial"]').trigger('click')
+    expect(data.emitted('select-initial')?.[0]).toEqual(['a'])
 
     const moreFailed = mountView({
       artists: [artist],

@@ -1,23 +1,23 @@
 <script setup lang="ts">
-import { ARTIST_AREAS } from '@/models/artist'
+import { ARTIST_INITIALS } from '@/models/artist'
 
 defineProps<{
-  selected: number
+  selected: string
 }>()
 
 defineEmits<{
-  select: [area: number]
+  select: [initial: string]
 }>()
 </script>
 
 <template>
-  <div class="area-bar" role="group" aria-label="歌手语种">
+  <div class="initial-bar" role="group" aria-label="歌手字母">
     <button
-      v-for="item in ARTIST_AREAS"
-      :key="item.area"
+      v-for="item in ARTIST_INITIALS"
+      :key="item.initial"
       type="button"
-      :aria-pressed="selected === item.area ? 'true' : 'false'"
-      @click="$emit('select', item.area)"
+      :aria-pressed="selected === item.initial ? 'true' : 'false'"
+      @click="$emit('select', item.initial)"
     >
       {{ item.name }}
     </button>
@@ -25,7 +25,7 @@ defineEmits<{
 </template>
 
 <style scoped>
-.area-bar {
+.initial-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -35,7 +35,7 @@ defineEmits<{
 button {
   flex: 0 0 auto;
   min-height: 34px;
-  padding: 0 12px;
+  padding: 0 10px;
   border: 1px solid #c5cfdd;
   border-radius: 999px;
   background: white;

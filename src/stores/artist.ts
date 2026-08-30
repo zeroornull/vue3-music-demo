@@ -157,16 +157,36 @@ export const useArtistStore = defineStore('artist', () => {
     return loadArtists({ append: true })
   }
 
-  async function setArea(next: number) {
-    if (next === area.value && artists.value.length) {
-      return
-    }
+  async function replaceHallFilter() {
     listSerial++
-    area.value = next
     artists.value = []
     artistsError.value = null
     artistsMore.value = false
     return loadArtists({ force: true })
+  }
+
+  async function setArea(next: number) {
+    if (next === area.value && artists.value.length) {
+      return
+    }
+    area.value = next
+    return replaceHallFilter()
+  }
+
+  async function setType(next: number) {
+    if (next === type.value && artists.value.length) {
+      return
+    }
+    type.value = next
+    return replaceHallFilter()
+  }
+
+  async function setInitial(next: string) {
+    if (next === initial.value && artists.value.length) {
+      return
+    }
+    initial.value = next
+    return replaceHallFilter()
   }
 
   return {
@@ -175,6 +195,8 @@ export const useArtistStore = defineStore('artist', () => {
     loadArtists,
     loadMoreArtists,
     setArea,
+    setType,
+    setInitial,
     resetDetail,
     reset,
     artist,

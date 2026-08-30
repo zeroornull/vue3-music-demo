@@ -182,6 +182,105 @@ describe('artist store', () => {
     expect(getArtistList).toHaveBeenCalledTimes(2)
   })
 
+  it('replaces the hall list when the type or initial changes', async () => {
+    const hallArtist = {
+      id: 401,
+      img1v1Url: 'https://images.example.com/a.jpg',
+      name: '林间电台',
+    }
+    const typed = { ...hallArtist, id: 404, name: '男歌手' }
+    const lettered = { ...hallArtist, id: 405, name: 'A 组' }
+    vi.mocked(getArtistList)
+      .mockResolvedValueOnce({ more: false, artists: [hallArtist] })
+      .mockResolvedValueOnce({ more: false, artists: [typed] })
+      .mockResolvedValueOnce({ more: false, artists: [lettered] })
+    const store = useArtistStore()
+    await store.loadArtists()
+
+    await store.setType(1)
+    expect(store.type).toBe(1)
+    expect(store.artists).toEqual([typed])
+    expect(getArtistList).toHaveBeenLastCalledWith({
+      area: -1,
+      initial: '-1',
+      limit: ARTIST_LIST_PAGE_SIZE,
+      offset: 0,
+      type: 1,
+    })
+
+    await store.setInitial('a')
+    expect(store.initial).toBe('a')
+    expect(store.artists).toEqual([lettered])
+    expect(getArtistList).toHaveBeenLastCalledWith({
+      area: -1,
+      initial: 'a',
+      limit: ARTIST_LIST_PAGE_SIZE,
+      offset: 0,
+      type: 1,
+    })
+
+    const calls = vi.mocked(getArtistList).mock.calls.length
+    await store.setType(1)
+    await store.setInitial('a')
+    expect(getArtistList).toHaveBeenCalledTimes(calls)
+  })
+
+  it('drops an in-flight hall page when the type changes', async () => {
+    const pendingList = deferred<{
+      more: boolean
+      artists: { id: number; img1v1Url: string; name: string }[]
+    }>()
+    const next = {
+      id: 406,
+      img1v1Url: 'https://images.example.com/t.jpg',
+      name: '女歌手',
+    }
+    vi.mocked(getArtistList)
+      .mockReturnValueOnce(pendingList.promise)
+      .mockResolvedValueOnce({ more: false, artists: [next] })
+    const store = useArtistStore()
+    const pending = store.loadArtists()
+    const switched = store.setType(2)
+    pendingList.resolve({
+      more: true,
+      artists: [{ id: 401, img1v1Url: '', name: '林间电台' }],
+    })
+    await pending
+    await switched
+
+    expect(store.type).toBe(2)
+    expect(store.artists).toEqual([next])
+    expect(store.artistsLoading).toBe(false)
+  })
+
+  it('drops an in-flight hall page when the initial changes', async () => {
+    const pendingList = deferred<{
+      more: boolean
+      artists: { id: number; img1v1Url: string; name: string }[]
+    }>()
+    const next = {
+      id: 407,
+      img1v1Url: 'https://images.example.com/a.jpg',
+      name: 'A 组',
+    }
+    vi.mocked(getArtistList)
+      .mockReturnValueOnce(pendingList.promise)
+      .mockResolvedValueOnce({ more: false, artists: [next] })
+    const store = useArtistStore()
+    const pending = store.loadArtists()
+    const switched = store.setInitial('a')
+    pendingList.resolve({
+      more: true,
+      artists: [{ id: 401, img1v1Url: '', name: '林间电台' }],
+    })
+    await pending
+    await switched
+
+    expect(store.initial).toBe('a')
+    expect(store.artists).toEqual([next])
+    expect(store.artistsLoading).toBe(false)
+  })
+
   it('rejects an invalid artist id without wiping the hall list', async () => {
     const hallArtist = {
       id: 401,
