@@ -94,7 +94,7 @@ onMounted(() => {
       <div>
         <p class="eyebrow">Discover</p>
         <h1>推荐</h1>
-        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手馆、电台、搜索和应用壳已接入。</p>
+        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手馆、电台、搜索、应用壳和播放器进度音量已接入。</p>
       </div>
     </header>
 
@@ -136,7 +136,7 @@ onMounted(() => {
         <h2 id="next-slices-title">推荐页仍在渐进迁移</h2>
       </div>
       <ul>
-        <li>播放器增强</li>
+        <li>歌手馆分类 / 字母筛选</li>
       </ul>
     </section>
   </main>

@@ -283,7 +283,9 @@ describe('App host gate', () => {
     const pause = vi.fn()
     const adapter = {
       src: 'old',
-      volume: 1,
+      volume: 0.4,
+      currentTime: 12,
+      duration: 180,
       paused: false,
       play: vi.fn(async () => {}),
       pause,
@@ -294,6 +296,9 @@ describe('App host gate', () => {
     player.queue = [player.current]
     player.hasPlayableSource = true
     player.isPlaying = true
+    player.currentTime = 12
+    player.duration = 180
+    player.volume = 0.4
     mountApp()
 
     useHostStore().clearHost()
@@ -304,6 +309,10 @@ describe('App host gate', () => {
     expect(player.current).toBeNull()
     expect(player.queue).toHaveLength(0)
     expect(player.isPlaying).toBe(false)
+    expect(player.currentTime).toBe(0)
+    expect(player.duration).toBe(0)
+    expect(player.volume).toBe(1)
+    expect(adapter.volume).toBe(1)
   })
 
   it('invalidates a pending play when the host gate closes', async () => {
@@ -316,6 +325,8 @@ describe('App host gate', () => {
     const adapter = {
       src: '',
       volume: 1,
+      currentTime: 0,
+      duration: 0,
       paused: true,
       play,
       pause: vi.fn(),

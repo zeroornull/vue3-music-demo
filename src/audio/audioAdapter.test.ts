@@ -6,6 +6,8 @@ function fakeAudio() {
   const audio = {
     src: "",
     volume: 1,
+    currentTime: 0,
+    duration: Number.NaN,
     paused: true,
     play: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     pause: vi.fn(),
@@ -56,5 +58,23 @@ describe("audio adapter", () => {
     expect(ended).toHaveBeenCalledOnce();
     expect(error).toHaveBeenCalledOnce();
     expect(fixture.audio.removeEventListener).toHaveBeenCalledTimes(2);
+  });
+
+  it("delegates currentTime, duration, timeupdate and durationchange", () => {
+    const fixture = fakeAudio();
+    fixture.audio.duration = 200;
+    fixture.audio.currentTime = 10;
+    const adapter = createAudioAdapter(fixture.audio);
+    const time = vi.fn();
+    const duration = vi.fn();
+    adapter.on("timeupdate", time);
+    adapter.on("durationchange", duration);
+    adapter.currentTime = 40;
+    expect(adapter.duration).toBe(200);
+    expect(fixture.audio.currentTime).toBe(40);
+    fixture.emit("timeupdate");
+    fixture.emit("durationchange");
+    expect(time).toHaveBeenCalledOnce();
+    expect(duration).toHaveBeenCalledOnce();
   });
 });

@@ -1,5 +1,18 @@
 # 迁移文档变更记录
 
+## 0.23.0 - 2026-08-30
+
+### 实施第 19 轮：播放器增强
+
+- 全局 PlayerBar 增加原生进度条和音量；时钟 `mm:ss`；非有限 duration 视为 0 并禁用进度；
+- AudioAdapter 暴露 `currentTime` / `duration` 与 `timeupdate` / `durationchange`；
+- `pause()` 与 Host `clear()` 兼容；音量不写 localStorage；不迁上一首/下一首、循环或静音；
+- 审查后暂停触发的 `play()` 拒绝不再写成错误，进度补 `aria-valuetext`，歌手名截断；
+- 70 个测试文件、263 个测试通过；typecheck、build（278 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:47821` + mock `127.0.0.1:47831`，覆盖 Host→播放→进度/音量、暂停恢复、切音乐馆、重新配置、桌面/移动布局；
+- 第 18 轮提交为 `38c70cc`，第 19 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移歌手馆分类/字母筛选。
+
 ## 0.22.0 - 2026-08-30
 
 ### 实施第 18 轮：应用壳

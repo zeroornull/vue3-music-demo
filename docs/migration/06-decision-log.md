@@ -243,6 +243,17 @@
 - **当前项**：沿用已有 `route.meta.menu`。搜索从 `discover` 改为 `search`，否则顶栏会把搜索标成推荐。
 - **页面**：Discover、音乐馆、搜索去掉与壳重复的全局跳转。歌单/歌手/MV/电台详情仍保留页内返回链接。
 
+### D-029：播放器用原生 range 做进度和音量
+
+- **状态**：已验证
+- **日期**：2026-08-30
+- **决策**：第 19 轮同时做进度条和音量，都用原生 `<input type="range">`，不引入 Element Plus。音量 UI 为 0–100，store/adapter 为 0–1。不写 localStorage，`clear()` 把音量收回 1。
+- **原因**：legacy 进度/音量都依赖 `el-slider`。原生 range 足够可操作，也避免在 P6 之前再加一套组件库。上一首/下一首、循环/随机和静音仍后置。
+- **暂停世代号**：`pause()` 只在 `loading`（还在拉 URL）时抬 `requestSerial`，这样才能丢掉进行中的选歌，又让暂停后再播放时 `ended` / `timeupdate` 监听仍然有效。对已经发出的 `audio.play()`，另用 `pauseGeneration` 避免暂停后旧 promise 把 `isPlaying` 拉回 true，或把 `AbortError` 写成播放失败。`toggle()` 再点播放时也会抬 `pauseGeneration`，作废仍在挂起的 `play()`。
+- **进度回写**：Vue 把 `currentTime` 写回 range 时可能再次触发 `input`。`seek()` 对 0.05 秒以内的位移不改 `audio.currentTime`，避免把播放头钉死。
+- **自动播放**：URL 就绪后结束 loading。无手势时栏上显示「播放」，点击用当前手势调用 `audio.play()`。
+- **Host**：重新配置仍走 `player.clear()`，进度归零、音量收回 1。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

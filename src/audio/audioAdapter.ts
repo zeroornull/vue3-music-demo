@@ -1,15 +1,21 @@
+export type AudioAdapterEvent = 'ended' | 'error' | 'timeupdate' | 'durationchange'
+
 export interface AudioAdapter {
   src: string
   volume: number
+  currentTime: number
+  readonly duration: number
   readonly paused: boolean
   play(): Promise<void>
   pause(): void
-  on(event: 'ended' | 'error', listener: () => void): () => void
+  on(event: AudioAdapterEvent, listener: () => void): () => void
 }
 
 export interface AudioElementLike {
   src: string
   volume: number
+  currentTime: number
+  duration: number
   paused: boolean
   play(): Promise<void>
   pause(): void
@@ -31,6 +37,15 @@ export function createAudioAdapter(element?: AudioElementLike): AudioAdapter {
     },
     set volume(value: number) {
       audio.volume = value
+    },
+    get currentTime() {
+      return audio.currentTime
+    },
+    set currentTime(value: number) {
+      audio.currentTime = value
+    },
+    get duration() {
+      return audio.duration
     },
     get paused() {
       return audio.paused

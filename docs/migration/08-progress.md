@@ -1,19 +1,19 @@
 # 08. 当前开发进度
 
 > 更新日期：`2026-08-30`<br>
-> 文档版本：`0.22.0`<br>
-> 对照提交：`8298562`（实施第 17 轮已在当前 HEAD）<br>
-> 工作区：实施第 18 轮代码已落地，**尚未 commit / push**
+> 文档版本：`0.23.0`<br>
+> 对照提交：`38c70cc`（实施第 18 轮已在当前 HEAD）<br>
+> 工作区：实施第 19 轮代码已落地，**尚未 commit / push**
 
 本文是后续轮次的入口。历史盘点见 [01-current-state-audit.md](./01-current-state-audit.md)，执行约束见 [03-migration-roadmap.md](./03-migration-roadmap.md)，逐轮证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
 ## 1. 一句话状态
 
-根工程已经是可运行的 Bun + Vue 3.5 + TypeScript 6 + Vite 8 应用。Discover、最小播放器、歌单详情、MV、音乐馆、歌手、推荐电台、搜索和顶部应用壳已经形成闭环。下一轮应迁移 **播放器增强**；歌手馆分类/字母筛选、电台大厅和搜索多类型结果后置。
+根工程已经是可运行的 Bun + Vue 3.5 + TypeScript 6 + Vite 8 应用。Discover、播放器（含进度和音量）、歌单详情、MV、音乐馆、歌手、推荐电台、搜索和顶部应用壳已经形成闭环。下一轮应迁移 **歌手馆分类/字母筛选**；电台大厅和搜索多类型结果后置。
 
 ## 2. 路线图对照
 
-原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-028](./06-decision-log.md)。
+原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-029](./06-decision-log.md)。
 
 | 路线图阶段 | 目标 | 状态 | 对应轮次 | 缺口 |
 | --- | --- | --- | --- | --- |
@@ -21,8 +21,8 @@
 | P1 legacy 归档 | 旧工程移入 `legacy/` | **完成** | 实施第 1 轮 | 无 |
 | P2 现代空壳 | Bun + Vue + TS + Vite | **完成** | 实施第 2 轮 | TypeScript 固定 6.0.3，待 `vue-tsc` 支持 TS 7 |
 | P3 基础设施 | Router、Pinia、API、主题、自动组件 | **部分完成** | 实施第 3、18 轮 | 最小顶栏已接入；无 Element Plus、无 Sass/Tailwind、无自动组件 |
-| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–18 轮 | Discover、播放器、歌单、MV、排行榜、分类、精选、歌手、电台、搜索和应用壳完成；播放器增强、电台大厅、歌手馆分类/字母筛选未做 |
-| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–18 轮内嵌 | 尚无独立治理轮 |
+| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–19 轮 | Discover、播放器（含进度音量）、歌单、MV、排行榜、分类、精选、歌手、电台、搜索和应用壳完成；电台大厅、歌手馆分类/字母筛选未做 |
+| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–19 轮内嵌 | 尚无独立治理轮 |
 | P6 Tailwind 4 | 新样式入口和视觉收敛 | **未开始** | — | 当前页面继续使用 scoped CSS |
 | P7 发布闭环 | `dist/`、CI、学习总结 | **未开始** | — | 无 CI；GitHub Pages 未切到新产物 |
 
@@ -48,12 +48,13 @@
 | 实施第 15 轮 | 2026-08-29 | 歌手馆列表 `/artist/list` + 语种筛选 | 58 文件 / 204 测试 | `11535de` |
 | 实施第 16 轮 | 2026-08-29 | 精选推荐电台 + `#/dj?id=` 节目详情 | 64 文件 / 223 测试 | `c3061db` |
 | 实施第 17 轮 | 2026-08-29 | `#/search` 热搜 + suggest 单曲播放 | 68 文件 / 240 测试 | `8298562` |
-| 实施第 18 轮 | 2026-08-30 | 顶部应用壳：推荐 / 音乐馆 / 搜索 | 69 文件 / 244 测试 | **工作区未提交** |
+| 实施第 18 轮 | 2026-08-30 | 顶部应用壳：推荐 / 音乐馆 / 搜索 | 69 文件 / 244 测试 | `38c70cc` |
+| 实施第 19 轮 | 2026-08-30 | PlayerBar 进度条 + 音量 | 70 文件 / 263 测试 | **工作区未提交** |
 
-第 18 轮文档对齐时的当前门禁输出：
+第 19 轮文档对齐时的当前门禁输出：
 
 ```text
-bun run test       69 files / 244 tests passed
+bun run test       70 files / 263 tests passed
 bun run typecheck  PASS
 bun run build      278 modules transformed, dist/ 输出
 bun install --frozen-lockfile --dry-run  PASS
@@ -61,60 +62,62 @@ bun audit          No vulnerabilities found (checked 185 packages)
 git diff --check   PASS
 ```
 
-第 18 轮已完成本地 mock API 浏览器 smoke，但未验证外部真实网易云 API。未 commit、未 push。
+第 19 轮已完成本地 mock API 浏览器 smoke，但未验证外部真实网易云 API。未 commit、未 push。
 
-应用壳摘要：legacy `Root.vue` 是左侧菜单 + Header + Footer。本轮只做顶部栏，把推荐、音乐馆、搜索收成稳定导航，用 `route.meta.menu` 标当前项。Host 重新配置从壳发出。不迁视频/电台/我的音乐菜单、Header 搜索弹出层、Element Plus 或侧栏宽度。Discover/音乐馆/搜索页去掉重复的全局跳转。
+播放器增强摘要：原生 range 做进度和音量。进度 `aria-label="播放进度"`，并带 `aria-valuetext` 时钟；音量 `aria-label="音量"`（0–100 UI / 0–1 adapter）。`pause()` 只在拉 URL 时抬世代号；暂停触发的 `play()` 拒绝不会写成错误。Host `clear()` 清进度并把音量收回 1。不迁上一首/下一首、循环、静音或音量持久化。
 
-本地 smoke 使用 Vite `127.0.0.1:46779` 和 mock API `127.0.0.1:47205`：Host → Discover 顶栏可见「推荐 / 音乐馆 / 搜索」且「推荐」为当前项；切到音乐馆和搜索后顶栏仍在；「重新配置 API」回到 Host。桌面 `1440×900` 与移动 `390×844` 无横向溢出。控制台无应用错误。
+本地 smoke 使用 Vite `127.0.0.1:47821` 和 mock API `127.0.0.1:47831`：Host → Discover 播放「晚风来信」→ 进度/音量可见可操作 → 暂停/恢复 → 切音乐馆 PlayerBar 仍在 → 重新配置后播放器消失。桌面 `1440×900` 与移动 `390×844` 无横向溢出。控制台无应用错误。
 
 ## 4. 当前根工程能力
 
 ### 4.1 路由
 
-路由表与第 17 轮相同。`search` 的 `meta.menu` 改为 `search`，以便顶栏高亮。
+路由表与第 18 轮相同。
 
 ### 4.2 API、store、可见 UI
 
-新增：
+新增 / 扩展：
 
 ```text
-AppShell                 推荐 / 音乐馆 / 搜索
-                         aria-current 来自 route.meta.menu
-                         重新配置 API → hostStore.clearHost
+AudioAdapter             currentTime / duration
+                         timeupdate / durationchange
+Player store             currentTime / duration / volume
+                         seek() / setVolume()
+PlayerBar                原生进度条 + 音量 + mm:ss 时钟
 ```
 
 ### 4.3 已安装直接依赖
 
-第 18 轮未新增依赖。
+第 19 轮未新增依赖。
 
 ## 5. 与 legacy 的功能差距
 
 | 产品面 | legacy | 新工程 | 下一动作 |
 | --- | --- | --- | --- |
-| 应用壳 | 侧栏 + Header + Footer + 搜索弹出层 | 顶栏三入口 + 重新配置 | 后续可补侧栏/主题 |
-| 播放器增强 | 进度/音量/上一首下一首 | 最小 PlayerBar | **下一轮优先** |
+| 播放器增强 | 进度/音量/上一首下一首/循环 | 进度 + 音量 | 后续可补上一首/下一首 |
+| 歌手馆分类/字母 | 分类 + 字母筛选 | 仅语种 | **下一轮优先** |
 | 电台大厅 | 空页 | 无 | 后续增强 |
 | 搜索多类型 | suggest 歌单/歌手/专辑 | 仅单曲 | 后续增强 |
 
 ## 6. 质量与文档缺口
 
-已通过第 18 轮当前门禁：69 个测试文件 / 244 个测试、两套 typecheck、278 modules build、frozen lock、audit 和 `git diff --check`。
+已通过第 19 轮当前门禁：70 个测试文件 / 263 个测试、两套 typecheck、278 modules build、frozen lock、audit 和 `git diff --check`。
 
-仍存在、但不阻塞第 18 轮的缺口：数字工具无专用单测、Host 文案仍写 round 3、无 lint/E2E/CI、播放器无进度音量。专辑、歌手 MV tab、歌手馆分类/字母筛选、电台大厅和搜索多类型结果未迁。
+仍存在、但不阻塞第 19 轮的缺口：Host 文案仍写 round 3、无 lint/E2E/CI、播放器无上一首/下一首/循环/静音。专辑、歌手 MV tab、歌手馆分类/字母筛选、电台大厅和搜索多类型结果未迁。
 
 ## 7. 建议的下一轮
 
-**实施第 19 轮：播放器增强。**
+**实施第 20 轮：歌手馆分类/字母筛选。**
 
-输入已经具备：全局 PlayerBar、`play` / `pause`、应用壳。
+输入已经具备：歌手馆列表、语种 `area`、已有歌手详情。
 
 本轮应做：
 
-1. 进度条和/或音量中至少一组可见可操作控件；
-2. 与现有 `pause()` 世代号和 Host `clear()` 兼容；
+1. 分类和/或字母筛选中至少一组可见可操作控件；
+2. 与现有 `listSerial` 和 Host `reset()` 兼容；
 3. 桌面和移动端不溢出。
 
-本轮不应做：电台大厅、歌手馆分类/字母、搜索多类型、Tailwind 4、CI、Element Plus。
+本轮不应做：电台大厅、搜索多类型、上一首/下一首、Tailwind 4、CI、Element Plus。
 
 ## 8. 文档怎么读
 
@@ -130,4 +133,4 @@ AppShell                 推荐 / 音乐馆 / 搜索
 | [CHANGELOG](./CHANGELOG.md) | 追加日志 | 文档版本 |
 | **本文** | **活文档** | **先读这个，再开工** |
 
-> 状态更新（2026-08-30）：第 17 轮已在当前 HEAD `8298562` 完成。第 18 轮已在工作区完成顶部应用壳；播放器增强仍未迁。下一轮优先迁移播放器增强。
+> 状态更新（2026-08-30）：第 18 轮已在当前 HEAD `38c70cc` 完成。第 19 轮已在工作区完成播放器进度和音量；歌手馆分类/字母筛选仍未迁。下一轮优先迁移歌手馆分类/字母筛选。

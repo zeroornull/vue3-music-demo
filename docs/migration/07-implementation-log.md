@@ -2701,4 +2701,82 @@ mock API http://127.0.0.1:47205
 
 ### 20.4 本轮结果
 
-顶部应用壳已在工作区形成。第 17 轮提交 `8298562` 仍是当前 HEAD；第 18 轮尚未 commit / push。下一轮建议迁移播放器增强。
+顶部应用壳已在工作区形成。第 17 轮提交 `8298562` 仍是当时 HEAD；第 18 轮随后以 `38c70cc` 提交。下一轮建议迁移播放器增强。
+
+## 21. 实施第 19 轮：播放器增强（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 21.1 开始边界与范围
+
+第 19 轮开始时第 18 轮已经提交并与 origin 同步：
+
+```text
+HEAD 38c70cc
+master...origin/master
+```
+
+工作区从该提交继续。本轮给全局 PlayerBar 加上可见可操作的进度条和音量。不迁上一首/下一首、循环/随机、静音、音量 localStorage、电台大厅、歌手馆分类/字母、搜索多类型、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- AudioAdapter 增加 `currentTime` / `duration` 以及 `timeupdate` / `durationchange`；
+- Player store 增加进度、音量、`seek()` / `setVolume()`；`pause()` 只在 loading 时抬世代号，另用 pauseGeneration 丢掉暂停后才完成的 `audio.play()`；
+- PlayerBar 使用原生 `input[type=range]`：`aria-label="播放进度"` 与 `aria-label="音量"`（UI 0–100，adapter 0–1）；
+- `clear()` 清进度并把音量收回 1；Host 重新配置仍走 `player.clear()`。
+
+### 21.2 自动验证
+
+```text
+bun run test
+Test Files  70 passed (70)
+Tests       263 passed (263)
+
+bun run typecheck
+PASS
+
+bun run build
+278 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。实现中途发现两处进度相关问题：range 的 `:value` 回写会反复 `seek` 卡住播放头，已在 `seek()` 对 0.05s 内的位移短路；`audio.play()` 在无手势时可能挂起，改为 URL 就绪后结束 loading，让栏上的「播放」成为真正的用户手势。
+
+审查后：`play()` / `toggle()` 的 catch 也认 `pauseGeneration`，避免暂停触发的 `AbortError` 写成播放失败；`toggle()` 会作废仍在挂起的 `play()`；进度增加 `aria-valuetext`；歌手名同样省略号截断。最终测试数为 263。
+
+### 21.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:47821
+mock API http://127.0.0.1:47831
+```
+
+验证步骤：
+
+1. Host 保存后 Discover 播放「晚风来信」，PlayerBar 出现进度（`00:00 / 00:30`）和音量；
+2. 音量从 100 拖到 40；进度控件可操作；暂停后按钮变为「播放」，再点可恢复；
+3. 切到音乐馆 `#/music/picked` 后 PlayerBar 仍在，音量保持 40；
+4. 「重新配置 API」后播放器消失，回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出（`scrollWidth === clientWidth`）。
+
+截图保存在 `/tmp/vue3-music-round19-desktop.png` 和 `/tmp/vue3-music-round19-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。本轮 mock 使用 30 秒静音 WAV；CDP 环境下时钟推进不稳定，进度同步由单测覆盖。未验证外部真实网易云 API 或真实网络媒体。
+
+### 21.4 本轮结果
+
+播放器进度和音量已在工作区形成。第 18 轮提交 `38c70cc` 仍是当前 HEAD；第 19 轮尚未 commit / push。下一轮建议迁移歌手馆分类/字母筛选。

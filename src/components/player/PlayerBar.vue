@@ -1,9 +1,19 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '@/stores/player'
+import { formatClock } from '@/utils/number'
+
 const player = usePlayerStore()
-const { current, isPlaying, loading, error, hasPlayableSource } =
-  storeToRefs(player)
+const {
+  current,
+  isPlaying,
+  loading,
+  error,
+  hasPlayableSource,
+  currentTime,
+  duration,
+  volume,
+} = storeToRefs(player)
 
 async function togglePlayback() {
   try {
@@ -11,6 +21,16 @@ async function togglePlayback() {
   } catch {
     // The store records the actionable error for the bar; keep the DOM handler settled.
   }
+}
+
+function onSeekInput(event: Event) {
+  const next = Number((event.target as HTMLInputElement).value)
+  if (!Number.isFinite(next) || Math.abs(next - currentTime.value) < 0.05) return
+  player.seek(next)
+}
+
+function onVolumeInput(event: Event) {
+  player.setVolume(Number((event.target as HTMLInputElement).value) / 100)
 }
 </script>
 <template>
@@ -27,15 +47,43 @@ async function togglePlayback() {
       }}</span
       ><span v-if="error" role="alert">{{ error }}</span>
     </div>
-    <button
-      v-if="current"
-      type="button"
-      :disabled="loading || !hasPlayableSource"
-      :aria-label="isPlaying ? '暂停' : '播放'"
-      @click="togglePlayback"
-    >
-      {{ isPlaying ? '暂停' : '播放' }}
-    </button>
+    <div v-if="current" class="player-transport">
+      <button
+        type="button"
+        :disabled="!hasPlayableSource"
+        :aria-label="isPlaying ? '暂停' : '播放'"
+        @click="togglePlayback"
+      >
+        {{ isPlaying ? '暂停' : '播放' }}
+      </button>
+      <div class="player-progress">
+        <span data-testid="player-clock"
+          >{{ formatClock(currentTime) }} / {{ formatClock(duration) }}</span
+        >
+        <input
+          type="range"
+          min="0"
+          :max="duration > 0 ? duration : 1"
+          step="any"
+          :value="currentTime"
+          :disabled="loading || !hasPlayableSource || duration <= 0"
+          aria-label="播放进度"
+          :aria-valuetext="`${formatClock(currentTime)} / ${formatClock(duration)}`"
+          @input="onSeekInput"
+        />
+      </div>
+    </div>
+    <div v-if="current" class="player-volume">
+      <input
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        :value="Math.round(volume * 100)"
+        aria-label="音量"
+        @input="onVolumeInput"
+      />
+    </div>
   </aside>
 </template>
 <style scoped>
@@ -45,20 +93,26 @@ async function togglePlayback() {
   bottom: 0;
   left: 0;
   z-index: 10;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) minmax(72px, 140px);
   align-items: center;
-  justify-content: center;
-  gap: 20px;
+  gap: 10px 16px;
+  min-width: 0;
   min-height: 64px;
   padding: 10px 24px;
   background: #172033;
   color: #fff;
   box-shadow: 0 -5px 20px rgb(0 0 0 / 15%);
 }
+.player-copy,
+.player-transport,
+.player-progress,
+.player-volume {
+  min-width: 0;
+}
 .player-copy {
   display: grid;
   gap: 3px;
-  min-width: 0;
 }
 .player-copy strong {
   overflow: hidden;
@@ -66,12 +120,36 @@ async function togglePlayback() {
   white-space: nowrap;
 }
 .player-copy .artists {
+  overflow: hidden;
   color: #c4d1df;
   font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .player-copy span {
   color: #ffbaba;
   font-size: 0.8rem;
+}
+.player-transport {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.player-progress {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.player-progress span {
+  color: #c4d1df;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.player-volume {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
 .player-bar button {
   padding: 7px 16px;
@@ -80,5 +158,19 @@ async function togglePlayback() {
   background: #32b58e;
   color: white;
   cursor: pointer;
+}
+.player-bar input[type='range'] {
+  width: 100%;
+  min-width: 0;
+  accent-color: #32b58e;
+}
+@media (max-width: 720px) {
+  .player-bar {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 10px 16px;
+  }
+  .player-volume {
+    max-width: 160px;
+  }
 }
 </style>
