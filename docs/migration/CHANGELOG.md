@@ -1,5 +1,18 @@
 # 迁移文档变更记录
 
+## 0.32.0 - 2026-08-30
+
+### 实施第 28 轮：歌手详情专辑 tab
+
+- 歌手详情增加原生「专辑」tab（歌曲 / 专辑 / 视频）；`GET /artist/album` 懒加载，卡片打开已有 `#/album?id=`；
+- 独立 `albumSerial`、加载更多；换歌手和 Host `reset()` 会清掉专辑；
+- 不迁详情 tab、精选 tab、评论/收藏；
+- 88 个测试文件、354 个测试通过；typecheck、build（327 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 审查后锁定过期专辑请求丢弃、picUrl 优先于 blurPicUrl，以及三个 tabpanel 保持挂载；
+- smoke 使用 Vite `127.0.0.1:48721` + mock `127.0.0.1:48731`，覆盖歌手详情→专辑 tab→夜航详情、重新配置、桌面/移动布局；
+- 第 27 轮提交为 `26c47df`，第 28 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移歌手详情 tab 或静音。
+
 ## 0.31.0 - 2026-08-30
 
 ### 实施第 27 轮：`#/video` 大厅 + 视频详情

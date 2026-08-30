@@ -329,6 +329,15 @@
 - **Store**：大厅状态进现有 video store，独立世代号；播放用独立 videoDetail store。Host `reset()` 两组都清。
 - **本轮不做**：全部分类弹出层、分页/加载更多、静音、播放列表抽屉、Header 弹出层。
 
+### D-038：歌手详情本轮只补专辑 tab
+
+- **状态**：已验证
+- **日期**：2026-08-30
+- **决策**：第 28 轮给 `#/artistDetail` 加上原生「专辑」tab，放在歌曲和视频之间。列表走 `GET /artist/album`，封面优先 `picUrl` 再 `blurPicUrl`，发行日期用已有 `formatPublishDate`。卡片打开已有 `#/album?id=`。不迁详情 tab、精选 tab。
+- **原因**：歌手详情已经有 `albumSize`，专辑详情页已存在，能立刻闭环。分页大小 12，和 MV tab 一致，避免一次铺 40 张。
+- **Store**：`loadAlbums` / `loadMoreAlbums` 用独立 `albumSerial`。点进专辑 tab 才请求。`resetDetail()` 和换歌手会清掉专辑。三个 tabpanel 保持挂载，用 `hidden` 切换。
+- **本轮不做**：详情 tab、精选 tab、静音、播放列表抽屉、Header 弹出层。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

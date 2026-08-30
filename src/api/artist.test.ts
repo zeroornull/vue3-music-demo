@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
 import {
+  ARTIST_ALBUM_PAGE_SIZE,
   ARTIST_LIST_PAGE_SIZE,
   ARTIST_MV_PAGE_SIZE,
   ARTIST_SONG_PAGE_SIZE,
+  getArtistAlbums,
   getArtistDetail,
   getArtistList,
   getArtistMvs,
@@ -154,6 +156,61 @@ describe('Artist API', () => {
       limit: ARTIST_MV_PAGE_SIZE,
       offset: 0,
     })
+  })
+
+  it('unwraps artist albums and falls back to blurPicUrl', async () => {
+    const request = client({
+      hotAlbums: [
+        {
+          blurPicUrl: 'https://images.example.com/blur-ignored.jpg',
+          extra: true,
+          id: 501,
+          name: '夜航',
+          picUrl: 'https://images.example.com/album.jpg',
+          publishTime: 1_609_459_200_000,
+          size: 8,
+        },
+        {
+          blurPicUrl: 'https://images.example.com/blur.jpg',
+          id: 502,
+          name: '备选封面',
+          publishTime: 0,
+        },
+      ],
+      more: true,
+    })
+    await expect(
+      getArtistAlbums({ id: 401, offset: 0 }, request.client),
+    ).resolves.toEqual({
+      albums: [
+        {
+          id: 501,
+          name: '夜航',
+          picUrl: 'https://images.example.com/album.jpg',
+          publishTime: 1_609_459_200_000,
+          size: 8,
+        },
+        {
+          id: 502,
+          name: '备选封面',
+          picUrl: 'https://images.example.com/blur.jpg',
+          publishTime: 0,
+          size: 0,
+        },
+      ],
+      more: true,
+    })
+    expect(request.get).toHaveBeenCalledWith('/artist/album', {
+      id: 401,
+      limit: ARTIST_ALBUM_PAGE_SIZE,
+      offset: 0,
+    })
+  })
+
+  it('rejects a missing hotAlbums array', async () => {
+    await expect(
+      getArtistAlbums({ id: 401 }, client({ hotAlbums: null }).client),
+    ).rejects.toThrow('歌手专辑响应格式不正确')
   })
 
   it('rejects a missing mvs array', async () => {

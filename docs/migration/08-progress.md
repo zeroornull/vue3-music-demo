@@ -1,19 +1,19 @@
 # 08. 当前开发进度
 
 > 更新日期：`2026-08-30`<br>
-> 文档版本：`0.31.0`<br>
-> 对照提交：`dda5d3e`（实施第 25、26 轮已在当前 HEAD）<br>
-> 工作区：实施第 27 轮代码已落地，**尚未 commit / push**
+> 文档版本：`0.32.0`<br>
+> 对照提交：`26c47df`（实施第 27 轮已在当前 HEAD）<br>
+> 工作区：实施第 28 轮代码已落地，**尚未 commit / push**
 
 本文是后续轮次的入口。历史盘点见 [01-current-state-audit.md](./01-current-state-audit.md)，执行约束见 [03-migration-roadmap.md](./03-migration-roadmap.md)，逐轮证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
 ## 1. 一句话状态
 
-根工程已经是可运行的 Bun + Vue 3.5 + TypeScript 6 + Vite 8 应用。Discover、播放器（含上一首/下一首、循环/随机）、歌单、MV、音乐馆、歌手馆筛选、歌手 MV tab、推荐电台、电台大厅、搜索（单曲/歌单/歌手/专辑）、专辑详情、顶部应用壳和视频大厅已经形成闭环。下一轮应迁移 **歌手专辑 tab**。
+根工程已经是可运行的 Bun + Vue 3.5 + TypeScript 6 + Vite 8 应用。Discover、播放器（含上一首/下一首、循环/随机）、歌单、MV、音乐馆、歌手馆筛选、歌手 MV/专辑 tab、推荐电台、电台大厅、搜索（单曲/歌单/歌手/专辑）、专辑详情、顶部应用壳和视频大厅已经形成闭环。下一轮应迁移 **歌手详情 tab 或静音**。
 
 ## 2. 路线图对照
 
-原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-037](./06-decision-log.md)。
+原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-038](./06-decision-log.md)。
 
 | 路线图阶段 | 目标 | 状态 | 对应轮次 | 缺口 |
 | --- | --- | --- | --- | --- |
@@ -21,8 +21,8 @@
 | P1 legacy 归档 | 旧工程移入 `legacy/` | **完成** | 实施第 1 轮 | 无 |
 | P2 现代空壳 | Bun + Vue + TS + Vite | **完成** | 实施第 2 轮 | TypeScript 固定 6.0.3，待 `vue-tsc` 支持 TS 7 |
 | P3 基础设施 | Router、Pinia、API、主题、自动组件 | **部分完成** | 实施第 3、18 轮 | 最小顶栏已接入；无 Element Plus、无 Sass/Tailwind、无自动组件 |
-| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–27 轮 | Discover、播放器（含上一首/下一首、循环/随机）、歌单、MV、排行榜、分类、精选、歌手馆、歌手 MV tab、电台节目、电台大厅、搜索多类型、专辑详情、应用壳和 `#/video` 完成；歌手专辑 tab 未做 |
-| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–27 轮内嵌 | 尚无独立治理轮 |
+| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–28 轮 | Discover、播放器（含上一首/下一首、循环/随机）、歌单、MV、排行榜、分类、精选、歌手馆、歌手 MV/专辑 tab、电台节目、电台大厅、搜索多类型、专辑详情、应用壳和 `#/video` 完成；歌手详情 tab 未做 |
+| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–28 轮内嵌 | 尚无独立治理轮 |
 | P6 Tailwind 4 | 新样式入口和视觉收敛 | **未开始** | — | 当前页面继续使用 scoped CSS |
 | P7 发布闭环 | `dist/`、CI、学习总结 | **未开始** | — | 无 CI；GitHub Pages 未切到新产物 |
 
@@ -57,49 +57,45 @@
 | 实施第 24 轮 | 2026-08-30 | 歌手详情 MV tab | 80 文件 / 309 测试 | `bac8a05` |
 | 实施第 25 轮 | 2026-08-30 | 上一首 / 下一首 | 80 文件 / 313 测试 | `dda5d3e` |
 | 实施第 26 轮 | 2026-08-30 | 循环 / 随机 + 播完自动切歌 | 80 文件 / 324 测试 | `dda5d3e` |
-| 实施第 27 轮 | 2026-08-30 | `#/video` 大厅 + 视频详情 | 87 文件 / 345 测试 | **工作区未提交** |
+| 实施第 27 轮 | 2026-08-30 | `#/video` 大厅 + 视频详情 | 87 文件 / 345 测试 | `26c47df` |
+| 实施第 28 轮 | 2026-08-30 | 歌手详情专辑 tab | 88 文件 / 354 测试 | **工作区未提交** |
 
-第 27 轮文档对齐时的当前门禁输出：
+第 28 轮文档对齐时的当前门禁输出：
 
 ```text
-bun run test       87 files / 345 tests passed
+bun run test       88 files / 354 tests passed
 bun run typecheck  PASS
-bun run build      321 modules transformed, dist/ 输出
+bun run build      327 modules transformed, dist/ 输出
 bun install --frozen-lockfile --dry-run  PASS
 bun audit          No vulnerabilities found (checked 185 packages)
 git diff --check   PASS
 ```
 
-第 27 轮已完成本地 mock API 浏览器 smoke，但未验证外部真实网易云 API。未 commit、未 push。
+第 28 轮已完成本地 mock API 浏览器 smoke，但未验证外部真实网易云 API。未 commit、未 push。
 
-视频大厅摘要：`#/video` 用原生 chip 切分类。全部视频走 `/video/timeline/all`，其他走 `/video/group`。卡片打开 `#/videoDetail?id=`。不迁全部分类弹出层、分页、顶栏视频项。
+歌手专辑摘要：歌曲 / 专辑 / 视频三个 tab。点专辑才请求 `GET /artist/album`。卡片打开 `#/album?id=`。不迁详情 tab、精选 tab。
 
-本地 smoke 使用 Vite `127.0.0.1:48621` 和 mock API `127.0.0.1:48631`：Host → Discover 打开视频大厅 → 现场分类 → 翻唱现场详情播放 → 重新配置。桌面 `1440×900` 与移动 `390×844` 无横向溢出。控制台无应用错误。
+本地 smoke 使用 Vite `127.0.0.1:48721` 和 mock API `127.0.0.1:48731`：Host → 歌手详情 → 专辑 tab → 夜航详情 → 重新配置。桌面 `1440×900` 与移动 `390×844`（专辑 tab 可见）无横向溢出。控制台无应用错误。
 
 ## 4. 当前根工程能力
 
 ### 4.1 路由
 
-新增 `#/video` 与 `#/videoDetail`。PlayerBar 上一首/下一首和循环/随机保持第 26 轮行为。
+路由表未变。歌手详情增加专辑 tab。
 
 ### 4.2 API、store、可见 UI
 
 新增 / 扩展：
 
 ```text
-GET /video/group/list    视频分类
-GET /video/timeline/all  全部视频时间线
-GET /video/group         分类视频
-GET /video/url           视频播放地址
-Video store              groups / clips / setGroup
-VideoDetail store        playback
-VideoHallPage            `#/video`
-VideoDetailView          `#/videoDetail?id=`
+GET /artist/album        歌手专辑分页
+Artist store             albums / loadAlbums / loadMoreAlbums
+ArtistAlbumSection       专辑网格，打开 `#/album`
 ```
 
 ### 4.3 已安装直接依赖
 
-第 27 轮未新增依赖。
+第 28 轮未新增依赖。
 
 ## 5. 与 legacy 的功能差距
 
@@ -108,21 +104,21 @@ VideoDetailView          `#/videoDetail?id=`
 | 搜索多类型 | suggest 歌单/歌手/专辑 | 单曲 + 歌单 + 歌手 + 专辑 | 完成 |
 | 专辑 | `#/album` | `#/album?id=` 歌曲可播 | 评论/收藏 tab 未迁 |
 | 电台大厅 | 空页 | `#/music/dj` Banner + 推荐节目 | 分类/电台详情未迁 |
-| 歌手详情 tab | 歌曲/专辑/视频/详情 | 热门歌曲 + MV | 专辑 tab 未迁 |
+| 歌手详情 tab | 歌曲/专辑/视频/详情 | 热门歌曲 + 专辑 + MV | 详情 tab 未迁 |
 | 视频大厅 | `#/video` 分类 + 网格 | `#/video` + `#/videoDetail` | 全部分类弹出层、分页未迁 |
 | 播放器增强 | 进度/音量/上一首下一首/循环 | 进度 + 音量 + 上一首/下一首 + 循环/随机 | 静音、播放列表抽屉未迁 |
 
 ## 6. 质量与文档缺口
 
-已通过第 27 轮当前门禁：87 个测试文件 / 345 个测试、两套 typecheck、321 modules build、frozen lock、audit 和 `git diff --check`。
+已通过第 28 轮当前门禁：88 个测试文件 / 354 个测试、两套 typecheck、327 modules build、frozen lock、audit 和 `git diff --check`。
 
-仍存在、但不阻塞第 27 轮的缺口：Host 文案仍写 round 3、无 lint/E2E/CI。歌手专辑 tab、静音和播放列表抽屉未迁。
+仍存在、但不阻塞第 28 轮的缺口：Host 文案仍写 round 3、无 lint/E2E/CI。歌手详情 tab、静音和播放列表抽屉未迁。
 
 ## 7. 建议的下一轮
 
-**实施第 28 轮：歌手专辑 tab。**
+**实施第 29 轮：歌手详情 tab 或静音。**
 
-`#/video` 已经接上。歌手详情还缺专辑 tab，能接到已有 `#/album`。
+专辑 tab 已经接上。歌手详情还缺简介/详情，播放器还缺静音。
 
 本轮不应做：Header 弹出层、Tailwind 4、CI、Element Plus。
 
@@ -140,4 +136,4 @@ VideoDetailView          `#/videoDetail?id=`
 | [CHANGELOG](./CHANGELOG.md) | 追加日志 | 文档版本 |
 | **本文** | **活文档** | **先读这个，再开工** |
 
-> 状态更新（2026-08-30）：第 25、26 轮已在当前 HEAD `dda5d3e` 完成。第 27 轮已在工作区完成 `#/video`；歌手专辑 tab 仍未迁。
+> 状态更新（2026-08-30）：第 27 轮已在当前 HEAD `26c47df` 完成。第 28 轮已在工作区完成歌手专辑 tab；详情 tab 仍未迁。

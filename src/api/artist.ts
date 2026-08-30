@@ -1,5 +1,7 @@
 import { http, type HttpClient } from '@/api/http'
 import type {
+  ArtistAlbum,
+  ArtistAlbumPage,
   ArtistDetail,
   ArtistListPage,
   ArtistMv,
@@ -12,6 +14,7 @@ import { normalizeSong, type NetworkSong, type Song } from '@/models/song'
 export const ARTIST_SONG_PAGE_SIZE = 10
 export const ARTIST_LIST_PAGE_SIZE = 30
 export const ARTIST_MV_PAGE_SIZE = 12
+export const ARTIST_ALBUM_PAGE_SIZE = 12
 
 export interface ArtistListQuery {
   area?: number
@@ -29,6 +32,12 @@ export interface ArtistSongQuery {
 }
 
 export interface ArtistMvQuery {
+  id: number
+  limit?: number
+  offset?: number
+}
+
+export interface ArtistAlbumQuery {
   id: number
   limit?: number
   offset?: number
@@ -141,6 +150,51 @@ export async function getArtistMvs(
     more:
       typeof response.hasMore === 'boolean' ? response.hasMore : mvs.length >= limit,
     mvs,
+  }
+}
+
+function readArtistAlbum(value: unknown): ArtistAlbum | null {
+  if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
+    return null
+  }
+  const picUrl =
+    typeof value.picUrl === 'string' && value.picUrl
+      ? value.picUrl
+      : typeof value.blurPicUrl === 'string' && value.blurPicUrl
+        ? value.blurPicUrl
+        : ''
+  return {
+    id: value.id,
+    name: value.name,
+    picUrl,
+    publishTime: typeof value.publishTime === 'number' ? value.publishTime : 0,
+    size: typeof value.size === 'number' ? value.size : 0,
+  }
+}
+
+export async function getArtistAlbums(
+  query: ArtistAlbumQuery,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<ArtistAlbumPage> {
+  const limit = query.limit ?? ARTIST_ALBUM_PAGE_SIZE
+  const response = await client.get<{ hotAlbums?: unknown; more?: unknown }>(
+    '/artist/album',
+    {
+      id: query.id,
+      limit,
+      offset: query.offset ?? 0,
+    },
+  )
+  if (!Array.isArray(response.hotAlbums)) {
+    throw new Error('歌手专辑响应格式不正确')
+  }
+  const albums = response.hotAlbums
+    .map(readArtistAlbum)
+    .filter((item): item is ArtistAlbum => item !== null)
+  return {
+    more:
+      typeof response.more === 'boolean' ? response.more : albums.length >= limit,
+    albums,
   }
 }
 

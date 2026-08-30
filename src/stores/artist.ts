@@ -2,21 +2,24 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import {
+  ARTIST_ALBUM_PAGE_SIZE,
   ARTIST_LIST_PAGE_SIZE,
   ARTIST_MV_PAGE_SIZE,
   ARTIST_SONG_PAGE_SIZE,
+  getArtistAlbums,
   getArtistDetail,
   getArtistList,
   getArtistMvs,
   getArtistSongs,
 } from '@/api/artist'
 import { getErrorMessage } from '@/api/http'
-import type { ArtistDetail, ArtistMv, HallArtist } from '@/models/artist'
+import type { ArtistAlbum, ArtistDetail, ArtistMv, HallArtist } from '@/models/artist'
 import type { Song } from '@/models/song'
 
 let requestSerial = 0
 let listSerial = 0
 let mvSerial = 0
+let albumSerial = 0
 
 export const useArtistStore = defineStore('artist', () => {
   const artist = ref<ArtistDetail | null>(null)
@@ -30,6 +33,11 @@ export const useArtistStore = defineStore('artist', () => {
   const mvsLoading = ref(false)
   const mvsMore = ref(false)
   const mvsLoadedId = ref<number | null>(null)
+  const albums = ref<ArtistAlbum[]>([])
+  const albumsError = ref<string | null>(null)
+  const albumsLoading = ref(false)
+  const albumsMore = ref(false)
+  const albumsLoadedId = ref<number | null>(null)
   const artists = ref<HallArtist[]>([])
   const artistsError = ref<string | null>(null)
   const artistsLoading = ref(false)
@@ -47,6 +55,15 @@ export const useArtistStore = defineStore('artist', () => {
     mvsLoadedId.value = null
   }
 
+  function clearAlbums() {
+    albumSerial++
+    albums.value = []
+    albumsError.value = null
+    albumsLoading.value = false
+    albumsMore.value = false
+    albumsLoadedId.value = null
+  }
+
   function resetDetail() {
     requestSerial++
     artist.value = null
@@ -56,6 +73,7 @@ export const useArtistStore = defineStore('artist', () => {
     more.value = false
     loadedId.value = null
     clearMvs()
+    clearAlbums()
   }
 
   function reset() {
@@ -88,6 +106,7 @@ export const useArtistStore = defineStore('artist', () => {
       loadedId.value = null
       more.value = false
       clearMvs()
+      clearAlbums()
     }
     loading.value = true
     error.value = null
@@ -142,6 +161,64 @@ export const useArtistStore = defineStore('artist', () => {
       throw requestError
     } finally {
       if (serial === mvSerial) mvsLoading.value = false
+    }
+  }
+
+  async function loadAlbums(id: number, force = false) {
+    if (!Number.isInteger(id) || id <= 0) return
+    if (!force && albumsLoading.value) return
+    if (!force && albumsLoadedId.value === id && !albumsError.value) {
+      return
+    }
+
+    const serial = ++albumSerial
+    if (albumsLoadedId.value !== id) {
+      albums.value = []
+      albumsLoadedId.value = null
+      albumsMore.value = false
+    }
+    albumsLoading.value = true
+    albumsError.value = null
+    try {
+      const page = await getArtistAlbums({
+        id,
+        limit: ARTIST_ALBUM_PAGE_SIZE,
+        offset: 0,
+      })
+      if (serial !== albumSerial) return
+      albums.value = page.albums
+      albumsMore.value = page.more
+      albumsLoadedId.value = id
+    } catch (requestError) {
+      if (serial !== albumSerial) return
+      albumsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === albumSerial) albumsLoading.value = false
+    }
+  }
+
+  async function loadMoreAlbums() {
+    const id = albumsLoadedId.value
+    if (!id || !albumsMore.value || albumsLoading.value) return
+    const serial = ++albumSerial
+    albumsLoading.value = true
+    albumsError.value = null
+    try {
+      const page = await getArtistAlbums({
+        id,
+        limit: ARTIST_ALBUM_PAGE_SIZE,
+        offset: albums.value.length,
+      })
+      if (serial !== albumSerial) return
+      albums.value = [...albums.value, ...page.albums]
+      albumsMore.value = page.more
+    } catch (requestError) {
+      if (serial !== albumSerial) return
+      albumsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === albumSerial) albumsLoading.value = false
     }
   }
 
@@ -271,6 +348,8 @@ export const useArtistStore = defineStore('artist', () => {
     loadMore,
     loadMvs,
     loadMoreMvs,
+    loadAlbums,
+    loadMoreAlbums,
     loadArtists,
     loadMoreArtists,
     setArea,
@@ -289,6 +368,11 @@ export const useArtistStore = defineStore('artist', () => {
     mvsLoading,
     mvsMore,
     mvsLoadedId,
+    albums,
+    albumsError,
+    albumsLoading,
+    albumsMore,
+    albumsLoadedId,
     artists,
     artistsError,
     artistsLoading,

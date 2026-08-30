@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getArtistDetail, getArtistMvs, getArtistSongs } from '@/api/artist'
+import { getArtistAlbums, getArtistDetail, getArtistMvs, getArtistSongs } from '@/api/artist'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useArtistStore } from '@/stores/artist'
@@ -16,6 +16,7 @@ vi.mock('@/api/artist', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/artist')>()
   return {
     ...actual,
+    getArtistAlbums: vi.fn(),
     getArtistDetail: vi.fn(),
     getArtistMvs: vi.fn(),
     getArtistSongs: vi.fn(),
@@ -64,6 +65,20 @@ const HeaderStub = defineComponent({
   `,
 })
 
+const AlbumSectionStub = defineComponent({
+  name: 'ArtistAlbumSection',
+  props: ['albums', 'error', 'loading', 'more'],
+  emits: ['load-more', 'retry'],
+  template: `
+    <section data-testid="artist-albums">
+      <span v-for="item in albums" :key="item.id">{{ item.name }}</span>
+      <p v-if="error" role="alert">{{ error }}</p>
+      <button v-if="error" data-testid="artist-albums-retry" @click="$emit('retry')">retry</button>
+      <button v-if="more" data-testid="artist-albums-more" @click="$emit('load-more')">more</button>
+    </section>
+  `,
+})
+
 const MvSectionStub = defineComponent({
   name: 'ArtistMvSection',
   props: ['error', 'loading', 'more', 'mvs'],
@@ -105,6 +120,7 @@ async function mountView(query: Record<string, string> = { id: '401' }) {
       plugins: [pinia, router],
       stubs: {
         ArtistHeader: HeaderStub,
+        ArtistAlbumSection: AlbumSectionStub,
         ArtistMvSection: MvSectionStub,
         PlaylistSongList: SongListStub,
         RouterLink: defineComponent({ template: '<a><slot /></a>' }),
@@ -118,6 +134,7 @@ describe('ArtistView', () => {
     setActivePinia(createPinia())
     playSong.mockClear()
     playAllSongs.mockClear()
+    vi.mocked(getArtistAlbums).mockReset()
     vi.mocked(getArtistDetail).mockReset()
     vi.mocked(getArtistMvs).mockReset()
     vi.mocked(getArtistSongs).mockReset()
@@ -133,6 +150,18 @@ describe('ArtistView', () => {
           name: '晚风来信 · Live',
           picUrl: 'x',
           playCount: 1,
+        },
+      ],
+    })
+    vi.mocked(getArtistAlbums).mockResolvedValue({
+      more: true,
+      albums: [
+        {
+          id: 501,
+          name: '夜航',
+          picUrl: 'x',
+          publishTime: 1_609_459_200_000,
+          size: 8,
         },
       ],
     })
@@ -273,5 +302,69 @@ describe('ArtistView', () => {
       offset: 1,
     })
     expect(wrapper.get('[data-testid="artist-mvs"]').text()).toContain('下一支')
+  })
+
+  it('loads albums when the album tab is selected and can retry', async () => {
+    vi.mocked(getArtistAlbums)
+      .mockRejectedValueOnce(new Error('album offline'))
+      .mockResolvedValueOnce({
+        more: false,
+        albums: [
+          {
+            id: 501,
+            name: '夜航',
+            picUrl: 'x',
+            publishTime: 1_609_459_200_000,
+            size: 8,
+          },
+        ],
+      })
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(getArtistAlbums).not.toHaveBeenCalled()
+
+    await wrapper.get('[data-testid="artist-tab-albums"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-tab-albums"]').attributes('aria-selected')).toBe(
+      'true',
+    )
+    expect(wrapper.get('#artist-panel-albums').attributes('hidden')).toBeUndefined()
+    expect(wrapper.get('#artist-panel-songs').attributes('hidden')).toBeDefined()
+    expect(wrapper.get('#artist-panel-mvs').attributes('hidden')).toBeDefined()
+    expect(wrapper.get('[role="alert"]').text()).toContain('album offline')
+
+    await wrapper.get('[data-testid="artist-albums-retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-albums"]').text()).toContain('夜航')
+    expect(getArtistAlbums).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads more albums from the album tab', async () => {
+    const wrapper = await mountView()
+    await flushPromises()
+    await wrapper.get('[data-testid="artist-tab-albums"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-albums"]').text()).toContain('夜航')
+
+    vi.mocked(getArtistAlbums).mockResolvedValueOnce({
+      more: false,
+      albums: [
+        {
+          id: 502,
+          name: '晨雾',
+          picUrl: 'x',
+          publishTime: 1_640_995_200_000,
+          size: 6,
+        },
+      ],
+    })
+    await wrapper.get('[data-testid="artist-albums-more"]').trigger('click')
+    await flushPromises()
+    expect(getArtistAlbums).toHaveBeenLastCalledWith({
+      id: 401,
+      limit: 12,
+      offset: 1,
+    })
+    expect(wrapper.get('[data-testid="artist-albums"]').text()).toContain('晨雾')
   })
 })

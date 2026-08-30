@@ -3383,4 +3383,79 @@ mock API http://127.0.0.1:48631
 
 ### 29.4 本轮结果
 
-`#/video` 已在工作区形成。独立审查 FAIL → 已修：切换分类失败会清空上一组卡片并显示错误；`/video/url` 优先匹配请求的 vid。第 25–26 轮提交 `dda5d3e` 仍是当前 HEAD；第 27 轮尚未 commit / push。下一轮建议迁移歌手专辑 tab。
+`#/video` 已在工作区形成。独立审查 FAIL → 已修：切换分类失败会清空上一组卡片并显示错误；`/video/url` 优先匹配请求的 vid。第 27 轮随后以 `26c47df` 提交。下一轮建议迁移歌手专辑 tab。
+
+## 30. 实施第 28 轮：歌手详情专辑 tab（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 30.1 开始边界与范围
+
+第 28 轮开始时第 27 轮已经提交：
+
+```text
+HEAD 26c47df
+master...origin/master
+```
+
+工作区从该提交继续。本轮给歌手详情补上专辑 tab。不迁详情 tab、精选 tab、静音、播放列表抽屉、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- 原生 歌曲 / 专辑 / 视频 tab；
+- `GET /artist/album` 懒加载 + 加载更多；
+- 卡片打开已有 `#/album?id=`。
+
+### 30.2 自动验证
+
+```text
+bun run test
+Test Files  88 passed (88)
+Tests       354 passed (354)
+
+bun run typecheck
+PASS
+
+bun run build
+327 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 30.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:48721
+mock API http://127.0.0.1:48731
+```
+
+验证步骤：
+
+1. Host 保存后打开 `#/artistDetail?id=401`，看到「专辑 2」；
+2. 点专辑 tab，出现「夜航」「晨雾」和发行日期；
+3. 点「夜航」进入 `#/album?id=501`，可播放全部；
+4. 返回歌手页后「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844`（专辑 tab 可见）无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round28-desktop.png` 和 `/tmp/vue3-music-round28-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 30.4 本轮结果
+
+歌手专辑 tab 已在工作区形成。独立审查 PASS WITH FINDINGS：补了过期专辑请求丢弃测试、picUrl 优先于 blurPicUrl 的锁定，以及 tabpanel `hidden` 断言。第 27 轮提交 `26c47df` 仍是当前 HEAD；第 28 轮尚未 commit / push。下一轮建议迁移歌手详情 tab 或静音。

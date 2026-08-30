@@ -29,6 +29,19 @@ export interface ArtistMvPage {
   more: boolean
 }
 
+export interface ArtistAlbum {
+  id: number
+  name: string
+  picUrl: string
+  publishTime: number
+  size: number
+}
+
+export interface ArtistAlbumPage {
+  albums: ArtistAlbum[]
+  more: boolean
+}
+
 export interface HallArtist {
   id: number
   name: string

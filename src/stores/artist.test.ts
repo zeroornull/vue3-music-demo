@@ -2,9 +2,11 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  ARTIST_ALBUM_PAGE_SIZE,
   ARTIST_LIST_PAGE_SIZE,
   ARTIST_MV_PAGE_SIZE,
   ARTIST_SONG_PAGE_SIZE,
+  getArtistAlbums,
   getArtistDetail,
   getArtistList,
   getArtistMvs,
@@ -16,6 +18,7 @@ vi.mock('@/api/artist', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/artist')>()
   return {
     ...actual,
+    getArtistAlbums: vi.fn(),
     getArtistDetail: vi.fn(),
     getArtistList: vi.fn(),
     getArtistMvs: vi.fn(),
@@ -40,6 +43,14 @@ const song = {
   name: '晚风来信',
 }
 
+const album = {
+  id: 501,
+  name: '夜航',
+  picUrl: 'https://images.example.com/album.jpg',
+  publishTime: 1_609_459_200_000,
+  size: 8,
+}
+
 const mv = {
   artistName: '林间电台',
   duration: 238_000,
@@ -60,6 +71,7 @@ function deferred<T>() {
 describe('artist store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.mocked(getArtistAlbums).mockReset()
     vi.mocked(getArtistDetail).mockReset()
     vi.mocked(getArtistList).mockReset()
     vi.mocked(getArtistMvs).mockReset()
@@ -364,5 +376,55 @@ describe('artist store', () => {
 
     expect(store.mvs).toEqual([])
     expect(store.mvsLoading).toBe(false)
+  })
+
+  it('loads artist albums once and treats a failed page as a cache miss', async () => {
+    vi.mocked(getArtistAlbums)
+      .mockRejectedValueOnce(new Error('album offline'))
+      .mockResolvedValueOnce({ more: false, albums: [album] })
+    const store = useArtistStore()
+
+    await expect(store.loadAlbums(401)).rejects.toThrow('album offline')
+    await store.loadAlbums(401)
+    await store.loadAlbums(401)
+
+    expect(store.albums).toEqual([album])
+    expect(store.albumsError).toBeNull()
+    expect(getArtistAlbums).toHaveBeenCalledTimes(2)
+    expect(getArtistAlbums).toHaveBeenCalledWith({
+      id: 401,
+      limit: ARTIST_ALBUM_PAGE_SIZE,
+      offset: 0,
+    })
+  })
+
+  it('appends the next album page and clears albums when the artist id changes', async () => {
+    const next = { ...album, id: 502, name: '晨雾' }
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getArtistAlbums)
+      .mockResolvedValueOnce({ more: true, albums: [album] })
+      .mockResolvedValueOnce({ more: false, albums: [next] })
+    const store = useArtistStore()
+    await store.loadAlbums(401)
+    await store.loadMoreAlbums()
+    expect(store.albums.map((item) => item.id)).toEqual([501, 502])
+
+    await store.load(402)
+    expect(store.albums).toEqual([])
+    expect(store.albumsLoadedId).toBeNull()
+  })
+
+  it('drops in-flight albums after resetDetail', async () => {
+    const pendingAlbums = deferred<{ more: boolean; albums: typeof album[] }>()
+    vi.mocked(getArtistAlbums).mockReturnValueOnce(pendingAlbums.promise)
+    const store = useArtistStore()
+    const pending = store.loadAlbums(401)
+    store.resetDetail()
+    pendingAlbums.resolve({ more: false, albums: [album] })
+    await pending
+
+    expect(store.albums).toEqual([])
+    expect(store.albumsLoading).toBe(false)
   })
 })

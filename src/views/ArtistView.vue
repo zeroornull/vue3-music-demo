@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
+import ArtistAlbumSection from '@/components/artist/ArtistAlbumSection.vue'
 import ArtistHeader from '@/components/artist/ArtistHeader.vue'
 import ArtistMvSection from '@/components/artist/ArtistMvSection.vue'
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
@@ -14,11 +15,24 @@ import { usePlayerStore } from '@/stores/player'
 const route = useRoute()
 const artistStore = useArtistStore()
 const playerStore = usePlayerStore()
-const { artist, songs, loading, error, more, mvs, mvsError, mvsLoading, mvsMore } =
-  storeToRefs(artistStore)
+const {
+  artist,
+  songs,
+  loading,
+  error,
+  more,
+  mvs,
+  mvsError,
+  mvsLoading,
+  mvsMore,
+  albums,
+  albumsError,
+  albumsLoading,
+  albumsMore,
+} = storeToRefs(artistStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
-const tab = ref<'songs' | 'mvs'>('songs')
+const tab = ref<'songs' | 'albums' | 'mvs'>('songs')
 let playSerial = 0
 
 const artistId = computed(() => {
@@ -39,6 +53,21 @@ function loadMore() {
 
 function showSongs() {
   tab.value = 'songs'
+}
+
+function showAlbums() {
+  tab.value = 'albums'
+  if (artistId.value === null) return
+  void artistStore.loadAlbums(artistId.value).catch(() => undefined)
+}
+
+function retryAlbums() {
+  if (artistId.value === null) return
+  void artistStore.loadAlbums(artistId.value, true).catch(() => undefined)
+}
+
+function loadMoreAlbums() {
+  void Promise.resolve(artistStore.loadMoreAlbums()).catch(() => undefined)
 }
 
 function showMvs() {
@@ -165,6 +194,17 @@ watch(
           歌曲 {{ artist.musicSize }}
         </button>
         <button
+          id="artist-tab-albums"
+          type="button"
+          role="tab"
+          data-testid="artist-tab-albums"
+          :aria-selected="tab === 'albums' ? 'true' : 'false'"
+          aria-controls="artist-panel-albums"
+          @click="showAlbums"
+        >
+          专辑 {{ artist.albumSize }}
+        </button>
+        <button
           id="artist-tab-mvs"
           type="button"
           role="tab"
@@ -199,6 +239,21 @@ watch(
         >
           加载更多
         </button>
+      </div>
+      <div
+        id="artist-panel-albums"
+        role="tabpanel"
+        aria-labelledby="artist-tab-albums"
+        :hidden="tab !== 'albums'"
+      >
+        <ArtistAlbumSection
+          :albums="albums"
+          :error="albumsError"
+          :loading="albumsLoading"
+          :more="albumsMore"
+          @load-more="loadMoreAlbums"
+          @retry="retryAlbums"
+        />
       </div>
       <div
         id="artist-panel-mvs"
