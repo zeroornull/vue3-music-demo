@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
 import {
+  SEARCH_ARTIST_LIMIT,
+  SEARCH_PLAYLIST_LIMIT,
   SEARCH_SONG_LIMIT,
   getSearchHotDetail,
-  getSearchSuggestSongs,
+  getSearchSuggest,
 } from '@/api/search'
 
 const client = (response: unknown) => {
@@ -44,11 +46,27 @@ describe('Search API', () => {
     ).rejects.toThrow('热门搜索响应格式不正确')
   })
 
-  it('unwraps /search/suggest songs and keeps a playable song shape', async () => {
+  it('unwraps /search/suggest songs, playlists and artists', async () => {
     const request = client({
       result: {
-        albums: [],
-        order: ['songs'],
+        albums: [{ id: 9, name: 'ignored' }],
+        artists: [
+          {
+            extra: true,
+            id: 401,
+            img1v1Url: 'https://images.example.com/a.jpg',
+            name: '林间电台',
+          },
+        ],
+        order: ['songs', 'playlists', 'artists'],
+        playlists: [
+          {
+            coverImgUrl: 'https://images.example.com/p.jpg',
+            extra: true,
+            id: 101,
+            name: '深夜民谣',
+          },
+        ],
         songs: [
           {
             album: { id: 1, name: '专辑', picUrl: 'https://images.example.com/a.jpg' },
@@ -62,40 +80,78 @@ describe('Search API', () => {
       },
     })
 
-    await expect(getSearchSuggestSongs('深夜', request.client)).resolves.toEqual([
-      {
-        album: { id: 1, name: '专辑', picUrl: 'https://images.example.com/a.jpg' },
-        artists: [{ id: 401, name: '林间电台' }],
-        duration: 180_000,
-        id: 301,
-        name: '晚风来信',
-        picUrl: 'https://images.example.com/a.jpg',
-      },
-    ])
+    await expect(getSearchSuggest('深夜', request.client)).resolves.toEqual({
+      artists: [
+        {
+          id: 401,
+          img1v1Url: 'https://images.example.com/a.jpg',
+          name: '林间电台',
+        },
+      ],
+      playlists: [
+        {
+          coverImgUrl: 'https://images.example.com/p.jpg',
+          id: 101,
+          name: '深夜民谣',
+        },
+      ],
+      songs: [
+        {
+          album: { id: 1, name: '专辑', picUrl: 'https://images.example.com/a.jpg' },
+          artists: [{ id: 401, name: '林间电台' }],
+          duration: 180_000,
+          id: 301,
+          name: '晚风来信',
+          picUrl: 'https://images.example.com/a.jpg',
+        },
+      ],
+    })
     expect(request.get).toHaveBeenCalledWith('/search/suggest', {
       keywords: '深夜',
     })
   })
 
-  it('returns an empty song list when suggest has no songs and slices to the page size', async () => {
+  it('returns empty groups when suggest has no hits and slices each group', async () => {
     await expect(
-      getSearchSuggestSongs('无结果', client({ result: { order: [] } }).client),
-    ).resolves.toEqual([])
+      getSearchSuggest('无结果', client({ result: { order: [] } }).client),
+    ).resolves.toEqual({ artists: [], playlists: [], songs: [] })
 
-    const many = Array.from({ length: 12 }, (_, index) => ({
+    const manySongs = Array.from({ length: 12 }, (_, index) => ({
       artists: [{ id: 401, name: '林间电台' }],
       duration: 1,
       id: 300 + index,
       name: `歌 ${index + 1}`,
     }))
-    await expect(
-      getSearchSuggestSongs('很多', client({ result: { songs: many } }).client),
-    ).resolves.toHaveLength(SEARCH_SONG_LIMIT)
+    const manyPlaylists = Array.from({ length: 12 }, (_, index) => ({
+      coverImgUrl: 'x',
+      id: 100 + index,
+      name: `单 ${index + 1}`,
+    }))
+    const manyArtists = Array.from({ length: 12 }, (_, index) => ({
+      id: 400 + index,
+      img1v1Url: '',
+      name: `人 ${index + 1}`,
+      picUrl: 'https://images.example.com/f.jpg',
+    }))
+    const page = await getSearchSuggest(
+      '很多',
+      client({
+        result: {
+          artists: manyArtists,
+          playlists: manyPlaylists,
+          songs: manySongs,
+        },
+      }).client,
+    )
+    expect(page.songs).toHaveLength(SEARCH_SONG_LIMIT)
+    expect(page.playlists).toHaveLength(SEARCH_PLAYLIST_LIMIT)
+    expect(page.artists).toHaveLength(SEARCH_ARTIST_LIMIT)
+    expect(page.artists[0]?.img1v1Url).toBe('https://images.example.com/f.jpg')
   })
 
   it('rejects a missing suggest payload', async () => {
     await expect(
-      getSearchSuggestSongs('深夜', client({ result: null }).client),
+      getSearchSuggest('深夜', client({ result: null }).client),
     ).rejects.toThrow('搜索建议响应格式不正确')
   })
 })

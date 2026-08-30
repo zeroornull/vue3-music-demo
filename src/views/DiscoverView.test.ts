@@ -151,10 +151,10 @@ describe('DiscoverView', () => {
 
     expect(wrapper.get('h1').text()).toBe('推荐')
     expect(wrapper.get('.summary').text()).toBe(
-      '四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手馆分类字母、电台、搜索、应用壳和播放器进度音量已接入。',
+      '四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手馆分类字母、电台、搜索多类型、应用壳和播放器进度音量已接入。',
     )
-    expect(wrapper.get('.next-slices').text()).toContain('搜索多类型')
-    expect(wrapper.get('.next-slices').text()).not.toContain('歌手馆分类')
+    expect(wrapper.get('.next-slices').text()).toContain('电台大厅')
+    expect(wrapper.get('.next-slices').text()).not.toContain('搜索多类型')
     expect(wrapper.find('nav[aria-label="迁移工具"]').exists()).toBe(false)
     expect(wrapper.get('[data-testid="banner-count"]').text()).toBe('1')
     expect(getBanners).toHaveBeenCalledTimes(1)

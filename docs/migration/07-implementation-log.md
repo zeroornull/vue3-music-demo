@@ -2854,4 +2854,79 @@ mock API http://127.0.0.1:47931
 
 ### 22.4 本轮结果
 
-歌手馆分类和字母筛选已在工作区形成。第 19 轮提交 `b036bf6` 仍是当前 HEAD；第 20 轮尚未 commit / push。下一轮建议迁移搜索多类型结果。
+歌手馆分类和字母筛选已在工作区形成。第 19 轮提交 `b036bf6` 仍是当时 HEAD；第 20 轮随后以 `37ad825` 提交。下一轮建议迁移搜索多类型结果。
+
+## 23. 实施第 21 轮：搜索多类型结果（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 23.1 开始边界与范围
+
+第 21 轮开始时第 20 轮已经提交并与 origin 同步：
+
+```text
+HEAD 37ad825
+master...origin/master
+```
+
+工作区从该提交继续。本轮把 `/search/suggest` 的歌单和歌手接到已有详情页。不迁专辑（还没有 `#/album`）、Header 弹出层、电台大厅、上一首/下一首、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `getSearchSuggest` 一次解析 songs / playlists / artists，各最多 10 条；
+- Search store 增加 playlists / artists，换词和 `reset()` 一并清空；
+- SearchHitList 打开 `#/playlist?id=` 与 `#/artistDetail?id=`。
+
+### 23.2 自动验证
+
+```text
+bun run test
+Test Files  73 passed (73)
+Tests       271 passed (271)
+
+bun run typecheck
+PASS
+
+bun run build
+287 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。审查后去掉重复的「单曲」标题，补了歌单/歌手路由断言和空结果测试。最终测试数为 271。
+
+### 23.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:48021
+mock API http://127.0.0.1:48031
+```
+
+验证步骤：
+
+1. Host 保存后进入搜索，点热词「深夜民谣」；
+2. 结果同时出现单曲「晚风来信」、歌单「深夜民谣精选」、歌手「林间电台」；
+3. 点歌单到达 `#/playlist?id=101`，详情标题为「深夜民谣精选」；
+4. 「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出（`scrollWidth === clientWidth`）。
+
+截图保存在 `/tmp/vue3-music-round21-desktop.png` 和 `/tmp/vue3-music-round21-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 23.4 本轮结果
+
+搜索多类型结果已在工作区形成。第 20 轮提交 `37ad825` 仍是当前 HEAD；第 21 轮尚未 commit / push。下一轮建议迁移电台大厅或专辑详情。

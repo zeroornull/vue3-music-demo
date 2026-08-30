@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.24.0`<br>
+> 文档版本：`0.25.0`<br>
 > 版本快照日期：`2026-08-30`<br>
-> 当前阶段：**实施第 20 轮歌手馆分类/字母已落地（未 commit）；下一轮搜索多类型**
+> 当前阶段：**实施第 21 轮搜索多类型已落地（未 commit）；下一轮电台大厅或专辑**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -395,12 +395,21 @@ build: {
 
 - 歌手馆分类 + 字母筛选；`setType` / `setInitial` 走 `listSerial`；
 - 72 个测试文件、268 个测试通过；typecheck、build（284 modules）、frozen lock、audit 和 `git diff --check` 通过；
-- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 已完成本地 mock API 浏览器 smoke；随后提交为 `37ad825`；
 - 下一轮建议迁移搜索多类型结果。
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 27. 主要官方资料
+## 27. 实施第 21 轮结果
+
+- 搜索 suggest 增加歌单和歌手，点进已有详情页；不迁专辑；
+- 73 个测试文件、271 个测试通过；typecheck、build（287 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 下一轮建议迁移电台大厅或专辑详情。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 28. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

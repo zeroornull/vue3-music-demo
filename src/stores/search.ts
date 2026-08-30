@@ -2,8 +2,8 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
-import { getSearchHotDetail, getSearchSuggestSongs } from '@/api/search'
-import type { SearchHot } from '@/models/search'
+import { getSearchHotDetail, getSearchSuggest } from '@/api/search'
+import type { SearchArtist, SearchHot, SearchPlaylist } from '@/models/search'
 import type { Song } from '@/models/song'
 
 let hotSerial = 0
@@ -15,8 +15,18 @@ export const useSearchStore = defineStore('search', () => {
   const hotsError = ref<string | null>(null)
   const hotsLoading = ref(false)
   const songs = ref<Song[]>([])
+  const playlists = ref<SearchPlaylist[]>([])
+  const artists = ref<SearchArtist[]>([])
   const songsError = ref<string | null>(null)
   const songsLoading = ref(false)
+
+  function clearHits() {
+    songs.value = []
+    playlists.value = []
+    artists.value = []
+    songsError.value = null
+    songsLoading.value = false
+  }
 
   function reset() {
     hotSerial++
@@ -25,9 +35,7 @@ export const useSearchStore = defineStore('search', () => {
     hots.value = []
     hotsError.value = null
     hotsLoading.value = false
-    songs.value = []
-    songsError.value = null
-    songsLoading.value = false
+    clearHits()
   }
 
   async function loadHots(force = false) {
@@ -56,9 +64,7 @@ export const useSearchStore = defineStore('search', () => {
     if (!next) {
       searchSerial++
       keyword.value = ''
-      songs.value = []
-      songsError.value = null
-      songsLoading.value = false
+      clearHits()
       return
     }
 
@@ -74,12 +80,16 @@ export const useSearchStore = defineStore('search', () => {
     const serial = ++searchSerial
     keyword.value = next
     songs.value = []
+    playlists.value = []
+    artists.value = []
     songsLoading.value = true
     songsError.value = null
     try {
-      const page = await getSearchSuggestSongs(next)
+      const page = await getSearchSuggest(next)
       if (serial !== searchSerial) return
-      songs.value = page
+      songs.value = page.songs
+      playlists.value = page.playlists
+      artists.value = page.artists
     } catch (requestError) {
       if (serial !== searchSerial) return
       songsError.value = getErrorMessage(requestError)
@@ -98,6 +108,8 @@ export const useSearchStore = defineStore('search', () => {
     hotsError,
     hotsLoading,
     songs,
+    playlists,
+    artists,
     songsError,
     songsLoading,
   }

@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
+import SearchHitList from '@/components/search/SearchHitList.vue'
 import SearchHotList from '@/components/search/SearchHotList.vue'
 import type { Song } from '@/models/song'
 import { Pages } from '@/router/pages'
@@ -19,6 +20,8 @@ const {
   hotsError,
   hotsLoading,
   keyword,
+  playlists,
+  artists,
   songs,
   songsError,
   songsLoading,
@@ -27,6 +30,26 @@ const { current } = storeToRefs(playerStore)
 const draft = ref('')
 const notice = ref<string | null>(null)
 let playSerial = 0
+
+const hasHits = computed(
+  () => songs.value.length + playlists.value.length + artists.value.length > 0,
+)
+
+const playlistHits = computed(() =>
+  playlists.value.map((item) => ({
+    cover: item.coverImgUrl,
+    id: item.id,
+    name: item.name,
+  })),
+)
+
+const artistHits = computed(() =>
+  artists.value.map((item) => ({
+    cover: item.img1v1Url,
+    id: item.id,
+    name: item.name,
+  })),
+)
 
 const queryKeyword = computed(() => {
   const value = route.query.q
@@ -96,7 +119,7 @@ onMounted(() => {
     <header class="page-header">
       <p class="eyebrow">Search</p>
       <h1>搜索</h1>
-      <p>输入关键词或点选热门搜索，结果里的单曲可以立即播放。</p>
+      <p>输入关键词或点选热门搜索。单曲可以播放，歌单和歌手会打开已有详情页。</p>
     </header>
 
     <form data-testid="search-submit" @submit.prevent="submit">
@@ -108,7 +131,7 @@ onMounted(() => {
           name="q"
           type="search"
           autocomplete="off"
-          placeholder="搜索歌曲"
+          placeholder="搜索歌曲、歌单或歌手"
         />
         <button type="submit">搜索</button>
       </div>
@@ -124,7 +147,7 @@ onMounted(() => {
       aria-busy="true"
     >
       <strong>正在搜索</strong>
-      <p>正在查找“{{ keyword }}”的单曲。</p>
+      <p>正在查找“{{ keyword }}”的单曲、歌单和歌手。</p>
     </div>
 
     <div
@@ -141,14 +164,40 @@ onMounted(() => {
       </button>
     </div>
 
-    <PlaylistSongList
+    <div v-else-if="keyword && hasHits" class="result-stack">
+      <PlaylistSongList
+        v-if="songs.length"
+        :songs="songs"
+        :current-id="current?.id ?? null"
+        :paginate="false"
+        @play="playSong"
+      />
+      <SearchHitList
+        v-if="playlists.length"
+        data-testid="search-playlists"
+        kind="歌单"
+        title="歌单"
+        :hits="playlistHits"
+        :to-name="Pages.playlist"
+      />
+      <SearchHitList
+        v-if="artists.length"
+        data-testid="search-artists"
+        kind="歌手"
+        title="歌手"
+        :hits="artistHits"
+        :to-name="Pages.artistDetail"
+      />
+    </div>
+
+    <div
       v-else-if="keyword"
-      :songs="songs"
-      :current-id="current?.id ?? null"
-      :paginate="false"
-      empty-description="没有找到可播放的单曲。"
-      @play="playSong"
-    />
+      class="state-card"
+      data-testid="search-empty"
+    >
+      <strong>没有找到结果</strong>
+      <p>没有找到可播放的单曲或可打开的歌单、歌手。</p>
+    </div>
 
     <SearchHotList
       v-if="!keyword"
@@ -239,6 +288,14 @@ button {
   margin: 0;
   color: #17614f;
 }
+
+.result-stack {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+
 
 .state-card {
   display: flex;

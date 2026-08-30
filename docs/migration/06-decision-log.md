@@ -263,6 +263,15 @@
 - **Store**：`setType` / `setInitial` 与已有 `setArea` 一样，先抬 `listSerial` 再强制拉列表。Host `reset()` 已把 type 收回 `-1`、initial 收回 `'-1'`。
 - **本轮不做**：电台大厅、搜索多类型、歌手详情 tab。
 
+### D-031：搜索多类型先接歌单和歌手，不接专辑
+
+- **状态**：已验证
+- **日期**：2026-08-30
+- **决策**：第 21 轮仍走已有 `GET /search/suggest`，在单曲之外展示歌单和歌手。点进 `#/playlist?id=` 和 `#/artistDetail?id=`。不展示专辑，因为 `#/album` 还没有落地页。
+- **原因**：路线图最低要求是再展示一类。歌单和歌手都能立刻闭环；专辑会变成死链。不迁 Header 弹出层，也不改 `/cloudsearch`。
+- **Store**：一次 suggest 请求同时写入 songs / playlists / artists。换关键词或 Host `reset()` 会三组一起清空。
+- **本轮不做**：专辑、电台大厅、Header 弹出层。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：
