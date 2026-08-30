@@ -100,6 +100,18 @@ describe('router contract', () => {
     expect(route.meta.title).toBe('电台节目')
   })
 
+  it('preserves the legacy video hall and video detail routes', () => {
+    const router = createAppRouter(createMemoryHistory())
+    const hall = router.resolve({ name: Pages.video })
+    const detail = router.resolve({ name: Pages.videoDetail, query: { id: 'VID001' } })
+
+    expect(hall.path).toBe('/video')
+    expect(hall.meta.title).toBe('视频')
+    expect(detail.path).toBe('/videoDetail')
+    expect(detail.query.id).toBe('VID001')
+    expect(detail.meta.title).toBe('视频详情')
+  })
+
   it('defines the search route and keyword query', () => {
     const router = createAppRouter(createMemoryHistory())
     const route = router.resolve({ name: Pages.search, query: { q: '深夜' } })

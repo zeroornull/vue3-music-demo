@@ -15,6 +15,8 @@ export const Pages = {
   playlist: 'playlist',
   search: 'search',
   toplist: 'toplist',
+  video: 'video',
+  videoDetail: 'videoDetail',
 } as const
 
 export type PageName = (typeof Pages)[keyof typeof Pages]

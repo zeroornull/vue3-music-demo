@@ -125,6 +125,7 @@ function mountView() {
         NewSongSection: NewSongSectionStub,
         MvSection: MvSectionStub,
         PersonalizedSection: PersonalizedSectionStub,
+        RouterLink: defineComponent({ template: '<a><slot /></a>' }),
       },
     },
   })
@@ -151,10 +152,10 @@ describe('DiscoverView', () => {
 
     expect(wrapper.get('h1').text()).toBe('推荐')
     expect(wrapper.get('.summary').text()).toBe(
-      '四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机已接入。',
+      '四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、视频大厅已接入。',
     )
-    expect(wrapper.get('.next-slices').text()).toContain('#/video')
-    expect(wrapper.get('.next-slices').text()).not.toContain('循环')
+    expect(wrapper.find('.next-slices').exists()).toBe(false)
+    expect(wrapper.text()).toContain('打开视频大厅')
     expect(wrapper.find('nav[aria-label="迁移工具"]').exists()).toBe(false)
     expect(wrapper.get('[data-testid="banner-count"]').text()).toBe('1')
     expect(getBanners).toHaveBeenCalledTimes(1)

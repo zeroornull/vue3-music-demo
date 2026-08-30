@@ -1,5 +1,18 @@
 # 迁移文档变更记录
 
+## 0.31.0 - 2026-08-30
+
+### 实施第 27 轮：`#/video` 大厅 + 视频详情
+
+- 新增 `#/video`：`GET /video/group/list` + `GET /video/timeline/all` / `GET /video/group`；原生分类 chip（全部视频 + 前 8 个分类）；
+- 卡片打开 `#/videoDetail?id=`，`GET /video/url` 接到已有 16:9 `<video>`；
+- 不迁 el-popover 全部分类、分页、AppShell 视频项、静音、播放列表抽屉；
+- 87 个测试文件、345 个测试通过；typecheck、build（321 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 审查后：切换分类失败会清空上一组卡片；`/video/url` 优先匹配请求的 vid；移动端 chip 不再被 100vh 网格拉高；
+- smoke 使用 Vite `127.0.0.1:48621` + mock `127.0.0.1:48631`，覆盖 Discover→大厅→分类→详情播放、重新配置、桌面/移动布局；
+- 第 25–26 轮提交为 `dda5d3e`，第 27 轮代码仍在工作区，未 commit、未 push；
+- 下一轮建议迁移歌手专辑 tab。
+
 ## 0.30.0 - 2026-08-30
 
 ### 实施第 26 轮：循环 / 随机 + 播完自动切歌

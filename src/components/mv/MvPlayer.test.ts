@@ -26,4 +26,15 @@ describe('MvPlayer', () => {
       'is-widescreen',
     )
   })
+
+  it('labels user videos separately from MVs', () => {
+    const wrapper = mount(MvPlayer, {
+      props: {
+        kind: 'video',
+        src: 'https://media.example.com/clip.mp4',
+        title: '晚风现场',
+      },
+    })
+    expect(wrapper.get('video').attributes('aria-label')).toBe('播放 视频：晚风现场')
+  })
 })

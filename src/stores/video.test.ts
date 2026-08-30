@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getPersonalizedMvs } from '@/api/mv'
 import { getPrivateContents } from '@/api/privateContent'
+import { getHallVideos, getVideoGroups } from '@/api/video'
 import { useVideoStore } from '@/stores/video'
 
 vi.mock('@/api/mv', () => ({
@@ -11,6 +12,11 @@ vi.mock('@/api/mv', () => ({
 
 vi.mock('@/api/privateContent', () => ({
   getPrivateContents: vi.fn(),
+}))
+
+vi.mock('@/api/video', () => ({
+  getHallVideos: vi.fn(),
+  getVideoGroups: vi.fn(),
 }))
 
 const privateContent = {
@@ -25,6 +31,15 @@ function deferred<T>() {
     resolve = resolvePromise
   })
   return { promise, resolve }
+}
+
+const clip = {
+  coverUrl: 'https://images.example.com/clip.jpg',
+  creatorName: '林间电台',
+  durationms: 180_000,
+  playTime: 12_000,
+  title: '晚风现场',
+  vid: 'VID001',
 }
 
 const mv = {
@@ -48,6 +63,8 @@ describe('video store', () => {
     setActivePinia(createPinia())
     vi.mocked(getPersonalizedMvs).mockReset()
     vi.mocked(getPrivateContents).mockReset()
+    vi.mocked(getVideoGroups).mockReset()
+    vi.mocked(getHallVideos).mockReset()
   })
 
   it('loads and caches personalized MVs', async () => {
@@ -132,5 +149,68 @@ describe('video store', () => {
 
     expect(store.privateContents).toEqual([])
     expect(store.privateContentsLoading).toBe(false)
+  })
+
+  it('loads video groups and the all-video timeline', async () => {
+    vi.mocked(getVideoGroups).mockResolvedValue([{ id: 101, name: '现场' }])
+    vi.mocked(getHallVideos).mockResolvedValue([clip])
+    const store = useVideoStore()
+
+    await store.loadGroups()
+    await store.loadClips()
+    await store.loadGroups()
+    await store.loadClips()
+
+    expect(store.groups).toEqual([{ id: 101, name: '现场' }])
+    expect(store.clips).toEqual([clip])
+    expect(store.groupId).toBe(0)
+    expect(getVideoGroups).toHaveBeenCalledTimes(1)
+    expect(getHallVideos).toHaveBeenCalledTimes(1)
+    expect(getHallVideos).toHaveBeenCalledWith(0)
+  })
+
+  it('refetches clips when the group changes and drops stale group requests', async () => {
+    const pending = deferred<typeof clip[]>()
+    vi.mocked(getHallVideos)
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce([
+        { ...clip, vid: 'VID002', title: '翻唱现场' },
+      ])
+    const store = useVideoStore()
+    const first = store.loadClips()
+    await store.setGroup(101)
+    pending.resolve([clip])
+    await first
+
+    expect(store.groupId).toBe(101)
+    expect(store.clips).toEqual([
+      { ...clip, vid: 'VID002', title: '翻唱现场' },
+    ])
+    expect(getHallVideos).toHaveBeenNthCalledWith(2, 101)
+  })
+
+  it('clears hall clips after reset', async () => {
+    vi.mocked(getHallVideos).mockResolvedValue([clip])
+    const store = useVideoStore()
+    await store.loadClips()
+    store.groups = [{ id: 101, name: '现场' }]
+    store.groupId = 101
+    store.reset()
+
+    expect(store.clips).toEqual([])
+    expect(store.groups).toEqual([])
+    expect(store.groupId).toBe(0)
+  })
+
+  it('clears clips when switching group fails', async () => {
+    vi.mocked(getHallVideos)
+      .mockResolvedValueOnce([clip])
+      .mockRejectedValueOnce(new Error('group offline'))
+    const store = useVideoStore()
+    await store.loadClips()
+    await expect(store.setGroup(101)).rejects.toThrow('group offline')
+    expect(store.groupId).toBe(101)
+    expect(store.clips).toEqual([])
+    expect(store.clipsError).toBe('group offline')
   })
 })

@@ -17,6 +17,7 @@ import { usePlaylistStore } from '@/stores/playlist'
 import { useDjStore } from '@/stores/dj'
 import { useSearchStore } from '@/stores/search'
 import { useVideoStore } from '@/stores/video'
+import { useVideoDetailStore } from '@/stores/videoDetail'
 import { useHostStore } from '@/stores/host'
 
 vi.mock('@/api/song', () => ({
@@ -187,6 +188,31 @@ describe('App host gate', () => {
     expect(videoStore.mvs).toEqual([])
   })
 
+  it('clears video hall cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const videoStore = useVideoStore()
+    videoStore.groups = [{ id: 101, name: '现场' }]
+    videoStore.groupId = 101
+    videoStore.clips = [
+      {
+        coverUrl: 'https://images.example.com/clip.jpg',
+        creatorName: '林间电台',
+        durationms: 1,
+        playTime: 1,
+        title: '晚风现场',
+        vid: 'VID001',
+      },
+    ]
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(videoStore.groups).toEqual([])
+    expect(videoStore.clips).toEqual([])
+    expect(videoStore.groupId).toBe(0)
+  })
+
   it('clears recommended radio cache when the host gate closes', async () => {
     localStorage.setItem('BASE_URL', 'https://api.example.com')
     const djStore = useDjStore()
@@ -311,6 +337,23 @@ describe('App host gate', () => {
 
     expect(mvStore.playback).toBeNull()
     expect(mvStore.loadedId).toBeNull()
+  })
+
+  it('clears video playback cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const videoDetailStore = useVideoDetailStore()
+    videoDetailStore.playback = {
+      id: 'VID001',
+      url: 'https://media.example.com/clip.mp4',
+    }
+    videoDetailStore.loadedId = 'VID001'
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(videoDetailStore.playback).toBeNull()
+    expect(videoDetailStore.loadedId).toBeNull()
   })
 
   it('clears playlist cache when the host gate closes', async () => {

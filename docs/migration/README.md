@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.30.0`<br>
+> 文档版本：`0.31.0`<br>
 > 版本快照日期：`2026-08-30`<br>
-> 当前阶段：**实施第 26 轮循环/随机已落地（未 commit）；下一轮 `#/video`**
+> 当前阶段：**实施第 27 轮 `#/video` 已落地（未 commit）；下一轮歌手专辑 tab**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -454,7 +454,16 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 33. 主要官方资料
+## 33. 实施第 27 轮结果
+
+- `#/video` 分类 chip + 视频网格；`#/videoDetail?id=` 播放页；
+- 87 个测试文件、345 个测试通过；typecheck、build（321 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 下一轮建议迁移歌手专辑 tab。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 34. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

@@ -3307,4 +3307,80 @@ mock API http://127.0.0.1:48531
 
 ### 28.4 本轮结果
 
-循环/随机已在工作区形成。独立审查 PASS WITH FINDINGS：ended 自动切歌失败会吞掉 promise，避免未处理拒绝；随机 `next()` 仍要求当前曲在队列里。第 24 轮提交 `bac8a05` 仍是当前 HEAD；第 25、26 轮尚未 commit / push。下一轮建议迁移 `#/video`。
+循环/随机已在工作区形成。独立审查 PASS WITH FINDINGS：ended 自动切歌失败会吞掉 promise，避免未处理拒绝；随机 `next()` 仍要求当前曲在队列里。第 25、26 轮随后以 `dda5d3e` 提交。下一轮建议迁移 `#/video`。
+
+## 29. 实施第 27 轮：`#/video` 大厅 + 视频详情（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 29.1 开始边界与范围
+
+第 27 轮开始时第 25、26 轮已经提交：
+
+```text
+HEAD dda5d3e
+master...origin/master
+```
+
+工作区从该提交继续。本轮落地 `#/video` 大厅和 `#/videoDetail?id=`。不迁 el-popover 全部分类、分页、AppShell 视频项、静音、播放列表抽屉、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `GET /video/group/list` + `GET /video/timeline/all` / `GET /video/group`；
+- 原生 chip：全部视频 + 前 8 个分类；
+- `GET /video/url` 复用 `MvPlayer`。
+
+### 29.2 自动验证
+
+```text
+bun run test
+Test Files  87 passed (87)
+Tests       345 passed (345)
+
+bun run typecheck
+PASS
+
+bun run build
+321 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 29.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:48621
+mock API http://127.0.0.1:48631
+```
+
+验证步骤：
+
+1. Host 保存后 Discover 出现「打开视频大厅」；
+2. 进入 `#/video`，看到全部视频 / 现场 / 翻唱，以及「晚风现场」；
+3. 点「现场」，列表变成「翻唱现场」；
+4. 点卡片进入 `#/videoDetail?id=VID002`，标题「翻唱现场」，16:9 播放器可播；
+5. 返回大厅后「重新配置 API」回到 Host 表单；
+6. 桌面 `1440×900` 与移动 `390×844` 无横向溢出（`scrollWidth === clientWidth`）。
+
+截图保存在 `/tmp/vue3-music-round27-desktop.png` 和 `/tmp/vue3-music-round27-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 29.4 本轮结果
+
+`#/video` 已在工作区形成。独立审查 FAIL → 已修：切换分类失败会清空上一组卡片并显示错误；`/video/url` 优先匹配请求的 vid。第 25–26 轮提交 `dda5d3e` 仍是当前 HEAD；第 27 轮尚未 commit / push。下一轮建议迁移歌手专辑 tab。

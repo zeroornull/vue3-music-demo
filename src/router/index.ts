@@ -158,6 +158,27 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/video',
+    name: Pages.video,
+    component: () => import('@/views/VideoHallPage.vue'),
+    meta: {
+      keepAlive: true,
+      menu: 'discover',
+      requiresApiHost: true,
+      title: '视频',
+    },
+  },
+  {
+    path: '/videoDetail',
+    name: Pages.videoDetail,
+    component: () => import('@/views/VideoDetailView.vue'),
+    meta: {
+      menu: 'discover',
+      requiresApiHost: true,
+      title: '视频详情',
+    },
+  },
+  {
     path: '/mvDetail',
     name: Pages.mvDetail,
     component: () => import('@/views/MvView.vue'),

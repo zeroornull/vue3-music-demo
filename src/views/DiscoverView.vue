@@ -7,6 +7,7 @@ import MvSection from '@/components/discover/MvSection.vue'
 import NewSongSection from '@/components/discover/NewSongSection.vue'
 import PersonalizedSection from '@/components/discover/PersonalizedSection.vue'
 import type { Banner } from '@/models/banner'
+import { Pages } from '@/router/pages'
 import type { PersonalizedNewSong } from '@/models/newSong'
 import { useCommonStore } from '@/stores/common'
 import { useMusicStore } from '@/stores/music'
@@ -94,7 +95,10 @@ onMounted(() => {
       <div>
         <p class="eyebrow">Discover</p>
         <h1>推荐</h1>
-        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机已接入。</p>
+        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、视频大厅已接入。</p>
+        <p class="hall-link">
+          <RouterLink :to="{ name: Pages.video }">打开视频大厅</RouterLink>
+        </p>
       </div>
     </header>
 
@@ -130,15 +134,6 @@ onMounted(() => {
       @retry="requestMvs(true)"
     />
 
-    <section class="next-slices" aria-labelledby="next-slices-title">
-      <div>
-        <p class="eyebrow">Next slices</p>
-        <h2 id="next-slices-title">推荐页仍在渐进迁移</h2>
-      </div>
-      <ul>
-        <li>#/video</li>
-      </ul>
-    </section>
   </main>
 </template>
 
@@ -191,48 +186,24 @@ onMounted(() => {
   color: #17614f;
 }
 
-.next-slices {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 32px;
-  margin-top: 46px;
-  padding: 28px;
-  border: 1px solid #dce4ee;
-  border-radius: 20px;
-  background: #ffffff;
+.hall-link {
+  margin: 12px 0 0;
 }
 
-.next-slices h2 {
-  margin: 0;
-  font-size: 1.3rem;
+.hall-link a {
+  color: #087c62;
+  font-weight: 720;
+  text-decoration: none;
 }
 
-.next-slices ul {
-  display: flex;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.next-slices li {
-  padding: 8px 11px;
-  border-radius: 999px;
-  background: #eef3f7;
-  color: #5f6b7e;
-  font-size: 0.82rem;
+.hall-link a:focus-visible {
+  outline: 3px solid #32b58e;
+  outline-offset: 3px;
 }
 
 @media (max-width: 760px) {
-  .page-header,
-  .next-slices {
+  .page-header {
     align-items: stretch;
-    flex-direction: column;
-  }
-
-  .next-slices ul {
-    align-items: start;
     flex-direction: column;
   }
 }

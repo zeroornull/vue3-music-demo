@@ -17,6 +17,7 @@ import { useMvStore } from '@/stores/mv'
 import { usePlayerStore } from '@/stores/player'
 import { usePlaylistStore } from '@/stores/playlist'
 import { useVideoStore } from '@/stores/video'
+import { useVideoDetailStore } from '@/stores/videoDetail'
 
 const hostStore = useHostStore()
 const playerStore = usePlayerStore()
@@ -26,6 +27,7 @@ const mvStore = useMvStore()
 const musicStore = useMusicStore()
 const categoryStore = useCategoryStore()
 const videoStore = useVideoStore()
+const videoDetailStore = useVideoDetailStore()
 const commonStore = useCommonStore()
 const artistStore = useArtistStore()
 const djStore = useDjStore()
@@ -41,6 +43,7 @@ watch(isConfigured, (configured) => {
     musicStore.reset()
     categoryStore.reset()
     videoStore.reset()
+    videoDetailStore.reset()
     commonStore.reset()
     artistStore.reset()
     djStore.reset()

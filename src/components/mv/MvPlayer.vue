@@ -1,11 +1,13 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
+    kind?: 'mv' | 'video'
     poster?: string
     src: string
     title: string
   }>(),
   {
+    kind: 'mv',
     poster: '',
   },
 )
@@ -16,7 +18,7 @@ withDefaults(
     <video
       :src="src"
       :poster="poster || undefined"
-      :aria-label="`播放 MV：${title}`"
+      :aria-label="`播放 ${kind === 'video' ? '视频' : 'MV'}：${title}`"
       controls
       playsinline
       preload="metadata"

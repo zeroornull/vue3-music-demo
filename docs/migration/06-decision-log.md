@@ -320,6 +320,15 @@
 - **随机**：`next()` 和结束切歌都从队列里抽一首不是当前曲的歌。上一首仍按列表顺序。
 - **本轮不做**：静音、播放列表抽屉、`#/video`、音量 localStorage、Header 弹出层。
 
+### D-037：`#/video` 做成大厅加独立详情，不进顶栏
+
+- **状态**：已验证
+- **日期**：2026-08-30
+- **决策**：第 27 轮落地 `#/video` 大厅和 `#/videoDetail?id=`。大厅用原生 chip（全部视频 + 接口前 8 个分类），不做 Element Plus 弹出层。`id=0` 走 `GET /video/timeline/all`，其余走 `GET /video/group`。详情走 `GET /video/url`，复用已有 `MvPlayer`。
+- **原因**：legacy `Video.vue` 没有详情路由，卡片也不接线。只做网格会变成死链。视频 `vid` 是字符串，不能塞进现有 `#/mvDetail?id=` 数字 MV 页。顶栏不加「视频」，仍遵守 D-028；Discover 提供入口。
+- **Store**：大厅状态进现有 video store，独立世代号；播放用独立 videoDetail store。Host `reset()` 两组都清。
+- **本轮不做**：全部分类弹出层、分页/加载更多、静音、播放列表抽屉、Header 弹出层。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：
