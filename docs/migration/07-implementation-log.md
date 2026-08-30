@@ -3158,4 +3158,153 @@ mock API http://127.0.0.1:48331
 
 ### 26.4 本轮结果
 
-歌手详情 MV tab 已在工作区形成。第 23 轮提交 `49a206b` 仍是当前 HEAD；第 24 轮尚未 commit / push。下一轮建议迁移上一首/下一首或 `#/video`。
+歌手详情 MV tab 已在工作区形成。第 23 轮提交 `49a206b` 仍是当时 HEAD；第 24 轮随后以 `bac8a05` 提交。下一轮建议迁移上一首/下一首或 `#/video`。
+
+## 27. 实施第 25 轮：上一首 / 下一首（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 27.1 开始边界与范围
+
+第 25 轮开始时第 24 轮已经提交：
+
+```text
+HEAD bac8a05
+master...origin/master
+```
+
+工作区从该提交继续。本轮给全局 PlayerBar 加上上一首/下一首。不迁循环模式、随机、静音、播完自动切歌、`#/video`、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `next()` / `prev()` 按队列跳转，到头尾循环；
+- 队列只有一首时禁用按钮。
+
+### 27.2 自动验证
+
+```text
+bun run test
+Test Files  80 passed (80)
+Tests       313 passed (313)
+
+bun run typecheck
+PASS
+
+bun run build
+304 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 27.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:48421
+mock API http://127.0.0.1:48431
+```
+
+验证步骤：
+
+1. Host 保存后打开 `#/album?id=501`，点「播放全部」，PlayerBar 显示「晚风来信」；
+2. 点「下一首」，栏上标题变成「下一首」；
+3. 点「上一首」，栏上标题回到「晚风来信」；
+4. 「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出（`scrollWidth === clientWidth`）。
+
+截图保存在 `/tmp/vue3-music-round25-desktop.png` 和 `/tmp/vue3-music-round25-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 27.4 本轮结果
+
+上一首/下一首已在工作区形成。第 24 轮提交 `bac8a05` 仍是当时 HEAD；第 25 轮尚未 commit / push。独立审查 PASS WITH FINDINGS：补了当前曲不在多曲队列时的 no-op 测试，以及 `next()` / `prev()` 对 `currentIndex < 0` 的防护。
+
+## 28. 实施第 26 轮：循环 / 随机 + 播完自动切歌（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 28.1 开始边界与范围
+
+第 26 轮开始时第 24 轮已经提交，第 25 轮仍在工作区：
+
+```text
+HEAD bac8a05
+master...origin/master
+```
+
+工作区从第 25 轮上一首/下一首继续。本轮给全局 PlayerBar 加上循环/随机，并把播完接到该模式。不迁静音、播放列表抽屉、`#/video`、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `loopMode`：`one` / `list` / `shuffle`，按钮循环切换；
+- `ended`：单曲重播、列表切下一首、随机抽另一首；
+- 单曲队列结束时重播，不重新拉 URL。
+
+### 28.2 自动验证
+
+```text
+bun run test
+Test Files  80 passed (80)
+Tests       324 passed (324)
+
+bun run typecheck
+PASS
+
+bun run build
+304 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 28.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:48521
+mock API http://127.0.0.1:48531
+```
+
+验证步骤：
+
+1. Host 保存后打开 `#/album?id=501`，点「播放全部」，PlayerBar 显示「晚风来信」和「单曲循环」；
+2. 点循环切到「列表循环」；8 秒 mock 音频结束后栏上标题变成「下一首」，再结束后回到「晚风来信」；
+3. 点循环切到「随机播放」，再切回「单曲循环」；
+4. 「重新配置 API」回到 Host 表单，播放器消失；
+5. 桌面 `1440×900` 与移动 `390×844`（播放器可见）无横向溢出（`scrollWidth === clientWidth`）。
+
+截图保存在 `/tmp/vue3-music-round26-desktop.png` 和 `/tmp/vue3-music-round26-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 28.4 本轮结果
+
+循环/随机已在工作区形成。独立审查 PASS WITH FINDINGS：ended 自动切歌失败会吞掉 promise，避免未处理拒绝；随机 `next()` 仍要求当前曲在队列里。第 24 轮提交 `bac8a05` 仍是当前 HEAD；第 25、26 轮尚未 commit / push。下一轮建议迁移 `#/video`。

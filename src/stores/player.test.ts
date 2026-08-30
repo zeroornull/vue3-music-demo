@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { flushPromises } from '@vue/test-utils'
 import { getSongDetail, getSongUrl } from '@/api/song'
 import type { AudioAdapter } from '@/audio/audioAdapter'
 import {
@@ -47,6 +48,7 @@ function mockAdapter(overrides: Partial<AudioAdapter> = {}) {
 
 describe('Player store', () => {
   beforeEach(() => {
+    vi.restoreAllMocks()
     setActivePinia(createPinia())
     resetAudioAdapter()
     vi.mocked(getSongDetail).mockImplementation(async (id) => song(id))
@@ -477,5 +479,186 @@ describe('Player store', () => {
     expect(player.duration).toBe(0)
     expect(player.volume).toBe(1)
     expect(adapter.volume).toBe(1)
+  })
+
+  it('skips to the next and previous songs and wraps the queue', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.playAll([song(1), song(2), song(3)])
+    expect(player.currentIndex).toBe(0)
+
+    await expect(player.next()).resolves.toBe(true)
+    expect(player.current?.id).toBe(2)
+    expect(player.currentIndex).toBe(1)
+    await expect(player.next()).resolves.toBe(true)
+    expect(player.current?.id).toBe(3)
+    expect(player.currentIndex).toBe(2)
+    await expect(player.next()).resolves.toBe(true)
+    expect(player.current?.id).toBe(1)
+    expect(player.currentIndex).toBe(0)
+    await expect(player.prev()).resolves.toBe(true)
+    expect(player.current?.id).toBe(3)
+    expect(player.currentIndex).toBe(2)
+    expect(player.canSkip).toBe(true)
+  })
+
+  it('does not skip when the queue has one song or no current track', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    expect(player.canSkip).toBe(false)
+    await expect(player.next()).resolves.toBe(false)
+    await expect(player.prev()).resolves.toBe(false)
+    expect(player.current?.id).toBe(1)
+
+    player.clear()
+    expect(player.currentIndex).toBe(-1)
+    await expect(player.next()).resolves.toBe(false)
+  })
+
+  it('does not skip when current is missing from a multi-song queue', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.playAll([song(1), song(2), song(3)])
+    player.current = song(9)
+    expect(player.currentIndex).toBe(-1)
+    expect(player.canSkip).toBe(false)
+    await expect(player.next()).resolves.toBe(false)
+    await expect(player.prev()).resolves.toBe(false)
+    expect(player.current?.id).toBe(9)
+  })
+
+  it('cycles loop mode from one to list to shuffle', () => {
+    const player = usePlayerStore()
+    expect(player.loopMode).toBe('one')
+    expect(player.toggleLoop()).toBe('list')
+    expect(player.loopMode).toBe('list')
+    expect(player.toggleLoop()).toBe('shuffle')
+    expect(player.toggleLoop()).toBe('one')
+  })
+
+  it('replays the current song when a track ends in one-loop mode', async () => {
+    const adapter = mockAdapter({ duration: 90 })
+    setAudioAdapter(adapter)
+    const player = usePlayerStore()
+    await player.playAll([song(1), song(2)])
+    const urlCalls = vi.mocked(getSongUrl).mock.calls.length
+    adapter.currentTime = 90
+    adapter.listeners.get('ended')!()
+    await flushPromises()
+
+    expect(player.current?.id).toBe(1)
+    expect(player.isPlaying).toBe(true)
+    expect(player.currentTime).toBe(0)
+    expect(adapter.currentTime).toBe(0)
+    expect(vi.mocked(getSongUrl)).toHaveBeenCalledTimes(urlCalls)
+  })
+
+  it('advances to the next song when a track ends in list-loop mode', async () => {
+    const adapter = mockAdapter()
+    setAudioAdapter(adapter)
+    const player = usePlayerStore()
+    await player.playAll([song(1), song(2), song(3)])
+    player.toggleLoop()
+    adapter.listeners.get('ended')!()
+    await flushPromises()
+
+    expect(player.loopMode).toBe('list')
+    expect(player.current?.id).toBe(2)
+    expect(player.isPlaying).toBe(true)
+  })
+
+  it('replays the only song when list-loop ends on a single-track queue', async () => {
+    const adapter = mockAdapter({ duration: 40 })
+    setAudioAdapter(adapter)
+    const player = usePlayerStore()
+    await player.play(song(1))
+    player.toggleLoop()
+    const urlCalls = vi.mocked(getSongUrl).mock.calls.length
+    adapter.listeners.get('ended')!()
+    await flushPromises()
+
+    expect(player.current?.id).toBe(1)
+    expect(player.isPlaying).toBe(true)
+    expect(adapter.currentTime).toBe(0)
+    expect(vi.mocked(getSongUrl)).toHaveBeenCalledTimes(urlCalls)
+  })
+
+  it('wraps to the first song when list-loop ends on the last track', async () => {
+    const adapter = mockAdapter()
+    setAudioAdapter(adapter)
+    const player = usePlayerStore()
+    await player.playAll([song(1), song(2), song(3)])
+    player.toggleLoop()
+    await player.next()
+    await player.next()
+    expect(player.current?.id).toBe(3)
+    adapter.listeners.get('ended')!()
+    await flushPromises()
+    expect(player.current?.id).toBe(1)
+    expect(player.isPlaying).toBe(true)
+  })
+
+  it('replays the only song when shuffle ends on a single-track queue', async () => {
+    const adapter = mockAdapter({ duration: 40 })
+    setAudioAdapter(adapter)
+    const player = usePlayerStore()
+    await player.play(song(1))
+    player.toggleLoop()
+    player.toggleLoop()
+    const urlCalls = vi.mocked(getSongUrl).mock.calls.length
+    adapter.listeners.get('ended')!()
+    await flushPromises()
+
+    expect(player.loopMode).toBe('shuffle')
+    expect(player.current?.id).toBe(1)
+    expect(player.isPlaying).toBe(true)
+    expect(adapter.currentTime).toBe(0)
+    expect(vi.mocked(getSongUrl)).toHaveBeenCalledTimes(urlCalls)
+  })
+
+  it('records auto-advance errors without an unhandled rejection', async () => {
+    const adapter = mockAdapter()
+    setAudioAdapter(adapter)
+    const player = usePlayerStore()
+    await player.playAll([song(1), song(2)])
+    player.toggleLoop()
+    vi.mocked(getSongUrl).mockRejectedValueOnce(new Error('暂无播放地址'))
+    adapter.listeners.get('ended')!()
+    await flushPromises()
+
+    expect(player.current?.id).toBe(2)
+    expect(player.error).toBe('暂无播放地址')
+    expect(player.isPlaying).toBe(false)
+  })
+
+  it('picks another queued song when ending or skipping in shuffle mode', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const adapter = mockAdapter()
+    setAudioAdapter(adapter)
+    const player = usePlayerStore()
+    await player.playAll([song(1), song(2), song(3)])
+    player.toggleLoop()
+    player.toggleLoop()
+    expect(player.loopMode).toBe('shuffle')
+
+    adapter.listeners.get('ended')!()
+    await flushPromises()
+    expect(player.current?.id).toBe(2)
+
+    await expect(player.next()).resolves.toBe(true)
+    expect(player.current?.id).toBe(1)
+    await expect(player.prev()).resolves.toBe(true)
+    expect(player.current?.id).toBe(3)
+  })
+
+  it('restores one-loop mode when the queue is cleared', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    player.toggleLoop()
+    player.toggleLoop()
+    player.clear()
+    expect(player.loopMode).toBe('one')
   })
 })

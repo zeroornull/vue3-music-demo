@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { usePlayerStore } from '@/stores/player'
+import { LOOP_MODE_LABEL, usePlayerStore } from '@/stores/player'
 import { formatClock } from '@/utils/number'
 
 const player = usePlayerStore()
@@ -13,13 +14,33 @@ const {
   currentTime,
   duration,
   volume,
+  canSkip,
+  loopMode,
 } = storeToRefs(player)
+
+const loopLabel = computed(() => LOOP_MODE_LABEL[loopMode.value])
 
 async function togglePlayback() {
   try {
     await player.toggle()
   } catch {
     // The store records the actionable error for the bar; keep the DOM handler settled.
+  }
+}
+
+async function skipNext() {
+  try {
+    await player.next()
+  } catch {
+    // The store records the skip error for the bar.
+  }
+}
+
+async function skipPrev() {
+  try {
+    await player.prev()
+  } catch {
+    // The store records the skip error for the bar.
   }
 }
 
@@ -48,14 +69,42 @@ function onVolumeInput(event: Event) {
       ><span v-if="error" role="alert">{{ error }}</span>
     </div>
     <div v-if="current" class="player-transport">
-      <button
-        type="button"
-        :disabled="!hasPlayableSource"
-        :aria-label="isPlaying ? '暂停' : '播放'"
-        @click="togglePlayback"
-      >
-        {{ isPlaying ? '暂停' : '播放' }}
-      </button>
+      <div class="player-skip">
+        <button
+          type="button"
+          class="skip"
+          :aria-label="loopLabel"
+          @click="player.toggleLoop()"
+        >
+          {{ loopLabel }}
+        </button>
+        <button
+          type="button"
+          class="skip"
+          :disabled="!canSkip"
+          aria-label="上一首"
+          @click="skipPrev"
+        >
+          上一首
+        </button>
+        <button
+          type="button"
+          :disabled="!hasPlayableSource"
+          :aria-label="isPlaying ? '暂停' : '播放'"
+          @click="togglePlayback"
+        >
+          {{ isPlaying ? '暂停' : '播放' }}
+        </button>
+        <button
+          type="button"
+          class="skip"
+          :disabled="!canSkip"
+          aria-label="下一首"
+          @click="skipNext"
+        >
+          下一首
+        </button>
+      </div>
       <div class="player-progress">
         <span data-testid="player-clock"
           >{{ formatClock(currentTime) }} / {{ formatClock(duration) }}</span
@@ -136,6 +185,26 @@ function onVolumeInput(event: Event) {
   align-items: center;
   gap: 12px;
 }
+.player-skip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.player-bar button.skip {
+  padding: 7px 12px;
+  border: 1px solid #4a5d73;
+  background: transparent;
+}
+.player-bar button.skip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.player-bar button:focus-visible {
+  outline: 3px solid #32b58e;
+  outline-offset: 2px;
+}
 .player-progress {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -168,6 +237,9 @@ function onVolumeInput(event: Event) {
   .player-bar {
     grid-template-columns: minmax(0, 1fr);
     padding: 10px 16px;
+  }
+  .player-transport {
+    grid-template-columns: minmax(0, 1fr);
   }
   .player-volume {
     max-width: 160px;

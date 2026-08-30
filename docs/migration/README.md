@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.28.0`<br>
+> 文档版本：`0.30.0`<br>
 > 版本快照日期：`2026-08-30`<br>
-> 当前阶段：**实施第 24 轮歌手 MV tab 已落地（未 commit）；下一轮上一首/下一首或 `#/video`**
+> 当前阶段：**实施第 26 轮循环/随机已落地（未 commit）；下一轮 `#/video`**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -431,12 +431,30 @@ build: {
 
 - 歌手详情原生「歌曲 / 视频」tab；`GET /artist/mv` 打开 `#/mvDetail`；
 - 80 个测试文件、309 个测试通过；typecheck、build（304 modules）、frozen lock、audit 和 `git diff --check` 通过；
-- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 已完成本地 mock API 浏览器 smoke；随后提交为 `bac8a05`；
 - 下一轮建议迁移上一首/下一首或 `#/video`。
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 31. 主要官方资料
+## 31. 实施第 25 轮结果
+
+- 全局 PlayerBar 上一首/下一首；队列循环跳转；
+- 80 个测试文件、313 个测试通过；typecheck、build（304 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 下一轮建议迁移 `#/video` 或循环/随机。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 32. 实施第 26 轮结果
+
+- 全局 PlayerBar 循环/随机；歌曲结束按模式重播或切歌；
+- 80 个测试文件、324 个测试通过；typecheck、build（304 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 下一轮建议迁移 `#/video`。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 33. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

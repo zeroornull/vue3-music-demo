@@ -94,7 +94,7 @@ onMounted(() => {
       <div>
         <p class="eyebrow">Discover</p>
         <h1>推荐</h1>
-        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量已接入。</p>
+        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机已接入。</p>
       </div>
     </header>
 
@@ -136,7 +136,6 @@ onMounted(() => {
         <h2 id="next-slices-title">推荐页仍在渐进迁移</h2>
       </div>
       <ul>
-        <li>上一首 / 下一首</li>
         <li>#/video</li>
       </ul>
     </section>

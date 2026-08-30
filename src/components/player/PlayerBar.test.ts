@@ -144,6 +144,57 @@ describe('PlayerBar', () => {
     expect(adapter.currentTime).toBe(45)
   })
 
+  it('disables skip when the queue has one song', () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.queue = [player.current]
+    player.hasPlayableSource = true
+    const wrapper = mount(PlayerBar)
+    expect(wrapper.get('button[aria-label="上一首"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('button[aria-label="下一首"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('skips from the bar when the queue has more than one song', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.queue = [
+      player.current,
+      { id: 2, name: '下一首', artists: [] },
+    ]
+    player.hasPlayableSource = true
+    const next = vi.spyOn(player, 'next').mockResolvedValue(true)
+    const prev = vi.spyOn(player, 'prev').mockResolvedValue(true)
+    const wrapper = mount(PlayerBar)
+    expect(wrapper.get('button[aria-label="下一首"]').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('button[aria-label="上一首"]').attributes('disabled')).toBeUndefined()
+
+    await wrapper.get('button[aria-label="下一首"]').trigger('click')
+    await wrapper.get('button[aria-label="上一首"]').trigger('click')
+    expect(next).toHaveBeenCalledOnce()
+    expect(prev).toHaveBeenCalledOnce()
+  })
+
+  it('cycles loop mode from the bar', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.queue = [
+      player.current,
+      { id: 2, name: '下一首', artists: [] },
+    ]
+    player.hasPlayableSource = true
+    const wrapper = mount(PlayerBar)
+    const loop = wrapper.get('button[aria-label="单曲循环"]')
+    expect(loop.attributes('disabled')).toBeUndefined()
+
+    await loop.trigger('click')
+    expect(player.loopMode).toBe('list')
+    expect(wrapper.get('button[aria-label="列表循环"]').text()).toBe('列表循环')
+
+    await wrapper.get('button[aria-label="列表循环"]').trigger('click')
+    expect(player.loopMode).toBe('shuffle')
+    expect(wrapper.get('button[aria-label="随机播放"]').text()).toBe('随机播放')
+  })
+
   it('maps the volume control from 0-100 to the adapter', async () => {
     const player = usePlayerStore()
     const adapter = mockAdapter()
