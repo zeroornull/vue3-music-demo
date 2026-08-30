@@ -7,6 +7,10 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getDjProgramDetail } from '@/api/dj'
+
+vi.mock('@/views/music/DjHallPage.vue', () => ({
+  default: { name: 'DjHallPage', template: '<div data-testid="dj-hall-stub" />' },
+}))
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useDjStore } from '@/stores/dj'
@@ -64,7 +68,7 @@ async function mountView(query: Record<string, string> = { id: '901' }) {
   setActivePinia(pinia)
   const router = createAppRouter(createMemoryHistory())
   await router.push({ name: Pages.dj, query })
-  return mount(DjView, {
+  const wrapper = mount(DjView, {
     global: {
       plugins: [pinia, router],
       stubs: {
@@ -73,6 +77,7 @@ async function mountView(query: Record<string, string> = { id: '901' }) {
       },
     },
   })
+  return { router, wrapper }
 }
 
 describe('DjView', () => {
@@ -83,13 +88,22 @@ describe('DjView', () => {
     vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
   })
 
-  it('shows a missing-id empty state without requesting the API', async () => {
-    const wrapper = await mountView({})
+  it('redirects a missing program id to the radio hall', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createAppRouter(createMemoryHistory())
+    await router.push({ name: Pages.dj })
+    const replace = vi.spyOn(router, 'replace')
+    mount(
+      { template: '<RouterView />' },
+      { global: { plugins: [pinia, router] } },
+    )
     await flushPromises()
 
-    expect(wrapper.get('[data-testid="dj-missing"]').text()).toContain(
-      '缺少电台节目 ID',
-    )
+    expect(replace).toHaveBeenCalledWith({ name: Pages.djHall })
+    await replace.mock.results.at(-1)?.value
+    expect(router.currentRoute.value.name).toBe(Pages.djHall)
+    expect(router.currentRoute.value.path).toBe('/music/dj')
     expect(getDjProgramDetail).not.toHaveBeenCalled()
   })
 
@@ -125,7 +139,7 @@ describe('DjView', () => {
   it('loads the program, retries and plays the main song', async () => {
     vi.mocked(getDjProgramDetail).mockRejectedValueOnce(new Error('dj offline'))
 
-    const wrapper = await mountView()
+    const { wrapper } = await mountView()
     await flushPromises()
     expect(wrapper.get('[role="alert"]').text()).toContain('dj offline')
 

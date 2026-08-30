@@ -23,5 +23,6 @@ describe('MusicPlaceholderView', () => {
       '排行榜',
     )
     expect(wrapper.text()).toContain('精选')
+    expect(wrapper.text()).toContain('电台大厅')
   })
 })

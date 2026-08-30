@@ -11,11 +11,19 @@ import 'swiper/css/pagination'
 withDefaults(
   defineProps<{
     banners: Banner[]
+    description?: string
     error?: string | null
+    eyebrow?: string
+    heading?: string
+    headingId?: string
     loading?: boolean
   }>(),
   {
+    description: '来自已配置的网易云音乐 API',
     error: null,
+    eyebrow: 'Featured',
+    heading: '今日推荐',
+    headingId: 'banner-title',
     loading: false,
   },
 )
@@ -34,13 +42,13 @@ const breakpoints = {
 </script>
 
 <template>
-  <section class="banner-section" aria-labelledby="banner-title">
+  <section class="banner-section" :aria-labelledby="headingId">
     <div class="section-heading">
       <div>
-        <p class="eyebrow">Featured</p>
-        <h2 id="banner-title">今日推荐</h2>
+        <p class="eyebrow">{{ eyebrow }}</p>
+        <h2 :id="headingId">{{ heading }}</h2>
       </div>
-      <p>来自已配置的网易云音乐 API</p>
+      <p>{{ description }}</p>
     </div>
 
     <div
@@ -106,6 +114,7 @@ const breakpoints = {
 
 <style scoped>
 .banner-section {
+  min-width: 0;
   margin-top: 32px;
 }
 

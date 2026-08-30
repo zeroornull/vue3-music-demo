@@ -282,6 +282,16 @@
 - **封面**：`picUrl` 缺失时回退 `blurPicUrl`。发行日期用 `Asia/Shanghai` 格式化为 `YYYY/MM/DD`。
 - **本轮不做**：电台大厅、歌手详情 tab、`#/video`、上一首/下一首、Header 弹出层。
 
+### D-033：电台大厅做成音乐馆子页，而不是填空的 `#/dj`
+
+- **状态**：已验证
+- **日期**：2026-08-30
+- **决策**：第 23 轮把电台大厅放在 `#/music/dj`（`Pages.djHall`）。Banner 走 `GET /dj/banner`，推荐节目复用已有 `GET /personalized/djprogram`。`#/dj?id=` 仍是节目详情。无 ID 的 `#/dj` `replace` 到大厅。
+- **原因**：legacy `DJ.vue` 是空页，音乐馆「有声电台」也从未落地。把大厅嵌进音乐馆，才能和精选/歌手馆一样保留栏目导航。节目详情已经占用 `#/dj`，不能再当大厅。
+- **Banner**：单曲可播；专辑/歌单/MV 打开已有详情；其余类型只提示后续切片。不迁电台分类、电台（radio）详情或付费电台。
+- **Store**：`loadBanners` 独立世代号。`resetDetail()` 不清 Banner/列表。Host `reset()` 两组都清。
+- **本轮不做**：歌手详情 MV tab、`#/video`、上一首/下一首、Header 弹出层。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

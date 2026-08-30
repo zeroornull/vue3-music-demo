@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { getDjProgramDetail, getPersonalizedDjPrograms } from '@/api/dj'
+import {
+  DJ_BANNER_LIMIT,
+  getDjBanners,
+  getDjProgramDetail,
+  getPersonalizedDjPrograms,
+} from '@/api/dj'
 
 const client = (response: unknown) => {
   const get = vi.fn(
@@ -11,6 +16,50 @@ const client = (response: unknown) => {
 }
 
 describe('DJ API', () => {
+  it('unwraps /dj/banner and keeps pic/target fields', async () => {
+    const request = client({
+      data: [
+        {
+          exclusive: true,
+          extra: true,
+          pic: 'https://images.example.com/dj-banner.jpg',
+          targetId: 301,
+          targetType: 1,
+          typeTitle: '深夜首播',
+          url: 'orpheus://song',
+        },
+        { pic: '', targetId: 0, targetType: 0 },
+      ],
+    })
+
+    await expect(getDjBanners(request.client)).resolves.toEqual([
+      {
+        bannerId: 1,
+        pic: 'https://images.example.com/dj-banner.jpg',
+        targetId: 301,
+        targetType: 1,
+        typeTitle: '深夜首播',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/banner')
+  })
+
+  it('rejects a missing banner array and slices the hall banners', async () => {
+    await expect(getDjBanners(client({ data: null }).client)).rejects.toThrow(
+      '电台 Banner 响应格式不正确',
+    )
+
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      pic: `https://images.example.com/${index}.jpg`,
+      targetId: index + 1,
+      targetType: 1,
+      typeTitle: `banner ${index + 1}`,
+    }))
+    const page = await getDjBanners(client({ data: many }).client)
+    expect(page).toHaveLength(DJ_BANNER_LIMIT)
+    expect(page[0]?.bannerId).toBe(1)
+  })
+
   it('unwraps /personalized/djprogram and keeps id/name/cover', async () => {
     const request = client({
       result: [

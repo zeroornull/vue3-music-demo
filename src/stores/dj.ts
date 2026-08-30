@@ -1,12 +1,13 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { getDjProgramDetail, getPersonalizedDjPrograms } from '@/api/dj'
+import { getDjBanners, getDjProgramDetail, getPersonalizedDjPrograms } from '@/api/dj'
 import { getErrorMessage } from '@/api/http'
-import type { DjProgram, DjProgramDetail } from '@/models/dj'
+import type { DjBanner, DjProgram, DjProgramDetail } from '@/models/dj'
 
 let requestSerial = 0
 let listSerial = 0
+let bannerSerial = 0
 
 export const useDjStore = defineStore('dj', () => {
   const program = ref<DjProgramDetail | null>(null)
@@ -16,6 +17,9 @@ export const useDjStore = defineStore('dj', () => {
   const programs = ref<DjProgram[]>([])
   const programsError = ref<string | null>(null)
   const programsLoading = ref(false)
+  const banners = ref<DjBanner[]>([])
+  const bannersError = ref<string | null>(null)
+  const bannersLoading = ref(false)
 
   function resetDetail() {
     requestSerial++
@@ -28,9 +32,34 @@ export const useDjStore = defineStore('dj', () => {
   function reset() {
     resetDetail()
     listSerial++
+    bannerSerial++
     programs.value = []
     programsError.value = null
     programsLoading.value = false
+    banners.value = []
+    bannersError.value = null
+    bannersLoading.value = false
+  }
+
+  async function loadBanners(force = false) {
+    if (banners.value.length && !force && !bannersError.value) {
+      return
+    }
+
+    const serial = ++bannerSerial
+    bannersLoading.value = true
+    bannersError.value = null
+    try {
+      const next = await getDjBanners()
+      if (serial !== bannerSerial) return
+      banners.value = next
+    } catch (requestError) {
+      if (serial !== bannerSerial) return
+      bannersError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === bannerSerial) bannersLoading.value = false
+    }
   }
 
   async function loadPrograms(force = false) {
@@ -89,6 +118,7 @@ export const useDjStore = defineStore('dj', () => {
 
   return {
     load,
+    loadBanners,
     loadPrograms,
     resetDetail,
     reset,
@@ -99,5 +129,8 @@ export const useDjStore = defineStore('dj', () => {
     programs,
     programsError,
     programsLoading,
+    banners,
+    bannersError,
+    bannersLoading,
   }
 })

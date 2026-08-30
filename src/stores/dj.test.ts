@@ -1,17 +1,26 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getDjProgramDetail, getPersonalizedDjPrograms } from '@/api/dj'
+import { getDjBanners, getDjProgramDetail, getPersonalizedDjPrograms } from '@/api/dj'
 import { useDjStore } from '@/stores/dj'
 
 vi.mock('@/api/dj', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/dj')>()
   return {
     ...actual,
+    getDjBanners: vi.fn(),
     getDjProgramDetail: vi.fn(),
     getPersonalizedDjPrograms: vi.fn(),
   }
 })
+
+const banner = {
+  bannerId: 1,
+  pic: 'https://images.example.com/dj-banner.jpg',
+  targetId: 301,
+  targetType: 1,
+  typeTitle: '深夜首播',
+}
 
 const program = {
   copywriter: '睡前电台',
@@ -48,8 +57,24 @@ function deferred<T>() {
 describe('dj store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.mocked(getDjBanners).mockReset()
     vi.mocked(getDjProgramDetail).mockReset()
     vi.mocked(getPersonalizedDjPrograms).mockReset()
+  })
+
+  it('loads hall banners once and treats a failed page as a cache miss', async () => {
+    vi.mocked(getDjBanners)
+      .mockRejectedValueOnce(new Error('banner offline'))
+      .mockResolvedValueOnce([banner])
+    const store = useDjStore()
+
+    await expect(store.loadBanners()).rejects.toThrow('banner offline')
+    await store.loadBanners()
+    await store.loadBanners()
+
+    expect(store.banners).toEqual([banner])
+    expect(store.bannersError).toBeNull()
+    expect(getDjBanners).toHaveBeenCalledTimes(2)
   })
 
   it('loads recommended programs once and treats a failed page as a cache miss', async () => {
@@ -132,5 +157,26 @@ describe('dj store', () => {
 
     expect(store.programs).toEqual([])
     expect(store.programsLoading).toBe(false)
+  })
+
+  it('drops in-flight hall banners after reset', async () => {
+    const pendingBanners = deferred<typeof banner[]>()
+    vi.mocked(getDjBanners).mockReturnValueOnce(pendingBanners.promise)
+    const store = useDjStore()
+    const pending = store.loadBanners()
+    store.reset()
+    pendingBanners.resolve([banner])
+    await pending
+
+    expect(store.banners).toEqual([])
+    expect(store.bannersLoading).toBe(false)
+  })
+
+  it('does not wipe hall banners when resetting program detail', async () => {
+    vi.mocked(getDjBanners).mockResolvedValue([banner])
+    const store = useDjStore()
+    await store.loadBanners()
+    store.resetDetail()
+    expect(store.banners).toEqual([banner])
   })
 })

@@ -3007,4 +3007,80 @@ mock API http://127.0.0.1:48131
 
 ### 24.4 本轮结果
 
-专辑详情和搜索专辑已在工作区形成。第 21 轮提交 `6565803` 仍是当前 HEAD；第 22 轮尚未 commit / push。下一轮建议迁移电台大厅。
+专辑详情和搜索专辑已在工作区形成。第 21 轮提交 `6565803` 仍是当时 HEAD；第 22 轮随后以 `a60dc5c` 提交。下一轮建议迁移电台大厅。
+
+## 25. 实施第 23 轮：电台大厅（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 25.1 开始边界与范围
+
+第 23 轮开始时第 22 轮已经提交：
+
+```text
+HEAD a60dc5c
+master...origin/master
+```
+
+工作区从该提交继续。本轮把电台大厅接到音乐馆。不迁电台分类、电台（radio）详情、付费电台、歌手 MV tab、上一首/下一首、`#/video`、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `#/music/dj`：`GET /dj/banner` + 已有推荐节目；
+- `#/dj` 无 id 时 `replace` 到大厅；`#/dj?id=` 仍是节目详情；
+- 音乐馆增加「电台」tab。
+
+### 25.2 自动验证
+
+```text
+bun run test
+Test Files  79 passed (79)
+Tests       299 passed (299)
+
+bun run typecheck
+PASS
+
+bun run build
+301 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。审查后补了 `#/dj` 跳到 `#/music/dj` 的落地路由断言、歌单/MV Banner 跳转，以及大厅 Banner 选择转发。最终测试数为 299。
+
+### 25.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:48221
+mock API http://127.0.0.1:48231
+```
+
+验证步骤：
+
+1. Host 保存后进入音乐馆，点「电台」到达 `#/music/dj`；
+2. Banner 首次 503 显示 `mock dj banner unavailable`，重试后出现「深夜首播」；
+3. 推荐节目「深夜民谣」可点，到达 `#/dj?id=901` 并播放；
+4. 打开 `#/dj`（无 id）跳到 `#/music/dj`；
+5. 「重新配置 API」回到 Host 表单；
+6. 桌面 `1440×900` 与移动 `390×844` 无横向溢出（`scrollWidth === clientWidth`）。
+
+截图保存在 `/tmp/vue3-music-round23-desktop.png` 和 `/tmp/vue3-music-round23-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。503 验证期间浏览器记录了资源 503。未验证外部真实网易云 API。
+
+### 25.4 本轮结果
+
+电台大厅已在工作区形成。第 22 轮提交 `a60dc5c` 仍是当前 HEAD；第 23 轮尚未 commit / push。下一轮建议迁移歌手详情 MV tab、上一首/下一首或 `#/video`。

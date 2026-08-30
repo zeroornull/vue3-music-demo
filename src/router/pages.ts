@@ -5,6 +5,7 @@ export const Pages = {
   category: 'category',
   discover: 'discover',
   dj: 'dj',
+  djHall: 'djHall',
   home: 'home',
   migration: 'migration',
   music: 'music',

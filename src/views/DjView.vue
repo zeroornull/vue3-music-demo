@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import DjProgramHeader from '@/components/dj/DjProgramHeader.vue'
 import { Pages } from '@/router/pages'
@@ -9,6 +9,7 @@ import { useDjStore } from '@/stores/dj'
 import { usePlayerStore } from '@/stores/player'
 
 const route = useRoute()
+const router = useRouter()
 const djStore = useDjStore()
 const playerStore = usePlayerStore()
 const { program, loading, error } = storeToRefs(djStore)
@@ -50,27 +51,27 @@ watch(
     playSerial += 1
     if (id === null) {
       djStore.resetDetail()
-      return
+      return router.replace({ name: Pages.djHall })
     }
     requestProgram()
   },
-  { immediate: true },
+  { flush: 'post', immediate: true },
 )
 </script>
 
 <template>
   <main class="dj-shell">
     <nav class="back-nav" aria-label="页面导航">
-      <RouterLink :to="{ name: Pages.picked }">返回精选</RouterLink>
+      <RouterLink :to="{ name: Pages.djHall }">返回电台大厅</RouterLink>
     </nav>
 
     <div
       v-if="programId === null"
       class="state-card"
-      data-testid="dj-missing"
+      data-testid="dj-redirect"
     >
-      <strong>缺少电台节目 ID</strong>
-      <p>请从精选的推荐电台打开节目，或在地址中提供有效的 <code>id</code> 参数。</p>
+      <strong>正在打开电台大厅</strong>
+      <p>没有节目 ID 时会进入音乐馆的电台大厅。</p>
     </div>
 
     <div

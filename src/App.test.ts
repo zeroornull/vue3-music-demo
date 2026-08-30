@@ -187,6 +187,15 @@ describe('App host gate', () => {
         picUrl: 'https://images.example.com/dj.jpg',
       },
     ]
+    djStore.banners = [
+      {
+        bannerId: 1,
+        pic: 'https://images.example.com/dj-banner.jpg',
+        targetId: 301,
+        targetType: 1,
+        typeTitle: '深夜首播',
+      },
+    ]
     djStore.loadedId = 901
     mountApp()
 
@@ -194,6 +203,7 @@ describe('App host gate', () => {
     await flushPromises()
 
     expect(djStore.programs).toEqual([])
+    expect(djStore.banners).toEqual([])
     expect(djStore.loadedId).toBeNull()
   })
 

@@ -65,10 +65,12 @@ describe('router contract', () => {
       redirect: { name: Pages.picked },
     })
     expect(router.resolve({ name: Pages.picked }).path).toBe('/music/picked')
+    expect(router.resolve({ name: Pages.djHall }).path).toBe('/music/dj')
     expect(router.resolve({ name: Pages.toplist }).path).toBe('/music/toplist')
     expect(router.resolve({ name: Pages.artist }).path).toBe('/music/artist')
     expect(router.resolve({ name: Pages.category }).path).toBe('/music/category')
     expect(router.resolve({ name: Pages.toplist }).meta.title).toBe('排行榜')
+    expect(router.resolve({ name: Pages.djHall }).meta.title).toBe('电台大厅')
   })
 
   it('preserves the legacy artist detail route name and query id', () => {
@@ -95,7 +97,7 @@ describe('router contract', () => {
 
     expect(route.path).toBe('/dj')
     expect(route.query.id).toBe('901')
-    expect(route.meta.title).toBe('电台')
+    expect(route.meta.title).toBe('电台节目')
   })
 
   it('defines the search route and keyword query', () => {

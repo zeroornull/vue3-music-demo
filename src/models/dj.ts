@@ -1,5 +1,13 @@
 import type { Song } from '@/models/song'
 
+export interface DjBanner {
+  bannerId: number
+  pic: string
+  targetId: number
+  targetType: number
+  typeTitle: string
+}
+
 export interface DjProgram {
   id: number
   name: string

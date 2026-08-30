@@ -1,6 +1,8 @@
 import { http, type HttpClient } from '@/api/http'
-import type { DjProgram, DjProgramDetail } from '@/models/dj'
+import type { DjBanner, DjProgram, DjProgramDetail } from '@/models/dj'
 import { normalizeSong, type NetworkSong } from '@/models/song'
+
+export const DJ_BANNER_LIMIT = 10
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -14,6 +16,19 @@ function isNetworkSong(value: unknown): value is NetworkSong {
   )
 }
 
+function readDjBanner(value: unknown, index: number): DjBanner | null {
+  if (!isRecord(value) || typeof value.pic !== 'string' || !value.pic) {
+    return null
+  }
+  return {
+    bannerId: index + 1,
+    pic: value.pic,
+    targetId: typeof value.targetId === 'number' ? value.targetId : 0,
+    targetType: typeof value.targetType === 'number' ? value.targetType : 0,
+    typeTitle: typeof value.typeTitle === 'string' ? value.typeTitle : '',
+  }
+}
+
 function readDjProgram(value: unknown): DjProgram | null {
   if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
     return null
@@ -24,6 +39,19 @@ function readDjProgram(value: unknown): DjProgram | null {
     copywriter: typeof value.copywriter === 'string' ? value.copywriter : '',
     picUrl: typeof value.picUrl === 'string' ? value.picUrl : '',
   }
+}
+
+export async function getDjBanners(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<DjBanner[]> {
+  const response = await client.get<{ data?: unknown }>('/dj/banner')
+  if (!Array.isArray(response.data)) {
+    throw new Error('电台 Banner 响应格式不正确')
+  }
+  return response.data
+    .map(readDjBanner)
+    .filter((item): item is DjBanner => item !== null)
+    .slice(0, DJ_BANNER_LIMIT)
 }
 
 export async function getPersonalizedDjPrograms(

@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.26.0`<br>
+> 文档版本：`0.27.0`<br>
 > 版本快照日期：`2026-08-30`<br>
-> 当前阶段：**实施第 22 轮专辑详情已落地（未 commit）；下一轮电台大厅**
+> 当前阶段：**实施第 23 轮电台大厅已落地（未 commit）；下一轮歌手 MV tab / 上一首下一首 / `#/video`**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -413,12 +413,21 @@ build: {
 
 - `#/album?id=` 专辑详情 + 搜索 suggest 专辑；评论/收藏 tab 不迁；
 - 77 个测试文件、290 个测试通过；typecheck、build（295 modules）、frozen lock、audit 和 `git diff --check` 通过；
-- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 已完成本地 mock API 浏览器 smoke；随后提交为 `a60dc5c`；
 - 下一轮建议迁移电台大厅。
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 29. 主要官方资料
+## 29. 实施第 23 轮结果
+
+- 音乐馆 `#/music/dj` 电台大厅；无 ID 的 `#/dj` 跳转大厅；
+- 79 个测试文件、299 个测试通过；typecheck、build（301 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；未 commit、未 push；
+- 下一轮建议迁移歌手详情 MV tab、上一首/下一首或 `#/video`。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 30. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

@@ -82,6 +82,17 @@ export const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'dj',
+        name: Pages.djHall,
+        component: () => import('@/views/music/DjHallPage.vue'),
+        meta: {
+          keepAlive: true,
+          menu: 'music',
+          requiresApiHost: true,
+          title: '电台大厅',
+        },
+      },
+      {
         path: 'toplist',
         name: Pages.toplist,
         component: () => import('@/views/music/TopListPage.vue'),
@@ -133,7 +144,7 @@ export const routes: RouteRecordRaw[] = [
     meta: {
       menu: 'music',
       requiresApiHost: true,
-      title: '电台',
+      title: '电台节目',
     },
   },
   {
