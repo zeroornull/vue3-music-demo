@@ -3083,4 +3083,79 @@ mock API http://127.0.0.1:48231
 
 ### 25.4 本轮结果
 
-电台大厅已在工作区形成。第 22 轮提交 `a60dc5c` 仍是当前 HEAD；第 23 轮尚未 commit / push。下一轮建议迁移歌手详情 MV tab、上一首/下一首或 `#/video`。
+电台大厅已在工作区形成。第 22 轮提交 `a60dc5c` 仍是当时 HEAD；第 23 轮随后以 `49a206b` 提交。下一轮建议迁移歌手详情 MV tab、上一首/下一首或 `#/video`。
+
+## 26. 实施第 24 轮：歌手详情 MV tab（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 26.1 开始边界与范围
+
+第 24 轮开始时第 23 轮已经提交：
+
+```text
+HEAD 49a206b
+master...origin/master
+```
+
+工作区从该提交继续。本轮给歌手详情补上 MV tab。不迁专辑 tab、详情 tab、上一首/下一首、`#/video`、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `GET /artist/mv`，封面优先 `imgurl16v9`；
+- 原生「歌曲 / 视频」tab，点视频才拉 MV；
+- 卡片打开 `#/mvDetail?id=`。
+
+### 26.2 自动验证
+
+```text
+bun run test
+Test Files  80 passed (80)
+Tests       309 passed (309)
+
+bun run typecheck
+PASS
+
+bun run build
+304 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。审查后两个 tabpanel 保持挂载，并补了视频 tab 加载更多测试。最终测试数为 309。
+
+### 26.3 本地 mock API 浏览器 smoke
+
+默认 Vite `3002` 已被占用（pid `1170114`，未结束），改用隔离端口：
+
+```text
+Vite     http://127.0.0.1:48321
+mock API http://127.0.0.1:48331
+```
+
+验证步骤：
+
+1. Host 保存后进入音乐馆「歌手」，点「林间电台」到达 `#/artistDetail?id=401`；
+2. 点「视频 4」，首次 503 显示 `mock artist mv unavailable`，重试后出现「晚风来信 · Live」；
+3. 点 MV 到达 `#/mvDetail?id=701`；
+4. 「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出（`scrollWidth === clientWidth`）。
+
+截图保存在 `/tmp/vue3-music-round24-desktop.png` 和 `/tmp/vue3-music-round24-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。未结束占用 `3002` 的未知进程。
+
+成功路径控制台无应用错误。503 验证期间浏览器记录了资源 503。未验证外部真实网易云 API。mock `/mv/url` 没有真实媒体，MV 播放器无法出画。
+
+### 26.4 本轮结果
+
+歌手详情 MV tab 已在工作区形成。第 23 轮提交 `49a206b` 仍是当前 HEAD；第 24 轮尚未 commit / push。下一轮建议迁移上一首/下一首或 `#/video`。

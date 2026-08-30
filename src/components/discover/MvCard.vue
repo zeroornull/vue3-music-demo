@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import type { PersonalizedMv } from '@/models/mv'
 import { Pages } from '@/router/pages'
 import { formatDuration, formatPlayCount } from '@/utils/number'
 
 defineProps<{
-  mv: PersonalizedMv
+  mv: {
+    artistName?: string
+    artists?: { name: string }[]
+    duration: number
+    id: number
+    name: string
+    picUrl: string
+    playCount: number
+  }
 }>()
 </script>
 
@@ -29,7 +36,7 @@ defineProps<{
       </div>
       <div class="copy">
         <h3>{{ mv.name }}</h3>
-        <p>{{ mv.artistName || mv.artists.map((artist) => artist.name).join(' / ') || '未知艺人' }}</p>
+        <p>{{ mv.artistName || mv.artists?.map((artist) => artist.name).join(' / ') || '未知艺人' }}</p>
       </div>
     </RouterLink>
   </article>

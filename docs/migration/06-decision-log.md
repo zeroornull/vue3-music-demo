@@ -292,6 +292,15 @@
 - **Store**：`loadBanners` 独立世代号。`resetDetail()` 不清 Banner/列表。Host `reset()` 两组都清。
 - **本轮不做**：歌手详情 MV tab、`#/video`、上一首/下一首、Header 弹出层。
 
+### D-034：歌手详情本轮只补 MV tab
+
+- **状态**：已验证
+- **日期**：2026-08-30
+- **决策**：第 24 轮给 `#/artistDetail` 加上原生「歌曲 / 视频」tab。视频列表走 `GET /artist/mv`，封面优先 `imgurl16v9`，点进已有 `#/mvDetail?id=`。不迁专辑 tab、详情 tab、精选 tab。
+- **原因**：歌手详情已经有热门歌曲和 `mvSize`。MV 详情页已存在，能立刻闭环。`#/video` 是独立空大厅，上一首/下一首是播放器增强，都另开一轮。
+- **Store**：`loadMvs` / `loadMoreMvs` 用独立 `mvSerial`。点进视频 tab 才请求。`resetDetail()` 和换歌手会清掉 MV。Host `reset()` 走已有 `reset()`。
+- **本轮不做**：上一首/下一首、`#/video`、专辑 tab、Header 弹出层。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

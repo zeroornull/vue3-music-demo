@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getArtistDetail, getArtistSongs } from '@/api/artist'
+import { getArtistDetail, getArtistMvs, getArtistSongs } from '@/api/artist'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useArtistStore } from '@/stores/artist'
@@ -17,6 +17,7 @@ vi.mock('@/api/artist', async (importOriginal) => {
   return {
     ...actual,
     getArtistDetail: vi.fn(),
+    getArtistMvs: vi.fn(),
     getArtistSongs: vi.fn(),
   }
 })
@@ -63,6 +64,20 @@ const HeaderStub = defineComponent({
   `,
 })
 
+const MvSectionStub = defineComponent({
+  name: 'ArtistMvSection',
+  props: ['error', 'loading', 'more', 'mvs'],
+  emits: ['load-more', 'retry'],
+  template: `
+    <section data-testid="artist-mvs">
+      <span v-for="item in mvs" :key="item.id">{{ item.name }}</span>
+      <p v-if="error" role="alert">{{ error }}</p>
+      <button v-if="error" data-testid="artist-mvs-retry" @click="$emit('retry')">retry</button>
+      <button v-if="more" data-testid="artist-mvs-more" @click="$emit('load-more')">more</button>
+    </section>
+  `,
+})
+
 const SongListStub = defineComponent({
   name: 'PlaylistSongList',
   props: ['currentId', 'songs'],
@@ -90,6 +105,7 @@ async function mountView(query: Record<string, string> = { id: '401' }) {
       plugins: [pinia, router],
       stubs: {
         ArtistHeader: HeaderStub,
+        ArtistMvSection: MvSectionStub,
         PlaylistSongList: SongListStub,
         RouterLink: defineComponent({ template: '<a><slot /></a>' }),
       },
@@ -103,9 +119,23 @@ describe('ArtistView', () => {
     playSong.mockClear()
     playAllSongs.mockClear()
     vi.mocked(getArtistDetail).mockReset()
+    vi.mocked(getArtistMvs).mockReset()
     vi.mocked(getArtistSongs).mockReset()
     vi.mocked(getArtistDetail).mockResolvedValue(artist)
     vi.mocked(getArtistSongs).mockResolvedValue({ more: true, songs })
+    vi.mocked(getArtistMvs).mockResolvedValue({
+      more: true,
+      mvs: [
+        {
+          artistName: '林间电台',
+          duration: 1,
+          id: 701,
+          name: '晚风来信 · Live',
+          picUrl: 'x',
+          playCount: 1,
+        },
+      ],
+    })
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -133,6 +163,7 @@ describe('ArtistView', () => {
         plugins: [pinia, router],
         stubs: {
           ArtistHeader: HeaderStub,
+          ArtistMvSection: MvSectionStub,
           PlaylistSongList: SongListStub,
           RouterLink: defineComponent({ template: '<a><slot /></a>' }),
         },
@@ -175,5 +206,72 @@ describe('ArtistView', () => {
       limit: 10,
       offset: 1,
     })
+  })
+
+  it('loads mvs when the video tab is selected and can retry', async () => {
+    vi.mocked(getArtistMvs)
+      .mockRejectedValueOnce(new Error('mv offline'))
+      .mockResolvedValueOnce({
+        more: false,
+        mvs: [
+          {
+            artistName: '林间电台',
+            duration: 1,
+            id: 701,
+            name: '晚风来信 · Live',
+            picUrl: 'x',
+            playCount: 1,
+          },
+        ],
+      })
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(getArtistMvs).not.toHaveBeenCalled()
+
+    await wrapper.get('[data-testid="artist-tab-mvs"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-tab-mvs"]').attributes('aria-selected')).toBe(
+      'true',
+    )
+    expect(wrapper.get('[role="alert"]').text()).toContain('mv offline')
+
+    await wrapper.get('[data-testid="artist-mvs-retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-mvs"]').text()).toContain(
+      '晚风来信 · Live',
+    )
+    expect(getArtistMvs).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads more mvs from the video tab', async () => {
+    const wrapper = await mountView()
+    await flushPromises()
+    await wrapper.get('[data-testid="artist-tab-mvs"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-mvs"]').text()).toContain(
+      '晚风来信 · Live',
+    )
+
+    vi.mocked(getArtistMvs).mockResolvedValueOnce({
+      more: false,
+      mvs: [
+        {
+          artistName: '林间电台',
+          duration: 1,
+          id: 702,
+          name: '下一支',
+          picUrl: 'x',
+          playCount: 1,
+        },
+      ],
+    })
+    await wrapper.get('[data-testid="artist-mvs-more"]').trigger('click')
+    await flushPromises()
+    expect(getArtistMvs).toHaveBeenLastCalledWith({
+      id: 401,
+      limit: 12,
+      offset: 1,
+    })
+    expect(wrapper.get('[data-testid="artist-mvs"]').text()).toContain('下一支')
   })
 })

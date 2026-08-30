@@ -15,6 +15,20 @@ export interface ArtistSongPage {
   more: boolean
 }
 
+export interface ArtistMv {
+  id: number
+  name: string
+  picUrl: string
+  artistName: string
+  playCount: number
+  duration: number
+}
+
+export interface ArtistMvPage {
+  mvs: ArtistMv[]
+  more: boolean
+}
+
 export interface HallArtist {
   id: number
   name: string

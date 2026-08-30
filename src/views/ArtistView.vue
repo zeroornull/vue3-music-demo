@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
 import ArtistHeader from '@/components/artist/ArtistHeader.vue'
+import ArtistMvSection from '@/components/artist/ArtistMvSection.vue'
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
 import type { Song } from '@/models/song'
 import { Pages } from '@/router/pages'
@@ -13,9 +14,11 @@ import { usePlayerStore } from '@/stores/player'
 const route = useRoute()
 const artistStore = useArtistStore()
 const playerStore = usePlayerStore()
-const { artist, songs, loading, error, more } = storeToRefs(artistStore)
+const { artist, songs, loading, error, more, mvs, mvsError, mvsLoading, mvsMore } =
+  storeToRefs(artistStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
+const tab = ref<'songs' | 'mvs'>('songs')
 let playSerial = 0
 
 const artistId = computed(() => {
@@ -32,6 +35,25 @@ function requestArtist(force = false) {
 
 function loadMore() {
   void Promise.resolve(artistStore.loadMore()).catch(() => undefined)
+}
+
+function showSongs() {
+  tab.value = 'songs'
+}
+
+function showMvs() {
+  tab.value = 'mvs'
+  if (artistId.value === null) return
+  void artistStore.loadMvs(artistId.value).catch(() => undefined)
+}
+
+function retryMvs() {
+  if (artistId.value === null) return
+  void artistStore.loadMvs(artistId.value, true).catch(() => undefined)
+}
+
+function loadMoreMvs() {
+  void Promise.resolve(artistStore.loadMoreMvs()).catch(() => undefined)
 }
 
 function playAll() {
@@ -67,6 +89,7 @@ watch(
   (id) => {
     notice.value = null
     playSerial += 1
+    tab.value = 'songs'
     if (id === null) {
       artistStore.resetDetail()
       return
@@ -129,23 +152,69 @@ watch(
       />
       <p v-if="notice" class="notice" role="status">{{ notice }}</p>
       <p v-if="error" class="notice error-notice" role="alert">{{ error }}</p>
-      <PlaylistSongList
-        :songs="songs"
-        :current-id="current?.id ?? null"
-        :paginate="false"
-        empty-description="这位歌手暂时没有可播放的热门歌曲。"
-        @play="playSong"
-      />
-      <button
-        v-if="more && songs.length"
-        type="button"
-        data-testid="artist-load-more"
-        :disabled="loading"
-        :aria-busy="loading ? 'true' : undefined"
-        @click="loadMore"
+      <div class="artist-tabs" role="tablist" aria-label="歌手详情栏目">
+        <button
+          id="artist-tab-songs"
+          type="button"
+          role="tab"
+          data-testid="artist-tab-songs"
+          :aria-selected="tab === 'songs' ? 'true' : 'false'"
+          aria-controls="artist-panel-songs"
+          @click="showSongs"
+        >
+          歌曲 {{ artist.musicSize }}
+        </button>
+        <button
+          id="artist-tab-mvs"
+          type="button"
+          role="tab"
+          data-testid="artist-tab-mvs"
+          :aria-selected="tab === 'mvs' ? 'true' : 'false'"
+          aria-controls="artist-panel-mvs"
+          @click="showMvs"
+        >
+          视频 {{ artist.mvSize }}
+        </button>
+      </div>
+      <div
+        id="artist-panel-songs"
+        role="tabpanel"
+        aria-labelledby="artist-tab-songs"
+        :hidden="tab !== 'songs'"
       >
-        加载更多
-      </button>
+        <PlaylistSongList
+          :songs="songs"
+          :current-id="current?.id ?? null"
+          :paginate="false"
+          empty-description="这位歌手暂时没有可播放的热门歌曲。"
+          @play="playSong"
+        />
+        <button
+          v-if="more && songs.length"
+          type="button"
+          data-testid="artist-load-more"
+          :disabled="loading"
+          :aria-busy="loading ? 'true' : undefined"
+          @click="loadMore"
+        >
+          加载更多
+        </button>
+      </div>
+      <div
+        id="artist-panel-mvs"
+        role="tabpanel"
+        aria-labelledby="artist-tab-mvs"
+        :hidden="tab !== 'mvs'"
+      >
+        <ArtistMvSection
+          :error="mvsError"
+          :loading="mvsLoading"
+          :more="mvsMore"
+          :mvs="mvs"
+          @load-more="loadMoreMvs"
+          @retry="retryMvs"
+        />
+      </div>
     </template>
   </main>
 </template>
@@ -214,6 +283,36 @@ watch(
   border: 1px solid #c5cfdd;
   background: white;
   color: #344156;
+}
+
+.artist-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  margin: 22px 0 16px;
+}
+
+.artist-tabs button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #c5cfdd;
+  border-radius: 999px;
+  background: white;
+  color: #344156;
+  cursor: pointer;
+  font-weight: 680;
+}
+
+.artist-tabs button[aria-selected='true'] {
+  border-color: #087c62;
+  background: #e8f6f1;
+  color: #17614f;
+}
+
+.artist-tabs button:focus-visible {
+  outline: 3px solid #32b58e;
+  outline-offset: 3px;
 }
 
 .notice {

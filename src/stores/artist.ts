@@ -3,17 +3,20 @@ import { defineStore } from 'pinia'
 
 import {
   ARTIST_LIST_PAGE_SIZE,
+  ARTIST_MV_PAGE_SIZE,
   ARTIST_SONG_PAGE_SIZE,
   getArtistDetail,
   getArtistList,
+  getArtistMvs,
   getArtistSongs,
 } from '@/api/artist'
 import { getErrorMessage } from '@/api/http'
-import type { ArtistDetail, HallArtist } from '@/models/artist'
+import type { ArtistDetail, ArtistMv, HallArtist } from '@/models/artist'
 import type { Song } from '@/models/song'
 
 let requestSerial = 0
 let listSerial = 0
+let mvSerial = 0
 
 export const useArtistStore = defineStore('artist', () => {
   const artist = ref<ArtistDetail | null>(null)
@@ -22,6 +25,11 @@ export const useArtistStore = defineStore('artist', () => {
   const loading = ref(false)
   const more = ref(false)
   const loadedId = ref<number | null>(null)
+  const mvs = ref<ArtistMv[]>([])
+  const mvsError = ref<string | null>(null)
+  const mvsLoading = ref(false)
+  const mvsMore = ref(false)
+  const mvsLoadedId = ref<number | null>(null)
   const artists = ref<HallArtist[]>([])
   const artistsError = ref<string | null>(null)
   const artistsLoading = ref(false)
@@ -29,6 +37,15 @@ export const useArtistStore = defineStore('artist', () => {
   const area = ref(-1)
   const type = ref(-1)
   const initial = ref('-1')
+
+  function clearMvs() {
+    mvSerial++
+    mvs.value = []
+    mvsError.value = null
+    mvsLoading.value = false
+    mvsMore.value = false
+    mvsLoadedId.value = null
+  }
 
   function resetDetail() {
     requestSerial++
@@ -38,6 +55,7 @@ export const useArtistStore = defineStore('artist', () => {
     loading.value = false
     more.value = false
     loadedId.value = null
+    clearMvs()
   }
 
   function reset() {
@@ -69,6 +87,7 @@ export const useArtistStore = defineStore('artist', () => {
       songs.value = []
       loadedId.value = null
       more.value = false
+      clearMvs()
     }
     loading.value = true
     error.value = null
@@ -89,6 +108,64 @@ export const useArtistStore = defineStore('artist', () => {
       throw requestError
     } finally {
       if (serial === requestSerial) loading.value = false
+    }
+  }
+
+  async function loadMvs(id: number, force = false) {
+    if (!Number.isInteger(id) || id <= 0) return
+    if (!force && mvsLoading.value) return
+    if (!force && mvsLoadedId.value === id && !mvsError.value) {
+      return
+    }
+
+    const serial = ++mvSerial
+    if (mvsLoadedId.value !== id) {
+      mvs.value = []
+      mvsLoadedId.value = null
+      mvsMore.value = false
+    }
+    mvsLoading.value = true
+    mvsError.value = null
+    try {
+      const page = await getArtistMvs({
+        id,
+        limit: ARTIST_MV_PAGE_SIZE,
+        offset: 0,
+      })
+      if (serial !== mvSerial) return
+      mvs.value = page.mvs
+      mvsMore.value = page.more
+      mvsLoadedId.value = id
+    } catch (requestError) {
+      if (serial !== mvSerial) return
+      mvsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === mvSerial) mvsLoading.value = false
+    }
+  }
+
+  async function loadMoreMvs() {
+    const id = mvsLoadedId.value
+    if (!id || !mvsMore.value || mvsLoading.value) return
+    const serial = ++mvSerial
+    mvsLoading.value = true
+    mvsError.value = null
+    try {
+      const page = await getArtistMvs({
+        id,
+        limit: ARTIST_MV_PAGE_SIZE,
+        offset: mvs.value.length,
+      })
+      if (serial !== mvSerial) return
+      mvs.value = [...mvs.value, ...page.mvs]
+      mvsMore.value = page.more
+    } catch (requestError) {
+      if (serial !== mvSerial) return
+      mvsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === mvSerial) mvsLoading.value = false
     }
   }
 
@@ -192,6 +269,8 @@ export const useArtistStore = defineStore('artist', () => {
   return {
     load,
     loadMore,
+    loadMvs,
+    loadMoreMvs,
     loadArtists,
     loadMoreArtists,
     setArea,
@@ -205,6 +284,11 @@ export const useArtistStore = defineStore('artist', () => {
     loading,
     more,
     loadedId,
+    mvs,
+    mvsError,
+    mvsLoading,
+    mvsMore,
+    mvsLoadedId,
     artists,
     artistsError,
     artistsLoading,

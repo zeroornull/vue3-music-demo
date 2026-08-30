@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   ARTIST_LIST_PAGE_SIZE,
+  ARTIST_MV_PAGE_SIZE,
   ARTIST_SONG_PAGE_SIZE,
   getArtistDetail,
   getArtistList,
+  getArtistMvs,
   getArtistSongs,
 } from '@/api/artist'
 import { useArtistStore } from '@/stores/artist'
@@ -16,6 +18,7 @@ vi.mock('@/api/artist', async (importOriginal) => {
     ...actual,
     getArtistDetail: vi.fn(),
     getArtistList: vi.fn(),
+    getArtistMvs: vi.fn(),
     getArtistSongs: vi.fn(),
   }
 })
@@ -37,6 +40,15 @@ const song = {
   name: '晚风来信',
 }
 
+const mv = {
+  artistName: '林间电台',
+  duration: 238_000,
+  id: 701,
+  name: '晚风来信 · Live',
+  picUrl: 'https://images.example.com/wide.jpg',
+  playCount: 3_280_000,
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void
   const promise = new Promise<T>((resolvePromise) => {
@@ -50,6 +62,7 @@ describe('artist store', () => {
     setActivePinia(createPinia())
     vi.mocked(getArtistDetail).mockReset()
     vi.mocked(getArtistList).mockReset()
+    vi.mocked(getArtistMvs).mockReset()
     vi.mocked(getArtistSongs).mockReset()
   })
 
@@ -301,5 +314,55 @@ describe('artist store', () => {
     expect(store.area).toBe(7)
     expect(store.artist).toBeNull()
     expect(store.error).toBe('缺少有效的歌手 ID')
+  })
+
+  it('loads artist mvs once and treats a failed page as a cache miss', async () => {
+    vi.mocked(getArtistMvs)
+      .mockRejectedValueOnce(new Error('mv offline'))
+      .mockResolvedValueOnce({ more: false, mvs: [mv] })
+    const store = useArtistStore()
+
+    await expect(store.loadMvs(401)).rejects.toThrow('mv offline')
+    await store.loadMvs(401)
+    await store.loadMvs(401)
+
+    expect(store.mvs).toEqual([mv])
+    expect(store.mvsError).toBeNull()
+    expect(getArtistMvs).toHaveBeenCalledTimes(2)
+    expect(getArtistMvs).toHaveBeenCalledWith({
+      id: 401,
+      limit: ARTIST_MV_PAGE_SIZE,
+      offset: 0,
+    })
+  })
+
+  it('appends the next mv page and clears mvs when the artist id changes', async () => {
+    const next = { ...mv, id: 702, name: '下一支' }
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getArtistMvs)
+      .mockResolvedValueOnce({ more: true, mvs: [mv] })
+      .mockResolvedValueOnce({ more: false, mvs: [next] })
+    const store = useArtistStore()
+    await store.loadMvs(401)
+    await store.loadMoreMvs()
+    expect(store.mvs.map((item) => item.id)).toEqual([701, 702])
+
+    await store.load(402)
+    expect(store.mvs).toEqual([])
+    expect(store.mvsLoadedId).toBeNull()
+  })
+
+  it('drops in-flight mvs after resetDetail', async () => {
+    const pendingMvs = deferred<{ more: boolean; mvs: typeof mv[] }>()
+    vi.mocked(getArtistMvs).mockReturnValueOnce(pendingMvs.promise)
+    const store = useArtistStore()
+    const pending = store.loadMvs(401)
+    store.resetDetail()
+    pendingMvs.resolve({ more: false, mvs: [mv] })
+    await pending
+
+    expect(store.mvs).toEqual([])
+    expect(store.mvsLoading).toBe(false)
   })
 })

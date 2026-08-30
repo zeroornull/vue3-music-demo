@@ -26,8 +26,9 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 20 轮：歌手馆分类 + 字母筛选——已完成并提交 `37ad825`；
 - 实施第 21 轮：搜索 suggest 歌单 + 歌手——已完成并提交 `6565803`；
 - 实施第 22 轮：`#/album` 专辑详情 + 搜索专辑——已完成并提交 `a60dc5c`；
-- 实施第 23 轮：音乐馆电台大厅 `#/music/dj`——代码已落地，当前工作区尚未 commit；
-- 下一轮：歌手详情 MV tab、上一首/下一首或 `#/video`。
+- 实施第 23 轮：音乐馆电台大厅 `#/music/dj`——已完成并提交 `49a206b`；
+- 实施第 24 轮：歌手详情 MV tab——代码已落地，当前工作区尚未 commit；
+- 下一轮：上一首/下一首或 `#/video`。
 
 当前进度总览：[`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 
@@ -79,4 +80,4 @@ bun run preview
 └── package.json
 ```
 
-当前已完成到第 23 轮：音乐馆有电台大厅，节目仍走 `#/dj?id=`。下一轮是歌手详情 MV tab、上一首/下一首或 `#/video`。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。
+当前已完成到第 24 轮：歌手详情可以打开 MV。下一轮是上一首/下一首或 `#/video`。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。

@@ -1,19 +1,19 @@
 # 08. 当前开发进度
 
 > 更新日期：`2026-08-30`<br>
-> 文档版本：`0.27.0`<br>
-> 对照提交：`a60dc5c`（实施第 22 轮已在当前 HEAD）<br>
-> 工作区：实施第 23 轮代码已落地，**尚未 commit / push**
+> 文档版本：`0.28.0`<br>
+> 对照提交：`49a206b`（实施第 23 轮已在当前 HEAD）<br>
+> 工作区：实施第 24 轮代码已落地，**尚未 commit / push**
 
 本文是后续轮次的入口。历史盘点见 [01-current-state-audit.md](./01-current-state-audit.md)，执行约束见 [03-migration-roadmap.md](./03-migration-roadmap.md)，逐轮证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
 ## 1. 一句话状态
 
-根工程已经是可运行的 Bun + Vue 3.5 + TypeScript 6 + Vite 8 应用。Discover、播放器、歌单、MV、音乐馆、歌手馆筛选、推荐电台、电台大厅、搜索（单曲/歌单/歌手/专辑）、专辑详情和顶部应用壳已经形成闭环。下一轮应迁移 **歌手详情 MV tab、上一首/下一首或 `#/video`**。
+根工程已经是可运行的 Bun + Vue 3.5 + TypeScript 6 + Vite 8 应用。Discover、播放器、歌单、MV、音乐馆、歌手馆筛选、歌手 MV tab、推荐电台、电台大厅、搜索（单曲/歌单/歌手/专辑）、专辑详情和顶部应用壳已经形成闭环。下一轮应迁移 **上一首/下一首或 `#/video`**。
 
 ## 2. 路线图对照
 
-原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-033](./06-decision-log.md)。
+原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-034](./06-decision-log.md)。
 
 | 路线图阶段 | 目标 | 状态 | 对应轮次 | 缺口 |
 | --- | --- | --- | --- | --- |
@@ -21,8 +21,8 @@
 | P1 legacy 归档 | 旧工程移入 `legacy/` | **完成** | 实施第 1 轮 | 无 |
 | P2 现代空壳 | Bun + Vue + TS + Vite | **完成** | 实施第 2 轮 | TypeScript 固定 6.0.3，待 `vue-tsc` 支持 TS 7 |
 | P3 基础设施 | Router、Pinia、API、主题、自动组件 | **部分完成** | 实施第 3、18 轮 | 最小顶栏已接入；无 Element Plus、无 Sass/Tailwind、无自动组件 |
-| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–23 轮 | Discover、播放器、歌单、MV、排行榜、分类、精选、歌手馆、电台节目、电台大厅、搜索多类型、专辑详情和应用壳完成；歌手详情 tab、`#/video` 未做 |
-| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–23 轮内嵌 | 尚无独立治理轮 |
+| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–24 轮 | Discover、播放器、歌单、MV、排行榜、分类、精选、歌手馆、歌手 MV tab、电台节目、电台大厅、搜索多类型、专辑详情和应用壳完成；歌手专辑 tab、`#/video` 未做 |
+| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–24 轮内嵌 | 尚无独立治理轮 |
 | P6 Tailwind 4 | 新样式入口和视觉收敛 | **未开始** | — | 当前页面继续使用 scoped CSS |
 | P7 发布闭环 | `dist/`、CI、学习总结 | **未开始** | — | 无 CI；GitHub Pages 未切到新产物 |
 
@@ -53,46 +53,46 @@
 | 实施第 20 轮 | 2026-08-30 | 歌手馆分类 + 字母筛选 | 72 文件 / 268 测试 | `37ad825` |
 | 实施第 21 轮 | 2026-08-30 | 搜索 suggest 歌单 + 歌手 | 73 文件 / 271 测试 | `6565803` |
 | 实施第 22 轮 | 2026-08-30 | `#/album` + 搜索专辑 | 77 文件 / 290 测试 | `a60dc5c` |
-| 实施第 23 轮 | 2026-08-30 | 音乐馆电台大厅 | 79 文件 / 299 测试 | **工作区未提交** |
+| 实施第 23 轮 | 2026-08-30 | 音乐馆电台大厅 | 79 文件 / 299 测试 | `49a206b` |
+| 实施第 24 轮 | 2026-08-30 | 歌手详情 MV tab | 80 文件 / 309 测试 | **工作区未提交** |
 
-第 23 轮文档对齐时的当前门禁输出：
+第 24 轮文档对齐时的当前门禁输出：
 
 ```text
-bun run test       79 files / 299 tests passed
+bun run test       80 files / 309 tests passed
 bun run typecheck  PASS
-bun run build      301 modules transformed, dist/ 输出
+bun run build      304 modules transformed, dist/ 输出
 bun install --frozen-lockfile --dry-run  PASS
 bun audit          No vulnerabilities found (checked 185 packages)
 git diff --check   PASS
 ```
 
-第 23 轮已完成本地 mock API 浏览器 smoke，但未验证外部真实网易云 API。未 commit、未 push。
+第 24 轮已完成本地 mock API 浏览器 smoke，但未验证外部真实网易云 API。未 commit、未 push。
 
-电台大厅摘要：`#/music/dj` 展示 `GET /dj/banner` 和推荐节目。`#/dj?id=` 仍是节目详情。无 ID 的 `#/dj` 跳到大厅。Host `reset()` 清 Banner。不迁电台分类。
+歌手 MV 摘要：`#/artistDetail` 原生「歌曲 / 视频」tab。点视频才请求 `GET /artist/mv`。卡片进 `#/mvDetail?id=`。换歌手和 Host `reset()` 清掉 MV。不迁专辑 tab。
 
-本地 smoke 使用 Vite `127.0.0.1:48221` 和 mock API `127.0.0.1:48231`：Host → 音乐馆 → 电台 → Banner 503 重试 → 点节目播放 → `#/dj` 跳转大厅 → 重新配置。桌面 `1440×900` 与移动 `390×844` 无横向溢出。控制台无应用错误。
+本地 smoke 使用 Vite `127.0.0.1:48321` 和 mock API `127.0.0.1:48331`：Host → 歌手馆 → 详情 → 视频 503 重试 → 打开 MV → 重新配置。桌面 `1440×900` 与移动 `390×844` 无横向溢出。控制台无应用错误。
 
 ## 4. 当前根工程能力
 
 ### 4.1 路由
 
-路由表在第 22 轮基础上增加 `#/music/dj`。
+路由表未变。歌手详情页内增加视频 tab。
 
 ### 4.2 API、store、可见 UI
 
 新增 / 扩展：
 
 ```text
-getDjBanners             GET /dj/banner
-Dj store                 banners + loadBanners
-DjHallPage / DjHallView  音乐馆电台大厅
-DjView                   无 id 时跳到大厅
-MusicView                电台 tab
+getArtistMvs             GET /artist/mv
+Artist store             mvs + loadMvs / loadMoreMvs
+ArtistView               歌曲 / 视频 tab
+ArtistMvSection          MV 网格，点进 mvDetail
 ```
 
 ### 4.3 已安装直接依赖
 
-第 23 轮未新增依赖。
+第 24 轮未新增依赖。
 
 ## 5. 与 legacy 的功能差距
 
@@ -101,19 +101,20 @@ MusicView                电台 tab
 | 搜索多类型 | suggest 歌单/歌手/专辑 | 单曲 + 歌单 + 歌手 + 专辑 | 完成 |
 | 专辑 | `#/album` | `#/album?id=` 歌曲可播 | 评论/收藏 tab 未迁 |
 | 电台大厅 | 空页 | `#/music/dj` Banner + 推荐节目 | 分类/电台详情未迁 |
+| 歌手详情 tab | 歌曲/专辑/视频/详情 | 热门歌曲 + MV | 专辑 tab 未迁 |
 | 播放器增强 | 进度/音量/上一首下一首 | 进度 + 音量 | **可下一轮** |
 
 ## 6. 质量与文档缺口
 
-已通过第 23 轮当前门禁：79 个测试文件 / 299 个测试、两套 typecheck、301 modules build、frozen lock、audit 和 `git diff --check`。
+已通过第 24 轮当前门禁：80 个测试文件 / 309 个测试、两套 typecheck、304 modules build、frozen lock、audit 和 `git diff --check`。
 
-仍存在、但不阻塞第 23 轮的缺口：Host 文案仍写 round 3、无 lint/E2E/CI、播放器无上一首/下一首。歌手 MV tab 和 `#/video` 未迁。
+仍存在、但不阻塞第 24 轮的缺口：Host 文案仍写 round 3、无 lint/E2E/CI、播放器无上一首/下一首。歌手专辑 tab 和 `#/video` 未迁。
 
 ## 7. 建议的下一轮
 
-**实施第 24 轮：歌手详情 MV tab、上一首/下一首或 `#/video`。**
+**实施第 25 轮：上一首/下一首或 `#/video`。**
 
-电台大厅已经接上。剩余主入口是歌手详情的视频 tab、全局播放器上一首/下一首，以及 legacy 未完成的 `#/video`。
+歌手详情已经能打开 MV。剩余主入口是全局播放器上一首/下一首，以及 legacy 未完成的 `#/video`。
 
 本轮不应做：Header 弹出层、Tailwind 4、CI、Element Plus。
 
@@ -131,4 +132,4 @@ MusicView                电台 tab
 | [CHANGELOG](./CHANGELOG.md) | 追加日志 | 文档版本 |
 | **本文** | **活文档** | **先读这个，再开工** |
 
-> 状态更新（2026-08-30）：第 22 轮已在当前 HEAD `a60dc5c` 完成。第 23 轮已在工作区完成电台大厅；歌手 MV tab、上一首/下一首和 `#/video` 仍未迁。
+> 状态更新（2026-08-30）：第 23 轮已在当前 HEAD `49a206b` 完成。第 24 轮已在工作区完成歌手详情 MV tab；上一首/下一首和 `#/video` 仍未迁。

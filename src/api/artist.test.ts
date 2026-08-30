@@ -3,9 +3,11 @@ import { describe, expect, it, vi } from 'vitest'
 import type { HttpClient } from '@/api/http'
 import {
   ARTIST_LIST_PAGE_SIZE,
+  ARTIST_MV_PAGE_SIZE,
   ARTIST_SONG_PAGE_SIZE,
   getArtistDetail,
   getArtistList,
+  getArtistMvs,
   getArtistSongs,
 } from '@/api/artist'
 
@@ -98,6 +100,66 @@ describe('Artist API', () => {
     await expect(
       getArtistSongs({ id: 401 }, client({ songs: null }).client),
     ).rejects.toThrow('歌手歌曲响应格式不正确')
+  })
+
+  it('unwraps /artist/mv and falls back to imgurl', async () => {
+    const request = client({
+      hasMore: true,
+      mvs: [
+        {
+          artist: { id: 401, name: '林间电台' },
+          duration: 238_000,
+          extra: true,
+          id: 701,
+          imgurl: 'https://images.example.com/sq.jpg',
+          imgurl16v9: 'https://images.example.com/wide.jpg',
+          name: '晚风来信 · Live',
+          playCount: 3_280_000,
+        },
+        {
+          duration: 1,
+          id: 702,
+          imgurl: 'https://images.example.com/fallback.jpg',
+          name: '备选封面',
+          playCount: 1,
+        },
+      ],
+    })
+
+    await expect(
+      getArtistMvs({ id: 401, offset: 0 }, request.client),
+    ).resolves.toEqual({
+      more: true,
+      mvs: [
+        {
+          artistName: '林间电台',
+          duration: 238_000,
+          id: 701,
+          name: '晚风来信 · Live',
+          picUrl: 'https://images.example.com/wide.jpg',
+          playCount: 3_280_000,
+        },
+        {
+          artistName: '',
+          duration: 1,
+          id: 702,
+          name: '备选封面',
+          picUrl: 'https://images.example.com/fallback.jpg',
+          playCount: 1,
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/artist/mv', {
+      id: 401,
+      limit: ARTIST_MV_PAGE_SIZE,
+      offset: 0,
+    })
+  })
+
+  it('rejects a missing mvs array', async () => {
+    await expect(
+      getArtistMvs({ id: 401 }, client({ mvs: null }).client),
+    ).rejects.toThrow('歌手 MV 响应格式不正确')
   })
 
   it('unwraps /artist/list and keeps id/name/cover', async () => {

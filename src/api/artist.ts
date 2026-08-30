@@ -2,6 +2,8 @@ import { http, type HttpClient } from '@/api/http'
 import type {
   ArtistDetail,
   ArtistListPage,
+  ArtistMv,
+  ArtistMvPage,
   ArtistSongPage,
   HallArtist,
 } from '@/models/artist'
@@ -9,6 +11,7 @@ import { normalizeSong, type NetworkSong, type Song } from '@/models/song'
 
 export const ARTIST_SONG_PAGE_SIZE = 10
 export const ARTIST_LIST_PAGE_SIZE = 30
+export const ARTIST_MV_PAGE_SIZE = 12
 
 export interface ArtistListQuery {
   area?: number
@@ -23,6 +26,12 @@ export interface ArtistSongQuery {
   limit?: number
   offset?: number
   order?: 'hot' | 'time'
+}
+
+export interface ArtistMvQuery {
+  id: number
+  limit?: number
+  offset?: number
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -77,6 +86,61 @@ export async function getArtistSongs(
   return {
     more: songs.length >= limit,
     songs,
+  }
+}
+
+function readArtistMv(value: unknown): ArtistMv | null {
+  if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
+    return null
+  }
+  const picUrl =
+    typeof value.imgurl16v9 === 'string' && value.imgurl16v9
+      ? value.imgurl16v9
+      : typeof value.imgurl === 'string' && value.imgurl
+        ? value.imgurl
+        : typeof value.cover === 'string' && value.cover
+          ? value.cover
+          : ''
+  const artist = isRecord(value.artist) ? value.artist : null
+  const artistName =
+    typeof value.artistName === 'string' && value.artistName
+      ? value.artistName
+      : artist && typeof artist.name === 'string'
+        ? artist.name
+        : ''
+  return {
+    id: value.id,
+    name: value.name,
+    picUrl,
+    artistName,
+    playCount: typeof value.playCount === 'number' ? value.playCount : 0,
+    duration: typeof value.duration === 'number' ? value.duration : 0,
+  }
+}
+
+export async function getArtistMvs(
+  query: ArtistMvQuery,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<ArtistMvPage> {
+  const limit = query.limit ?? ARTIST_MV_PAGE_SIZE
+  const response = await client.get<{ hasMore?: unknown; mvs?: unknown }>(
+    '/artist/mv',
+    {
+      id: query.id,
+      limit,
+      offset: query.offset ?? 0,
+    },
+  )
+  if (!Array.isArray(response.mvs)) {
+    throw new Error('歌手 MV 响应格式不正确')
+  }
+  const mvs = response.mvs
+    .map(readArtistMv)
+    .filter((item): item is ArtistMv => item !== null)
+  return {
+    more:
+      typeof response.hasMore === 'boolean' ? response.hasMore : mvs.length >= limit,
+    mvs,
   }
 }
 

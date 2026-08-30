@@ -101,6 +101,16 @@ describe('App host gate', () => {
       name: '林间电台',
     }
     artistStore.loadedId = 401
+    artistStore.mvs = [
+      {
+        artistName: '林间电台',
+        duration: 1,
+        id: 701,
+        name: '晚风来信 · Live',
+        picUrl: '',
+        playCount: 1,
+      },
+    ]
     artistStore.artists = [
       { id: 401, img1v1Url: '', name: '林间电台' },
     ]
@@ -114,6 +124,7 @@ describe('App host gate', () => {
 
     expect(artistStore.artist).toBeNull()
     expect(artistStore.loadedId).toBeNull()
+    expect(artistStore.mvs).toEqual([])
     expect(artistStore.artists).toEqual([])
     expect(artistStore.area).toBe(-1)
     expect(artistStore.type).toBe(-1)
