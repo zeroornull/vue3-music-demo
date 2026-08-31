@@ -122,6 +122,11 @@ onUnmounted(() => {
               class="lyric-trans"
               :data-testid="`player-lyric-line-${index}-trans`"
             >{{ line.translation }}</small>
+            <small
+              v-if="line.romanization"
+              class="lyric-roma"
+              :data-testid="`player-lyric-line-${index}-roma`"
+            >{{ line.romanization }}</small>
           </li>
         </ol>
       </aside>
@@ -229,7 +234,8 @@ onUnmounted(() => {
   white-space: pre-wrap;
 }
 
-.lyric-trans {
+.lyric-trans,
+.lyric-roma {
   color: #8a95a8;
   font-size: 0.78rem;
   font-weight: 500;
@@ -240,7 +246,8 @@ onUnmounted(() => {
   font-weight: 720;
 }
 
-.lyric-list li.is-current .lyric-trans {
+.lyric-list li.is-current .lyric-trans,
+.lyric-list li.is-current .lyric-roma {
   color: #3d7a6c;
 }
 </style>

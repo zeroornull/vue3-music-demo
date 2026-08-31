@@ -26,7 +26,12 @@ describe('PlayerLyricPanel', () => {
     const lyrics = useLyricStore()
     const player = usePlayerStore()
     lyrics.lines = [
-      { text: '走过林间。<img src=x>', time: 0, translation: 'Walk.<img src=x>' },
+      {
+        text: '走过林间。<img src=x>',
+        time: 0,
+        translation: 'Walk.<img src=x>',
+        romanization: 'zou guo lin jian.<img src=x>',
+      },
       { text: '第二句', time: 12 },
     ]
     player.currentTime = 12
@@ -37,9 +42,13 @@ describe('PlayerLyricPanel', () => {
     expect(panel.parentElement?.parentElement).toBe(document.body)
     expect(panel.textContent).toContain('走过林间。<img src=x>')
     expect(panel.textContent).toContain('Walk.<img src=x>')
+    expect(panel.textContent).toContain('zou guo lin jian.<img src=x>')
     expect(panel.querySelector('img')).toBeNull()
     expect(bodyEl('[data-testid="player-lyric-line-0-trans"]').textContent).toBe(
       'Walk.<img src=x>',
+    )
+    expect(bodyEl('[data-testid="player-lyric-line-0-roma"]').textContent).toBe(
+      'zou guo lin jian.<img src=x>',
     )
     expect(
       bodyEl('[data-testid="player-lyric-line-1"]').getAttribute('aria-current'),

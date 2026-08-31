@@ -4133,4 +4133,78 @@ mock API http://127.0.0.1:50531
 
 ### 39.4 本轮结果
 
-翻译歌词已在工作区形成。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是 nolyric 带 tlyric、未对齐时间戳缺少回归测试，未改产品行为。独立核验 PASS：复跑 100/411、typecheck、360 modules；隔离 smoke `50621`/`50631`。第 36 轮提交 `a20eb51` 仍是当前 HEAD；第 37 轮尚未 commit / push。下一轮建议迁移罗马音歌词。
+翻译歌词已在工作区形成。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是 nolyric 带 tlyric、未对齐时间戳缺少回归测试，未改产品行为。独立核验 PASS：复跑 100/411、typecheck、360 modules；隔离 smoke `50621`/`50631`。随后提交为 `e7399c3`。下一轮建议迁移罗马音歌词。
+
+## 40. 实施第 38 轮：罗马音歌词（工作区）
+
+> 执行日期：`2026-08-31`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 40.1 开始边界与范围
+
+第 38 轮开始时第 37 轮已经提交：
+
+```text
+HEAD e7399c3
+master...origin/master
+```
+
+本轮给歌词面板补上罗马音轨。不迁逐字卡拉 OK、评论/收藏、付费电台、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `romalrc.lyric` 按时间戳贴到原文（有翻译时贴在翻译下面）；
+- 纯文本渲染。
+
+### 40.2 自动验证
+
+```text
+bun run test
+Test Files  100 passed (100)
+Tests       412 passed (412)
+
+bun run typecheck
+PASS
+
+bun run build
+360 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 40.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 未被占用；仍使用隔离端口：
+
+```text
+Vite     http://127.0.0.1:50721
+mock API http://127.0.0.1:50731
+```
+
+验证步骤：
+
+1. Host 保存后打开 `#/album?id=501`，播放全部，打开歌词；
+2. 原文、翻译和罗马音都出现，`<img src=x>` 是文本，没有图片节点；
+3. 点下一首，歌词、翻译和罗马音一起换成下一首；
+4. 关掉歌词后「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round38-desktop.png` 和 `/tmp/vue3-music-round38-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 40.4 本轮结果
+
+罗马音歌词已在工作区形成。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是未对齐时间戳、重复时间 last-write-wins、nolyric 未同时带 tlyric、面板未锁渲染顺序，未改产品行为。独立核验 PASS：复跑 100/412、typecheck、360 modules；隔离 smoke `50821`/`50831`。第 37 轮提交 `e7399c3` 仍是当前 HEAD；第 38 轮尚未 commit / push。下一轮建议迁移逐字卡拉 OK，或处理剩余 P4（专辑空评论、付费电台）。

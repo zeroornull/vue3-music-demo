@@ -46,9 +46,41 @@ describe('Lyric API', () => {
     })
   })
 
+  it('attaches matching romanized lines as text', async () => {
+    const request = client({
+      lrc: {
+        lyric: '[00:12.00]Walk through the woods.\n[01:02.500]Second line\n',
+      },
+      tlyric: {
+        lyric: '[00:12.00]走过林间。<img src=x>\n',
+      },
+      romalrc: {
+        lyric: '[00:12.00]zou guo lin jian.<img src=x>\n[01:02.500]di er ju\n',
+      },
+    })
+    await expect(getLyric(301, request.client)).resolves.toEqual({
+      lines: [
+        {
+          text: 'Walk through the woods.',
+          time: 12,
+          translation: '走过林间。<img src=x>',
+          romanization: 'zou guo lin jian.<img src=x>',
+        },
+        { text: 'Second line', time: 62.5, romanization: 'di er ju' },
+      ],
+    })
+  })
+
   it('returns an empty lyric when nolyric is set', async () => {
     await expect(
-      getLyric(301, client({ nolyric: true, lrc: { lyric: '[00:00.00]x' } }).client),
+      getLyric(
+        301,
+        client({
+          nolyric: true,
+          lrc: { lyric: '[00:00.00]x' },
+          romalrc: { lyric: '[00:00.00]x' },
+        }).client,
+      ),
     ).resolves.toEqual({ lines: [] })
   })
 

@@ -2,6 +2,7 @@ export interface LyricLine {
   time: number | null
   text: string
   translation?: string
+  romanization?: string
 }
 
 export interface LyricDoc {
@@ -43,18 +44,33 @@ export function parseLyric(raw: string): LyricLine[] {
   return lines
 }
 
-export function attachTranslations(
+function attachByTime(
   lines: LyricLine[],
-  translated: LyricLine[],
+  extras: LyricLine[],
+  field: 'translation' | 'romanization',
 ): LyricLine[] {
   const byTime = new Map<number, string>()
-  for (const line of translated) {
+  for (const line of extras) {
     if (line.time == null || !line.text) continue
     byTime.set(line.time, line.text)
   }
   return lines.map((line) => {
     if (line.time == null) return line
-    const translation = byTime.get(line.time)
-    return translation ? { ...line, translation } : line
+    const value = byTime.get(line.time)
+    return value ? { ...line, [field]: value } : line
   })
+}
+
+export function attachTranslations(
+  lines: LyricLine[],
+  translated: LyricLine[],
+): LyricLine[] {
+  return attachByTime(lines, translated, 'translation')
+}
+
+export function attachRomanizations(
+  lines: LyricLine[],
+  romanized: LyricLine[],
+): LyricLine[] {
+  return attachByTime(lines, romanized, 'romanization')
 }
