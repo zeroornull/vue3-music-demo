@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import VideoClipCard from '@/components/video/VideoClipCard.vue'
 import VideoGroupBar from '@/components/video/VideoGroupBar.vue'
+import VideoGroupPanel from '@/components/video/VideoGroupPanel.vue'
 import {
+  ALL_VIDEO_GROUP_ID,
   VIDEO_GROUP_CHIP_LIMIT,
   type HallVideo,
   type VideoGroup,
@@ -29,13 +31,34 @@ const props = withDefaults(
   },
 )
 
-defineEmits<{
+const emit = defineEmits<{
   'load-more': []
   retry: []
   'select-group': [id: number]
 }>()
 
+const showAllGroups = ref(false)
 const visibleGroups = computed(() => props.groups.slice(0, VIDEO_GROUP_CHIP_LIMIT))
+const hasAllGroups = computed(() => props.groups.length > VIDEO_GROUP_CHIP_LIMIT)
+const allGroupsPressed = computed(
+  () =>
+    hasAllGroups.value &&
+    props.selected !== ALL_VIDEO_GROUP_ID &&
+    !visibleGroups.value.some((group) => group.id === props.selected),
+)
+
+function openAllGroups() {
+  showAllGroups.value = true
+}
+
+function closeAllGroups() {
+  showAllGroups.value = false
+}
+
+function selectGroup(id: number) {
+  showAllGroups.value = false
+  emit('select-group', id)
+}
 </script>
 
 <template>
@@ -46,10 +69,30 @@ const visibleGroups = computed(() => props.groups.slice(0, VIDEO_GROUP_CHIP_LIMI
       <p>按分类浏览推荐视频。点击封面打开播放页。</p>
     </header>
 
-    <VideoGroupBar
-      :groups="visibleGroups"
+    <div class="group-row">
+      <VideoGroupBar
+        :groups="visibleGroups"
+        :selected="selected"
+        @select="selectGroup"
+      />
+      <button
+        v-if="hasAllGroups"
+        type="button"
+        data-testid="video-all-groups"
+        aria-haspopup="dialog"
+        :aria-expanded="showAllGroups ? 'true' : 'false'"
+        :aria-pressed="allGroupsPressed ? 'true' : 'false'"
+        @click="openAllGroups"
+      >
+        全部分类
+      </button>
+    </div>
+    <VideoGroupPanel
+      v-if="showAllGroups"
+      :groups="groups"
       :selected="selected"
-      @select="$emit('select-group', $event)"
+      @close="closeAllGroups"
+      @select="selectGroup"
     />
 
     <p v-if="groupsError" class="notice" role="status">
@@ -161,6 +204,42 @@ h1 {
 .page-header p:not(.eyebrow) {
   margin-top: 10px;
   color: #5f6c82;
+}
+
+.group-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.group-row > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+[data-testid='video-all-groups'] {
+  flex: none;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #c5cfdd;
+  border-radius: 999px;
+  background: white;
+  color: #344156;
+  cursor: pointer;
+  font-weight: 650;
+}
+
+[data-testid='video-all-groups'][aria-pressed='true'] {
+  border-color: #087c62;
+  background: #e8f6f1;
+  color: #17614f;
+}
+
+[data-testid='video-all-groups']:focus-visible {
+  outline: 3px solid #32b58e;
+  outline-offset: 2px;
 }
 
 .notice {

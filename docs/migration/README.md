@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.38.0`<br>
+> 文档版本：`0.39.0`<br>
 > 版本快照日期：`2026-08-31`<br>
-> 当前阶段：**实施第 34 轮视频大厅分页已落地（未 commit）；下一轮电台分类或视频全部分类弹出层**
+> 当前阶段：**实施第 35 轮视频全部分类面板已落地（未 commit）；下一轮电台分类**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -526,7 +526,16 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 41. 主要官方资料
+## 41. 实施第 35 轮结果
+
+- `#/video` 原生「全部分类」面板；chip 仍只显示前 8 个；点选走已有 `setGroup`；
+- 95 个测试文件、396 个测试通过；typecheck、build（345 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS；独立核验 PASS（`50221`/`50231`）；未 commit、未 push；
+- 下一轮建议迁移电台分类。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 42. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)
