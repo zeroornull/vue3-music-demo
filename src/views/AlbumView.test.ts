@@ -74,6 +74,12 @@ const SongListStub = defineComponent({
   `,
 })
 
+const DescStub = defineComponent({
+  name: 'AlbumDescSection',
+  props: ['description'],
+  template: '<section data-testid="album-desc">{{ description }}</section>',
+})
+
 async function mountView(query: Record<string, string> = {}) {
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -85,6 +91,7 @@ async function mountView(query: Record<string, string> = {}) {
       stubs: {
         AlbumHeader: HeaderStub,
         PlaylistSongList: SongListStub,
+        AlbumDescSection: DescStub,
       },
     },
   })
@@ -173,5 +180,36 @@ describe('AlbumView', () => {
 
     expect(getAlbum).toHaveBeenCalledWith(502)
     expect(wrapper.get('h1').text()).toBe('下一张专辑')
+  })
+
+  it('keeps both tabpanels mounted and shows description on the detail tab', async () => {
+    vi.mocked(getAlbum).mockResolvedValue({
+      album: { ...album, description: '夜航第一张专辑。<img src=x>' },
+      songs,
+    })
+    const wrapper = await mountView({ id: '501' })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="album-tab-songs"]').attributes('aria-selected')).toBe(
+      'true',
+    )
+    expect(wrapper.get('#album-panel-songs').attributes('hidden')).toBeUndefined()
+    expect(wrapper.get('#album-panel-desc').attributes('hidden')).toBeDefined()
+    expect(wrapper.find('[data-testid="album-tab-comments"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="album-tab-desc"]').trigger('click')
+    expect(wrapper.get('[data-testid="album-tab-desc"]').attributes('aria-selected')).toBe(
+      'true',
+    )
+    expect(wrapper.get('#album-panel-desc').attributes('hidden')).toBeUndefined()
+    expect(wrapper.get('#album-panel-songs').attributes('hidden')).toBeDefined()
+    expect(wrapper.get('[data-testid="album-desc"]').text()).toContain(
+      '夜航第一张专辑。<img src=x>',
+    )
+
+    await wrapper.vm.$router.push({ name: Pages.album, query: { id: '502' } })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="album-tab-songs"]').attributes('aria-selected')).toBe(
+      'true',
+    )
   })
 })

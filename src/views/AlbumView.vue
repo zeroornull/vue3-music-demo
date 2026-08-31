@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
+import AlbumDescSection from '@/components/album/AlbumDescSection.vue'
 import AlbumHeader from '@/components/album/AlbumHeader.vue'
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
 import type { Song } from '@/models/song'
@@ -16,6 +17,7 @@ const playerStore = usePlayerStore()
 const { album, songs, loading, error } = storeToRefs(albumStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
+const tab = ref<'songs' | 'desc'>('songs')
 let playSerial = 0
 
 const albumId = computed(() => {
@@ -28,6 +30,14 @@ const albumId = computed(() => {
 function requestAlbum(force = false) {
   if (albumId.value === null) return
   void albumStore.load(albumId.value, force).catch(() => undefined)
+}
+
+function showSongs() {
+  tab.value = 'songs'
+}
+
+function showDesc() {
+  tab.value = 'desc'
 }
 
 function playAll() {
@@ -63,6 +73,7 @@ watch(
   (id) => {
     notice.value = null
     playSerial += 1
+    tab.value = 'songs'
     if (id === null) {
       albumStore.reset()
       return
@@ -121,12 +132,51 @@ watch(
       />
       <p v-if="notice" class="notice" role="status">{{ notice }}</p>
       <p v-if="error" class="notice error-notice" role="alert">{{ error }}</p>
-      <PlaylistSongList
-        :songs="songs"
-        :current-id="current?.id ?? null"
-        empty-description="这张专辑还没有可播放的曲目。"
-        @play="playSong"
-      />
+      <div class="album-tabs" role="tablist" aria-label="专辑详情栏目">
+        <button
+          id="album-tab-songs"
+          type="button"
+          role="tab"
+          data-testid="album-tab-songs"
+          :aria-selected="tab === 'songs' ? 'true' : 'false'"
+          aria-controls="album-panel-songs"
+          @click="showSongs"
+        >
+          歌曲 {{ songs.length }}
+        </button>
+        <button
+          id="album-tab-desc"
+          type="button"
+          role="tab"
+          data-testid="album-tab-desc"
+          :aria-selected="tab === 'desc' ? 'true' : 'false'"
+          aria-controls="album-panel-desc"
+          @click="showDesc"
+        >
+          专辑详情
+        </button>
+      </div>
+      <div
+        id="album-panel-songs"
+        role="tabpanel"
+        aria-labelledby="album-tab-songs"
+        :hidden="tab !== 'songs'"
+      >
+        <PlaylistSongList
+          :songs="songs"
+          :current-id="current?.id ?? null"
+          empty-description="这张专辑还没有可播放的曲目。"
+          @play="playSong"
+        />
+      </div>
+      <div
+        id="album-panel-desc"
+        role="tabpanel"
+        aria-labelledby="album-tab-desc"
+        :hidden="tab !== 'desc'"
+      >
+        <AlbumDescSection :description="album.description" />
+      </div>
     </template>
   </main>
 </template>
@@ -157,6 +207,36 @@ watch(
 
 .error-notice {
   color: #9b3838;
+}
+
+.album-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  margin: 22px 0 16px;
+}
+
+.album-tabs button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #c5cfdd;
+  border-radius: 999px;
+  background: white;
+  color: #344156;
+  cursor: pointer;
+  font-weight: 680;
+}
+
+.album-tabs button[aria-selected='true'] {
+  border-color: #087c62;
+  background: #e8f6f1;
+  color: #17614f;
+}
+
+.album-tabs button:focus-visible {
+  outline: 3px solid #32b58e;
+  outline-offset: 3px;
 }
 
 .state-card {

@@ -3682,4 +3682,154 @@ mock API http://127.0.0.1:49231
 
 ### 33.4 本轮结果
 
-播放列表抽屉已在工作区形成。独立审查先 FAIL：抽屉在 PlayerBar 的 z-index 上下文里，被 AppShell 挡住清空/关闭。已改成 `Teleport` 到 `body`（z-index 30），补了挂到 body 的断言和抽屉点歌测试。复测 Vite `127.0.0.1:49421` + mock `127.0.0.1:49431`：清空/关闭/队列歌曲 `elementFromPoint` 命中自身。第 30 轮提交 `a3efc1a` 仍是当前 HEAD；第 31 轮尚未 commit / push。下一轮建议迁移歌词或专辑评论 tab。
+播放列表抽屉已在工作区形成。独立审查先 FAIL：抽屉在 PlayerBar 的 z-index 上下文里，被 AppShell 挡住清空/关闭。已改成 `Teleport` 到 `body`（z-index 30），补了挂到 body 的断言和抽屉点歌测试。复测 Vite `127.0.0.1:49421` + mock `127.0.0.1:49431`：清空/关闭/队列歌曲 `elementFromPoint` 命中自身。第 31 轮随后以 `805d857` 提交。下一轮建议迁移歌词或专辑评论 tab。
+
+## 34. 实施第 32 轮：播放器歌词（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 34.1 开始边界与范围
+
+第 32 轮开始时第 31 轮已经提交：
+
+```text
+HEAD 805d857
+master...origin/master
+```
+
+工作区从该提交继续。本轮给全局 PlayerBar 加上歌词。不迁翻译歌词、空的专辑评论 tab、收藏、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `GET /lyric` + LRC 解析；
+- 左侧原生面板，纯文本，当前句高亮；
+- 与队列互斥；切歌换词。
+
+### 34.2 自动验证
+
+```text
+bun run test
+Test Files  93 passed (93)
+Tests       384 passed (384)
+
+bun run typecheck
+PASS
+
+bun run build
+339 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 34.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 未被占用；仍使用隔离端口：
+
+```text
+Vite     http://127.0.0.1:49521
+mock API http://127.0.0.1:49531
+```
+
+验证步骤：
+
+1. Host 保存后打开 `#/album?id=501`，点播放全部，看到「歌词」；
+2. 打开歌词，出现「走过林间。<img src=x>」，没有图片节点；关闭按钮可点；
+3. 点播放器下一首，歌词换成「下一首开始」；
+4. 桌面 `1440×900` 与移动 `390×844` 无横向溢出；
+5. 关掉歌词后「重新配置 API」回到 Host 表单。
+
+截图保存在 `/tmp/vue3-music-round32-desktop.png` 和 `/tmp/vue3-music-round32-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 34.4 本轮结果
+
+播放器歌词已在工作区形成。独立审查先 FAIL：`load()` 在 loading 时直接返回，切歌会留下上一首歌词。已去掉该短路，并补了 301 进行中切到 302 的测试；播放列表和歌词按钮收进同一格。独立核验 PASS：复跑 93/384、typecheck、339 modules；隔离 smoke `49621`/`49631`。第 31 轮提交 `805d857` 仍是当前 HEAD；第 32 轮尚未 commit / push。下一轮建议迁移专辑详情介绍 tab。
+
+## 35. 实施第 33 轮：专辑详情介绍 tab（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 35.1 开始边界与范围
+
+第 33 轮开始时第 31 轮仍是 HEAD，第 32 轮歌词仍在工作区：
+
+```text
+HEAD 805d857
+master...origin/master
+```
+
+本轮给 `#/album` 补上介绍 tab。不迁空评论 tab、收藏、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- 原生 歌曲 / 专辑详情 tab；
+- 已有 `description` 纯文本渲染；
+- 页头不再放介绍。
+
+### 35.2 自动验证
+
+```text
+bun run test
+Test Files  94 passed (94)
+Tests       387 passed (387)
+
+bun run typecheck
+PASS
+
+bun run build
+342 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 35.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 未被占用；仍使用隔离端口：
+
+```text
+Vite     http://127.0.0.1:49721
+mock API http://127.0.0.1:49731
+```
+
+验证步骤：
+
+1. Host 保存后打开 `#/album?id=501`，看到「歌曲 2 / 专辑详情」，页头没有介绍正文；
+2. 点专辑详情，出现「夜航第一张专辑。」和 `<img src=x>` 文本，没有图片节点；
+3. 没有评论 tab；
+4. 桌面 `1440×900` 与移动 `390×844` 无横向溢出；
+5. 「重新配置 API」回到 Host 表单。
+
+截图保存在 `/tmp/vue3-music-round33-desktop.png` 和 `/tmp/vue3-music-round33-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 35.4 本轮结果
+
+专辑介绍 tab 已在工作区形成。独立审查 PASS：无 HIGH/MEDIUM；两个 tabpanel 保持挂载、介绍走文本节点、页头不再重复、歌词 in-flight discard 未被本轮回归。独立核验 PASS：复跑 94/387、typecheck、342 modules、frozen lock、audit、`git diff --check`；隔离 smoke Vite `127.0.0.1:49821` + mock `127.0.0.1:49831`，覆盖介绍 tab、`<img>` 当文本、空介绍「暂无介绍」、换专辑回到歌曲 tab、歌词按钮仍在、重新配置。第 31 轮提交 `805d857` 仍是当前 HEAD；第 32、33 轮尚未 commit / push。下一轮建议迁移视频大厅分页或电台分类。

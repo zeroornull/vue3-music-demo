@@ -18,6 +18,7 @@ import { useDjStore } from '@/stores/dj'
 import { useSearchStore } from '@/stores/search'
 import { useVideoStore } from '@/stores/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
+import { useLyricStore } from '@/stores/lyric'
 import { useHostStore } from '@/stores/host'
 
 vi.mock('@/api/song', () => ({
@@ -414,6 +415,10 @@ describe('App host gate', () => {
     player.volume = 0.4
     player.muted = true
     player.showQueue = true
+    const lyricStore = useLyricStore()
+    lyricStore.showLyric = true
+    lyricStore.lines = [{ text: '走过林间。', time: 12 }]
+    lyricStore.loadedId = 1
     mountApp()
 
     useHostStore().clearHost()
@@ -431,6 +436,9 @@ describe('App host gate', () => {
     expect(player.muted).toBe(false)
     expect(adapter.muted).toBe(false)
     expect(player.showQueue).toBe(false)
+    expect(lyricStore.showLyric).toBe(false)
+    expect(lyricStore.lines).toEqual([])
+    expect(lyricStore.loadedId).toBeNull()
   })
 
   it('invalidates a pending play when the host gate closes', async () => {

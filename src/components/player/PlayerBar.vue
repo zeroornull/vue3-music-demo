@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import PlayerLyricPanel from '@/components/player/PlayerLyricPanel.vue'
 import PlayerQueueDrawer from '@/components/player/PlayerQueueDrawer.vue'
+import { useLyricStore } from '@/stores/lyric'
 import { LOOP_MODE_LABEL, usePlayerStore } from '@/stores/player'
 import { formatClock } from '@/utils/number'
 
 const player = usePlayerStore()
+const lyrics = useLyricStore()
 const {
   current,
   isPlaying,
@@ -21,6 +24,7 @@ const {
   queue,
   showQueue,
 } = storeToRefs(player)
+const { showLyric } = storeToRefs(lyrics)
 
 const loopLabel = computed(() => LOOP_MODE_LABEL[loopMode.value])
 
@@ -57,6 +61,34 @@ function onSeekInput(event: Event) {
 function onVolumeInput(event: Event) {
   player.setVolume(Number((event.target as HTMLInputElement).value) / 100)
 }
+
+function requestLyric(id: number, force = false) {
+  void lyrics.load(id, force).catch(() => undefined)
+}
+
+function toggleQueue() {
+  if (lyrics.showLyric) lyrics.close()
+  player.toggleQueue()
+}
+
+function toggleLyric() {
+  if (player.showQueue) player.closeQueue()
+  lyrics.toggle()
+  if (lyrics.showLyric && current.value) requestLyric(current.value.id)
+}
+
+function retryLyric() {
+  if (current.value) requestLyric(current.value.id, true)
+}
+
+watch(
+  () => current.value?.id,
+  (id) => {
+    if (!lyrics.showLyric) return
+    if (id) requestLyric(id)
+    else lyrics.reset()
+  },
+)
 </script>
 <template>
   <aside
@@ -147,18 +179,30 @@ function onVolumeInput(event: Event) {
         @input="onVolumeInput"
       />
     </div>
-    <button
-      v-if="current"
-      type="button"
-      class="skip queue-toggle"
-      aria-label="播放列表"
-      :aria-expanded="showQueue ? 'true' : 'false'"
-      :aria-controls="showQueue ? 'player-queue' : undefined"
-      @click="player.toggleQueue()"
-    >
-      播放列表 {{ queue.length }}
-    </button>
+    <div v-if="current" class="player-panels">
+      <button
+        type="button"
+        class="skip queue-toggle"
+        aria-label="播放列表"
+        :aria-expanded="showQueue ? 'true' : 'false'"
+        :aria-controls="showQueue ? 'player-queue' : undefined"
+        @click="toggleQueue"
+      >
+        播放列表 {{ queue.length }}
+      </button>
+      <button
+        type="button"
+        class="skip queue-toggle"
+        aria-label="歌词"
+        :aria-expanded="showLyric ? 'true' : 'false'"
+        :aria-controls="showLyric ? 'player-lyric' : undefined"
+        @click="toggleLyric"
+      >
+        歌词
+      </button>
+    </div>
     <PlayerQueueDrawer />
+    <PlayerLyricPanel @retry="retryLyric" />
   </aside>
 </template>
 <style scoped>
@@ -167,7 +211,7 @@ function onVolumeInput(event: Event) {
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 10;
+  z-index: 40;
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) minmax(72px, 140px) auto;
   align-items: center;
@@ -248,8 +292,14 @@ function onVolumeInput(event: Event) {
   align-items: center;
   gap: 8px;
 }
-.queue-toggle {
+.player-panels {
+  display: flex;
+  flex-wrap: wrap;
   justify-self: end;
+  gap: 8px;
+  min-width: 0;
+}
+.queue-toggle {
   white-space: nowrap;
 }
 .player-bar button {

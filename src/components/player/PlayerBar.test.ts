@@ -2,13 +2,19 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { getLyric } from '@/api/lyric'
 import type { AudioAdapter } from '@/audio/audioAdapter'
 import PlayerBar from '@/components/player/PlayerBar.vue'
+import { useLyricStore } from '@/stores/lyric'
 import {
   resetAudioAdapter,
   setAudioAdapter,
   usePlayerStore,
 } from '@/stores/player'
+
+vi.mock('@/api/lyric', () => ({
+  getLyric: vi.fn(),
+}))
 
 function mockAdapter(overrides: Partial<AudioAdapter> = {}) {
   return {
@@ -29,6 +35,10 @@ describe('PlayerBar', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     resetAudioAdapter()
+    vi.mocked(getLyric).mockReset()
+    vi.mocked(getLyric).mockResolvedValue({
+      lines: [{ text: '走过林间。', time: 12 }],
+    })
   })
 
   it('shows song, artist and accessible toggle', async () => {
@@ -276,6 +286,45 @@ describe('PlayerBar', () => {
     expect(player.queue).toHaveLength(0)
     expect(player.showQueue).toBe(false)
     expect(wrapper.find('[data-testid="player-queue"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('opens lyrics for the current song and closes the queue', async () => {
+    const player = usePlayerStore()
+    const lyrics = useLyricStore()
+    player.current = { id: 301, name: '晚风', artists: [] }
+    player.hasPlayableSource = true
+    player.showQueue = true
+    const wrapper = mount(PlayerBar, { attachTo: document.body })
+    const toggle = wrapper.get('button[aria-label="歌词"]')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+
+    await toggle.trigger('click')
+    await flushPromises()
+    expect(lyrics.showLyric).toBe(true)
+    expect(player.showQueue).toBe(false)
+    expect(getLyric).toHaveBeenCalledWith(301)
+    expect(document.querySelector('[data-testid="player-lyric"]')?.textContent).toContain(
+      '走过林间。',
+    )
+    expect(wrapper.get('button[aria-label="歌词"]').attributes('aria-expanded')).toBe(
+      'true',
+    )
+
+    vi.mocked(getLyric).mockResolvedValueOnce({
+      lines: [{ text: '下一首开始', time: 0 }],
+    })
+    player.current = { id: 302, name: '下一首', artists: [] }
+    await flushPromises()
+    expect(getLyric).toHaveBeenCalledWith(302)
+    expect(document.querySelector('[data-testid="player-lyric"]')?.textContent).toContain(
+      '下一首开始',
+    )
+
+    await wrapper.get('button[aria-label="播放列表"]').trigger('click')
+    await flushPromises()
+    expect(lyrics.showLyric).toBe(false)
+    expect(player.showQueue).toBe(true)
     wrapper.unmount()
   })
 })

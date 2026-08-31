@@ -18,6 +18,7 @@ import { usePlayerStore } from '@/stores/player'
 import { usePlaylistStore } from '@/stores/playlist'
 import { useVideoStore } from '@/stores/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
+import { useLyricStore } from '@/stores/lyric'
 
 const hostStore = useHostStore()
 const playerStore = usePlayerStore()
@@ -32,6 +33,7 @@ const commonStore = useCommonStore()
 const artistStore = useArtistStore()
 const djStore = useDjStore()
 const searchStore = useSearchStore()
+const lyricStore = useLyricStore()
 const { isConfigured } = storeToRefs(hostStore)
 
 watch(isConfigured, (configured) => {
@@ -48,6 +50,7 @@ watch(isConfigured, (configured) => {
     artistStore.reset()
     djStore.reset()
     searchStore.reset()
+    lyricStore.reset()
   }
 })
 </script>

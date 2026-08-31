@@ -365,6 +365,23 @@
 - **Store**：`showQueue` / `openQueue` / `closeQueue` / `toggleQueue`。`clear()` 把 `showQueue` 收回 `false`。
 - **本轮不做**：歌词、单曲从队列删除、音量 localStorage、精选 tab、Header 弹出层。
 
+### D-042：播放器本轮只做歌词面板
+
+- **状态**：已验证
+- **日期**：2026-08-30
+- **决策**：第 32 轮给全局 PlayerBar 加上歌词。走 `GET /lyric`，解析 LRC 时间轴，正文用文本节点。左侧原生面板，宽 320px，`Teleport` 到 `body`。当前句按 `currentTime` 高亮。打开歌词会关掉队列，反之亦然。切歌且面板开着时重新请求。Host `reset()` 清掉歌词。
+- **原因**：legacy 歌词图标没有点击处理，专辑「评论」tab 也是空的。要闭环只能自己接 `/lyric`。不发明评论列表。不迁翻译歌词。
+- **叠层**：歌词/队列遮罩 z-index 30；PlayerBar 提到 40，切歌按钮不被遮罩吃掉。
+- **本轮不做**：翻译歌词、逐字卡拉 OK、专辑评论/收藏 tab、音量 localStorage、Header 弹出层。
+
+### D-043：专辑详情本轮只补介绍 tab
+
+- **状态**：已验证
+- **日期**：`2026-08-30`
+- **决策**：第 33 轮给 `#/album` 加上原生「歌曲 / 专辑详情」tab。介绍用已有 `album.description`，文本节点渲染，不用 HTML。空文案显示「暂无介绍」。两个 tabpanel 保持挂载，用 `hidden` 切换。页头不再放介绍，避免和 tab 重复。换专辑回到歌曲 tab。
+- **原因**：legacy 介绍在「专辑详情」tab 里，页头没有这段。评论 tab 仍是空的，继续跳过。数据已经在 `GET /album` 里，不另请求。
+- **本轮不做**：评论 tab、收藏、翻译歌词、Header 弹出层。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

@@ -35,6 +35,7 @@ describe('AlbumHeader', () => {
     expect(wrapper.get('a').attributes('href')).toContain('"id":401')
     expect(wrapper.text()).toContain('2021/01/01')
     expect(wrapper.text()).toContain('1 首')
+    expect(wrapper.text()).not.toContain('夜航第一张专辑')
     await wrapper.get('[data-testid="play-all"]').trigger('click')
     expect(wrapper.emitted('play-all')).toHaveLength(1)
   })

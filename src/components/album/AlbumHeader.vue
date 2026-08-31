@@ -52,7 +52,6 @@ const published = computed(() => formatPublishDate(props.album.publishTime))
         <span v-else>{{ album.artist.name }}</span>
       </p>
       <p v-if="published" class="meta">{{ published }}</p>
-      <p v-if="album.description" class="description">{{ album.description }}</p>
       <p class="meta">
         <span>{{ visibleTrackCount }} 首</span>
       </p>
@@ -114,8 +113,7 @@ h1 {
 }
 
 .artist,
-.meta,
-.description {
+.meta {
   margin: 0;
   min-width: 0;
   color: #5f6c82;
@@ -131,13 +129,6 @@ h1 {
 .artist a:focus-visible {
   outline: 3px solid #32b58e;
   outline-offset: 2px;
-}
-
-.description {
-  max-height: 8.4em;
-  overflow: auto;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
 }
 
 button {
