@@ -1,5 +1,18 @@
 import { http, type HttpClient } from '@/api/http'
-import type { HallVideo, VideoGroup, VideoUrl } from '@/models/video'
+import {
+  VIDEO_HALL_PAGE_SIZE,
+  type HallVideo,
+  type HallVideoPage,
+  type VideoGroup,
+  type VideoUrl,
+} from '@/models/video'
+
+export { VIDEO_HALL_PAGE_SIZE }
+
+export interface HallVideoQuery {
+  groupId?: number
+  offset?: number
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -66,16 +79,29 @@ export async function getVideoGroups(
 }
 
 export async function getHallVideos(
-  groupId = 0,
+  query: HallVideoQuery = {},
   client: Pick<HttpClient, 'get'> = http,
-): Promise<HallVideo[]> {
+): Promise<HallVideoPage> {
+  const groupId = query.groupId ?? 0
+  const offset = query.offset ?? 0
   const path = groupId > 0 ? '/video/group' : '/video/timeline/all'
-  const params = groupId > 0 ? { id: groupId, offset: 0 } : { offset: 0 }
-  const response = await client.get<{ datas?: unknown }>(path, params)
+  const params = groupId > 0 ? { id: groupId, offset } : { offset }
+  const response = await client.get<{
+    datas?: unknown
+    hasmore?: unknown
+    hasMore?: unknown
+  }>(path, params)
   if (!Array.isArray(response.datas)) {
     throw new Error('视频列表响应格式不正确')
   }
-  return response.datas.map(readClip).filter((item): item is HallVideo => item !== null)
+  const clips = response.datas
+    .map(readClip)
+    .filter((item): item is HallVideo => item !== null)
+  const flag = response.hasmore ?? response.hasMore
+  return {
+    clips,
+    more: typeof flag === 'boolean' ? flag : clips.length >= VIDEO_HALL_PAGE_SIZE,
+  }
 }
 
 export async function getVideoUrl(

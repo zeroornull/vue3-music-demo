@@ -10,6 +10,7 @@ const {
   clips,
   clipsError,
   clipsLoading,
+  clipsMore,
   groups,
   groupsError,
   groupsLoading,
@@ -25,6 +26,10 @@ function selectGroup(id: number) {
   void videoStore.setGroup(id).catch(() => undefined)
 }
 
+function loadMore() {
+  void Promise.resolve(videoStore.loadMoreClips()).catch(() => undefined)
+}
+
 onMounted(() => {
   requestHall()
 })
@@ -38,7 +43,9 @@ onMounted(() => {
     :groups="groups"
     :groups-error="groupsError"
     :groups-loading="groupsLoading"
+    :more="clipsMore"
     :selected="groupId"
+    @load-more="loadMore"
     @retry="requestHall(true)"
     @select-group="selectGroup"
   />

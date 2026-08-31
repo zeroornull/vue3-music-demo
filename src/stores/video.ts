@@ -29,6 +29,7 @@ export const useVideoStore = defineStore('video', () => {
   const clipsError = ref<string | null>(null)
   const clipsLoading = ref(false)
   const clipsGroupId = ref(ALL_VIDEO_GROUP_ID)
+  const clipsMore = ref(false)
 
   function reset() {
     mvSerial++
@@ -49,6 +50,7 @@ export const useVideoStore = defineStore('video', () => {
     clipsError.value = null
     clipsLoading.value = false
     clipsGroupId.value = ALL_VIDEO_GROUP_ID
+    clipsMore.value = false
   }
 
   async function loadMvs(force = false) {
@@ -133,9 +135,32 @@ export const useVideoStore = defineStore('video', () => {
     clipsLoading.value = true
     clipsError.value = null
     try {
-      const next = await getHallVideos(requestedGroup)
+      const page = await getHallVideos({ groupId: requestedGroup, offset: 0 })
       if (serial !== clipSerial) return
-      clips.value = next
+      clips.value = page.clips
+      clipsMore.value = page.more
+      clipsGroupId.value = requestedGroup
+    } catch (requestError) {
+      if (serial !== clipSerial) return
+      clipsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === clipSerial) clipsLoading.value = false
+    }
+  }
+
+  async function loadMoreClips() {
+    if (!clipsMore.value || clipsLoading.value || !clips.value.length) return
+    const serial = ++clipSerial
+    const requestedGroup = groupId.value
+    const offset = clips.value.length
+    clipsLoading.value = true
+    clipsError.value = null
+    try {
+      const page = await getHallVideos({ groupId: requestedGroup, offset })
+      if (serial !== clipSerial) return
+      clips.value = [...clips.value, ...page.clips]
+      clipsMore.value = page.more
       clipsGroupId.value = requestedGroup
     } catch (requestError) {
       if (serial !== clipSerial) return
@@ -157,6 +182,7 @@ export const useVideoStore = defineStore('video', () => {
     groupId.value = id
     clips.value = []
     clipsError.value = null
+    clipsMore.value = false
     clipsGroupId.value = id
     await loadClips(true)
   }
@@ -166,6 +192,7 @@ export const useVideoStore = defineStore('video', () => {
     loadPrivateContents,
     loadGroups,
     loadClips,
+    loadMoreClips,
     setGroup,
     reset,
     mvs,
@@ -182,5 +209,6 @@ export const useVideoStore = defineStore('video', () => {
     clipsError,
     clipsLoading,
     clipsGroupId,
+    clipsMore,
   }
 })

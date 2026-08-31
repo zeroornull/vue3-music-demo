@@ -153,7 +153,7 @@ describe('video store', () => {
 
   it('loads video groups and the all-video timeline', async () => {
     vi.mocked(getVideoGroups).mockResolvedValue([{ id: 101, name: '现场' }])
-    vi.mocked(getHallVideos).mockResolvedValue([clip])
+    vi.mocked(getHallVideos).mockResolvedValue({ clips: [clip], more: true })
     const store = useVideoStore()
 
     await store.loadGroups()
@@ -163,34 +163,81 @@ describe('video store', () => {
 
     expect(store.groups).toEqual([{ id: 101, name: '现场' }])
     expect(store.clips).toEqual([clip])
+    expect(store.clipsMore).toBe(true)
     expect(store.groupId).toBe(0)
     expect(getVideoGroups).toHaveBeenCalledTimes(1)
     expect(getHallVideos).toHaveBeenCalledTimes(1)
-    expect(getHallVideos).toHaveBeenCalledWith(0)
+    expect(getHallVideos).toHaveBeenCalledWith({ groupId: 0, offset: 0 })
   })
 
   it('refetches clips when the group changes and drops stale group requests', async () => {
-    const pending = deferred<typeof clip[]>()
+    const pending = deferred<{ clips: typeof clip[]; more: boolean }>()
     vi.mocked(getHallVideos)
       .mockReturnValueOnce(pending.promise)
-      .mockResolvedValueOnce([
-        { ...clip, vid: 'VID002', title: '翻唱现场' },
-      ])
+      .mockResolvedValueOnce({
+        clips: [{ ...clip, vid: 'VID002', title: '翻唱现场' }],
+        more: false,
+      })
     const store = useVideoStore()
     const first = store.loadClips()
     await store.setGroup(101)
-    pending.resolve([clip])
+    pending.resolve({ clips: [clip], more: true })
     await first
 
     expect(store.groupId).toBe(101)
     expect(store.clips).toEqual([
       { ...clip, vid: 'VID002', title: '翻唱现场' },
     ])
-    expect(getHallVideos).toHaveBeenNthCalledWith(2, 101)
+    expect(store.clipsMore).toBe(false)
+    expect(getHallVideos).toHaveBeenNthCalledWith(2, { groupId: 101, offset: 0 })
+  })
+
+  it('appends the next clip page and drops a stale load-more after group change', async () => {
+    const next = { ...clip, vid: 'VID002', title: '第二页' }
+    const pending = deferred<{ clips: typeof clip[]; more: boolean }>()
+    vi.mocked(getHallVideos)
+      .mockResolvedValueOnce({ clips: [clip], more: true })
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce({
+        clips: [{ ...clip, vid: 'VID003', title: '翻唱现场' }],
+        more: false,
+      })
+    const store = useVideoStore()
+    await store.loadClips()
+    const more = store.loadMoreClips()
+    await store.setGroup(101)
+    pending.resolve({ clips: [next], more: false })
+    await more
+
+    expect(store.groupId).toBe(101)
+    expect(store.clips).toEqual([{ ...clip, vid: 'VID003', title: '翻唱现场' }])
+    expect(store.clipsMore).toBe(false)
+    expect(getHallVideos).toHaveBeenNthCalledWith(2, { groupId: 0, offset: 1 })
+    expect(getHallVideos).toHaveBeenNthCalledWith(3, { groupId: 101, offset: 0 })
+  })
+
+  it('keeps loaded clips when load more fails', async () => {
+    vi.mocked(getHallVideos)
+      .mockResolvedValueOnce({ clips: [clip], more: true })
+      .mockRejectedValueOnce(new Error('more failed'))
+    const store = useVideoStore()
+    await store.loadClips()
+    await expect(store.loadMoreClips()).rejects.toThrow('more failed')
+    expect(store.clips).toEqual([clip])
+    expect(store.clipsMore).toBe(true)
+    expect(store.clipsError).toBe('more failed')
+  })
+
+  it('does not request another page when more is false', async () => {
+    vi.mocked(getHallVideos).mockResolvedValue({ clips: [clip], more: false })
+    const store = useVideoStore()
+    await store.loadClips()
+    await store.loadMoreClips()
+    expect(getHallVideos).toHaveBeenCalledTimes(1)
   })
 
   it('clears hall clips after reset', async () => {
-    vi.mocked(getHallVideos).mockResolvedValue([clip])
+    vi.mocked(getHallVideos).mockResolvedValue({ clips: [clip], more: true })
     const store = useVideoStore()
     await store.loadClips()
     store.groups = [{ id: 101, name: '现场' }]
@@ -198,19 +245,21 @@ describe('video store', () => {
     store.reset()
 
     expect(store.clips).toEqual([])
+    expect(store.clipsMore).toBe(false)
     expect(store.groups).toEqual([])
     expect(store.groupId).toBe(0)
   })
 
   it('clears clips when switching group fails', async () => {
     vi.mocked(getHallVideos)
-      .mockResolvedValueOnce([clip])
+      .mockResolvedValueOnce({ clips: [clip], more: true })
       .mockRejectedValueOnce(new Error('group offline'))
     const store = useVideoStore()
     await store.loadClips()
     await expect(store.setGroup(101)).rejects.toThrow('group offline')
     expect(store.groupId).toBe(101)
     expect(store.clips).toEqual([])
+    expect(store.clipsMore).toBe(false)
     expect(store.clipsError).toBe('group offline')
   })
 })

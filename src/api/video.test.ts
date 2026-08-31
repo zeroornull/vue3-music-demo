@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
 import { getHallVideos, getVideoGroups, getVideoUrl } from '@/api/video'
+import { VIDEO_HALL_PAGE_SIZE } from '@/models/video'
 
 const client = (response: unknown) => {
   const get = vi.fn(async <T>(_path: string, _params?: unknown) => response as T)
@@ -37,22 +38,41 @@ describe('Video API', () => {
       },
       extra: true,
     }
-    const all = client({ datas: [clip, { data: { title: '缺 vid' } }] })
-    await expect(getHallVideos(0, all.client)).resolves.toEqual([
-      {
-        coverUrl: 'https://images.example.com/clip.jpg',
-        creatorName: '林间电台',
-        durationms: 180_000,
-        playTime: 12_000,
-        title: '晚风现场',
-        vid: 'VID001',
-      },
-    ])
+    const parsed = {
+      coverUrl: 'https://images.example.com/clip.jpg',
+      creatorName: '林间电台',
+      durationms: 180_000,
+      playTime: 12_000,
+      title: '晚风现场',
+      vid: 'VID001',
+    }
+    const all = client({ datas: [clip, { data: { title: '缺 vid' } }], hasmore: false })
+    await expect(getHallVideos({ groupId: 0 }, all.client)).resolves.toEqual({
+      clips: [parsed],
+      more: false,
+    })
     expect(all.get).toHaveBeenCalledWith('/video/timeline/all', { offset: 0 })
 
-    const grouped = client({ datas: [clip] })
-    await expect(getHallVideos(101, grouped.client)).resolves.toHaveLength(1)
-    expect(grouped.get).toHaveBeenCalledWith('/video/group', { id: 101, offset: 0 })
+    const grouped = client({ datas: [clip], hasmore: true })
+    await expect(
+      getHallVideos({ groupId: 101, offset: 8 }, grouped.client),
+    ).resolves.toEqual({
+      clips: [parsed],
+      more: true,
+    })
+    expect(grouped.get).toHaveBeenCalledWith('/video/group', { id: 101, offset: 8 })
+  })
+
+  it('infers another page when the payload is full and hasmore is missing', async () => {
+    const datas = Array.from({ length: VIDEO_HALL_PAGE_SIZE }, (_, index) => ({
+      data: {
+        title: `现场${index + 1}`,
+        vid: `VID${String(index + 1).padStart(3, '0')}`,
+      },
+    }))
+    const page = await getHallVideos({ offset: 0 }, client({ datas }).client)
+    expect(page.clips).toHaveLength(VIDEO_HALL_PAGE_SIZE)
+    expect(page.more).toBe(true)
   })
 
   it('unwraps a playable video url and rejects a missing address', async () => {

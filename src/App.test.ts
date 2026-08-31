@@ -211,6 +211,7 @@ describe('App host gate', () => {
         vid: 'VID001',
       },
     ]
+    videoStore.clipsMore = true
     mountApp()
 
     useHostStore().clearHost()
@@ -218,6 +219,7 @@ describe('App host gate', () => {
 
     expect(videoStore.groups).toEqual([])
     expect(videoStore.clips).toEqual([])
+    expect(videoStore.clipsMore).toBe(false)
     expect(videoStore.groupId).toBe(0)
   })
 

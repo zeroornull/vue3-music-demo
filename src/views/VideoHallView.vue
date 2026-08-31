@@ -17,6 +17,7 @@ const props = withDefaults(
     groups: VideoGroup[]
     groupsError?: string | null
     groupsLoading?: boolean
+    more?: boolean
     selected: number
   }>(),
   {
@@ -24,10 +25,12 @@ const props = withDefaults(
     clipsLoading: false,
     groupsError: null,
     groupsLoading: false,
+    more: false,
   },
 )
 
 defineEmits<{
+  'load-more': []
   retry: []
   'select-group': [id: number]
 }>()
@@ -91,9 +94,33 @@ const visibleGroups = computed(() => props.groups.slice(0, VIDEO_GROUP_CHIP_LIMI
       aria-label="视频列表"
       :aria-busy="clipsLoading ? 'true' : undefined"
     >
-      <p v-if="clipsError" class="notice" role="alert">{{ clipsError }}</p>
       <VideoClipCard v-for="clip in clips" :key="clip.vid" :clip="clip" />
     </section>
+
+    <div
+      v-if="clipsError && clips.length"
+      class="state-card error-state"
+      role="alert"
+    >
+      <div>
+        <strong>加载更多失败</strong>
+        <p>{{ clipsError }}</p>
+      </div>
+      <button type="button" data-testid="video-more-retry" @click="$emit('load-more')">
+        重新加载
+      </button>
+    </div>
+
+    <button
+      v-if="more && clips.length"
+      type="button"
+      data-testid="video-load-more"
+      :disabled="clipsLoading"
+      :aria-busy="clipsLoading ? 'true' : undefined"
+      @click="$emit('load-more')"
+    >
+      加载更多
+    </button>
   </main>
 </template>
 
@@ -178,16 +205,32 @@ h1 {
   background: #fff7f7;
 }
 
-.state-card button {
+.state-card button,
+[data-testid='video-load-more'] {
   flex: none;
   min-height: 40px;
   padding: 0 16px;
   border: 0;
   border-radius: 999px;
-  background: #9b3838;
-  color: white;
   cursor: pointer;
   font-weight: 700;
+}
+
+.state-card button {
+  background: #9b3838;
+  color: white;
+}
+
+[data-testid='video-load-more'] {
+  justify-self: start;
+  border: 1px solid #c5cfdd;
+  background: white;
+  color: #344156;
+}
+
+[data-testid='video-load-more']:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 .clip-grid {

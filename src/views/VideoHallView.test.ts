@@ -40,6 +40,43 @@ describe('VideoHallView', () => {
     expect(wrapper.emitted('retry')?.length).toBe(1)
   })
 
+  it('emits load-more and retries a failed extra page', async () => {
+    const more = mount(VideoHallView, {
+      props: {
+        clips: [clip],
+        groups: [{ id: 101, name: '现场' }],
+        more: true,
+        selected: 0,
+      },
+      global: {
+        stubs: {
+          RouterLink: defineComponent({ template: '<a><slot /></a>' }),
+        },
+      },
+    })
+    await more.get('[data-testid="video-load-more"]').trigger('click')
+    expect(more.emitted('load-more')).toHaveLength(1)
+
+    const failed = mount(VideoHallView, {
+      props: {
+        clips: [clip],
+        clipsError: 'more failed',
+        groups: [],
+        more: true,
+        selected: 0,
+      },
+      global: {
+        stubs: {
+          RouterLink: defineComponent({ template: '<a><slot /></a>' }),
+        },
+      },
+    })
+    expect(failed.get('[role="alert"]').text()).toContain('more failed')
+    expect(failed.text()).toContain('晚风现场')
+    await failed.get('[data-testid="video-more-retry"]').trigger('click')
+    expect(failed.emitted('load-more')).toHaveLength(1)
+  })
+
   it('shows at most eight group chips besides all-videos', () => {
     const wrapper = mount(VideoHallView, {
       props: {

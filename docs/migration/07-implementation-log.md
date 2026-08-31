@@ -3833,3 +3833,79 @@ mock API http://127.0.0.1:49731
 ### 35.4 本轮结果
 
 专辑介绍 tab 已在工作区形成。独立审查 PASS：无 HIGH/MEDIUM；两个 tabpanel 保持挂载、介绍走文本节点、页头不再重复、歌词 in-flight discard 未被本轮回归。独立核验 PASS：复跑 94/387、typecheck、342 modules、frozen lock、audit、`git diff --check`；隔离 smoke Vite `127.0.0.1:49821` + mock `127.0.0.1:49831`，覆盖介绍 tab、`<img>` 当文本、空介绍「暂无介绍」、换专辑回到歌曲 tab、歌词按钮仍在、重新配置。第 31 轮提交 `805d857` 仍是当前 HEAD；第 32、33 轮尚未 commit / push。下一轮建议迁移视频大厅分页或电台分类。
+
+## 36. 实施第 34 轮：视频大厅分页（工作区）
+
+> 执行日期：`2026-08-31`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 36.1 开始边界与范围
+
+第 34 轮开始时第 32、33 轮已经提交：
+
+```text
+HEAD 192167d
+master...origin/master
+```
+
+本轮给 `#/video` 补上加载更多。不迁全部分类弹出层、电台分类、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `getHallVideos({ groupId, offset })` 返回 `{ clips, more }`；
+- store `loadMoreClips()`，offset 用已加载条数；
+- 大厅「加载更多」和加载更多失败重试。
+
+### 36.2 自动验证
+
+```text
+bun run test
+Test Files  94 passed (94)
+Tests       392 passed (392)
+
+bun run typecheck
+PASS
+
+bun run build
+342 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 36.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 未被占用；仍使用隔离端口：
+
+```text
+Vite     http://127.0.0.1:49921
+mock API http://127.0.0.1:49931
+```
+
+验证步骤：
+
+1. Host 保存后 Discover 出现「打开视频大厅」；
+2. 进入 `#/video`，看到全部视频 / 现场 / 翻唱、晚风现场和「加载更多」；
+3. 点加载更多，出现「第二页现场」，按钮消失；
+4. 点「现场」，列表换成「翻唱现场」，上一页追加的条目不再保留；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出；
+6. 「重新配置 API」回到 Host 表单。
+
+截图保存在 `/tmp/vue3-music-round34-desktop.png` 和 `/tmp/vue3-music-round34-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 36.4 本轮结果
+
+视频大厅分页已在工作区形成。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是根 README 收束句仍写第 33 轮，已改成第 34 轮。独立核验 PASS WITH FINDINGS：复跑 94/392、typecheck、342 modules；隔离 smoke `[::1]:50021` / `[::1]:50031`（本机 IPv4 `127.0.0.1` 新监听会被拦截，属环境问题）。第 33 轮提交 `192167d` 仍是当前 HEAD；第 34 轮尚未 commit / push。下一轮建议迁移电台分类或视频全部分类弹出层。
