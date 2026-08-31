@@ -107,6 +107,7 @@ export const usePlayerStore = defineStore('player', {
     volume: 1,
     muted: false,
     loopMode: 'one' as LoopMode,
+    showQueue: false,
   }),
   getters: {
     hasSong: (state) => state.current !== null,
@@ -320,6 +321,15 @@ export const usePlayerStore = defineStore('player', {
       this.muted = !this.muted
       if (injectedAdapter) injectedAdapter.muted = this.muted
     },
+    openQueue() {
+      this.showQueue = true
+    },
+    closeQueue() {
+      this.showQueue = false
+    },
+    toggleQueue() {
+      this.showQueue = !this.showQueue
+    },
     clearError() {
       this.error = null
     },
@@ -345,6 +355,7 @@ export const usePlayerStore = defineStore('player', {
       this.volume = 1
       this.muted = false
       this.loopMode = 'one'
+      this.showQueue = false
     },
   },
 })

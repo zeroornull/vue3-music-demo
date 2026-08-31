@@ -235,4 +235,47 @@ describe('PlayerBar', () => {
     expect(adapter.muted).toBe(false)
     expect(wrapper.get('input[aria-label="音量"]').attributes('disabled')).toBeUndefined()
   })
+
+  it('opens the queue, plays a listed song and can clear it', async () => {
+    const player = usePlayerStore()
+    const adapter = mockAdapter()
+    setAudioAdapter(adapter)
+    player.current = { id: 1, name: '晚风', artists: [{ id: 2, name: '林间电台' }] }
+    player.queue = [
+      player.current,
+      { id: 2, name: '下一首', artists: [{ id: 2, name: '林间电台' }], duration: 180_000 },
+    ]
+    player.hasPlayableSource = true
+    const play = vi.spyOn(player, 'play').mockResolvedValue(true)
+    const wrapper = mount(PlayerBar, { attachTo: document.body })
+    const toggle = wrapper.get('button[aria-label="播放列表"]')
+    expect(toggle.text()).toContain('2')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('[data-testid="player-queue"]').exists()).toBe(false)
+
+    await toggle.trigger('click')
+    expect(player.showQueue).toBe(true)
+    expect(wrapper.get('button[aria-label="播放列表"]').attributes('aria-expanded')).toBe(
+      'true',
+    )
+    const queue = document.querySelector('[data-testid="player-queue"]')
+    expect(queue?.parentElement?.parentElement).toBe(document.body)
+    expect(queue?.textContent).toContain('共 2 首歌曲')
+    expect(queue?.textContent).toContain('晚风')
+    expect(queue?.textContent).toContain('下一首')
+
+    document.querySelector<HTMLButtonElement>(
+      'button[aria-label="播放：下一首，林间电台"]',
+    )?.click()
+    expect(play).toHaveBeenCalledOnce()
+    expect(play.mock.calls[0]?.[0]).toMatchObject({ id: 2, name: '下一首' })
+
+    document.querySelector<HTMLButtonElement>('[data-testid="player-queue-clear"]')?.click()
+    await flushPromises()
+    expect(player.current).toBeNull()
+    expect(player.queue).toHaveLength(0)
+    expect(player.showQueue).toBe(false)
+    expect(wrapper.find('[data-testid="player-queue"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
 })

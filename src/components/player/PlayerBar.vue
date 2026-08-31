@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import PlayerQueueDrawer from '@/components/player/PlayerQueueDrawer.vue'
 import { LOOP_MODE_LABEL, usePlayerStore } from '@/stores/player'
 import { formatClock } from '@/utils/number'
 
@@ -17,6 +18,8 @@ const {
   muted,
   canSkip,
   loopMode,
+  queue,
+  showQueue,
 } = storeToRefs(player)
 
 const loopLabel = computed(() => LOOP_MODE_LABEL[loopMode.value])
@@ -144,6 +147,18 @@ function onVolumeInput(event: Event) {
         @input="onVolumeInput"
       />
     </div>
+    <button
+      v-if="current"
+      type="button"
+      class="skip queue-toggle"
+      aria-label="播放列表"
+      :aria-expanded="showQueue ? 'true' : 'false'"
+      :aria-controls="showQueue ? 'player-queue' : undefined"
+      @click="player.toggleQueue()"
+    >
+      播放列表 {{ queue.length }}
+    </button>
+    <PlayerQueueDrawer />
   </aside>
 </template>
 <style scoped>
@@ -154,7 +169,7 @@ function onVolumeInput(event: Event) {
   left: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) minmax(72px, 140px);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) minmax(72px, 140px) auto;
   align-items: center;
   gap: 10px 16px;
   min-width: 0;
@@ -232,6 +247,10 @@ function onVolumeInput(event: Event) {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 8px;
+}
+.queue-toggle {
+  justify-self: end;
+  white-space: nowrap;
 }
 .player-bar button {
   padding: 7px 16px;

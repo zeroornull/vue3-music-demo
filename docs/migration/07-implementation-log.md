@@ -3607,4 +3607,79 @@ mock API http://127.0.0.1:49031
 
 ### 32.4 本轮结果
 
-播放器静音已在工作区形成。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；补了「没有 adapter 时先静音、play 再写入」测试。独立核验 PASS：复跑 89/365、typecheck、330 modules、frozen lock、audit、whitespace；隔离 smoke Vite `127.0.0.1:49121` + mock `127.0.0.1:49131`。第 29 轮提交 `7eb7a98` 仍是当前 HEAD；第 30 轮尚未 commit / push。下一轮建议迁移播放列表抽屉。
+播放器静音已在工作区形成。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；补了「没有 adapter 时先静音、play 再写入」测试。独立核验 PASS：复跑 89/365、typecheck、330 modules、frozen lock、audit、whitespace；隔离 smoke Vite `127.0.0.1:49121` + mock `127.0.0.1:49131`。第 30 轮随后以 `a3efc1a` 提交。下一轮建议迁移播放列表抽屉。
+
+## 33. 实施第 31 轮：播放列表抽屉（工作区）
+
+> 执行日期：`2026-08-30`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 33.1 开始边界与范围
+
+第 31 轮开始时第 30 轮已经提交：
+
+```text
+HEAD a3efc1a
+master...origin/master
+```
+
+工作区从该提交继续。本轮给全局 PlayerBar 加上原生播放列表。不迁歌词、队列单曲删除、音量 localStorage、精选 tab、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- 播放列表按钮显示队列长度；
+- 右侧原生面板列出 `queue`，单击切歌；
+- 清空、遮罩、关闭、Escape。
+
+### 33.2 自动验证
+
+```text
+bun run test
+Test Files  90 passed (90)
+Tests       372 passed (372)
+
+bun run typecheck
+PASS
+
+bun run build
+333 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 33.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 未被占用；仍使用隔离端口，避免和默认开发端口抢绑定：
+
+```text
+Vite     http://127.0.0.1:49221
+mock API http://127.0.0.1:49231
+```
+
+验证步骤：
+
+1. Host 保存后打开 `#/album?id=501`，点播放全部，看到「播放列表 2」；
+2. 打开列表，看到「晚风来信」「下一首」；点「下一首」，播放器切到该曲；
+3. 点清空，播放器和抽屉一起消失；
+4. 移动端重新配置后再次打开列表，抽屉宽 320px，无横向溢出；
+5. 「重新配置 API」回到 Host 表单。
+
+截图保存在 `/tmp/vue3-music-round31-desktop.png` 和 `/tmp/vue3-music-round31-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 33.4 本轮结果
+
+播放列表抽屉已在工作区形成。独立审查先 FAIL：抽屉在 PlayerBar 的 z-index 上下文里，被 AppShell 挡住清空/关闭。已改成 `Teleport` 到 `body`（z-index 30），补了挂到 body 的断言和抽屉点歌测试。复测 Vite `127.0.0.1:49421` + mock `127.0.0.1:49431`：清空/关闭/队列歌曲 `elementFromPoint` 命中自身。第 30 轮提交 `a3efc1a` 仍是当前 HEAD；第 31 轮尚未 commit / push。下一轮建议迁移歌词或专辑评论 tab。

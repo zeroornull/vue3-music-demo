@@ -356,6 +356,15 @@
 - **Store**：`toggleMuted()`；`play()` 把当前 `muted` 写到 adapter。无 adapter 时先记 store，等 `play()` 再应用。
 - **本轮不做**：播放列表抽屉、音量 localStorage、精选 tab、Header 弹出层。
 
+### D-041：播放器本轮只做原生队列抽屉
+
+- **状态**：已验证
+- **日期**：2026-08-30
+- **决策**：第 31 轮给全局 PlayerBar 加上播放列表。右侧原生面板，宽 320px，不用 Element Plus。列出当前 `queue`，单击切歌，清空走已有 `clear()`。遮罩、关闭按钮和 Escape 都能关掉。Host `clear()` 同时关掉面板。
+- **原因**：legacy 用 `el-drawer` 和双击播放。新工程歌单已经是单击播放，队列沿用同一交互。不接歌词、不接队列里的 MV 入口。
+- **Store**：`showQueue` / `openQueue` / `closeQueue` / `toggleQueue`。`clear()` 把 `showQueue` 收回 `false`。
+- **本轮不做**：歌词、单曲从队列删除、音量 localStorage、精选 tab、Header 弹出层。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

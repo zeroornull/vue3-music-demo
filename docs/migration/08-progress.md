@@ -1,19 +1,19 @@
 # 08. 当前开发进度
 
 > 更新日期：`2026-08-30`<br>
-> 文档版本：`0.34.0`<br>
-> 对照提交：`7eb7a98`（实施第 29 轮已在当前 HEAD）<br>
-> 工作区：实施第 30 轮代码已落地，**尚未 commit / push**
+> 文档版本：`0.35.0`<br>
+> 对照提交：`a3efc1a`（实施第 30 轮已在当前 HEAD）<br>
+> 工作区：实施第 31 轮代码已落地，**尚未 commit / push**
 
 本文是后续轮次的入口。历史盘点见 [01-current-state-audit.md](./01-current-state-audit.md)，执行约束见 [03-migration-roadmap.md](./03-migration-roadmap.md)，逐轮证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
 ## 1. 一句话状态
 
-根工程已经是可运行的 Bun + Vue 3.5 + TypeScript 6 + Vite 8 应用。Discover、播放器（含上一首/下一首、循环/随机、静音）、歌单、MV、音乐馆、歌手馆筛选、歌手 MV/专辑/介绍 tab、推荐电台、电台大厅、搜索（单曲/歌单/歌手/专辑）、专辑详情、顶部应用壳和视频大厅已经形成闭环。下一轮应迁移 **播放列表抽屉**。
+根工程已经是可运行的 Bun + Vue 3.5 + TypeScript 6 + Vite 8 应用。Discover、播放器（含上一首/下一首、循环/随机、静音、队列抽屉）、歌单、MV、音乐馆、歌手馆筛选、歌手 MV/专辑/介绍 tab、推荐电台、电台大厅、搜索（单曲/歌单/歌手/专辑）、专辑详情、顶部应用壳和视频大厅已经形成闭环。下一轮应迁移 **歌词或专辑评论 tab**。
 
 ## 2. 路线图对照
 
-原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-040](./06-decision-log.md)。
+原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-041](./06-decision-log.md)。
 
 | 路线图阶段 | 目标 | 状态 | 对应轮次 | 缺口 |
 | --- | --- | --- | --- | --- |
@@ -21,8 +21,8 @@
 | P1 legacy 归档 | 旧工程移入 `legacy/` | **完成** | 实施第 1 轮 | 无 |
 | P2 现代空壳 | Bun + Vue + TS + Vite | **完成** | 实施第 2 轮 | TypeScript 固定 6.0.3，待 `vue-tsc` 支持 TS 7 |
 | P3 基础设施 | Router、Pinia、API、主题、自动组件 | **部分完成** | 实施第 3、18 轮 | 最小顶栏已接入；无 Element Plus、无 Sass/Tailwind、无自动组件 |
-| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–30 轮 | Discover、播放器（含上一首/下一首、循环/随机、静音）、歌单、MV、排行榜、分类、精选、歌手馆、歌手 MV/专辑/介绍 tab、电台节目、电台大厅、搜索多类型、专辑详情、应用壳和 `#/video` 完成；播放列表抽屉未做 |
-| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–30 轮内嵌 | 尚无独立治理轮 |
+| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–31 轮 | Discover、播放器（含上一首/下一首、循环/随机、静音、队列抽屉）、歌单、MV、排行榜、分类、精选、歌手馆、歌手 MV/专辑/介绍 tab、电台节目、电台大厅、搜索多类型、专辑详情、应用壳和 `#/video` 完成；歌词、专辑评论未做 |
+| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–31 轮内嵌 | 尚无独立治理轮 |
 | P6 Tailwind 4 | 新样式入口和视觉收敛 | **未开始** | — | 当前页面继续使用 scoped CSS |
 | P7 发布闭环 | `dist/`、CI、学习总结 | **未开始** | — | 无 CI；GitHub Pages 未切到新产物 |
 
@@ -60,44 +60,45 @@
 | 实施第 27 轮 | 2026-08-30 | `#/video` 大厅 + 视频详情 | 87 文件 / 345 测试 | `26c47df` |
 | 实施第 28 轮 | 2026-08-30 | 歌手详情专辑 tab | 88 文件 / 354 测试 | `a2d6039` |
 | 实施第 29 轮 | 2026-08-30 | 歌手详情介绍 tab | 89 文件 / 362 测试 | `7eb7a98` |
-| 实施第 30 轮 | 2026-08-30 | 播放器静音 | 89 文件 / 365 测试 | **工作区未提交** |
+| 实施第 30 轮 | 2026-08-30 | 播放器静音 | 89 文件 / 365 测试 | `a3efc1a` |
+| 实施第 31 轮 | 2026-08-30 | 播放列表抽屉 | 90 文件 / 372 测试 | **工作区未提交** |
 
-第 30 轮文档对齐时的当前门禁输出：
+第 31 轮文档对齐时的当前门禁输出：
 
 ```text
-bun run test       89 files / 365 tests passed
+bun run test       90 files / 372 tests passed
 bun run typecheck  PASS
-bun run build      330 modules transformed, dist/ 输出
+bun run build      333 modules transformed, dist/ 输出
 bun install --frozen-lockfile --dry-run  PASS
 bun audit          No vulnerabilities found (checked 185 packages)
 git diff --check   PASS
 ```
 
-第 30 轮已完成本地 mock API 浏览器 smoke，但未验证外部真实网易云 API。未 commit、未 push。
+第 31 轮已完成本地 mock API 浏览器 smoke，但未验证外部真实网易云 API。未 commit、未 push。
 
-静音摘要：PlayerBar 增加静音按钮。`muted` 独立于音量。静音时音量滑块禁用。Host 重新配置收回非静音。不迁播放列表抽屉。
+播放列表示：PlayerBar 增加「播放列表」按钮。右侧原生面板列出当前队列，单击切歌，可清空。Host 重新配置关掉面板。不迁歌词。
 
-本地 smoke 使用 Vite `127.0.0.1:49021` 和 mock API `127.0.0.1:49031`：Host → 专辑播放全部 → 静音 → 取消静音 → 重新配置。桌面 `1440×900` 与移动 `390×844`（播放器可见）无横向溢出。控制台无应用错误。
+本地 smoke 使用 Vite `127.0.0.1:49221` 和 mock API `127.0.0.1:49231`：Host → 专辑播放全部 → 打开列表 → 点「下一首」→ 清空 → 重新配置。桌面 `1440×900` 与移动 `390×844`（抽屉可见）无横向溢出。控制台无应用错误。
 
 ## 4. 当前根工程能力
 
 ### 4.1 路由
 
-路由表未变。播放器增加静音。
+路由表未变。播放器增加队列抽屉。
 
 ### 4.2 API、store、可见 UI
 
 新增 / 扩展：
 
 ```text
-AudioAdapter.muted       接到 HTMLAudioElement.muted
-Player store             muted / toggleMuted
-PlayerBar                静音按钮；静音时禁用音量
+Player store             showQueue / openQueue / closeQueue / toggleQueue
+PlayerQueueDrawer        右侧原生队列面板
+PlayerBar                播放列表按钮
 ```
 
 ### 4.3 已安装直接依赖
 
-第 30 轮未新增依赖。
+第 31 轮未新增依赖。
 
 ## 5. 与 legacy 的功能差距
 
@@ -108,19 +109,19 @@ PlayerBar                静音按钮；静音时禁用音量
 | 电台大厅 | 空页 | `#/music/dj` Banner + 推荐节目 | 分类/电台详情未迁 |
 | 歌手详情 tab | 歌曲/专辑/视频/详情 | 热门歌曲 + 专辑 + MV + 介绍 | 精选 tab 未迁（legacy 为空） |
 | 视频大厅 | `#/video` 分类 + 网格 | `#/video` + `#/videoDetail` | 全部分类弹出层、分页未迁 |
-| 播放器增强 | 进度/音量/上一首下一首/循环/静音 | 进度 + 音量 + 上一首/下一首 + 循环/随机 + 静音 | 播放列表抽屉未迁 |
+| 播放器增强 | 进度/音量/上一首下一首/循环/静音/列表 | 进度 + 音量 + 上一首/下一首 + 循环/随机 + 静音 + 队列 | 歌词未迁 |
 
 ## 6. 质量与文档缺口
 
-已通过第 30 轮当前门禁：89 个测试文件 / 365 个测试、两套 typecheck、330 modules build、frozen lock、audit 和 `git diff --check`。
+已通过第 31 轮当前门禁：90 个测试文件 / 372 个测试、两套 typecheck、333 modules build、frozen lock、audit 和 `git diff --check`。
 
-仍存在、但不阻塞第 30 轮的缺口：Host 文案仍写 round 3、无 lint/E2E/CI。播放列表抽屉未迁。
+仍存在、但不阻塞第 31 轮的缺口：Host 文案仍写 round 3、无 lint/E2E/CI。歌词和专辑评论未迁。
 
 ## 7. 建议的下一轮
 
-**实施第 31 轮：播放列表抽屉。**
+**实施第 32 轮：歌词或专辑评论 tab。**
 
-静音已经接上。播放器还缺队列抽屉：列出当前队列、点歌、清空。
+播放列表已经接上。播放器还缺歌词；专辑详情还缺评论。
 
 本轮不应做：Header 弹出层、Tailwind 4、CI、Element Plus。
 
@@ -138,4 +139,4 @@ PlayerBar                静音按钮；静音时禁用音量
 | [CHANGELOG](./CHANGELOG.md) | 追加日志 | 文档版本 |
 | **本文** | **活文档** | **先读这个，再开工** |
 
-> 状态更新（2026-08-30）：第 29 轮已在当前 HEAD `7eb7a98` 完成。第 30 轮已在工作区完成播放器静音；播放列表抽屉仍未迁。
+> 状态更新（2026-08-30）：第 30 轮已在当前 HEAD `a3efc1a` 完成。第 31 轮已在工作区完成播放列表抽屉；歌词和专辑评论仍未迁。

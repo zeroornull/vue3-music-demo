@@ -413,6 +413,7 @@ describe('App host gate', () => {
     player.duration = 180
     player.volume = 0.4
     player.muted = true
+    player.showQueue = true
     mountApp()
 
     useHostStore().clearHost()
@@ -429,6 +430,7 @@ describe('App host gate', () => {
     expect(adapter.volume).toBe(1)
     expect(player.muted).toBe(false)
     expect(adapter.muted).toBe(false)
+    expect(player.showQueue).toBe(false)
   })
 
   it('invalidates a pending play when the host gate closes', async () => {

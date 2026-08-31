@@ -33,8 +33,9 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 27 轮：`#/video` 大厅 + 视频详情——已完成并提交 `26c47df`；
 - 实施第 28 轮：歌手详情专辑 tab——已完成并提交 `a2d6039`；
 - 实施第 29 轮：歌手详情介绍 tab——已完成并提交 `7eb7a98`；
-- 实施第 30 轮：播放器静音——代码已落地，当前工作区尚未 commit；
-- 下一轮：播放列表抽屉。
+- 实施第 30 轮：播放器静音——已完成并提交 `a3efc1a`；
+- 实施第 31 轮：播放列表抽屉——代码已落地，当前工作区尚未 commit；
+- 下一轮：歌词或专辑评论 tab。
 
 当前进度总览：[`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 
@@ -86,4 +87,4 @@ bun run preview
 └── package.json
 ```
 
-当前已完成到第 30 轮：播放器可以静音。下一轮是播放列表抽屉。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。
+当前已完成到第 31 轮：播放器可以打开当前队列。下一轮是歌词或专辑评论。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。
