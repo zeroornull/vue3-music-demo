@@ -38,8 +38,9 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 32 轮：播放器歌词——已完成并提交 `192167d`；
 - 实施第 33 轮：专辑详情介绍 tab——已完成并提交 `192167d`；
 - 实施第 34 轮：视频大厅分页——已完成并提交 `7d2a366`；
-- 实施第 35 轮：视频全部分类面板——代码已落地，当前工作区尚未 commit；
-- 下一轮：电台分类。
+- 实施第 35 轮：视频全部分类面板——已完成并提交 `e43b465`；
+- 实施第 36 轮：电台分类 + 最小电台详情——代码已落地，当前工作区尚未 commit；
+- 下一轮：翻译歌词。
 
 当前进度总览：[`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 
@@ -91,4 +92,4 @@ bun run preview
 └── package.json
 ```
 
-当前已完成到第 35 轮：视频大厅可以打开全部分类。下一轮是电台分类。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。
+当前已完成到第 36 轮：电台大厅可以按分类打开电台。下一轮是翻译歌词。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。

@@ -6,6 +6,7 @@ export const Pages = {
   discover: 'discover',
   dj: 'dj',
   djHall: 'djHall',
+  djRadio: 'djRadio',
   home: 'home',
   migration: 'migration',
   music: 'music',

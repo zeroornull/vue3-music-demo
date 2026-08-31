@@ -148,6 +148,16 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/djRadio',
+    name: Pages.djRadio,
+    component: () => import('@/views/DjRadioView.vue'),
+    meta: {
+      menu: 'music',
+      requiresApiHost: true,
+      title: '电台',
+    },
+  },
+  {
     path: '/search',
     name: Pages.search,
     component: () => import('@/views/SearchView.vue'),

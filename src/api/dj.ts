@@ -1,8 +1,31 @@
 import { http, type HttpClient } from '@/api/http'
-import type { DjBanner, DjProgram, DjProgramDetail } from '@/models/dj'
+import type {
+  DjBanner,
+  DjCategory,
+  DjProgram,
+  DjProgramDetail,
+  DjRadioDetail,
+  DjRadioProgramPage,
+  HallRadio,
+  HallRadioPage,
+} from '@/models/dj'
 import { normalizeSong, type NetworkSong } from '@/models/song'
 
 export const DJ_BANNER_LIMIT = 10
+export const DJ_RADIO_PAGE_SIZE = 12
+export const DJ_RADIO_PROGRAM_PAGE_SIZE = 20
+
+export interface HotDjRadioQuery {
+  cateId: number
+  limit?: number
+  offset?: number
+}
+
+export interface DjRadioProgramQuery {
+  limit?: number
+  offset?: number
+  rid: number
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -38,6 +61,55 @@ function readDjProgram(value: unknown): DjProgram | null {
     name: value.name,
     copywriter: typeof value.copywriter === 'string' ? value.copywriter : '',
     picUrl: typeof value.picUrl === 'string' ? value.picUrl : '',
+  }
+}
+
+function readDjCategory(value: unknown): DjCategory | null {
+  if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
+    return null
+  }
+  const name = value.name.trim()
+  if (!name) return null
+  return { id: value.id, name }
+}
+
+function readHallRadio(value: unknown): HallRadio | null {
+  if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
+    return null
+  }
+  const dj = isRecord(value.dj) ? value.dj : null
+  return {
+    id: value.id,
+    name: value.name,
+    picUrl: typeof value.picUrl === 'string' ? value.picUrl : '',
+    rcmdText: typeof value.rcmdText === 'string' ? value.rcmdText : '',
+    djName: dj && typeof dj.nickname === 'string' ? dj.nickname : '',
+    playCount: typeof value.playCount === 'number' ? Math.max(0, value.playCount) : 0,
+  }
+}
+
+function readRadioProgram(value: unknown): DjProgram | null {
+  if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
+    return null
+  }
+  const radio = isRecord(value.radio) ? value.radio : null
+  const cover =
+    typeof value.coverUrl === 'string' && value.coverUrl
+      ? value.coverUrl
+      : typeof value.picUrl === 'string'
+        ? value.picUrl
+        : ''
+  const copywriter =
+    typeof value.copywriter === 'string' && value.copywriter
+      ? value.copywriter
+      : radio && typeof radio.name === 'string'
+        ? radio.name
+        : ''
+  return {
+    id: value.id,
+    name: value.name,
+    copywriter,
+    picUrl: cover,
   }
 }
 
@@ -109,5 +181,94 @@ export async function getDjProgramDetail(
         ? raw.duration
         : song?.duration ?? 0,
     song,
+  }
+}
+
+export async function getDjCategories(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<DjCategory[]> {
+  const response = await client.get<{ categories?: unknown }>('/dj/catelist')
+  if (!Array.isArray(response.categories)) {
+    throw new Error('电台分类响应格式不正确')
+  }
+  return response.categories
+    .map(readDjCategory)
+    .filter((item): item is DjCategory => item !== null)
+}
+
+export async function getHotDjRadios(
+  query: HotDjRadioQuery,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallRadioPage> {
+  const limit = query.limit ?? DJ_RADIO_PAGE_SIZE
+  const response = await client.get<{ djRadios?: unknown; hasMore?: unknown }>(
+    '/dj/radio/hot',
+    {
+      cateId: query.cateId,
+      limit,
+      offset: query.offset ?? 0,
+    },
+  )
+  if (!Array.isArray(response.djRadios)) {
+    throw new Error('分类电台响应格式不正确')
+  }
+  const radios = response.djRadios
+    .map(readHallRadio)
+    .filter((item): item is HallRadio => item !== null)
+  return {
+    radios,
+    more:
+      typeof response.hasMore === 'boolean'
+        ? response.hasMore
+        : radios.length >= limit,
+  }
+}
+
+export async function getDjRadioDetail(
+  rid: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<DjRadioDetail> {
+  if (!Number.isInteger(rid) || rid <= 0) {
+    throw new Error('缺少有效的电台 ID')
+  }
+  const response = await client.get<{ djRadio?: unknown }>('/dj/detail', { rid })
+  const raw = isRecord(response.djRadio) ? response.djRadio : null
+  if (!raw || typeof raw.id !== 'number' || typeof raw.name !== 'string') {
+    throw new Error('电台不存在')
+  }
+  const dj = isRecord(raw.dj) ? raw.dj : null
+  return {
+    id: raw.id,
+    name: raw.name,
+    picUrl: typeof raw.picUrl === 'string' ? raw.picUrl : '',
+    desc: typeof raw.desc === 'string' ? raw.desc : '',
+    djName: dj && typeof dj.nickname === 'string' ? dj.nickname : '',
+    category: typeof raw.category === 'string' ? raw.category : '',
+  }
+}
+
+export async function getDjRadioPrograms(
+  query: DjRadioProgramQuery,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<DjRadioProgramPage> {
+  const limit = query.limit ?? DJ_RADIO_PROGRAM_PAGE_SIZE
+  const response = await client.get<{ more?: unknown; programs?: unknown }>(
+    '/dj/program',
+    {
+      limit,
+      offset: query.offset ?? 0,
+      rid: query.rid,
+    },
+  )
+  if (!Array.isArray(response.programs)) {
+    throw new Error('电台节目列表响应格式不正确')
+  }
+  const programs = response.programs
+    .map(readRadioProgram)
+    .filter((item): item is DjProgram => item !== null)
+  return {
+    programs,
+    more:
+      typeof response.more === 'boolean' ? response.more : programs.length >= limit,
   }
 }

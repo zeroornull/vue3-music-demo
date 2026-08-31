@@ -16,9 +16,17 @@ const {
   banners,
   bannersError,
   bannersLoading,
+  categories,
+  categoriesError,
+  categoriesLoading,
+  cateId,
   programs,
   programsError,
   programsLoading,
+  radios,
+  radiosError,
+  radiosLoading,
+  radiosMore,
 } = storeToRefs(djStore)
 const notice = ref<string | null>(null)
 
@@ -28,6 +36,33 @@ function requestBanners(force = false) {
 
 function requestPrograms(force = false) {
   void djStore.loadPrograms(force).catch(() => undefined)
+}
+
+async function requestCategories(force = false) {
+  try {
+    await djStore.loadCategories(force)
+    if (!djStore.cateId && djStore.categories[0]) {
+      await djStore.setCate(djStore.categories[0].id)
+    }
+  } catch {
+    return
+  }
+}
+
+function selectCat(id: number) {
+  void djStore.setCate(id).catch(() => undefined)
+}
+
+function loadMoreRadios() {
+  void Promise.resolve(djStore.loadMoreRadios()).catch(() => undefined)
+}
+
+function retryRadios() {
+  if (djStore.cateId) {
+    void djStore.loadRadios(true).catch(() => undefined)
+    return
+  }
+  void requestCategories(true)
 }
 
 function selectBanner(banner: Banner) {
@@ -64,6 +99,7 @@ function selectBanner(banner: Banner) {
 onMounted(() => {
   requestBanners()
   requestPrograms()
+  void requestCategories()
 })
 </script>
 
@@ -74,12 +110,21 @@ onMounted(() => {
       :banners="banners"
       :banners-error="bannersError"
       :banners-loading="bannersLoading"
+      :categories="categories"
+      :cate-id="cateId"
       :programs="programs"
       :programs-error="programsError"
       :programs-loading="programsLoading"
+      :radios="radios"
+      :radios-error="radiosError || categoriesError"
+      :radios-loading="radiosLoading || categoriesLoading"
+      :radios-more="radiosMore"
+      @load-more-radios="loadMoreRadios"
       @retry-banners="requestBanners(true)"
       @retry-programs="requestPrograms(true)"
+      @retry-radios="retryRadios"
       @select-banner="selectBanner"
+      @select-cat="selectCat"
     />
   </div>
 </template>

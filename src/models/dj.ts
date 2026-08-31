@@ -26,3 +26,36 @@ export interface DjProgramDetail {
   duration: number
   song: Song | null
 }
+
+export interface DjCategory {
+  id: number
+  name: string
+}
+
+export interface HallRadio {
+  id: number
+  name: string
+  picUrl: string
+  rcmdText: string
+  djName: string
+  playCount: number
+}
+
+export interface HallRadioPage {
+  radios: HallRadio[]
+  more: boolean
+}
+
+export interface DjRadioDetail {
+  id: number
+  name: string
+  picUrl: string
+  desc: string
+  djName: string
+  category: string
+}
+
+export interface DjRadioProgramPage {
+  programs: DjProgram[]
+  more: boolean
+}

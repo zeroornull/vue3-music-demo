@@ -1,7 +1,17 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getDjBanners, getDjProgramDetail, getPersonalizedDjPrograms } from '@/api/dj'
+import {
+  DJ_RADIO_PAGE_SIZE,
+  DJ_RADIO_PROGRAM_PAGE_SIZE,
+  getDjBanners,
+  getDjCategories,
+  getDjProgramDetail,
+  getDjRadioDetail,
+  getDjRadioPrograms,
+  getHotDjRadios,
+  getPersonalizedDjPrograms,
+} from '@/api/dj'
 import { useDjStore } from '@/stores/dj'
 
 vi.mock('@/api/dj', async (importOriginal) => {
@@ -9,7 +19,11 @@ vi.mock('@/api/dj', async (importOriginal) => {
   return {
     ...actual,
     getDjBanners: vi.fn(),
+    getDjCategories: vi.fn(),
     getDjProgramDetail: vi.fn(),
+    getDjRadioDetail: vi.fn(),
+    getDjRadioPrograms: vi.fn(),
+    getHotDjRadios: vi.fn(),
     getPersonalizedDjPrograms: vi.fn(),
   }
 })
@@ -27,6 +41,24 @@ const program = {
   id: 901,
   name: '深夜民谣',
   picUrl: 'https://images.example.com/dj.jpg',
+}
+
+const category = { id: 2, name: '音乐故事' }
+const radio = {
+  djName: '林间主播',
+  id: 801,
+  name: '夜航电台',
+  picUrl: 'https://images.example.com/radio.jpg',
+  playCount: 12_000,
+  rcmdText: '睡前故事',
+}
+const radioDetail = {
+  category: '音乐故事',
+  desc: '夜航第一季。<img src=x>',
+  djName: '林间主播',
+  id: 801,
+  name: '夜航电台',
+  picUrl: 'https://images.example.com/radio.jpg',
 }
 
 const detail = {
@@ -58,7 +90,11 @@ describe('dj store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.mocked(getDjBanners).mockReset()
+    vi.mocked(getDjCategories).mockReset()
     vi.mocked(getDjProgramDetail).mockReset()
+    vi.mocked(getDjRadioDetail).mockReset()
+    vi.mocked(getDjRadioPrograms).mockReset()
+    vi.mocked(getHotDjRadios).mockReset()
     vi.mocked(getPersonalizedDjPrograms).mockReset()
   })
 
@@ -178,5 +214,89 @@ describe('dj store', () => {
     await store.loadBanners()
     store.resetDetail()
     expect(store.banners).toEqual([banner])
+  })
+
+  it('loads categories once and radios for the selected category', async () => {
+    vi.mocked(getDjCategories).mockResolvedValue([category])
+    vi.mocked(getHotDjRadios).mockResolvedValue({ more: true, radios: [radio] })
+    const store = useDjStore()
+
+    await store.loadCategories()
+    await store.loadCategories()
+    await store.setCate(2)
+    await store.setCate(2)
+
+    expect(store.categories).toEqual([category])
+    expect(store.radios).toEqual([radio])
+    expect(store.cateId).toBe(2)
+    expect(store.radiosMore).toBe(true)
+    expect(getDjCategories).toHaveBeenCalledTimes(1)
+    expect(getHotDjRadios).toHaveBeenCalledTimes(1)
+    expect(getHotDjRadios).toHaveBeenCalledWith({
+      cateId: 2,
+      limit: DJ_RADIO_PAGE_SIZE,
+      offset: 0,
+    })
+  })
+
+  it('appends the next radio page and drops a stale load-more after category change', async () => {
+    const next = { ...radio, id: 802, name: '下一页电台' }
+    const pending = deferred<{ more: boolean; radios: typeof radio[] }>()
+    vi.mocked(getHotDjRadios)
+      .mockResolvedValueOnce({ more: true, radios: [radio] })
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce({
+        more: false,
+        radios: [{ ...radio, id: 803, name: '创作电台' }],
+      })
+    const store = useDjStore()
+    await store.setCate(2)
+    const more = store.loadMoreRadios()
+    await store.setCate(6)
+    pending.resolve({ more: false, radios: [next] })
+    await more
+
+    expect(store.cateId).toBe(6)
+    expect(store.radios).toEqual([{ ...radio, id: 803, name: '创作电台' }])
+    expect(getHotDjRadios).toHaveBeenNthCalledWith(2, {
+      cateId: 2,
+      limit: DJ_RADIO_PAGE_SIZE,
+      offset: 1,
+    })
+    expect(getHotDjRadios).toHaveBeenNthCalledWith(3, {
+      cateId: 6,
+      limit: DJ_RADIO_PAGE_SIZE,
+      offset: 0,
+    })
+  })
+
+  it('loads radio detail and programs, and clears them on reset', async () => {
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms)
+      .mockResolvedValueOnce({ more: true, programs: [program] })
+      .mockResolvedValueOnce({
+        more: false,
+        programs: [{ ...program, id: 902, name: '下一期' }],
+      })
+    const store = useDjStore()
+    await store.loadRadio(801)
+    await store.loadRadio(801)
+    await store.loadMoreRadioPrograms()
+
+    expect(store.radio).toEqual(radioDetail)
+    expect(store.radioPrograms.map((item) => item.id)).toEqual([901, 902])
+    expect(getDjRadioDetail).toHaveBeenCalledTimes(1)
+    expect(getDjRadioPrograms).toHaveBeenNthCalledWith(2, {
+      limit: DJ_RADIO_PROGRAM_PAGE_SIZE,
+      offset: 1,
+      rid: 801,
+    })
+
+    store.reset()
+    expect(store.radio).toBeNull()
+    expect(store.radioPrograms).toEqual([])
+    expect(store.categories).toEqual([])
+    expect(store.radios).toEqual([])
+    expect(store.cateId).toBe(0)
   })
 })

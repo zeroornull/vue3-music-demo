@@ -100,6 +100,16 @@ describe('router contract', () => {
     expect(route.meta.title).toBe('电台节目')
   })
 
+  it('adds a radio detail route with query id', () => {
+    const router = createAppRouter(createMemoryHistory())
+    const route = router.resolve({ name: Pages.djRadio, query: { id: 801 } })
+
+    expect(route.path).toBe('/djRadio')
+    expect(route.query.id).toBe('801')
+    expect(route.meta.title).toBe('电台')
+    expect(route.meta.menu).toBe('music')
+  })
+
   it('preserves the legacy video hall and video detail routes', () => {
     const router = createAppRouter(createMemoryHistory())
     const hall = router.resolve({ name: Pages.video })

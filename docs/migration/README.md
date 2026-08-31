@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.39.0`<br>
+> 文档版本：`0.40.0`<br>
 > 版本快照日期：`2026-08-31`<br>
-> 当前阶段：**实施第 35 轮视频全部分类面板已落地（未 commit）；下一轮电台分类**
+> 当前阶段：**实施第 36 轮电台分类已落地（未 commit）；下一轮翻译歌词**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -535,7 +535,16 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 42. 主要官方资料
+## 42. 实施第 36 轮结果
+
+- `#/music/dj` 分类电台网格；`#/djRadio?id=` 最小详情；节目打开 `#/dj?id=`；
+- 100 个测试文件、410 个测试通过；typecheck、build（360 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS；独立核验 PASS（`50421`/`50431`）；未 commit、未 push；
+- 下一轮建议迁移翻译歌词。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 43. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

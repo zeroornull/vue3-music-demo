@@ -244,6 +244,35 @@ describe('App host gate', () => {
       },
     ]
     djStore.loadedId = 901
+    djStore.categories = [{ id: 2, name: '音乐故事' }]
+    djStore.radios = [
+      {
+        djName: '林间主播',
+        id: 801,
+        name: '夜航电台',
+        picUrl: 'https://images.example.com/radio.jpg',
+        playCount: 1,
+        rcmdText: '',
+      },
+    ]
+    djStore.cateId = 2
+    djStore.radio = {
+      category: '音乐故事',
+      desc: '夜航',
+      djName: '林间主播',
+      id: 801,
+      name: '夜航电台',
+      picUrl: 'https://images.example.com/radio.jpg',
+    }
+    djStore.radioPrograms = [
+      {
+        copywriter: '',
+        id: 901,
+        name: '深夜民谣',
+        picUrl: 'https://images.example.com/dj.jpg',
+      },
+    ]
+    djStore.radioLoadedId = 801
     mountApp()
 
     useHostStore().clearHost()
@@ -252,6 +281,12 @@ describe('App host gate', () => {
     expect(djStore.programs).toEqual([])
     expect(djStore.banners).toEqual([])
     expect(djStore.loadedId).toBeNull()
+    expect(djStore.categories).toEqual([])
+    expect(djStore.radios).toEqual([])
+    expect(djStore.cateId).toBe(0)
+    expect(djStore.radio).toBeNull()
+    expect(djStore.radioPrograms).toEqual([])
+    expect(djStore.radioLoadedId).toBeNull()
   })
 
   it('clears search cache when the host gate closes', async () => {

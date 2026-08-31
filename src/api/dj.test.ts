@@ -3,8 +3,14 @@ import { describe, expect, it, vi } from 'vitest'
 import type { HttpClient } from '@/api/http'
 import {
   DJ_BANNER_LIMIT,
+  DJ_RADIO_PAGE_SIZE,
+  DJ_RADIO_PROGRAM_PAGE_SIZE,
   getDjBanners,
+  getDjCategories,
   getDjProgramDetail,
+  getDjRadioDetail,
+  getDjRadioPrograms,
+  getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
 
@@ -163,5 +169,119 @@ describe('DJ API', () => {
     await expect(
       getDjProgramDetail(901, client({ program: null }).client),
     ).rejects.toThrow('电台节目不存在')
+  })
+
+  it('unwraps radio categories and skips invalid rows', async () => {
+    const request = client({
+      categories: [
+        { extra: true, id: 2, name: '音乐故事' },
+        { id: 'bad', name: '忽略' },
+        { id: 6, name: ' 创作翻唱 ' },
+      ],
+    })
+    await expect(getDjCategories(request.client)).resolves.toEqual([
+      { id: 2, name: '音乐故事' },
+      { id: 6, name: '创作翻唱' },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/catelist')
+  })
+
+  it('loads hot radios for a category and infers another page', async () => {
+    const radio = {
+      dj: { nickname: '林间主播' },
+      extra: true,
+      id: 801,
+      name: '夜航电台',
+      picUrl: 'https://images.example.com/radio.jpg',
+      playCount: 12_000,
+      rcmdText: '睡前故事',
+    }
+    const request = client({ djRadios: [radio, { name: '缺 id' }], hasMore: true })
+    await expect(
+      getHotDjRadios({ cateId: 2, offset: 12 }, request.client),
+    ).resolves.toEqual({
+      more: true,
+      radios: [
+        {
+          djName: '林间主播',
+          id: 801,
+          name: '夜航电台',
+          picUrl: 'https://images.example.com/radio.jpg',
+          playCount: 12_000,
+          rcmdText: '睡前故事',
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/dj/radio/hot', {
+      cateId: 2,
+      limit: DJ_RADIO_PAGE_SIZE,
+      offset: 12,
+    })
+
+    const full = Array.from({ length: DJ_RADIO_PAGE_SIZE }, (_, index) => ({
+      id: index + 1,
+      name: `电台${index + 1}`,
+    }))
+    const inferred = await getHotDjRadios(
+      { cateId: 2 },
+      client({ djRadios: full }).client,
+    )
+    expect(inferred.radios).toHaveLength(DJ_RADIO_PAGE_SIZE)
+    expect(inferred.more).toBe(true)
+  })
+
+  it('unwraps a radio detail and its program page as text-safe rows', async () => {
+    const detail = client({
+      djRadio: {
+        category: '音乐故事',
+        desc: '夜航第一季。<img src=x>',
+        dj: { nickname: '林间主播' },
+        extra: true,
+        id: 801,
+        name: '夜航电台',
+        picUrl: 'https://images.example.com/radio.jpg',
+      },
+    })
+    await expect(getDjRadioDetail(801, detail.client)).resolves.toEqual({
+      category: '音乐故事',
+      desc: '夜航第一季。<img src=x>',
+      djName: '林间主播',
+      id: 801,
+      name: '夜航电台',
+      picUrl: 'https://images.example.com/radio.jpg',
+    })
+    expect(detail.get).toHaveBeenCalledWith('/dj/detail', { rid: 801 })
+
+    const programs = client({
+      more: false,
+      programs: [
+        {
+          coverUrl: 'https://images.example.com/ep.jpg',
+          extra: true,
+          id: 901,
+          name: '深夜民谣',
+          radio: { name: '夜航电台' },
+        },
+        { name: '缺 id' },
+      ],
+    })
+    await expect(
+      getDjRadioPrograms({ rid: 801, offset: 0 }, programs.client),
+    ).resolves.toEqual({
+      more: false,
+      programs: [
+        {
+          copywriter: '夜航电台',
+          id: 901,
+          name: '深夜民谣',
+          picUrl: 'https://images.example.com/ep.jpg',
+        },
+      ],
+    })
+    expect(programs.get).toHaveBeenCalledWith('/dj/program', {
+      limit: DJ_RADIO_PROGRAM_PAGE_SIZE,
+      offset: 0,
+      rid: 801,
+    })
   })
 })

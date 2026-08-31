@@ -3984,3 +3984,79 @@ mock API http://127.0.0.1:50131
 ### 37.4 本轮结果
 
 视频全部分类面板已在工作区形成。独立审查 PASS：无 HIGH/MEDIUM。独立核验 PASS：复跑 95/396、typecheck、345 modules；隔离 smoke Vite `127.0.0.1:50221` + mock `127.0.0.1:50231`，覆盖全部分类、分类9、关闭可点、重新配置。第 34 轮提交 `7d2a366` 仍是当前 HEAD；第 35 轮尚未 commit / push。下一轮建议迁移电台分类。
+
+## 38. 实施第 36 轮：电台分类 + 最小电台详情（工作区）
+
+> 执行日期：`2026-08-31`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 38.1 开始边界与范围
+
+第 36 轮开始时第 35 轮已经提交：
+
+```text
+HEAD e43b465
+master...origin/master
+```
+
+本轮给 `#/music/dj` 补上分类电台，并新增 `#/djRadio?id=`。不迁付费电台、翻译歌词、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `GET /dj/catelist` + `GET /dj/radio/hot`；
+- `#/djRadio?id=` 走 `GET /dj/detail` 与 `GET /dj/program`；
+- 节目打开已有 `#/dj?id=`。
+
+### 38.2 自动验证
+
+```text
+bun run test
+Test Files  100 passed (100)
+Tests       410 passed (410)
+
+bun run typecheck
+PASS
+
+bun run build
+360 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 38.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 未被占用；仍使用隔离端口：
+
+```text
+Vite     http://127.0.0.1:50321
+mock API http://127.0.0.1:50331
+```
+
+验证步骤：
+
+1. Host 保存后打开音乐馆电台，看到「音乐故事 / 创作翻唱」和「夜航电台」；
+2. 点创作翻唱，列表换成「翻唱电台」；
+3. 点夜航电台进入 `#/djRadio?id=801`，介绍里 `<img src=x>` 是文本；
+4. 点深夜民谣进入已有节目页；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出；
+6. 「重新配置 API」回到 Host 表单。
+
+截图保存在 `/tmp/vue3-music-round36-desktop.png` 和 `/tmp/vue3-music-round36-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 38.4 本轮结果
+
+电台分类和最小电台详情已在工作区形成。独立审查 PASS WITH FINDINGS：MEDIUM 是 catelist 失败时大厅只显示空状态。已把 `categoriesLoading` / `categoriesError` 接到分类区块，并补了重试测试。独立核验 PASS：复跑当时 100/409、typecheck、360 modules；隔离 smoke `50421`/`50431`。跟进后 100/410。第 35 轮提交 `e43b465` 仍是当前 HEAD；第 36 轮尚未 commit / push。下一轮建议迁移翻译歌词。

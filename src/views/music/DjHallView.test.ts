@@ -64,6 +64,7 @@ describe('DjHallView', () => {
     expect(wrapper.get('[data-testid="hall-banners"] h2').text()).toBe('电台推荐')
     expect(wrapper.get('[data-testid="hall-banners"]').text()).toContain('1')
     expect(wrapper.get('[data-testid="hall-programs"]').text()).toContain('1')
+    expect(wrapper.get('#radio-cat-title').text()).toBe('电台分类')
     await wrapper.get('[data-testid="banner-retry"]').trigger('click')
     await wrapper.get('[data-testid="dj-retry"]').trigger('click')
     expect(wrapper.emitted('retry-banners')).toHaveLength(1)

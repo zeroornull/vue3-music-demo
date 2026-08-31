@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getDjBanners, getPersonalizedDjPrograms } from '@/api/dj'
+import { getDjBanners, getDjCategories, getHotDjRadios, getPersonalizedDjPrograms } from '@/api/dj'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import DjHallPage from '@/views/music/DjHallPage.vue'
@@ -26,8 +26,10 @@ vi.mock('@/api/dj', async (importOriginal) => {
   return {
     ...actual,
     getDjBanners: vi.fn(),
-    getPersonalizedDjPrograms: vi.fn(),
+    getDjCategories: vi.fn(),
     getDjProgramDetail: vi.fn(),
+    getHotDjRadios: vi.fn(),
+    getPersonalizedDjPrograms: vi.fn(),
   }
 })
 
@@ -57,8 +59,21 @@ const HallStub = defineComponent({
     'programs',
     'programsError',
     'programsLoading',
+    'radios',
+    'radiosError',
+    'radiosLoading',
+    'radiosMore',
+    'categories',
+    'cateId',
   ],
-  emits: ['retry-banners', 'retry-programs', 'select-banner'],
+  emits: [
+    'retry-banners',
+    'retry-programs',
+    'retry-radios',
+    'select-banner',
+    'select-cat',
+    'load-more-radios',
+  ],
   setup(_props, { emit }) {
     return {
       emitAlbum: () => emit('select-banner', albumBanner),
@@ -86,6 +101,10 @@ const HallStub = defineComponent({
       <span v-if="bannersError" data-testid="banner-error">{{ bannersError }}</span>
       <span data-testid="program-count">{{ programs.length }}</span>
       <span v-if="programsError" data-testid="program-error">{{ programsError }}</span>
+      <span data-testid="radio-count">{{ radios.length }}</span>
+      <span v-if="radiosError" data-testid="radio-error">{{ radiosError }}</span>
+      <button data-testid="page-cat" @click="$emit('select-cat', 6)">cat</button>
+      <button data-testid="page-radio-retry" @click="$emit('retry-radios')">retry radios</button>
       <button data-testid="page-banner-retry" @click="$emit('retry-banners')">retry banners</button>
       <button data-testid="page-program-retry" @click="$emit('retry-programs')">retry programs</button>
       <button
@@ -135,9 +154,25 @@ describe('DjHallPage', () => {
     setActivePinia(createPinia())
     playSong.mockClear()
     vi.mocked(getDjBanners).mockReset()
+    vi.mocked(getDjCategories).mockReset()
+    vi.mocked(getHotDjRadios).mockReset()
     vi.mocked(getPersonalizedDjPrograms).mockReset()
     vi.mocked(getDjBanners).mockResolvedValue([banner])
     vi.mocked(getPersonalizedDjPrograms).mockResolvedValue([program])
+    vi.mocked(getDjCategories).mockResolvedValue([{ id: 2, name: '音乐故事' }])
+    vi.mocked(getHotDjRadios).mockResolvedValue({
+      more: false,
+      radios: [
+        {
+          djName: '林间主播',
+          id: 801,
+          name: '夜航电台',
+          picUrl: 'https://images.example.com/radio.jpg',
+          playCount: 1,
+          rcmdText: '睡前故事',
+        },
+      ],
+    })
   })
 
   it('loads banners and programs then retries after errors', async () => {
@@ -158,6 +193,21 @@ describe('DjHallPage', () => {
     await flushPromises()
     expect(wrapper.get('[data-testid="banner-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="program-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="radio-count"]').text()).toBe('1')
+  })
+
+  it('retries a failed category list', async () => {
+    vi.mocked(getDjCategories)
+      .mockRejectedValueOnce(new Error('catelist offline'))
+      .mockResolvedValueOnce([{ id: 2, name: '音乐故事' }])
+
+    const { wrapper } = await mountPage()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="radio-error"]').text()).toBe('catelist offline')
+
+    await wrapper.get('[data-testid="page-radio-retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="radio-count"]').text()).toBe('1')
   })
 
   it('plays song banners and opens album banners', async () => {
