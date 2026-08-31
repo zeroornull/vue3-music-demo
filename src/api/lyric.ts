@@ -2,7 +2,9 @@ import { http, type HttpClient } from '@/api/http'
 import {
   attachRomanizations,
   attachTranslations,
+  attachWords,
   parseLyric,
+  parseYrc,
   type LyricDoc,
 } from '@/models/lyric'
 
@@ -19,6 +21,7 @@ export async function getLyric(
     nolyric?: unknown
     tlyric?: unknown
     romalrc?: unknown
+    yrc?: unknown
   }>('/lyric', { id })
   if (response.nolyric === true) {
     return { lines: [] }
@@ -35,10 +38,17 @@ export async function getLyric(
     isRecord(response.romalrc) && typeof response.romalrc.lyric === 'string'
       ? response.romalrc.lyric
       : ''
+  const karaokeRaw =
+    isRecord(response.yrc) && typeof response.yrc.lyric === 'string'
+      ? response.yrc.lyric
+      : ''
   return {
-    lines: attachRomanizations(
-      attachTranslations(parseLyric(raw), parseLyric(translatedRaw)),
-      parseLyric(romanizedRaw),
+    lines: attachWords(
+      attachRomanizations(
+        attachTranslations(parseLyric(raw), parseLyric(translatedRaw)),
+        parseLyric(romanizedRaw),
+      ),
+      parseYrc(karaokeRaw),
     ),
   }
 }

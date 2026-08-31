@@ -1,8 +1,14 @@
+export interface LyricWord {
+  time: number
+  text: string
+}
+
 export interface LyricLine {
   time: number | null
   text: string
   translation?: string
   romanization?: string
+  words?: LyricWord[]
 }
 
 export interface LyricDoc {
@@ -44,6 +50,10 @@ export function parseLyric(raw: string): LyricLine[] {
   return lines
 }
 
+function stampKey(time: number): number {
+  return Math.round(time * 1000)
+}
+
 function attachByTime(
   lines: LyricLine[],
   extras: LyricLine[],
@@ -52,11 +62,11 @@ function attachByTime(
   const byTime = new Map<number, string>()
   for (const line of extras) {
     if (line.time == null || !line.text) continue
-    byTime.set(line.time, line.text)
+    byTime.set(stampKey(line.time), line.text)
   }
   return lines.map((line) => {
     if (line.time == null) return line
-    const value = byTime.get(line.time)
+    const value = byTime.get(stampKey(line.time))
     return value ? { ...line, [field]: value } : line
   })
 }
@@ -73,4 +83,53 @@ export function attachRomanizations(
   romanized: LyricLine[],
 ): LyricLine[] {
   return attachByTime(lines, romanized, 'romanization')
+}
+
+const YRC_LINE = /^\[(\d+),(\d+)\](.*)$/
+const YRC_WORD = /\((\d+),(\d+),(-?\d+)\)([^(]*)/g
+
+export function parseYrc(raw: string): LyricLine[] {
+  const lines: LyricLine[] = []
+  for (const original of raw.replace(/\r/g, '').split('\n')) {
+    const line = original.trim()
+    if (!line) continue
+    const header = YRC_LINE.exec(line)
+    if (!header) continue
+    const time = Number(header[1]) / 1000
+    const rest = header[3] ?? ''
+    const words: LyricWord[] = []
+    YRC_WORD.lastIndex = 0
+    let match: RegExpExecArray | null
+    while ((match = YRC_WORD.exec(rest)) !== null) {
+      const text = match[4]
+      const stamp = match[1]
+      if (!text || stamp == null) continue
+      words.push({ text, time: Number(stamp) / 1000 })
+    }
+    const text = words.map((word) => word.text).join('')
+    if (!text) continue
+    lines.push({ text, time, words })
+  }
+  lines.sort(
+    (left, right) =>
+      (left.time ?? Number.POSITIVE_INFINITY) -
+      (right.time ?? Number.POSITIVE_INFINITY),
+  )
+  return lines
+}
+
+export function attachWords(
+  lines: LyricLine[],
+  karaoke: LyricLine[],
+): LyricLine[] {
+  const byTime = new Map<number, LyricWord[]>()
+  for (const line of karaoke) {
+    if (line.time == null || !line.words?.length) continue
+    byTime.set(stampKey(line.time), line.words)
+  }
+  return lines.map((line) => {
+    if (line.time == null) return line
+    const words = byTime.get(stampKey(line.time))
+    return words ? { ...line, words } : line
+  })
 }

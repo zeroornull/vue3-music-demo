@@ -71,6 +71,61 @@ describe('Lyric API', () => {
     })
   })
 
+  it('attaches karaoke words when lrc and yrc share the same millisecond', async () => {
+    const request = client({
+      lrc: { lyric: '[00:01.118]Hello\n' },
+      yrc: { lyric: '[1118,1000](1118,1000,0)Hello\n' },
+    })
+    await expect(getLyric(301, request.client)).resolves.toEqual({
+      lines: [
+        {
+          text: 'Hello',
+          time: 1 + 118 / 1000,
+          words: [{ text: 'Hello', time: 1.118 }],
+        },
+      ],
+    })
+  })
+
+  it('keeps whole-line text when yrc times do not match', async () => {
+    const request = client({
+      lrc: { lyric: '[00:12.00]Hello\n' },
+      yrc: { lyric: '[0,1000](0,1000,0)Hello\n' },
+    })
+    await expect(getLyric(301, request.client)).resolves.toEqual({
+      lines: [{ text: 'Hello', time: 12 }],
+    })
+  })
+
+  it('attaches matching karaoke words as text', async () => {
+    const request = client({
+      lrc: {
+        lyric: '[00:12.00]Walk through the woods.\n[01:02.500]Second line\n',
+      },
+      yrc: {
+        lyric:
+          '[12000,2000](12000,800,0)Walk (12800,1200,0)through the woods.<img src=x>\n[62500,1000](62500,1000,0)Second line\n',
+      },
+    })
+    await expect(getLyric(301, request.client)).resolves.toEqual({
+      lines: [
+        {
+          text: 'Walk through the woods.',
+          time: 12,
+          words: [
+            { text: 'Walk ', time: 12 },
+            { text: 'through the woods.<img src=x>', time: 12.8 },
+          ],
+        },
+        {
+          text: 'Second line',
+          time: 62.5,
+          words: [{ text: 'Second line', time: 62.5 }],
+        },
+      ],
+    })
+  })
+
   it('returns an empty lyric when nolyric is set', async () => {
     await expect(
       getLyric(
@@ -78,7 +133,9 @@ describe('Lyric API', () => {
         client({
           nolyric: true,
           lrc: { lyric: '[00:00.00]x' },
+          tlyric: { lyric: '[00:00.00]x' },
           romalrc: { lyric: '[00:00.00]x' },
+          yrc: { lyric: '[0,1000](0,1000,0)x' },
         }).client,
       ),
     ).resolves.toEqual({ lines: [] })

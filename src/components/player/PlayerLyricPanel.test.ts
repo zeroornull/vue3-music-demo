@@ -31,6 +31,10 @@ describe('PlayerLyricPanel', () => {
         time: 0,
         translation: 'Walk.<img src=x>',
         romanization: 'zou guo lin jian.<img src=x>',
+        words: [
+          { text: '走过', time: 0 },
+          { text: '林间。<img src=x>', time: 8 },
+        ],
       },
       { text: '第二句', time: 12 },
     ]
@@ -50,15 +54,48 @@ describe('PlayerLyricPanel', () => {
     expect(bodyEl('[data-testid="player-lyric-line-0-roma"]').textContent).toBe(
       'zou guo lin jian.<img src=x>',
     )
+    expect(bodyEl('[data-testid="player-lyric-line-0-word-0"]').textContent).toBe(
+      '走过',
+    )
+    expect(bodyEl('[data-testid="player-lyric-line-0-word-1"]').textContent).toBe(
+      '林间。<img src=x>',
+    )
     expect(
       bodyEl('[data-testid="player-lyric-line-1"]').getAttribute('aria-current'),
     ).toBe('true')
+    expect(
+      bodyEl('[data-testid="player-lyric-line-0-word-1"]').classList.contains(
+        'is-word-current',
+      ),
+    ).toBe(false)
     player.currentTime = 5
     await wrapper.vm.$nextTick()
     expect(
       bodyEl('[data-testid="player-lyric-line-0"]').getAttribute('aria-current'),
     ).toBe('true')
     expect(document.querySelector('[data-testid="player-lyric-line-1"]')?.getAttribute('aria-current')).toBeNull()
+    expect(
+      bodyEl('[data-testid="player-lyric-line-0-word-0"]').classList.contains(
+        'is-word-current',
+      ),
+    ).toBe(true)
+    expect(
+      bodyEl('[data-testid="player-lyric-line-0-word-1"]').classList.contains(
+        'is-word-current',
+      ),
+    ).toBe(false)
+    player.currentTime = 9
+    await wrapper.vm.$nextTick()
+    expect(
+      bodyEl('[data-testid="player-lyric-line-0-word-1"]').classList.contains(
+        'is-word-current',
+      ),
+    ).toBe(true)
+    expect(
+      bodyEl('[data-testid="player-lyric-line-0-word-0"]').classList.contains(
+        'is-word-current',
+      ),
+    ).toBe(false)
     wrapper.unmount()
   })
 

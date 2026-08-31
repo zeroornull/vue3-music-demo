@@ -4207,4 +4207,78 @@ mock API http://127.0.0.1:50731
 
 ### 40.4 本轮结果
 
-罗马音歌词已在工作区形成。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是未对齐时间戳、重复时间 last-write-wins、nolyric 未同时带 tlyric、面板未锁渲染顺序，未改产品行为。独立核验 PASS：复跑 100/412、typecheck、360 modules；隔离 smoke `50821`/`50831`。第 37 轮提交 `e7399c3` 仍是当前 HEAD；第 38 轮尚未 commit / push。下一轮建议迁移逐字卡拉 OK，或处理剩余 P4（专辑空评论、付费电台）。
+罗马音歌词已在工作区形成。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是未对齐时间戳、重复时间 last-write-wins、nolyric 未同时带 tlyric、面板未锁渲染顺序，未改产品行为。独立核验 PASS：复跑 100/412、typecheck、360 modules；隔离 smoke `50821`/`50831`。随后提交为 `d2ba58f`。下一轮建议迁移逐字卡拉 OK，或处理剩余 P4（专辑空评论、付费电台）。
+
+## 41. 实施第 39 轮：逐字卡拉 OK（工作区）
+
+> 执行日期：`2026-08-31`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 41.1 开始边界与范围
+
+第 39 轮开始时第 38 轮已经提交：
+
+```text
+HEAD d2ba58f
+master...origin/master
+```
+
+本轮给歌词面板补上逐字轨。不迁 `klyric`、JSON yrc、评论/收藏、付费电台、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `yrc.lyric` 按行时间戳贴到原文；
+- 有逐字轨时原文拆成文本节点，当前字随进度高亮。
+
+### 41.2 自动验证
+
+```text
+bun run test
+Test Files  100 passed (100)
+Tests       415 passed (415)
+
+bun run typecheck
+PASS
+
+bun run build
+360 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 41.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 未被占用；仍使用隔离端口：
+
+```text
+Vite     http://127.0.0.1:50921
+mock API http://127.0.0.1:50931
+```
+
+验证步骤：
+
+1. Host 保存后打开 `#/album?id=501`，播放全部，打开歌词；
+2. 原文拆成逐字节点，翻译和罗马音仍在，`<img src=x>` 是文本，没有图片节点；当前字有 `is-word-current`；
+3. 点下一首，歌词、翻译、罗马音和逐字一起换成下一首；
+4. 关掉歌词后「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round39-desktop.png` 和 `/tmp/vue3-music-round39-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 41.4 本轮结果
+
+逐字卡拉 OK 已在工作区形成。独立审查 PASS WITH FINDINGS：MEDIUM 是 LRC/YRC 用浮点秒当 Map 键会对不上，已改成毫秒取整并补了 `[00:01.118]` 回归；LOW 是 JSON yrc、行尾空格 token、括号歌词，未改产品行为。独立核验 PASS：复跑当时 100/413、typecheck、360 modules；隔离 smoke `51021`/`51031`。跟进后 100/415。第 38 轮提交 `d2ba58f` 仍是当前 HEAD；第 39 轮尚未 commit / push。下一轮建议迁移付费电台。

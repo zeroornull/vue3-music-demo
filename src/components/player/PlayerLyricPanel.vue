@@ -24,6 +24,18 @@ const activeIndex = computed(() => {
   return index
 })
 
+const activeWordIndex = computed(() => {
+  const words = lines.value[activeIndex.value]?.words
+  if (!words?.length) return -1
+  const time = currentTime.value
+  let index = -1
+  for (let i = 0; i < words.length; i += 1) {
+    const word = words[i]
+    if (word && word.time <= time) index = i
+  }
+  return index
+})
+
 function onKeydown(event: KeyboardEvent) {
   if (!showLyric.value || event.key !== 'Escape') return
   lyrics.close()
@@ -116,7 +128,15 @@ onUnmounted(() => {
             :class="{ 'is-current': index === activeIndex }"
             :aria-current="index === activeIndex ? 'true' : undefined"
           >
-            <span>{{ line.text }}</span>
+            <span v-if="line.words?.length" class="lyric-words">
+              <span
+                v-for="(word, wordIndex) in line.words"
+                :key="`${word.time}-${wordIndex}`"
+                :class="{ 'is-word-current': index === activeIndex && wordIndex === activeWordIndex }"
+                :data-testid="`player-lyric-line-${index}-word-${wordIndex}`"
+              >{{ word.text }}</span>
+            </span>
+            <span v-else>{{ line.text }}</span>
             <small
               v-if="line.translation"
               class="lyric-trans"
@@ -249,5 +269,9 @@ onUnmounted(() => {
 .lyric-list li.is-current .lyric-trans,
 .lyric-list li.is-current .lyric-roma {
   color: #3d7a6c;
+}
+
+.lyric-words .is-word-current {
+  color: #0f766e;
 }
 </style>
