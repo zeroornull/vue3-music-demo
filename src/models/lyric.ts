@@ -1,6 +1,7 @@
 export interface LyricLine {
   time: number | null
   text: string
+  translation?: string
 }
 
 export interface LyricDoc {
@@ -40,4 +41,20 @@ export function parseLyric(raw: string): LyricLine[] {
       (right.time ?? Number.POSITIVE_INFINITY),
   )
   return lines
+}
+
+export function attachTranslations(
+  lines: LyricLine[],
+  translated: LyricLine[],
+): LyricLine[] {
+  const byTime = new Map<number, string>()
+  for (const line of translated) {
+    if (line.time == null || !line.text) continue
+    byTime.set(line.time, line.text)
+  }
+  return lines.map((line) => {
+    if (line.time == null) return line
+    const translation = byTime.get(line.time)
+    return translation ? { ...line, translation } : line
+  })
 }

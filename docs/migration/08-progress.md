@@ -1,19 +1,19 @@
 # 08. 当前开发进度
 
 > 更新日期：`2026-08-31`<br>
-> 文档版本：`0.40.0`<br>
-> 对照提交：`e43b465`（实施第 35 轮已在当前 HEAD）<br>
-> 工作区：实施第 36 轮代码已落地，**尚未 commit / push**
+> 文档版本：`0.41.0`<br>
+> 对照提交：`a20eb51`（实施第 36 轮已在当前 HEAD）<br>
+> 工作区：实施第 37 轮代码已落地，**尚未 commit / push**
 
 本文是后续轮次的入口。历史盘点见 [01-current-state-audit.md](./01-current-state-audit.md)，执行约束见 [03-migration-roadmap.md](./03-migration-roadmap.md)，逐轮证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
 ## 1. 一句话状态
 
-根工程已经是可运行的 Bun + Vue 3.5 + TypeScript 6 + Vite 8 应用。Discover、播放器（含上一首/下一首、循环/随机、静音、队列抽屉、歌词）、歌单、MV、音乐馆、歌手馆筛选、歌手 MV/专辑/介绍 tab、推荐电台、电台大厅（含分类与电台详情）、搜索（单曲/歌单/歌手/专辑）、专辑详情（含介绍 tab）、顶部应用壳和视频大厅（含分页和全部分类）已经形成闭环。下一轮应迁移 **翻译歌词**。
+根工程已经是可运行的 Bun + Vue 3.5 + TypeScript 6 + Vite 8 应用。Discover、播放器（含上一首/下一首、循环/随机、静音、队列抽屉、歌词翻译）、歌单、MV、音乐馆、歌手馆筛选、歌手 MV/专辑/介绍 tab、推荐电台、电台大厅（含分类与电台详情）、搜索（单曲/歌单/歌手/专辑）、专辑详情（含介绍 tab）、顶部应用壳和视频大厅（含分页和全部分类）已经形成闭环。下一轮应迁移 **罗马音歌词**。
 
 ## 2. 路线图对照
 
-原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-046](./06-decision-log.md)。
+原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-047](./06-decision-log.md)。
 
 | 路线图阶段 | 目标 | 状态 | 对应轮次 | 缺口 |
 | --- | --- | --- | --- | --- |
@@ -21,8 +21,8 @@
 | P1 legacy 归档 | 旧工程移入 `legacy/` | **完成** | 实施第 1 轮 | 无 |
 | P2 现代空壳 | Bun + Vue + TS + Vite | **完成** | 实施第 2 轮 | TypeScript 固定 6.0.3，待 `vue-tsc` 支持 TS 7 |
 | P3 基础设施 | Router、Pinia、API、主题、自动组件 | **部分完成** | 实施第 3、18 轮 | 最小顶栏已接入；无 Element Plus、无 Sass/Tailwind、无自动组件 |
-| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–36 轮 | Discover、播放器（含上一首/下一首、循环/随机、静音、队列抽屉、歌词）、歌单、MV、排行榜、分类、精选、歌手馆、歌手 MV/专辑/介绍 tab、电台节目、电台大厅（含分类与电台详情）、搜索多类型、专辑详情（含介绍 tab）、应用壳和 `#/video`（含分页和全部分类）完成；专辑空评论、翻译歌词未做 |
-| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–36 轮内嵌 | 尚无独立治理轮 |
+| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–37 轮 | Discover、播放器（含上一首/下一首、循环/随机、静音、队列抽屉、歌词翻译）、歌单、MV、排行榜、分类、精选、歌手馆、歌手 MV/专辑/介绍 tab、电台节目、电台大厅（含分类与电台详情）、搜索多类型、专辑详情（含介绍 tab）、应用壳和 `#/video`（含分页和全部分类）完成；专辑空评论、罗马音歌词未做 |
+| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–37 轮内嵌 | 尚无独立治理轮 |
 | P6 Tailwind 4 | 新样式入口和视觉收敛 | **未开始** | — | 当前页面继续使用 scoped CSS |
 | P7 发布闭环 | `dist/`、CI、学习总结 | **未开始** | — | 无 CI；GitHub Pages 未切到新产物 |
 
@@ -66,12 +66,13 @@
 | 实施第 33 轮 | 2026-08-30 | 专辑详情介绍 tab | 94 文件 / 387 测试 | `192167d` |
 | 实施第 34 轮 | 2026-08-31 | 视频大厅分页 | 94 文件 / 392 测试 | `7d2a366` |
 | 实施第 35 轮 | 2026-08-31 | 视频全部分类面板 | 95 文件 / 396 测试 | `e43b465` |
-| 实施第 36 轮 | 2026-08-31 | 电台分类 + 最小电台详情 | 100 文件 / 410 测试 | **工作区未提交** |
+| 实施第 36 轮 | 2026-08-31 | 电台分类 + 最小电台详情 | 100 文件 / 410 测试 | `a20eb51` |
+| 实施第 37 轮 | 2026-08-31 | 翻译歌词 | 100 文件 / 411 测试 | **工作区未提交** |
 
-第 36 轮文档对齐时的当前门禁输出：
+第 37 轮文档对齐时的当前门禁输出：
 
 ```text
-bun run test       100 files / 410 tests passed
+bun run test       100 files / 411 tests passed
 bun run typecheck  PASS
 bun run build      360 modules transformed, dist/ 输出
 bun install --frozen-lockfile --dry-run  PASS
@@ -79,32 +80,30 @@ bun audit          No vulnerabilities found (checked 185 packages)
 git diff --check   PASS
 ```
 
-第 36 轮已完成本地 mock API 浏览器 smoke，但未验证外部真实网易云 API。未 commit、未 push。独立审查 PASS WITH FINDINGS（分类失败可重试，已跟进）。独立核验 PASS，隔离 smoke `50421`/`50431`。
+第 37 轮已完成本地 mock API 浏览器 smoke，但未验证外部真实网易云 API。未 commit、未 push。独立审查 PASS WITH FINDINGS（无 HIGH/MEDIUM）。独立核验 PASS，隔离 smoke `50621`/`50631`。
 
-电台分类摘要：chip 选分类，热门电台打开 `#/djRadio?id=`。介绍纯文本。节目打开已有 `#/dj?id=`。不迁付费电台。
+翻译歌词摘要：同一条 `/lyric` 的 `tlyric` 按时间戳贴到原文下面。纯文本。没有翻译就不显示。不迁罗马音。
 
-本地 smoke 使用 Vite `127.0.0.1:50321` 和 mock API `127.0.0.1:50331`：Host → 音乐馆电台 → 分类切换 → 夜航电台详情 → 节目页 → 重新配置。桌面 `1440×900` 与移动 `390×844` 无横向溢出。控制台无应用错误。
+本地 smoke 使用 Vite `127.0.0.1:50521` 和 mock API `127.0.0.1:50531`：Host → 专辑播放全部 → 歌词翻译 → 切歌换词 → 重新配置。桌面 `1440×900` 与移动 `390×844` 无横向溢出。控制台无应用错误。
 
 ## 4. 当前根工程能力
 
 ### 4.1 路由
 
-路由表增加 `#/djRadio?id=`。
+路由表未变。歌词面板增加翻译行。
 
 ### 4.2 API、store、可见 UI
 
 新增 / 扩展：
 
 ```text
-getDjCategories / getHotDjRadios / getDjRadioDetail / getDjRadioPrograms
-dj store                 setCate / loadRadio / loadMoreRadios
-DjRadioView              #/djRadio?id=
-DjRadioSection           分类 chip + 电台网格
+getLyric                 解析 tlyric，按时间戳贴到原文
+PlayerLyricPanel         原文下显示翻译，纯文本
 ```
 
 ### 4.3 已安装直接依赖
 
-第 36 轮未新增依赖。
+第 37 轮未新增依赖。
 
 ## 5. 与 legacy 的功能差距
 
@@ -115,19 +114,19 @@ DjRadioSection           分类 chip + 电台网格
 | 电台大厅 | 空页 | `#/music/dj` Banner + 分类电台 + 推荐节目；`#/djRadio` | 付费电台未迁 |
 | 歌手详情 tab | 歌曲/专辑/视频/详情 | 热门歌曲 + 专辑 + MV + 介绍 | 精选 tab 未迁（legacy 为空） |
 | 视频大厅 | `#/video` 分类 + 网格 | `#/video` + 分页 + 全部分类 + `#/videoDetail` | 完成 |
-| 播放器增强 | 进度/音量/上一首下一首/循环/静音/列表/歌词图标 | 进度 + 音量 + 上一首/下一首 + 循环/随机 + 静音 + 队列 + 歌词 | 翻译歌词未迁 |
+| 播放器增强 | 进度/音量/上一首下一首/循环/静音/列表/歌词图标 | 进度 + 音量 + 上一首/下一首 + 循环/随机 + 静音 + 队列 + 歌词翻译 | 罗马音未迁 |
 
 ## 6. 质量与文档缺口
 
-已通过第 36 轮当前门禁：100 个测试文件 / 410 个测试、两套 typecheck、360 modules build、frozen lock、audit 和 `git diff --check`。
+已通过第 37 轮当前门禁：100 个测试文件 / 411 个测试、两套 typecheck、360 modules build、frozen lock、audit 和 `git diff --check`。
 
-仍存在、但不阻塞第 36 轮的缺口：Host 文案仍写 round 3、无 lint/E2E/CI。翻译歌词未迁。
+仍存在、但不阻塞第 37 轮的缺口：Host 文案仍写 round 3、无 lint/E2E/CI。罗马音歌词未迁。
 
 ## 7. 建议的下一轮
 
-**实施第 37 轮：翻译歌词。**
+**实施第 38 轮：罗马音歌词。**
 
-电台分类已经接上。播放器歌词还缺翻译轨。
+翻译歌词已经接上。同一条 `/lyric` 还有 `romalrc`。
 
 本轮不应做：Header 弹出层、Tailwind 4、CI、Element Plus。
 
@@ -145,4 +144,4 @@ DjRadioSection           分类 chip + 电台网格
 | [CHANGELOG](./CHANGELOG.md) | 追加日志 | 文档版本 |
 | **本文** | **活文档** | **先读这个，再开工** |
 
-> 状态更新（2026-08-31）：第 35 轮已在当前 HEAD `e43b465` 完成。第 36 轮电台分类已在工作区完成（独立审查 / 核验 PASS）；翻译歌词仍未迁。
+> 状态更新（2026-08-31）：第 36 轮已在当前 HEAD `a20eb51` 完成。第 37 轮翻译歌词已在工作区完成（独立审查 / 核验 PASS）；罗马音歌词仍未迁。

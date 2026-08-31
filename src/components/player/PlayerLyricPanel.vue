@@ -116,7 +116,12 @@ onUnmounted(() => {
             :class="{ 'is-current': index === activeIndex }"
             :aria-current="index === activeIndex ? 'true' : undefined"
           >
-            {{ line.text }}
+            <span>{{ line.text }}</span>
+            <small
+              v-if="line.translation"
+              class="lyric-trans"
+              :data-testid="`player-lyric-line-${index}-trans`"
+            >{{ line.translation }}</small>
           </li>
         </ol>
       </aside>
@@ -214,6 +219,8 @@ onUnmounted(() => {
 }
 
 .lyric-list li {
+  display: grid;
+  gap: 2px;
   padding: 6px 0;
   color: #5f6c82;
   font-size: 0.92rem;
@@ -222,8 +229,18 @@ onUnmounted(() => {
   white-space: pre-wrap;
 }
 
+.lyric-trans {
+  color: #8a95a8;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
 .lyric-list li.is-current {
   color: #17614f;
   font-weight: 720;
+}
+
+.lyric-list li.is-current .lyric-trans {
+  color: #3d7a6c;
 }
 </style>

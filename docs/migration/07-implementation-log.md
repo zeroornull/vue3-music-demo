@@ -4060,3 +4060,77 @@ mock API http://127.0.0.1:50331
 ### 38.4 本轮结果
 
 电台分类和最小电台详情已在工作区形成。独立审查 PASS WITH FINDINGS：MEDIUM 是 catelist 失败时大厅只显示空状态。已把 `categoriesLoading` / `categoriesError` 接到分类区块，并补了重试测试。独立核验 PASS：复跑当时 100/409、typecheck、360 modules；隔离 smoke `50421`/`50431`。跟进后 100/410。第 35 轮提交 `e43b465` 仍是当前 HEAD；第 36 轮尚未 commit / push。下一轮建议迁移翻译歌词。
+
+## 39. 实施第 37 轮：翻译歌词（工作区）
+
+> 执行日期：`2026-08-31`<br>
+> 状态：**已完成并通过测试、构建与本地 mock 浏览器验证**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 39.1 开始边界与范围
+
+第 37 轮开始时第 36 轮已经提交：
+
+```text
+HEAD a20eb51
+master...origin/master
+```
+
+本轮给歌词面板补上翻译轨。不迁罗马音、逐字卡拉 OK、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `tlyric.lyric` 按时间戳贴到原文；
+- 纯文本渲染。
+
+### 39.2 自动验证
+
+```text
+bun run test
+Test Files  100 passed (100)
+Tests       411 passed (411)
+
+bun run typecheck
+PASS
+
+bun run build
+360 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 39.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 未被占用；仍使用隔离端口：
+
+```text
+Vite     http://127.0.0.1:50521
+mock API http://127.0.0.1:50531
+```
+
+验证步骤：
+
+1. Host 保存后打开 `#/album?id=501`，播放全部，打开歌词；
+2. 原文和翻译都出现，`<img src=x>` 是文本，没有图片节点；
+3. 点下一首，歌词和翻译一起换成下一首；
+4. 关掉歌词后「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round37-desktop.png` 和 `/tmp/vue3-music-round37-mobile.png`，不进入仓库。开发服务器和 mock API 均已停止。
+
+成功路径控制台无应用错误。未验证外部真实网易云 API。
+
+### 39.4 本轮结果
+
+翻译歌词已在工作区形成。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是 nolyric 带 tlyric、未对齐时间戳缺少回归测试，未改产品行为。独立核验 PASS：复跑 100/411、typecheck、360 modules；隔离 smoke `50621`/`50631`。第 36 轮提交 `a20eb51` 仍是当前 HEAD；第 37 轮尚未 commit / push。下一轮建议迁移罗马音歌词。
