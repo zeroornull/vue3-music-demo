@@ -125,6 +125,13 @@ describe('router contract', () => {
     expect(detail.meta.menu).toBe('video')
   })
 
+  it('keeps the API status page on the legacy migration path', () => {
+    const router = createAppRouter(createMemoryHistory())
+    const route = router.resolve({ name: Pages.migration })
+    expect(route.path).toBe('/migration')
+    expect(route.meta.title).toBe('API 状态')
+  })
+
   it('defines the search route and keyword query', () => {
     const router = createAppRouter(createMemoryHistory())
     const route = router.resolve({ name: Pages.search, query: { q: '深夜' } })

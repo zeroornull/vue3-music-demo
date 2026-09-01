@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 
+import { Pages } from '@/router/pages'
 import { useHostStore } from '@/stores/host'
 
 const hostStore = useHostStore()
@@ -10,36 +11,14 @@ const { apiHost } = storeToRefs(hostStore)
 <template>
   <main class="shell">
     <section class="card" aria-labelledby="shell-title">
-      <p class="eyebrow">Migration round 3</p>
-      <h1 id="shell-title">基础设施切片已连接</h1>
-      <p class="summary">
-        API Host、Axios client、Router meta 与 Pinia 基础 store 已迁移。旧应用仍完整保存在
-        <code>legacy/</code>，Discover Banner 切片已经可以在浏览器中访问。
-      </p>
-
-      <dl class="stack">
-        <div>
-          <dt>API Host</dt>
-          <dd>已配置</dd>
-        </div>
-        <div>
-          <dt>HTTP</dt>
-          <dd>Axios 1.20</dd>
-        </div>
-        <div>
-          <dt>Router</dt>
-          <dd>Typed meta</dd>
-        </div>
-        <div>
-          <dt>State</dt>
-          <dd>Pinia 4</dd>
-        </div>
-      </dl>
+      <p class="eyebrow">API</p>
+      <h1 id="shell-title">API 已连接</h1>
+      <p class="summary">已保存 API 地址。进入推荐页，或重新配置。</p>
 
       <div class="counter" aria-live="polite">
         <span>当前 API：<code>{{ apiHost }}</code></span>
         <div class="actions">
-          <RouterLink :to="{ name: 'discover' }">查看推荐页</RouterLink>
+          <RouterLink :to="{ name: Pages.discover }">查看推荐页</RouterLink>
           <button type="button" @click="hostStore.clearHost">重新配置</button>
         </div>
       </div>
@@ -95,31 +74,6 @@ code {
   color: #29364a;
 }
 
-.stack {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin: 32px 0;
-}
-
-.stack div {
-  padding: 16px;
-  border-radius: 14px;
-  background: #f4f7fb;
-}
-
-dt {
-  color: #7b8799;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-dd {
-  margin: 7px 0 0;
-  font-weight: 720;
-}
-
 .counter {
   display: flex;
   align-items: center;
@@ -164,10 +118,6 @@ button:focus-visible {
 @media (max-width: 640px) {
   .shell {
     padding: 16px;
-  }
-
-  .stack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .counter {

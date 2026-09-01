@@ -36,7 +36,7 @@ export const routes: RouteRecordRaw[] = [
       keepAlive: true,
       menu: 'migration',
       requiresApiHost: true,
-      title: '迁移控制台',
+      title: 'API 状态',
     },
   },
   {

@@ -2,7 +2,7 @@
   <main class="not-found">
     <p>404</p>
     <h1>页面不存在</h1>
-    <RouterLink to="/">返回迁移控制台</RouterLink>
+    <RouterLink to="/">返回推荐页</RouterLink>
   </main>
 </template>
 

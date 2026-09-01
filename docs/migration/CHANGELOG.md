@@ -1,5 +1,18 @@
 # 迁移文档变更记录
 
+## 0.48.0 - 2026-09-01
+
+### 实施第 44 轮：Host 文案
+
+- Host 表单 eyebrow 改为 API Host；`#/migration` 改为 API 状态；404 改为返回推荐页；
+- 不再写 Migration round 3、基础设施切片、迁移控制台；Host 仍用 `/banner` 探活；
+- 不迁登录、主题、Tailwind 4、CI 或独立 P5 治理；
+- 105 个测试文件、434 个测试通过；typecheck、build（364 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:51921` + mock `127.0.0.1:51931`：Host 表单、Discover、`#/migration`、404、重新配置、桌面/移动布局；
+- 独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 已跟进去掉基础设施仪表盘并锁住链接；独立核验 PASS WITH FINDINGS，隔离 smoke `52021`/`52031`；
+- 第 43 轮提交为 `8c29094`；第 44 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：主题。专辑空评论继续跳过。
+
 ## 0.47.0 - 2026-09-01
 
 ### 实施第 43 轮：顶栏视频入口

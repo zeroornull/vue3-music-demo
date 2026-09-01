@@ -46,8 +46,9 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 40 轮：付费电台——已完成并提交 `410ad9a`；
 - 实施第 41 轮：顶栏搜索弹出层——已完成并提交 `5d6f227`；
 - 实施第 42 轮：Banner 详情跳转——已完成并提交 `b6c365f`；
-- 实施第 43 轮：顶栏视频入口——代码已写入工作区，尚未 commit；
-- 下一轮：Host 文案。
+- 实施第 43 轮：顶栏视频入口——已完成并提交 `8c29094`；
+- 实施第 44 轮：Host 文案——代码已写入工作区，尚未 commit；
+- 下一轮：主题。
 
 当前进度总览：[`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 

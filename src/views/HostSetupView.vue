@@ -27,7 +27,7 @@ async function submit() {
 <template>
   <main class="host-shell">
     <section class="host-card" aria-labelledby="host-title">
-      <p class="eyebrow">Migration round 3</p>
+      <p class="eyebrow">API Host</p>
       <h1 id="host-title">连接网易云音乐 API</h1>
       <p class="summary">
         输入完整的 HTTP 或 HTTPS API 地址。保存前会调用 <code>/banner</code> 验证服务，成功后无需刷新页面即可进入应用。
