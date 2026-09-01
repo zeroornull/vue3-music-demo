@@ -1,28 +1,28 @@
 # 08. 当前开发进度
 
 > 更新日期：`2026-09-01`<br>
-> 文档版本：`0.46.0`<br>
-> 对照提交：`5d6f227`（实施第 41 轮已在当前 HEAD）<br>
-> 工作区：实施第 42 轮代码已写入，**尚未 commit / push**
+> 文档版本：`0.47.0`<br>
+> 对照提交：`b6c365f`（实施第 42 轮已在当前 HEAD）<br>
+> 工作区：实施第 43 轮代码已写入，**尚未 commit / push**
 
 本文是后续轮次的入口。历史盘点见 [01-current-state-audit.md](./01-current-state-audit.md)，执行约束见 [03-migration-roadmap.md](./03-migration-roadmap.md)，逐轮证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
 ## 1. 一句话状态
 
-根工程是 Bun + Vue 3.5 + TypeScript 6 + Vite 8。Discover、播放器、歌单、MV、音乐馆、歌手馆、电台大厅（含付费标记）、搜索页、顶栏搜索弹出层、专辑介绍、应用壳、视频大厅和 Banner 详情跳转已经能用。独立 P5 治理轮仍没有产品缺口可修。
+根工程是 Bun + Vue 3.5 + TypeScript 6 + Vite 8。Discover、播放器、歌单、MV、音乐馆、歌手馆、电台大厅（含付费标记）、搜索页、顶栏搜索弹出层、专辑介绍、应用壳、视频大厅、Banner 详情跳转和顶栏视频入口已经能用。独立 P5 治理轮仍没有产品缺口可修。
 
 ## 2. 路线图对照
 
-原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-052](./06-decision-log.md)。
+原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-053](./06-decision-log.md)。
 
 | 路线图阶段 | 目标 | 状态 | 对应轮次 | 缺口 |
 | --- | --- | --- | --- | --- |
 | P0 文档与基线 | 保护 `docs/`、锁定行为 | **完成** | 文档第 1 轮 | 旧工程运行基线仍未在当前环境启动（V-001） |
 | P1 legacy 归档 | 旧工程移入 `legacy/` | **完成** | 实施第 1 轮 | 无 |
 | P2 现代空壳 | Bun + Vue + TS + Vite | **完成** | 实施第 2 轮 | TypeScript 固定 6.0.3，待 `vue-tsc` 支持 TS 7 |
-| P3 基础设施 | Router、Pinia、API、主题、自动组件 | **部分完成** | 实施第 3、18、41 轮 | 顶栏含搜索弹出层；无 Element Plus、无 Sass/Tailwind、无自动组件 |
-| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–42 轮 | Discover、播放器、歌单、MV、排行榜、分类、精选、歌手馆、电台（含付费标记）、搜索多类型、顶栏搜索、专辑介绍、应用壳、`#/video` 和 Banner 详情跳转完成；专辑空评论未做 |
-| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–42 轮内嵌 | 类型检查已过；无产品 `any`；直接依赖已精简。独立治理轮仍无未解释错误可修 |
+| P3 基础设施 | Router、Pinia、API、主题、自动组件 | **部分完成** | 实施第 3、18、41、43 轮 | 顶栏含搜索弹出层和视频入口；无 Element Plus、无 Sass/Tailwind、无自动组件 |
+| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–43 轮 | Discover、播放器、歌单、MV、排行榜、分类、精选、歌手馆、电台（含付费标记）、搜索多类型、顶栏搜索、专辑介绍、应用壳、`#/video`（含顶栏入口）和 Banner 详情跳转完成；专辑空评论未做 |
+| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–43 轮内嵌 | 类型检查已过；无产品 `any`；直接依赖已精简。独立治理轮仍无未解释错误可修 |
 | P6 Tailwind 4 | 新样式入口和视觉收敛 | **未开始** | — | 当前页面继续使用 scoped CSS |
 | P7 发布闭环 | `dist/`、CI、学习总结 | **未开始** | — | 无 CI；GitHub Pages 未切到新产物 |
 
@@ -72,12 +72,13 @@
 | 实施第 39 轮 | 2026-08-31 | 逐字卡拉 OK | 100 文件 / 415 测试 | `a4dc6c8` |
 | 实施第 40 轮 | 2026-08-31 | 付费电台 | 100 文件 / 421 测试 | `410ad9a` |
 | 实施第 41 轮 | 2026-08-31 | 顶栏搜索弹出层 | 101 文件 / 425 测试 | `5d6f227` |
-| 实施第 42 轮 | 2026-09-01 | Banner 详情跳转 | 102 文件 / 429 测试 | **工作区未提交** |
+| 实施第 42 轮 | 2026-09-01 | Banner 详情跳转 | 102 文件 / 429 测试 | `b6c365f` |
+| 实施第 43 轮 | 2026-09-01 | 顶栏视频入口 | 102 文件 / 430 测试 | **工作区未提交** |
 
-第 42 轮文档对齐时的当前门禁输出：
+第 43 轮文档对齐时的当前门禁输出：
 
 ```text
-bun run test       102 files / 429 tests passed
+bun run test       102 files / 430 tests passed
 bun run typecheck  PASS
 bun run build      364 modules transformed, dist/ 输出
 bun install --frozen-lockfile --dry-run  PASS
@@ -85,30 +86,30 @@ bun audit          No vulnerabilities found (checked 185 packages)
 git diff --check   PASS
 ```
 
-第 42 轮已完成本地 mock API 浏览器 smoke，未打真实网易云。未 commit、未 push。独立审查 PASS WITH FINDINGS（无 HIGH/MEDIUM；LOW 已跟进：路由前清 notice；id 必须是正整数）。独立核验 PASS WITH FINDINGS，隔离 smoke `51621`/`51631`。
+第 43 轮已完成本地 mock API 浏览器 smoke，未打真实网易云。未 commit、未 push。独立审查 PASS WITH FINDINGS（无 HIGH/MEDIUM；LOW 已跟进：歌单/MV 仍标「推荐」）。独立核验 PASS，隔离 smoke `51821`/`51832`。
 
-Banner 摘要：`targetType` 1 播放，10 打开专辑，1000 打开歌单，1004 打开 MV。未知类型仍提示后续切片。Discover、精选和电台大厅共用 `resolveBannerTarget`。
+顶栏摘要：推荐 / 音乐馆 / 视频 / 搜索。`#/video` 和 `#/videoDetail` 的 `meta.menu` 是 `video`。电台仍在音乐馆，不进顶栏。
 
-本地 smoke 使用 Vite `127.0.0.1:51521` 和 mock API `127.0.0.1:51531`：Host → Discover 专辑/歌单/MV Banner → 精选专辑 Banner → 重新配置。桌面 `1440×900` 与移动 `390×844` 无横向溢出。控制台无应用错误。核验复跑隔离口 `51621`/`51631`。
+本地 smoke 使用 Vite `127.0.0.1:51721` 和 mock API `127.0.0.1:51731`：Host → 点视频进大厅 → 点「夜航现场」进详情（aria-current 仍是视频）→ 重新配置。桌面 `1440×900` 与移动 `390×844` 无横向溢出。控制台无应用错误。核验复跑隔离口 `51821`/`51832`。
 
 ## 4. 当前根工程能力
 
 ### 4.1 路由
 
-路由表未变。顶栏有搜索弹出层。
+`#/video` 与 `#/videoDetail` 的 `meta.menu` 改为 `video`。顶栏有搜索弹出层和视频入口。
 
 ### 4.2 API、store、可见 UI
 
 新增 / 扩展：
 
 ```text
-resolveBannerTarget        Banner targetType → play / 路由
-Discover / Picked / DjHall 共用同一张映射
+AppShell                   推荐 / 音乐馆 / 视频 / 搜索
+video / videoDetail        meta.menu = video
 ```
 
 ### 4.3 已安装直接依赖
 
-第 42 轮未新增依赖。
+第 43 轮未新增依赖。
 
 ## 5. 与 legacy 的功能差距
 
@@ -118,20 +119,20 @@ Discover / Picked / DjHall 共用同一张映射
 | 专辑 | 歌曲 + 空评论 + 介绍 tab | 歌曲 + 介绍 tab | 评论 tab 为空，跳过 |
 | 电台大厅 | 空页 | `#/music/dj` Banner + 分类电台 + 推荐节目；`#/djRadio`；付费标记 | 购买/登录未迁 |
 | 歌手详情 tab | 歌曲/专辑/视频/详情 | 热门歌曲 + 专辑 + MV + 介绍 | 精选 tab 未迁（legacy 为空） |
-| 视频大厅 | `#/video` 分类 + 网格 | `#/video` + 分页 + 全部分类 + `#/videoDetail` | 完成 |
+| 视频大厅 | `#/video` 分类 + 网格 | `#/video` + 分页 + 全部分类 + `#/videoDetail` + 顶栏入口 | 完成 |
 | 播放器增强 | 进度/音量/上一首下一首/循环/静音/列表/歌词图标 | 进度 + 音量 + 上一首/下一首 + 循环/随机 + 静音 + 队列 + 歌词翻译 + 歌词罗马音 + 歌词逐字 | 完成 |
 
 ## 6. 质量与文档缺口
 
-已通过第 42 轮当前门禁：102 个测试文件 / 429 个测试、两套 typecheck、364 modules build、frozen lock、audit 和 `git diff --check`。
+已通过第 43 轮当前门禁：102 个测试文件 / 430 个测试、两套 typecheck、364 modules build、frozen lock、audit 和 `git diff --check`。
 
-仍存在、但不阻塞第 42 轮的缺口：Host 文案仍写 round 3、顶栏没有视频入口、无 lint/E2E/CI。专辑空评论、登录未迁。
+仍存在、但不阻塞第 43 轮的缺口：Host 文案仍写 round 3、无 lint/E2E/CI。专辑空评论、登录未迁。
 
 ## 7. 建议的下一轮
 
-**实施第 43 轮：顶栏视频入口。** `#/video` 已经能打开，应用壳导航还没有这一项。Host 文案仍写 round 3。
+**实施第 44 轮：Host 文案。** Host 和 `#/migration` 仍写 Migration round 3。
 
-独立 P5 治理轮跳过：当前 typecheck 无未解释错误，直接依赖没有可删项。legacy 专辑评论 tab 为空，继续跳过。
+独立 P5 治理轮跳过。legacy 专辑评论 tab 为空，继续跳过。
 
 本轮不应做：登录、Tailwind 4、CI、Element Plus、空的 P5 审计。
 
@@ -149,4 +150,4 @@ Discover / Picked / DjHall 共用同一张映射
 | [CHANGELOG](./CHANGELOG.md) | 追加日志 | 文档版本 |
 | **本文** | **活文档** | **先读这个，再开工** |
 
-> 状态更新（2026-09-01）：第 41 轮已在当前 HEAD `5d6f227` 完成。第 42 轮 Banner 详情跳转已写入工作区（独立审查 PASS WITH FINDINGS / 核验 PASS WITH FINDINGS）；Host 文案、顶栏视频入口、专辑空评论仍未迁。
+> 状态更新（2026-09-01）：第 42 轮已在当前 HEAD `b6c365f` 完成。第 43 轮顶栏视频入口已写入工作区（独立审查 PASS WITH FINDINGS / 核验 PASS）；Host 文案、专辑空评论仍未迁。

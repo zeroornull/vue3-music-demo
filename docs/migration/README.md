@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.46.0`<br>
+> 文档版本：`0.47.0`<br>
 > 版本快照日期：`2026-09-01`<br>
-> 当前阶段：**实施第 42 轮 Banner 详情跳转已写入工作区（未 commit）；下一轮顶栏视频入口**
+> 当前阶段：**实施第 43 轮顶栏视频入口已写入工作区（未 commit）；下一轮 Host 文案**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -593,12 +593,21 @@ build: {
 
 - Discover / 精选 Banner 打开已有专辑、歌单、MV；电台大厅共用解析；
 - 102 个测试文件、429 个测试通过；typecheck、build（364 modules）、frozen lock、audit 和 `git diff --check` 通过；
-- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS；独立核验 PASS WITH FINDINGS（`51621`/`51631`）；未 commit、未 push；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS；独立核验 PASS WITH FINDINGS（`51621`/`51631`）；随后提交为 `b6c365f`；
 - 下一轮：顶栏视频入口。
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 49. 主要官方资料
+## 49. 实施第 43 轮结果
+
+- AppShell 增加「视频」入口，指向已有 `#/video`；大厅和详情标当前项；
+- 102 个测试文件、430 个测试通过；typecheck、build（364 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS；独立核验 PASS（`51821`/`51832`）；未 commit、未 push；
+- 下一轮：Host 文案。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 50. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

@@ -4503,4 +4503,78 @@ mock API http://127.0.0.1:51531
 
 ### 44.4 本轮结果
 
-Banner 详情跳转已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是路由不清 notice、id 用 `Number.isFinite` 会放过 1.5、Picked 未测 play/unknown、三处编排重复。已改成路由前清 notice，id 必须是正整数。独立核验 PASS WITH FINDINGS：复跑 102/429、typecheck、364 modules；隔离 smoke `51621`/`51631`。第 41 轮提交 `5d6f227` 仍是当前 HEAD；第 42 轮尚未 commit / push。下一轮：顶栏视频入口。
+Banner 详情跳转已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是路由不清 notice、id 用 `Number.isFinite` 会放过 1.5、Picked 未测 play/unknown、三处编排重复。已改成路由前清 notice，id 必须是正整数。独立核验 PASS WITH FINDINGS：复跑 102/429、typecheck、364 modules；隔离 smoke `51621`/`51631`。第 41 轮提交 `5d6f227` 仍是当时 HEAD；第 42 轮随后以 `b6c365f` 提交。下一轮：顶栏视频入口。
+
+## 45. 实施第 43 轮：顶栏视频入口（工作区）
+
+> 执行日期：`2026-09-01`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 45.1 开始边界与范围
+
+第 43 轮开始时第 42 轮已经提交：
+
+```text
+HEAD b6c365f
+master...origin/master
+```
+
+本轮给 AppShell 加「视频」入口，指向已有 `#/video`。电台不进顶栏。不迁登录、主题、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- 导航：推荐 / 音乐馆 / 视频 / 搜索；
+- `video` 和 `videoDetail` 的 `meta.menu` 改为 `video`。
+
+### 45.2 自动验证
+
+```text
+bun run test
+Test Files  102 passed (102)
+Tests       430 passed (430)
+
+bun run typecheck
+PASS
+
+bun run build
+364 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 45.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:51721
+mock API http://127.0.0.1:51731
+```
+
+验证步骤：
+
+1. Host 保存后顶栏出现「视频」；
+2. 点视频进入 `#/video`，标题「视频」，卡片「夜航现场」；aria-current 是视频；
+3. 点卡片进入 `#/videoDetail?id=VID001`，标题「夜航现场」，aria-current 仍是视频；
+4. 「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round43-desktop.png` 和 `/tmp/vue3-music-round43-mobile.png`，不进仓库。开发服务器和 mock API 已停。
+
+成功路径控制台无应用错误。未打真实网易云 API。mock `/video/url` 用了 PNG，播放器无法播视频，属 mock 限制。
+
+### 45.4 本轮结果
+
+顶栏视频入口已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是歌单/MV 未锁「推荐」。已补断言。独立核验 PASS：复跑 102/430、typecheck、364 modules；隔离 smoke `51821`/`51832`。第 42 轮提交 `b6c365f` 仍是当前 HEAD；第 43 轮尚未 commit / push。下一轮：Host 文案。

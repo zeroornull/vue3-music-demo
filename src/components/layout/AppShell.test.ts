@@ -33,23 +33,54 @@ describe('AppShell', () => {
     const nav = wrapper.get('nav[aria-label="应用导航"]')
     expect(nav.text()).toContain('推荐')
     expect(nav.text()).toContain('音乐馆')
+    expect(nav.text()).toContain('视频')
     expect(nav.text()).toContain('搜索')
-    expect(nav.text()).not.toContain('视频')
     expect(nav.text()).not.toContain('电台')
     expect(wrapper.get('[aria-current="page"]').text()).toBe('推荐')
     expect(wrapper.find('[data-testid="header-search-input"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="shell-outlet"]').text()).toBe('page')
   })
 
-  it('marks music-hall and search as current, including artist detail', async () => {
+  it('marks music-hall, video and search as current, including artist and video detail', async () => {
     const music = await mountShell(Pages.toplist)
     expect(music.get('[aria-current="page"]').text()).toBe('音乐馆')
 
     const detail = await mountShell(Pages.artistDetail)
     expect(detail.get('[aria-current="page"]').text()).toBe('音乐馆')
 
+    const video = await mountShell(Pages.video)
+    expect(video.get('[aria-current="page"]').text()).toBe('视频')
+
+    const videoDetail = await mountShell(Pages.videoDetail)
+    expect(videoDetail.get('[aria-current="page"]').text()).toBe('视频')
+
+    const playlist = await mountShell(Pages.playlist)
+    expect(playlist.get('[aria-current="page"]').text()).toBe('推荐')
+
+    const mv = await mountShell(Pages.mvDetail)
+    expect(mv.get('[aria-current="page"]').text()).toBe('推荐')
+
     const search = await mountShell(Pages.search)
     expect(search.get('[aria-current="page"]').text()).toBe('搜索')
+  })
+
+  it('opens the video hall from primary navigation', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const router = createAppRouter(createMemoryHistory())
+    await router.push({ name: Pages.discover })
+    const wrapper = mount(AppShell, {
+      slots: { default: '<div data-testid="shell-outlet">page</div>' },
+      global: { plugins: [pinia, router] },
+    })
+    const videoLink = wrapper
+      .findAll('nav[aria-label="应用导航"] a')
+      .find((link) => link.text() === '视频')
+    expect(videoLink).toBeTruthy()
+    await videoLink!.trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe(Pages.video)
   })
 
   it('reconfigures the API host from the shell', async () => {

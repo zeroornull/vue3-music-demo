@@ -173,7 +173,7 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/VideoHallPage.vue'),
     meta: {
       keepAlive: true,
-      menu: 'discover',
+      menu: 'video',
       requiresApiHost: true,
       title: '视频',
     },
@@ -183,7 +183,7 @@ export const routes: RouteRecordRaw[] = [
     name: Pages.videoDetail,
     component: () => import('@/views/VideoDetailView.vue'),
     meta: {
-      menu: 'discover',
+      menu: 'video',
       requiresApiHost: true,
       title: '视频详情',
     },

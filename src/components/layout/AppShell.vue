@@ -12,6 +12,7 @@ const hostStore = useHostStore()
 const items = [
   { label: '推荐', menu: 'discover', to: { name: Pages.discover } },
   { label: '音乐馆', menu: 'music', to: { name: Pages.music } },
+  { label: '视频', menu: 'video', to: { name: Pages.video } },
   { label: '搜索', menu: 'search', to: { name: Pages.search } },
 ] as const
 

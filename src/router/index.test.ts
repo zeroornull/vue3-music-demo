@@ -89,6 +89,7 @@ describe('router contract', () => {
     expect(route.path).toBe('/mvDetail')
     expect(route.query.id).toBe('701')
     expect(route.meta.title).toBe('MV 详情')
+    expect(route.meta.menu).toBe('discover')
   })
 
   it('preserves the legacy dj route name and query id', () => {
@@ -117,9 +118,11 @@ describe('router contract', () => {
 
     expect(hall.path).toBe('/video')
     expect(hall.meta.title).toBe('视频')
+    expect(hall.meta.menu).toBe('video')
     expect(detail.path).toBe('/videoDetail')
     expect(detail.query.id).toBe('VID001')
     expect(detail.meta.title).toBe('视频详情')
+    expect(detail.meta.menu).toBe('video')
   })
 
   it('defines the search route and keyword query', () => {
