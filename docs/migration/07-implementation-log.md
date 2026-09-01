@@ -4429,4 +4429,78 @@ mock API http://127.0.0.1:51331
 
 ### 43.4 本轮结果
 
-顶栏搜索弹出层已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是共用 search store 会改搜索页、Escape 后输入不打开、关闭不清 debounce、热搜重试未 catch。已改成弹出层自己请求 suggest，close 清 timer，输入会 reopen，retry 吞掉拒绝。独立核验 PASS WITH FINDINGS：复跑当时 101/424、typecheck、363 modules；隔离 smoke `51421`/`51431`。跟进后 101/425。第 40 轮提交 `410ad9a` 仍是当前 HEAD；第 41 轮尚未 commit / push。下一轮：P5 类型与依赖。
+顶栏搜索弹出层已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是共用 search store 会改搜索页、Escape 后输入不打开、关闭不清 debounce、热搜重试未 catch。已改成弹出层自己请求 suggest，close 清 timer，输入会 reopen，retry 吞掉拒绝。独立核验 PASS WITH FINDINGS：复跑当时 101/424、typecheck、363 modules；隔离 smoke `51421`/`51431`。跟进后 101/425。第 40 轮提交 `410ad9a` 仍是当时 HEAD；第 41 轮随后以 `5d6f227` 提交。下一轮：P5 类型与依赖。
+
+## 44. 实施第 42 轮：Banner 详情跳转（工作区）
+
+> 执行日期：`2026-09-01`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 44.1 开始边界与范围
+
+第 42 轮开始时第 41 轮已经提交：
+
+```text
+HEAD 5d6f227
+master...origin/master
+```
+
+文档写的下一轮是独立 P5。当前 typecheck 已过，源码没有产品 `any`，`package.json` 直接依赖都在用。按 forward-implementation-first 改做 Discover/精选 Banner 详情跳转。不迁外链、登录、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `targetType` 1 播放，10 专辑，1000 歌单，1004 MV；
+- Discover、精选、电台大厅共用解析。
+
+### 44.2 自动验证
+
+```text
+bun run test
+Test Files  102 passed (102)
+Tests       429 passed (429)
+
+bun run typecheck
+PASS
+
+bun run build
+364 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 44.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:51521
+mock API http://127.0.0.1:51531
+```
+
+验证步骤：
+
+1. Host 保存后 Discover 出现「夜航专辑」「凌晨歌单」「晚风 MV」；
+2. 点专辑进入 `#/album?id=501`，标题「夜航」；返回后点歌单进入「凌晨听歌指南」；再点 MV 进入「晚风来信 · Live」；
+3. 音乐馆精选再点专辑，仍打开 `#/album?id=501`；
+4. 「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round42-desktop.png` 和 `/tmp/vue3-music-round42-mobile.png`，不进仓库。开发服务器和 mock API 已停。
+
+成功路径控制台无应用错误。未打真实网易云 API。mock `/mv/url` 用了 PNG，播放器无法播视频，属 mock 限制。
+
+### 44.4 本轮结果
+
+Banner 详情跳转已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是路由不清 notice、id 用 `Number.isFinite` 会放过 1.5、Picked 未测 play/unknown、三处编排重复。已改成路由前清 notice，id 必须是正整数。独立核验 PASS WITH FINDINGS：复跑 102/429、typecheck、364 modules；隔离 smoke `51621`/`51631`。第 41 轮提交 `5d6f227` 仍是当前 HEAD；第 42 轮尚未 commit / push。下一轮：顶栏视频入口。

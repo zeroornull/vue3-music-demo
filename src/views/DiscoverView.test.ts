@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 
 import { defineComponent } from 'vue'
-import { createPinia } from 'pinia'
+import { createPinia, setActivePinia } from 'pinia'
+import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -10,7 +11,19 @@ import { getPersonalizedPlaylists } from '@/api/personalized'
 import { getPersonalizedNewSongs } from '@/api/newSong'
 import { getPersonalizedMvs } from '@/api/mv'
 import type { Banner } from '@/models/banner'
+import { createAppRouter } from '@/router'
+import { Pages } from '@/router/pages'
 import DiscoverView from '@/views/DiscoverView.vue'
+
+vi.mock('@/views/AlbumView.vue', () => ({
+  default: { name: 'AlbumView', template: '<div data-testid="album-stub" />' },
+}))
+vi.mock('@/views/PlaylistView.vue', () => ({
+  default: { name: 'PlaylistView', template: '<div data-testid="playlist-stub" />' },
+}))
+vi.mock('@/views/MvView.vue', () => ({
+  default: { name: 'MvView', template: '<div data-testid="mv-stub" />' },
+}))
 
 vi.mock('@/api/banner', () => ({
   getBanners: vi.fn(),
@@ -116,10 +129,14 @@ const MvSectionStub = defineComponent({
   `,
 })
 
-function mountView() {
-  return mount(DiscoverView, {
+async function mountView() {
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  const router = createAppRouter(createMemoryHistory())
+  await router.push({ name: Pages.discover })
+  const wrapper = mount(DiscoverView, {
     global: {
-      plugins: [createPinia()],
+      plugins: [pinia, router],
       stubs: {
         BannerCarousel: BannerCarouselStub,
         NewSongSection: NewSongSectionStub,
@@ -129,6 +146,7 @@ function mountView() {
       },
     },
   })
+  return { router, wrapper }
 }
 
 describe('DiscoverView', () => {
@@ -147,12 +165,12 @@ describe('DiscoverView', () => {
   it('loads banners when mounted', async () => {
     vi.mocked(getBanners).mockResolvedValue([banner])
 
-    const wrapper = mountView()
+    const { wrapper } = await mountView()
     await flushPromises()
 
     expect(wrapper.get('h1').text()).toBe('推荐')
     expect(wrapper.get('.summary').text()).toBe(
-      '四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索已接入。',
+      '四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转已接入。',
     )
     expect(wrapper.find('.next-slices').exists()).toBe(false)
     expect(wrapper.text()).toContain('打开视频大厅')
@@ -161,9 +179,9 @@ describe('DiscoverView', () => {
     expect(getBanners).toHaveBeenCalledTimes(1)
   })
 
-  it('plays song banners but ignores non-song banners', async () => {
+  it('plays song banners and opens album, playlist and MV pages', async () => {
     vi.mocked(getBanners).mockResolvedValue([banner])
-    const wrapper = mountView()
+    const { router, wrapper } = await mountView()
     await flushPromises()
     await wrapper.get("[data-testid='banner-select']").trigger('click')
     await flushPromises()
@@ -171,12 +189,61 @@ describe('DiscoverView', () => {
     expect(wrapper.get('[role="status"]').text()).toContain('正在播放推荐歌曲')
 
     playSong.mockClear()
+    vi.mocked(getBanners).mockResolvedValue([{ ...banner, targetId: 501, targetType: 10 }])
+    await wrapper.get("[data-testid='retry']").trigger('click')
+    await flushPromises()
+    await wrapper.get("[data-testid='banner-select']").trigger('click')
+    await flushPromises()
+    expect(playSong).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe(Pages.album)
+    expect(router.currentRoute.value.query.id).toBe('501')
+
+    await router.replace({ name: Pages.discover })
+    vi.mocked(getBanners).mockResolvedValue([{ ...banner, targetId: 101, targetType: 1000 }])
+    await wrapper.get("[data-testid='retry']").trigger('click')
+    await flushPromises()
+    await wrapper.get("[data-testid='banner-select']").trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe(Pages.playlist)
+    expect(router.currentRoute.value.query.id).toBe('101')
+
+    await router.replace({ name: Pages.discover })
+    vi.mocked(getBanners).mockResolvedValue([{ ...banner, targetId: 701, targetType: 1004 }])
+    await wrapper.get("[data-testid='retry']").trigger('click')
+    await flushPromises()
+    await wrapper.get("[data-testid='banner-select']").trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe(Pages.mvDetail)
+    expect(router.currentRoute.value.query.id).toBe('701')
+
+    await router.replace({ name: Pages.discover })
     vi.mocked(getBanners).mockResolvedValue([{ ...banner, targetType: 0 }])
     await wrapper.get("[data-testid='retry']").trigger('click')
     await flushPromises()
     await wrapper.get("[data-testid='banner-select']").trigger('click')
     expect(playSong).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe(Pages.discover)
     expect(wrapper.get('[role="status"]').text()).toContain('后续切片迁移')
+  })
+
+  it('discards an in-flight song play when opening an album banner', async () => {
+    const pending = deferred<boolean>()
+    playSong.mockReturnValueOnce(pending.promise)
+    vi.mocked(getBanners).mockResolvedValue([banner])
+    const { router, wrapper } = await mountView()
+    await flushPromises()
+    await wrapper.get("[data-testid='banner-select']").trigger('click')
+
+    vi.mocked(getBanners).mockResolvedValue([{ ...banner, targetId: 501, targetType: 10 }])
+    await wrapper.get("[data-testid='retry']").trigger('click')
+    await flushPromises()
+    await wrapper.get("[data-testid='banner-select']").trigger('click')
+    await flushPromises()
+    pending.resolve(true)
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe(Pages.album)
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
   })
 
   it('does not let a stale play result overwrite the latest notice', async () => {
@@ -186,7 +253,7 @@ describe('DiscoverView', () => {
       .mockReturnValueOnce(first.promise)
       .mockReturnValueOnce(second.promise)
     vi.mocked(getBanners).mockResolvedValue([banner])
-    const wrapper = mountView()
+    const { wrapper } = await mountView()
     await flushPromises()
 
     await wrapper.get("[data-testid='banner-select']").trigger('click')
@@ -204,7 +271,7 @@ describe('DiscoverView', () => {
       .mockRejectedValueOnce(new Error('offline'))
       .mockResolvedValueOnce([banner])
 
-    const wrapper = mountView()
+    const { wrapper } = await mountView()
     await flushPromises()
     expect(wrapper.get('[role="alert"]').text()).toBe('offline')
 
@@ -235,7 +302,7 @@ describe('DiscoverView', () => {
         },
       ])
 
-    const wrapper = mountView()
+    const { wrapper } = await mountView()
     await flushPromises()
     expect(wrapper.get('[data-testid="personalized-error"]').text()).toBe(
       'playlist offline',
@@ -273,7 +340,7 @@ describe('DiscoverView', () => {
         },
       ])
 
-    const wrapper = mountView()
+    const { wrapper } = await mountView()
     await flushPromises()
     expect(wrapper.get('[data-testid="new-song-error"]').text()).toBe(
       'new-song offline',
@@ -315,7 +382,7 @@ describe('DiscoverView', () => {
         },
       ])
 
-    const wrapper = mountView()
+    const { wrapper } = await mountView()
     await flushPromises()
     expect(wrapper.get('[data-testid="mv-error"]').text()).toBe('mv offline')
 

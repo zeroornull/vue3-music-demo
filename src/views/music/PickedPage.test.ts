@@ -2,6 +2,7 @@
 
 import { defineComponent } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
+import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -9,7 +10,19 @@ import { getBanners } from '@/api/banner'
 import { getPersonalizedDjPrograms } from '@/api/dj'
 import { getPersonalizedMvs } from '@/api/mv'
 import { getPrivateContents } from '@/api/privateContent'
+import { createAppRouter } from '@/router'
+import { Pages } from '@/router/pages'
 import PickedPage from '@/views/music/PickedPage.vue'
+
+vi.mock('@/views/AlbumView.vue', () => ({
+  default: { name: 'AlbumView', template: '<div data-testid="album-stub" />' },
+}))
+vi.mock('@/views/PlaylistView.vue', () => ({
+  default: { name: 'PlaylistView', template: '<div data-testid="playlist-stub" />' },
+}))
+vi.mock('@/views/MvView.vue', () => ({
+  default: { name: 'MvView', template: '<div data-testid="mv-stub" />' },
+}))
 
 vi.mock('@/api/banner', () => ({
   getBanners: vi.fn(),
@@ -61,6 +74,24 @@ const PickedViewStub = defineComponent({
       <span data-testid="mv-count">{{ mvs.length }}</span>
       <button data-testid="page-private-retry" @click="$emit('retry-private')">retry</button>
       <button data-testid="page-dj-retry" @click="$emit('retry-dj')">retry dj</button>
+      <button
+        data-testid="select-album-banner"
+        @click="$emit('select-banner', { bannerId: 2, pic: 'x', targetId: 501, targetType: 10, typeTitle: '专辑' })"
+      >
+        album
+      </button>
+      <button
+        data-testid="select-playlist-banner"
+        @click="$emit('select-banner', { bannerId: 3, pic: 'x', targetId: 101, targetType: 1000, typeTitle: '歌单' })"
+      >
+        playlist
+      </button>
+      <button
+        data-testid="select-mv-banner"
+        @click="$emit('select-banner', { bannerId: 4, pic: 'x', targetId: 701, targetType: 1004, typeTitle: 'MV' })"
+      >
+        mv
+      </button>
     </section>
   `,
 })
@@ -129,7 +160,10 @@ describe('PickedPage', () => {
       ])
 
     const wrapper = mount(PickedPage, {
-      global: { stubs: { PickedView: PickedViewStub } },
+      global: {
+        plugins: [createAppRouter(createMemoryHistory())],
+        stubs: { PickedView: PickedViewStub },
+      },
     })
     await flushPromises()
     expect(wrapper.get('[data-testid="dj-error"]').text()).toBe('dj offline')
@@ -143,5 +177,34 @@ describe('PickedPage', () => {
     await flushPromises()
     expect(wrapper.get('[data-testid="dj-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="private-count"]').text()).toBe('1')
+  })
+
+  it('opens album, playlist and MV banners', async () => {
+    const router = createAppRouter(createMemoryHistory())
+    await router.push({ name: Pages.picked })
+    const wrapper = mount(PickedPage, {
+      global: {
+        plugins: [router],
+        stubs: { PickedView: PickedViewStub },
+      },
+    })
+    await flushPromises()
+
+    await wrapper.get('[data-testid="select-album-banner"]').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe(Pages.album)
+    expect(router.currentRoute.value.query.id).toBe('501')
+
+    await router.replace({ name: Pages.picked })
+    await wrapper.get('[data-testid="select-playlist-banner"]').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe(Pages.playlist)
+    expect(router.currentRoute.value.query.id).toBe('101')
+
+    await router.replace({ name: Pages.picked })
+    await wrapper.get('[data-testid="select-mv-banner"]').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe(Pages.mvDetail)
+    expect(router.currentRoute.value.query.id).toBe('701')
   })
 })

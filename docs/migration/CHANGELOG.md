@@ -1,5 +1,18 @@
 # 迁移文档变更记录
 
+## 0.46.0 - 2026-09-01
+
+### 实施第 42 轮：Banner 详情跳转
+
+- Discover 和精选 Banner 按 `targetType` 打开已有页：1 播放，10 专辑，1000 歌单，1004 MV；未知类型仍提示后续切片；
+- 电台大厅改走同一份 `resolveBannerTarget`；id 必须是正整数；切到详情会丢掉进行中的播放提示；
+- 不迁外链 Banner、登录、Tailwind 4、CI 或独立 P5 治理；
+- 102 个测试文件、429 个测试通过；typecheck、build（364 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:51521` + mock `127.0.0.1:51531`：专辑/歌单/MV Banner、精选再跳一次、重新配置、桌面/移动布局；
+- 独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 已跟进路由前清 notice 和整数 id；独立核验 PASS WITH FINDINGS，隔离 smoke `51621`/`51631`；
+- 第 41 轮提交为 `5d6f227`；第 42 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：顶栏视频入口。专辑空评论继续跳过。
+
 ## 0.45.0 - 2026-08-31
 
 ### 实施第 41 轮：顶栏搜索弹出层
