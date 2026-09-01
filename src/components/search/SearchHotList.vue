@@ -92,7 +92,7 @@ defineEmits<{
 
 .eyebrow {
   margin-bottom: 6px;
-  color: #087c62;
+  color: var(--color-accent);
   font-size: 0.72rem;
   font-weight: 760;
   letter-spacing: 0.13em;
@@ -121,16 +121,16 @@ button {
   min-width: 0;
   min-height: 44px;
   padding: 8px 12px;
-  border: 1px solid #c5cfdd;
+  border: 1px solid var(--color-nav-border);
   border-radius: 14px;
-  background: white;
+  background: var(--color-surface);
   color: inherit;
   cursor: pointer;
   text-align: left;
 }
 
 .rank {
-  color: #087c62;
+  color: var(--color-accent);
   font-weight: 760;
 }
 
@@ -145,14 +145,14 @@ button {
 .hint {
   overflow: hidden;
   min-width: 0;
-  color: #6c7890;
+  color: var(--color-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.78rem;
 }
 
 button:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -163,27 +163,27 @@ button:focus-visible {
   justify-content: space-between;
   gap: 24px;
   padding: 24px;
-  border: 1px dashed #b9c5d5;
+  border: 1px dashed var(--color-border);
   border-radius: 18px;
-  background: #f8fafc;
+  background: var(--color-well);
 }
 
 .state-card p {
   margin: 8px 0 0;
-  color: #6c7890;
+  color: var(--color-muted);
 }
 
 .error-state {
-  border-color: #e3b7b7;
-  background: #fff7f7;
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
 }
 
 .state-card button {
   display: inline-flex;
   width: auto;
   grid-template-columns: none;
-  background: #9b3838;
-  color: white;
+  background: var(--color-danger);
+  color: var(--color-on-accent);
   border: 0;
   border-radius: 999px;
   font-weight: 700;

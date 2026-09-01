@@ -159,7 +159,7 @@ watch(
 }
 
 .back-nav a {
-  color: #087c62;
+  color: var(--color-accent);
   font-weight: 720;
   text-decoration: none;
 }
@@ -189,19 +189,19 @@ watch(
   justify-content: space-between;
   gap: 24px;
   padding: 28px;
-  border: 1px dashed #b9c5d5;
+  border: 1px dashed var(--color-border);
   border-radius: 18px;
-  background: #f8fafc;
+  background: var(--color-well);
 }
 
 .state-card p {
   margin: 8px 0 0;
-  color: #6c7890;
+  color: var(--color-muted);
 }
 
 .error-state {
-  border-color: #e3b7b7;
-  background: #fff7f7;
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
 }
 
 .state-card button,
@@ -216,20 +216,20 @@ watch(
 }
 
 .state-card button {
-  background: #9b3838;
-  color: white;
+  background: var(--color-danger);
+  color: var(--color-on-accent);
 }
 
 [data-testid='dj-radio-programs-more'] {
   justify-self: start;
-  border: 1px solid #c5cfdd;
-  background: white;
-  color: #344156;
+  border: 1px solid var(--color-nav-border);
+  background: var(--color-surface);
+  color: var(--color-nav);
 }
 
 .error-notice {
   margin: 0;
-  color: #9b3838;
+  color: var(--color-danger);
 }
 
 @media (max-width: 900px) {

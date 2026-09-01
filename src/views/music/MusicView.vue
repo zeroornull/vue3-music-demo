@@ -60,7 +60,7 @@ const currentTab = computed(() => route.name)
 
 .eyebrow {
   margin: 0 0 8px;
-  color: #087c62;
+  color: var(--color-accent);
   font-size: 0.72rem;
   font-weight: 760;
   letter-spacing: 0.13em;
@@ -80,7 +80,7 @@ h1 {
 
 .summary {
   margin-top: 14px;
-  color: #65738a;
+  color: var(--color-muted);
 }
 
 .hall-nav {
@@ -93,23 +93,23 @@ h1 {
 .hall-nav a {
   min-height: 38px;
   padding: 0 14px;
-  border: 1px solid #c5cfdd;
+  border: 1px solid var(--color-nav-border);
   border-radius: 999px;
-  background: white;
-  color: #344156;
+  background: var(--color-surface);
+  color: var(--color-nav);
   font-weight: 680;
   line-height: 36px;
   text-decoration: none;
 }
 
 .hall-nav a[aria-current='page'] {
-  border-color: #087c62;
-  background: #e8f6f1;
-  color: #17614f;
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
 }
 
 .hall-nav a:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 

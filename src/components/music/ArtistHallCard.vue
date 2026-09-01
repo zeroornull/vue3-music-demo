@@ -49,7 +49,7 @@ defineProps<{
   max-width: 160px;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: #dce5ef;
+  background: var(--color-line);
 }
 
 img {
@@ -72,7 +72,7 @@ h3 {
 
 .artist-link:focus-visible {
   border-radius: 16px;
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 4px;
 }
 </style>

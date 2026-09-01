@@ -36,7 +36,7 @@ withDefaults(
 
 .body {
   margin: 0;
-  color: #5f6c82;
+  color: var(--color-muted);
   font-size: 0.88rem;
   line-height: 1.75;
   overflow-wrap: anywhere;
@@ -50,13 +50,13 @@ withDefaults(
   align-items: center;
   gap: 24px;
   padding: 28px;
-  border: 1px dashed #b9c5d5;
+  border: 1px dashed var(--color-border);
   border-radius: 18px;
-  background: #f8fafc;
+  background: var(--color-well);
 }
 
 .state-card p {
   margin: 7px 0 0;
-  color: #6c7890;
+  color: var(--color-muted);
 }
 </style>

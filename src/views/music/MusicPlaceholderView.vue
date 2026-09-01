@@ -26,14 +26,14 @@ const tabTitle = computed(() => String(route.meta.title || '该页面'))
 <style scoped>
 .placeholder {
   padding: 28px;
-  border: 1px dashed #b9c5d5;
+  border: 1px dashed var(--color-border);
   border-radius: 20px;
-  background: #f8fafc;
+  background: var(--color-well);
 }
 
 .eyebrow {
   margin: 0 0 10px;
-  color: #087c62;
+  color: var(--color-accent);
   font-size: 0.72rem;
   font-weight: 760;
   letter-spacing: 0.13em;
@@ -48,7 +48,7 @@ h2 {
 
 p:not(.eyebrow) {
   margin: 16px 0;
-  color: #5f6c82;
+  color: var(--color-muted);
   line-height: 1.6;
 }
 
@@ -59,7 +59,7 @@ p:not(.eyebrow) {
 }
 
 a {
-  color: #087c62;
+  color: var(--color-accent);
   font-weight: 720;
 }
 </style>

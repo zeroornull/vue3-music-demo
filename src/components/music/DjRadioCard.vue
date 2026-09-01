@@ -53,7 +53,7 @@ defineProps<{
   overflow: hidden;
   aspect-ratio: 1;
   border-radius: 18px;
-  background: #dce5ef;
+  background: var(--color-line);
 }
 
 img {
@@ -75,7 +75,7 @@ img {
 .paid-mark {
   top: 8px;
   left: 8px;
-  background: rgb(155 56 56 / 86%);
+  background: color-mix(in srgb, var(--color-danger) 86%, transparent);
 }
 
 .play-count {
@@ -99,13 +99,13 @@ h3 {
 }
 
 p {
-  color: #6c7890;
+  color: var(--color-muted);
   font-size: 0.78rem;
 }
 
 .radio-link:focus-visible {
   border-radius: 18px;
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 4px;
 }
 </style>

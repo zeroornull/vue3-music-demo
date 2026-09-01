@@ -102,8 +102,8 @@ onUnmounted(() => {
   overflow: auto;
   padding: 18px 16px 20px;
   border-radius: 18px;
-  background: #fff;
-  color: #172033;
+  background: var(--color-surface);
+  color: var(--color-text);
   box-shadow: 0 18px 48px rgb(23 32 51 / 22%);
 }
 
@@ -126,10 +126,10 @@ onUnmounted(() => {
   flex: none;
   min-height: 36px;
   padding: 0 12px;
-  border: 1px solid #c5cfdd;
+  border: 1px solid var(--color-nav-border);
   border-radius: 999px;
-  background: white;
-  color: #344156;
+  background: var(--color-surface);
+  color: var(--color-nav);
   cursor: pointer;
   font-weight: 680;
 }
@@ -146,24 +146,24 @@ onUnmounted(() => {
   min-height: 36px;
   padding: 6px 8px;
   overflow-wrap: anywhere;
-  border: 1px solid #c5cfdd;
+  border: 1px solid var(--color-nav-border);
   border-radius: 10px;
-  background: white;
-  color: #344156;
+  background: var(--color-surface);
+  color: var(--color-nav);
   cursor: pointer;
   font-weight: 650;
   text-align: left;
 }
 
 .group-grid button[aria-pressed='true'] {
-  border-color: #087c62;
-  background: #e8f6f1;
-  color: #17614f;
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
 }
 
 .group-header button:focus-visible,
 .group-grid button:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 

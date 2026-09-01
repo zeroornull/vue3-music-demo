@@ -178,8 +178,8 @@ onUnmounted(() => {
   width: min(320px, 100%);
   min-width: 0;
   flex-direction: column;
-  background: #fff;
-  color: #172033;
+  background: var(--color-surface);
+  color: var(--color-text);
   box-shadow: 8px 0 24px rgb(0 0 0 / 18%);
 }
 
@@ -202,17 +202,17 @@ onUnmounted(() => {
 .lyric-state button {
   min-height: 32px;
   padding: 0 12px;
-  border: 1px solid #c5cfdd;
+  border: 1px solid var(--color-nav-border);
   border-radius: 999px;
-  background: white;
-  color: #344156;
+  background: var(--color-surface);
+  color: var(--color-nav);
   cursor: pointer;
   font-weight: 680;
 }
 
 .lyric-header button:focus-visible,
 .lyric-state button:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -220,7 +220,7 @@ onUnmounted(() => {
 .lyric-empty {
   margin: 0;
   padding: 24px 16px;
-  color: #5f6c82;
+  color: var(--color-muted);
 }
 
 .lyric-state {
@@ -231,7 +231,7 @@ onUnmounted(() => {
 }
 
 .error-state {
-  color: #9b3838;
+  color: var(--color-danger);
 }
 
 .lyric-list {
@@ -247,7 +247,7 @@ onUnmounted(() => {
   display: grid;
   gap: 2px;
   padding: 6px 0;
-  color: #5f6c82;
+  color: var(--color-muted);
   font-size: 0.92rem;
   line-height: 1.6;
   overflow-wrap: anywhere;
@@ -256,22 +256,22 @@ onUnmounted(() => {
 
 .lyric-trans,
 .lyric-roma {
-  color: #8a95a8;
+  color: var(--color-muted);
   font-size: 0.78rem;
   font-weight: 500;
 }
 
 .lyric-list li.is-current {
-  color: #17614f;
+  color: var(--color-accent-text);
   font-weight: 720;
 }
 
 .lyric-list li.is-current .lyric-trans,
 .lyric-list li.is-current .lyric-roma {
-  color: #3d7a6c;
+  color: var(--color-accent-text);
 }
 
 .lyric-words .is-word-current {
-  color: #0f766e;
+  color: var(--color-accent);
 }
 </style>

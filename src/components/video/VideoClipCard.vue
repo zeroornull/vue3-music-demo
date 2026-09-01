@@ -53,7 +53,7 @@ defineProps<{
   position: relative;
   overflow: hidden;
   border-radius: 18px;
-  background: #dce5ef;
+  background: var(--color-line);
   box-shadow: 0 14px 34px rgb(30 48 72 / 11%);
 }
 
@@ -113,17 +113,17 @@ defineProps<{
 
 .copy p {
   margin: 7px 0 0;
-  color: #6c7890;
+  color: var(--color-muted);
   font-size: 0.78rem;
 }
 
 .clip-link:hover h3 {
-  color: #087c62;
+  color: var(--color-accent);
 }
 
 .clip-link:focus-visible {
   border-radius: 18px;
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 5px;
 }
 </style>

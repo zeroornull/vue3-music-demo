@@ -127,6 +127,6 @@ onMounted(() => {
 <style scoped>
 .notice {
   margin: 0 0 16px;
-  color: #17614f;
+  color: var(--color-accent-text);
 }
 </style>

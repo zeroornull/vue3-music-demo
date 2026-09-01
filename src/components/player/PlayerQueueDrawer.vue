@@ -132,8 +132,8 @@ onUnmounted(() => {
   width: min(320px, 100%);
   min-width: 0;
   flex-direction: column;
-  background: #fff;
-  color: #172033;
+  background: var(--color-surface);
+  color: var(--color-text);
   box-shadow: -8px 0 24px rgb(0 0 0 / 18%);
 }
 
@@ -154,7 +154,7 @@ onUnmounted(() => {
 
 .queue-header p {
   margin: 4px 0 0;
-  color: #5f6c82;
+  color: var(--color-muted);
   font-size: 0.8rem;
 }
 
@@ -167,23 +167,23 @@ onUnmounted(() => {
 .queue-actions button {
   min-height: 32px;
   padding: 0 12px;
-  border: 1px solid #c5cfdd;
+  border: 1px solid var(--color-nav-border);
   border-radius: 999px;
-  background: white;
-  color: #344156;
+  background: var(--color-surface);
+  color: var(--color-nav);
   cursor: pointer;
   font-weight: 680;
 }
 
 .queue-actions button:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
 .queue-empty {
   margin: 0;
   padding: 24px 16px;
-  color: #5f6c82;
+  color: var(--color-muted);
 }
 
 .queue-list {
@@ -212,13 +212,13 @@ onUnmounted(() => {
 }
 
 .queue-song.is-current {
-  border-left-color: #32b58e;
-  background: #e8f6f1;
-  color: #17614f;
+  border-left-color: var(--color-focus);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
 }
 
 .queue-song:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: -3px;
 }
 
@@ -238,7 +238,7 @@ onUnmounted(() => {
 
 .queue-copy span,
 .queue-duration {
-  color: #5f6c82;
+  color: var(--color-muted);
   font-size: 0.78rem;
 }
 

@@ -101,7 +101,7 @@ defineEmits<{
 .album-skeleton {
   aspect-ratio: 1;
   border-radius: 16px;
-  background: #e7edf4;
+  background: var(--color-line);
 }
 
 .state-card {
@@ -112,9 +112,9 @@ defineEmits<{
   justify-content: space-between;
   gap: 24px;
   padding: 28px;
-  border: 1px dashed #b9c5d5;
+  border: 1px dashed var(--color-border);
   border-radius: 18px;
-  background: #f8fafc;
+  background: var(--color-well);
 }
 
 .state-card > div {
@@ -124,12 +124,12 @@ defineEmits<{
 
 .state-card p {
   margin: 7px 0 0;
-  color: #6c7890;
+  color: var(--color-muted);
 }
 
 .error-state {
-  border-color: #e3b7b7;
-  background: #fff7f7;
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
 }
 
 .state-card button,
@@ -144,22 +144,22 @@ defineEmits<{
 }
 
 .state-card button {
-  background: #9b3838;
-  color: white;
+  background: var(--color-danger);
+  color: var(--color-on-accent);
 }
 
 [data-testid='artist-albums-more'] {
   display: block;
   width: min(280px, 100%);
   margin: 16px auto 0;
-  border: 1px solid #c5cfdd;
-  background: white;
-  color: #344156;
+  border: 1px solid var(--color-nav-border);
+  background: var(--color-surface);
+  color: var(--color-nav);
 }
 
 .error-notice {
   margin: 16px 0 0;
-  color: #9b3838;
+  color: var(--color-danger);
 }
 
 @media (max-width: 900px) {

@@ -75,11 +75,11 @@ a {
   border-radius: 12px;
   color: inherit;
   text-decoration: none;
-  background: white;
+  background: var(--color-surface);
 }
 
 a:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -88,7 +88,7 @@ img {
   height: 48px;
   border-radius: 10px;
   object-fit: cover;
-  background: #dce4f0;
+  background: var(--color-border);
 }
 
 span {

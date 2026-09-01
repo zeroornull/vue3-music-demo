@@ -1,5 +1,8 @@
 // @vitest-environment happy-dom
 
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -60,6 +63,14 @@ describe('App host gate', () => {
     mountApp()
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     expect(useHostStore().isConfigured).toBe(false)
+  })
+
+  it('defines well and danger-border tokens for content cards', () => {
+    const source = readFileSync(join(process.cwd(), 'src/App.vue'), 'utf8')
+    expect(source).toMatch(/:root \{[\s\S]*--color-well:\s*#f8fafc/)
+    expect(source).toMatch(/:root \{[\s\S]*--color-danger-border:\s*#e3b7b7/)
+    expect(source).toMatch(/\[data-theme='dark'\] \{[\s\S]*--color-well:\s*#222326/)
+    expect(source).toMatch(/\[data-theme='dark'\] \{[\s\S]*--color-danger-border:\s*#6a3a3a/)
   })
 
   it('wraps the router in the app shell after the host is configured', async () => {

@@ -53,18 +53,18 @@ const visibleMvs = computed(() => props.mvs.slice(0, 8))
 .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 18px; }
 .section-heading h2, .section-heading p { margin: 0; }
 .section-heading h2 { font-size: clamp(1.45rem, 3vw, 2rem); letter-spacing: -0.025em; }
-.section-heading > p { color: #6c7890; font-size: 0.9rem; }
-.eyebrow { margin-bottom: 5px !important; color: #087c62; font-size: 0.72rem; font-weight: 760; letter-spacing: 0.13em; text-transform: uppercase; }
+.section-heading > p { color: var(--color-muted); font-size: 0.9rem; }
+.eyebrow { margin-bottom: 5px !important; color: var(--color-accent); font-size: 0.72rem; font-weight: 760; letter-spacing: 0.13em; text-transform: uppercase; }
 .mv-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(14px, 2vw, 22px); }
-.mv-skeleton div, .mv-skeleton span { display: block; border-radius: 10px; background: linear-gradient(100deg, #e7edf4 20%, #f6f8fb 45%, #e7edf4 70%); background-size: 220% 100%; animation: shimmer 1.4s linear infinite; }
+.mv-skeleton div, .mv-skeleton span { display: block; border-radius: 10px; background: linear-gradient(100deg, var(--color-line) 20%, var(--color-border) 45%, var(--color-line) 70%); background-size: 220% 100%; animation: shimmer 1.4s linear infinite; }
 .mv-skeleton div { aspect-ratio: 16 / 9; border-radius: 18px; }
 .mv-skeleton span { width: 84%; height: 12px; margin-top: 12px; }
 .mv-skeleton span:last-child { width: 52%; margin-top: 8px; }
-.state-card { display: flex; min-height: 140px; align-items: center; justify-content: space-between; gap: 24px; padding: 28px; border: 1px dashed #b9c5d5; border-radius: 18px; background: #f8fafc; }
+.state-card { display: flex; min-height: 140px; align-items: center; justify-content: space-between; gap: 24px; padding: 28px; border: 1px dashed var(--color-border); border-radius: 18px; background: var(--color-well); }
 .state-card strong { font-size: 1.05rem; }
-.state-card p { margin: 7px 0 0; color: #6c7890; }
-.error-state { border-color: #e3b7b7; background: #fff7f7; }
-.state-card button { flex: none; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: #9b3838; color: white; cursor: pointer; font-weight: 700; }
+.state-card p { margin: 7px 0 0; color: var(--color-muted); }
+.error-state { border-color: var(--color-danger-border); background: var(--color-danger-bg); }
+.state-card button { flex: none; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--color-danger); color: var(--color-on-accent); cursor: pointer; font-weight: 700; }
 @keyframes shimmer { to { background-position: -220% 0; } }
 @media (max-width: 900px) { .mv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .section-heading { align-items: start; flex-direction: column; gap: 8px; } .mv-grid { grid-template-columns: 1fr; } .state-card { align-items: stretch; flex-direction: column; } }

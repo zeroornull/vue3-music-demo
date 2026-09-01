@@ -327,7 +327,7 @@ watch(
 }
 
 .back-nav a {
-  color: #087c62;
+  color: var(--color-accent);
   font-weight: 720;
   text-decoration: none;
 }
@@ -339,19 +339,19 @@ watch(
   justify-content: space-between;
   gap: 24px;
   padding: 28px;
-  border: 1px dashed #b9c5d5;
+  border: 1px dashed var(--color-border);
   border-radius: 18px;
-  background: #f8fafc;
+  background: var(--color-well);
 }
 
 .state-card p {
   margin: 8px 0 0;
-  color: #6c7890;
+  color: var(--color-muted);
 }
 
 .error-state {
-  border-color: #e3b7b7;
-  background: #fff7f7;
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
 }
 
 .state-card button,
@@ -366,17 +366,17 @@ watch(
 }
 
 .state-card button {
-  background: #9b3838;
-  color: white;
+  background: var(--color-danger);
+  color: var(--color-on-accent);
 }
 
 [data-testid='artist-load-more'] {
   display: block;
   width: min(280px, 100%);
   margin: 16px auto 0;
-  border: 1px solid #c5cfdd;
-  background: white;
-  color: #344156;
+  border: 1px solid var(--color-nav-border);
+  background: var(--color-surface);
+  color: var(--color-nav);
 }
 
 .artist-tabs {
@@ -390,22 +390,22 @@ watch(
 .artist-tabs button {
   min-height: 38px;
   padding: 0 14px;
-  border: 1px solid #c5cfdd;
+  border: 1px solid var(--color-nav-border);
   border-radius: 999px;
-  background: white;
-  color: #344156;
+  background: var(--color-surface);
+  color: var(--color-nav);
   cursor: pointer;
   font-weight: 680;
 }
 
 .artist-tabs button[aria-selected='true'] {
-  border-color: #087c62;
-  background: #e8f6f1;
-  color: #17614f;
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
 }
 
 .artist-tabs button:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 
@@ -413,13 +413,13 @@ watch(
   margin: 20px 0 0;
   padding: 12px 15px;
   border-radius: 12px;
-  background: #e8f6f1;
-  color: #17614f;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
 }
 
 .error-notice {
-  background: #fff7f7;
-  color: #9b3838;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 @media (max-width: 720px) {

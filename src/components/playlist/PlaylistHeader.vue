@@ -86,7 +86,7 @@ defineEmits<{
   width: 176px;
   height: 176px;
   border-radius: 22px;
-  background: #dde6ef;
+  background: var(--color-line);
   object-fit: cover;
   box-shadow: 0 18px 40px rgb(30 48 72 / 14%);
 }
@@ -100,7 +100,7 @@ defineEmits<{
 
 .eyebrow {
   margin: 0;
-  color: #087c62;
+  color: var(--color-accent);
   font-size: 0.72rem;
   font-weight: 760;
   letter-spacing: 0.13em;
@@ -121,7 +121,7 @@ h1 {
   align-items: center;
   gap: 8px 12px;
   margin: 0;
-  color: #5f6c82;
+  color: var(--color-muted);
   font-size: 0.88rem;
 }
 
@@ -134,14 +134,14 @@ h1 {
 
 .tag,
 .quality {
-  color: #17614f;
+  color: var(--color-accent-text);
   font-weight: 680;
 }
 
 .quality {
   padding: 2px 8px;
   border-radius: 999px;
-  background: #e8f6f1;
+  background: var(--color-accent-soft);
   font-size: 0.75rem;
 }
 
@@ -149,7 +149,7 @@ h1 {
   display: -webkit-box;
   margin: 0;
   overflow: hidden;
-  color: #5f6c82;
+  color: var(--color-muted);
   line-height: 1.65;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
@@ -161,19 +161,19 @@ button {
   padding: 0 18px;
   border: 0;
   border-radius: 999px;
-  background: #087c62;
-  color: white;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   cursor: pointer;
   font-weight: 720;
 }
 
 button:disabled {
-  background: #c5d0dc;
+  background: var(--color-nav-border);
   cursor: not-allowed;
 }
 
 button:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 

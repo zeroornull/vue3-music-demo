@@ -16,6 +16,7 @@ export interface Song {
   album?: SongAlbum
   picUrl?: string
   duration?: number
+  mv?: number
 }
 
 export interface NetworkSong {
@@ -28,11 +29,14 @@ export interface NetworkSong {
   picUrl?: string
   dt?: number
   duration?: number
+  mv?: number
+  mvid?: number
 }
 
 export function normalizeSong(song: NetworkSong): Song {
   const album = song.album ?? song.al
   const duration = song.duration ?? song.dt
+  const mv = song.mv ?? song.mvid
   return {
     id: song.id,
     name: song.name,
@@ -42,6 +46,7 @@ export function normalizeSong(song: NetworkSong): Song {
     ...(typeof duration === 'number' && Number.isFinite(duration)
       ? { duration }
       : {}),
+    ...(typeof mv === 'number' && Number.isInteger(mv) && mv > 0 ? { mv } : {}),
   }
 }
 

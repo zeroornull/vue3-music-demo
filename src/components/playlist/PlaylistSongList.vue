@@ -108,7 +108,7 @@ h2 {
 
 .columns {
   display: none;
-  color: #8a95a6;
+  color: var(--color-muted);
   font-size: 0.75rem;
 }
 
@@ -119,14 +119,14 @@ h2 {
 
 .state-card {
   padding: 28px;
-  border: 1px dashed #b9c5d5;
+  border: 1px dashed var(--color-border);
   border-radius: 18px;
-  background: #f8fafc;
+  background: var(--color-well);
 }
 
 .state-card p {
   margin-top: 8px;
-  color: #6c7890;
+  color: var(--color-muted);
 }
 
 button {
@@ -134,16 +134,16 @@ button {
   width: 100%;
   min-height: 42px;
   margin-top: 12px;
-  border: 1px solid #c5cfdd;
+  border: 1px solid var(--color-nav-border);
   border-radius: 12px;
-  background: white;
-  color: #344156;
+  background: var(--color-surface);
+  color: var(--color-nav);
   cursor: pointer;
   font-weight: 680;
 }
 
 button:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 

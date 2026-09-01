@@ -60,9 +60,9 @@ button {
   align-items: center;
   gap: 14px;
   padding: 10px;
-  border: 1px solid #dfe6ef;
+  border: 1px solid var(--color-border);
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--color-surface);
   color: inherit;
   cursor: pointer;
   text-align: left;
@@ -77,7 +77,7 @@ img {
   width: 72px;
   height: 72px;
   border-radius: 12px;
-  background: #dde6ef;
+  background: var(--color-line);
   object-fit: cover;
 }
 
@@ -99,12 +99,12 @@ img {
 }
 
 .artists {
-  color: #56647a;
+  color: var(--color-muted);
   font-size: 0.8rem;
 }
 
 .album {
-  color: #8993a4;
+  color: var(--color-muted);
   font-size: 0.72rem;
 }
 
@@ -114,21 +114,21 @@ img {
   gap: 6px;
   padding: 7px 10px;
   border-radius: 999px;
-  background: #e8f6f1;
-  color: #17614f;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
   font-size: 0.72rem;
   font-weight: 720;
   white-space: nowrap;
 }
 
 button:hover {
-  border-color: #8ccdb9;
+  border-color: var(--color-focus);
   box-shadow: 0 12px 28px rgb(30 48 72 / 10%);
   transform: translateY(-2px);
 }
 
 button:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 

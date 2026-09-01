@@ -1,5 +1,31 @@
 # 迁移文档变更记录
 
+## 0.51.0 - 2026-09-01
+
+### 实施第 47 轮：歌曲 MV 入口
+
+- `normalizeSong` 保留正整数 `mv`，搜索 suggest 的 `mvid` 一并写入 `mv`；
+- 歌单/专辑/歌手/搜索歌曲行在 `PlaylistSongItem` 显示 MV 链接，指向 `#/mvDetail?id=`，不播放歌曲；
+- 播放列表抽屉、推荐新歌卡片本轮不改；播放条仍深色；
+- 108 个测试文件、447 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:52521` + mock `127.0.0.1:52531`：歌单 101 两首歌曲、一条 `href="#/mvDetail?id=701"`，点击后 hash 为 `#/mvDetail?id=701`；
+- 独立审查 PASS WITH FINDINGS：已接 `mvid`；队列/新歌卡片 MV 未做；独立核验 PASS，隔离 smoke `52621`/`52631`；
+- 第 45 轮提交为 `3301ed0`；第 46、47 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 0.50.0 - 2026-09-01
+
+### 实施第 46 轮：内容卡片接到主题变量
+
+- Discover 空状态和同色卡片、队列/歌词层改用 CSS 变量；新增 `--color-well`、`--color-danger-border`；
+- 播放条仍用深色常量；MV 画布 `#101826` 未改；封面叠字 `color: white` 未改；
+- 不用 Tailwind 4；
+- 107 个测试文件、442 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:52321` + mock `127.0.0.1:52331`：深色空卡片为 `rgb(34, 35, 38)`，不是 `rgb(248, 250, 252)`；
+- 独立审查 PASS WITH FINDINGS：骨架高光和封面 HQ/付费色已改；独立核验 PASS，隔离 smoke `52421`/`52431`；
+- 第 45 轮提交为 `3301ed0`；第 46 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
 ## 0.49.0 - 2026-09-01
 
 ### 实施第 45 轮：深浅色主题

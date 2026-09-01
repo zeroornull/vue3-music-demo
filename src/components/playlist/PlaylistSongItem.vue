@@ -36,14 +36,25 @@ const durationLabel = computed(() =>
   >
     <div class="song-row">
       <div class="song-copy">
-        <button
-          type="button"
-          :aria-current="current ? 'true' : undefined"
-          :aria-label="`播放：${song.name}，${artistNames}`"
-          @click="$emit('play', song)"
-        >
-          <strong>{{ song.name }}</strong>
-        </button>
+        <div class="title-row">
+          <button
+            type="button"
+            :aria-current="current ? 'true' : undefined"
+            :aria-label="`播放：${song.name}，${artistNames}`"
+            @click="$emit('play', song)"
+          >
+            <strong>{{ song.name }}</strong>
+          </button>
+          <RouterLink
+            v-if="typeof song.mv === 'number' && Number.isInteger(song.mv) && song.mv > 0"
+            data-testid="song-mv"
+            :to="{ name: Pages.mvDetail, query: { id: song.mv } }"
+            :aria-label="`打开 MV：${song.name}`"
+            @click.stop
+          >
+            MV
+          </RouterLink>
+        </div>
         <span class="artists">
           <template v-if="namedArtists.length">
             <template
@@ -84,13 +95,33 @@ const durationLabel = computed(() =>
   border-radius: 12px;
 }
 
+.title-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
 .song-copy button {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
   padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
   cursor: pointer;
   text-align: left;
+  text-overflow: ellipsis;
+}
+
+.title-row a {
+  flex: none;
+  color: var(--color-accent);
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  text-decoration: none;
 }
 
 .song-copy,
@@ -114,7 +145,7 @@ const durationLabel = computed(() =>
 .artists,
 .album,
 .duration {
-  color: #66758b;
+  color: var(--color-muted);
   font-size: 0.8rem;
 }
 
@@ -129,18 +160,19 @@ const durationLabel = computed(() =>
 }
 
 .artists a:hover {
-  color: #087c62;
+  color: var(--color-accent);
   text-decoration: underline;
 }
 
 .is-current .song-row,
 .song-row:hover {
-  background: #e8f6f1;
+  background: var(--color-accent-soft);
 }
 
 .song-copy button:focus-visible,
+.title-row a:focus-visible,
 .artists a:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 

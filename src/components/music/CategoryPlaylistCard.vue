@@ -48,7 +48,7 @@ defineProps<{
   position: relative;
   overflow: hidden;
   border-radius: 16px;
-  background: #dde6ef;
+  background: var(--color-line);
 }
 
 img {
@@ -83,13 +83,13 @@ h3 {
 }
 
 p {
-  color: #6a768b;
+  color: var(--color-muted);
   font-size: 0.78rem;
 }
 
 .category-link:focus-visible {
   border-radius: 16px;
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 4px;
 }
 </style>

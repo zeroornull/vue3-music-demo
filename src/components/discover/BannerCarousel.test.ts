@@ -1,5 +1,8 @@
 // @vitest-environment happy-dom
 
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
@@ -75,6 +78,19 @@ describe('BannerCarousel', () => {
   it('renders an explicit empty state', () => {
     const wrapper = mountCarousel()
     expect(wrapper.get('[data-testid="banner-empty"]').text()).toContain('暂无推荐内容')
+  })
+
+  it('styles the empty card with theme well tokens', () => {
+    const source = readFileSync(join(process.cwd(), 'src/components/discover/BannerCarousel.vue'), 'utf8')
+    expect(source).toMatch(/\.state-card[\s\S]*?background:\s*var\(--color-well\)/)
+    expect(source).toMatch(/\.state-card[\s\S]*?border:\s*1px dashed var\(--color-border\)/)
+    expect(source).toMatch(/\.error-state[\s\S]*?background:\s*var\(--color-danger-bg\)/)
+    expect(source).toMatch(/\.state-card button[\s\S]*?background:\s*var\(--color-danger\)/)
+    expect(source).toMatch(
+      /linear-gradient\(100deg, var\(--color-line\) 20%, var\(--color-border\) 45%, var\(--color-line\) 70%\)/,
+    )
+    expect(source).not.toContain('#f8fafc')
+    expect(source).not.toContain('#9b3838')
   })
 
   it('renders banner images and emits the selected banner', async () => {

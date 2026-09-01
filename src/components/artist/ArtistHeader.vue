@@ -62,13 +62,13 @@ img {
   width: 220px;
   height: 220px;
   border-radius: 50%;
-  background: #dce5ef;
+  background: var(--color-line);
   object-fit: cover;
 }
 
 .eyebrow {
   margin: 0 0 8px;
-  color: #087c62;
+  color: var(--color-accent);
   font-size: 0.72rem;
   font-weight: 760;
   letter-spacing: 0.13em;
@@ -90,7 +90,7 @@ h1 {
   display: -webkit-box;
   margin-top: 12px;
   overflow: hidden;
-  color: #5f6c82;
+  color: var(--color-muted);
   line-height: 1.55;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
@@ -101,7 +101,7 @@ h1 {
   flex-wrap: wrap;
   gap: 14px;
   margin-top: 14px;
-  color: #66758b;
+  color: var(--color-muted);
   font-size: 0.86rem;
 }
 
@@ -111,8 +111,8 @@ button {
   padding: 0 18px;
   border: 0;
   border-radius: 999px;
-  background: #087c62;
-  color: white;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   cursor: pointer;
   font-weight: 720;
 }
@@ -123,7 +123,7 @@ button:disabled {
 }
 
 button:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 

@@ -45,7 +45,7 @@ defineProps<{
 .cover {
   overflow: hidden;
   border-radius: 18px;
-  background: #dce5ef;
+  background: var(--color-line);
 }
 
 img {
@@ -66,7 +66,7 @@ h3 {
 
 .private-link:focus-visible {
   border-radius: 18px;
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 4px;
 }
 </style>

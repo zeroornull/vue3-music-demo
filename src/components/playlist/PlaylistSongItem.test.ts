@@ -10,7 +10,7 @@ import { Pages } from '@/router/pages'
 const RouterLinkStub = defineComponent({
   name: 'RouterLink',
   props: ['to'],
-  template: '<a data-testid="artist-link"><slot /></a>',
+  template: '<a><slot /></a>',
 })
 
 const song = {
@@ -58,5 +58,42 @@ describe('PlaylistSongItem', () => {
     expect(wrapper.get('[data-testid="playlist-song-item"]').classes()).toContain(
       'is-current',
     )
+  })
+
+  it('links a positive mv id to the MV page and does not play', async () => {
+    const wrapper = mount(PlaylistSongItem, {
+      props: { current: false, song: { ...song, mv: 701 } },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+
+    const mv = wrapper.get('[data-testid="song-mv"]')
+    expect(mv.text()).toBe('MV')
+    expect(mv.attributes('aria-label')).toBe('打开 MV：晚风来信')
+    const mvLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.attributes('data-testid') === 'song-mv')
+    expect(mvLink?.props('to')).toEqual({
+      name: Pages.mvDetail,
+      query: { id: 701 },
+    })
+
+    await mv.trigger('click')
+    expect(wrapper.emitted('play')).toBeUndefined()
+  })
+
+  it('hides the MV link when the song has no mv', () => {
+    const wrapper = mount(PlaylistSongItem, {
+      props: { current: false, song },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.find('[data-testid="song-mv"]').exists()).toBe(false)
+  })
+
+  it('hides the MV link when mv is zero', () => {
+    const wrapper = mount(PlaylistSongItem, {
+      props: { current: false, song: { ...song, mv: 0 } },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.find('[data-testid="song-mv"]').exists()).toBe(false)
   })
 })

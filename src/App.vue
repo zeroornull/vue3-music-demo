@@ -82,6 +82,8 @@ watch(isConfigured, (configured) => {
   --color-code: #eef3f8;
   --color-danger-bg: #fff0f0;
   --color-danger: #a52f2f;
+  --color-danger-border: #e3b7b7;
+  --color-well: #f8fafc;
   --color-on-accent: #ffffff;
   color: var(--color-text);
   background: var(--color-bg);
@@ -113,6 +115,8 @@ watch(isConfigured, (configured) => {
   --color-code: #2a2f36;
   --color-danger-bg: #3a1f1f;
   --color-danger: #f0a3a3;
+  --color-danger-border: #6a3a3a;
+  --color-well: #222326;
   --color-on-accent: #10241c;
   color-scheme: dark;
 }

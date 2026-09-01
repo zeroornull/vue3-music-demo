@@ -51,22 +51,22 @@ const names = computed(() => {
 button {
   min-height: 34px;
   padding: 0 12px;
-  border: 1px solid #c5cfdd;
+  border: 1px solid var(--color-nav-border);
   border-radius: 999px;
-  background: white;
-  color: #344156;
+  background: var(--color-surface);
+  color: var(--color-nav);
   cursor: pointer;
   font-weight: 650;
 }
 
 button[aria-pressed='true'] {
-  border-color: #087c62;
-  background: #e8f6f1;
-  color: #17614f;
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
 }
 
 button:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 </style>

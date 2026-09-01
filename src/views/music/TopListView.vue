@@ -114,19 +114,19 @@ h3 {
   justify-content: space-between;
   gap: 24px;
   padding: 28px;
-  border: 1px dashed #b9c5d5;
+  border: 1px dashed var(--color-border);
   border-radius: 18px;
-  background: #f8fafc;
+  background: var(--color-well);
 }
 
 .state-card p {
   margin: 8px 0 0;
-  color: #6c7890;
+  color: var(--color-muted);
 }
 
 .error-state {
-  border-color: #e3b7b7;
-  background: #fff7f7;
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
 }
 
 .state-card button {
@@ -135,8 +135,8 @@ h3 {
   padding: 0 16px;
   border: 0;
   border-radius: 999px;
-  background: #9b3838;
-  color: white;
+  background: var(--color-danger);
+  color: var(--color-on-accent);
   cursor: pointer;
   font-weight: 700;
 }

@@ -43,7 +43,7 @@ video {
 }
 
 video:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 4px;
 }
 </style>

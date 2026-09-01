@@ -97,13 +97,13 @@ const visibleItems = computed(() => props.items.slice(0, 10))
 }
 
 .section-heading > p {
-  color: #6c7890;
+  color: var(--color-muted);
   font-size: 0.9rem;
 }
 
 .eyebrow {
   margin-bottom: 5px !important;
-  color: #087c62;
+  color: var(--color-accent);
   font-size: 0.72rem;
   font-weight: 760;
   letter-spacing: 0.13em;
@@ -123,14 +123,14 @@ const visibleItems = computed(() => props.items.slice(0, 10))
   gap: 14px;
   padding: 10px;
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .song-skeleton .cover,
 .song-skeleton i {
   display: block;
   border-radius: 10px;
-  background: linear-gradient(100deg, #e7edf4 20%, #f6f8fb 45%, #e7edf4 70%);
+  background: linear-gradient(100deg, var(--color-line) 20%, var(--color-border) 45%, var(--color-line) 70%);
   background-size: 220% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -166,9 +166,9 @@ const visibleItems = computed(() => props.items.slice(0, 10))
   justify-content: space-between;
   gap: 24px;
   padding: 28px;
-  border: 1px dashed #b9c5d5;
+  border: 1px dashed var(--color-border);
   border-radius: 18px;
-  background: #f8fafc;
+  background: var(--color-well);
 }
 
 .state-card strong {
@@ -177,12 +177,12 @@ const visibleItems = computed(() => props.items.slice(0, 10))
 
 .state-card p {
   margin: 7px 0 0;
-  color: #6c7890;
+  color: var(--color-muted);
 }
 
 .error-state {
-  border-color: #e3b7b7;
-  background: #fff7f7;
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
 }
 
 .state-card button {
@@ -191,8 +191,8 @@ const visibleItems = computed(() => props.items.slice(0, 10))
   padding: 0 16px;
   border: 0;
   border-radius: 999px;
-  background: #9b3838;
-  color: white;
+  background: var(--color-danger);
+  color: var(--color-on-accent);
   cursor: pointer;
   font-weight: 700;
 }

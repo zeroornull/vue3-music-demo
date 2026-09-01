@@ -57,7 +57,7 @@ defineProps<{
   position: relative;
   overflow: hidden;
   border-radius: 18px;
-  background: #dde6ef;
+  background: var(--color-line);
   box-shadow: 0 14px 34px rgb(30 48 72 / 10%);
 }
 
@@ -103,7 +103,7 @@ defineProps<{
 }
 
 .quality {
-  background: rgb(8 124 98 / 86%);
+  background: color-mix(in srgb, var(--color-accent) 86%, transparent);
 }
 
 .copy {
@@ -124,7 +124,7 @@ defineProps<{
 .copy p {
   margin: 8px 0 0;
   overflow: hidden;
-  color: #6a768b;
+  color: var(--color-muted);
   font-size: 0.78rem;
   line-height: 1.45;
   text-overflow: ellipsis;
@@ -134,7 +134,7 @@ defineProps<{
 .copy > span {
   display: inline-block;
   margin-top: 7px;
-  color: #8a95a6;
+  color: var(--color-muted);
   font-size: 0.72rem;
 }
 
@@ -143,12 +143,12 @@ defineProps<{
 }
 
 .playlist-link:hover h3 {
-  color: #087c62;
+  color: var(--color-accent);
 }
 
 .playlist-link:focus-visible {
   border-radius: 18px;
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 5px;
 }
 

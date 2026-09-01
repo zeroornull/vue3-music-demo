@@ -188,7 +188,7 @@ function selectGroup(id: number) {
 
 .eyebrow {
   margin: 0 0 8px;
-  color: #087c62;
+  color: var(--color-accent);
   font-size: 0.72rem;
   font-weight: 760;
   letter-spacing: 0.13em;
@@ -203,7 +203,7 @@ h1 {
 
 .page-header p:not(.eyebrow) {
   margin-top: 10px;
-  color: #5f6c82;
+  color: var(--color-muted);
 }
 
 .group-row {
@@ -223,22 +223,22 @@ h1 {
   flex: none;
   min-height: 34px;
   padding: 0 12px;
-  border: 1px solid #c5cfdd;
+  border: 1px solid var(--color-nav-border);
   border-radius: 999px;
-  background: white;
-  color: #344156;
+  background: var(--color-surface);
+  color: var(--color-nav);
   cursor: pointer;
   font-weight: 650;
 }
 
 [data-testid='video-all-groups'][aria-pressed='true'] {
-  border-color: #087c62;
-  background: #e8f6f1;
-  color: #17614f;
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
 }
 
 [data-testid='video-all-groups']:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -249,14 +249,14 @@ h1 {
   gap: 8px 12px;
   min-width: 0;
   margin: 0;
-  color: #9b3838;
+  color: var(--color-danger);
 }
 
 .text-retry {
   padding: 0;
   border: 0;
   background: none;
-  color: #087c62;
+  color: var(--color-accent);
   cursor: pointer;
   font-weight: 720;
 }
@@ -269,19 +269,19 @@ h1 {
   justify-content: space-between;
   gap: 24px;
   padding: 28px;
-  border: 1px dashed #b9c5d5;
+  border: 1px dashed var(--color-border);
   border-radius: 18px;
-  background: #f8fafc;
+  background: var(--color-well);
 }
 
 .state-card p {
   margin: 8px 0 0;
-  color: #6c7890;
+  color: var(--color-muted);
 }
 
 .error-state {
-  border-color: #e3b7b7;
-  background: #fff7f7;
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
 }
 
 .state-card button,
@@ -296,15 +296,15 @@ h1 {
 }
 
 .state-card button {
-  background: #9b3838;
-  color: white;
+  background: var(--color-danger);
+  color: var(--color-on-accent);
 }
 
 [data-testid='video-load-more'] {
   justify-self: start;
-  border: 1px solid #c5cfdd;
-  background: white;
-  color: #344156;
+  border: 1px solid var(--color-nav-border);
+  background: var(--color-surface);
+  color: var(--color-nav);
 }
 
 [data-testid='video-load-more']:disabled {

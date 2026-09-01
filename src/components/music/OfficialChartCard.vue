@@ -51,9 +51,9 @@ const visibleTracks = computed(() => props.chart.tracks.slice(0, 3))
   gap: 16px;
   align-items: center;
   padding: 12px;
-  border: 1px solid #dfe6ef;
+  border: 1px solid var(--color-border);
   border-radius: 18px;
-  background: #fff;
+  background: var(--color-surface);
   color: inherit;
   text-decoration: none;
 }
@@ -63,7 +63,7 @@ img {
   width: 112px;
   height: 112px;
   border-radius: 14px;
-  background: #dde6ef;
+  background: var(--color-line);
   object-fit: cover;
 }
 
@@ -86,7 +86,7 @@ h3 {
 
 .play-count {
   margin: 6px 0 10px;
-  color: #66758b;
+  color: var(--color-muted);
   font-size: 0.78rem;
 }
 
@@ -100,13 +100,13 @@ li {
   display: grid;
   grid-template-columns: 1.2em minmax(0, 1fr);
   gap: 6px;
-  color: #5f6c82;
+  color: var(--color-muted);
   font-size: 0.78rem;
   line-height: 1.55;
 }
 
 .official-link:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 

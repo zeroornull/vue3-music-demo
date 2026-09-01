@@ -82,7 +82,7 @@ const published = computed(() => formatPublishDate(props.album.publishTime))
   width: 176px;
   height: 176px;
   border-radius: 22px;
-  background: #dde6ef;
+  background: var(--color-line);
   object-fit: cover;
   box-shadow: 0 18px 40px rgb(30 48 72 / 14%);
 }
@@ -96,7 +96,7 @@ const published = computed(() => formatPublishDate(props.album.publishTime))
 
 .eyebrow {
   margin: 0;
-  color: #087c62;
+  color: var(--color-accent);
   font-size: 0.72rem;
   font-weight: 760;
   letter-spacing: 0.13em;
@@ -116,18 +116,18 @@ h1 {
 .meta {
   margin: 0;
   min-width: 0;
-  color: #5f6c82;
+  color: var(--color-muted);
   font-size: 0.88rem;
 }
 
 .artist a {
-  color: #087c62;
+  color: var(--color-accent);
   font-weight: 650;
   text-decoration: none;
 }
 
 .artist a:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -137,8 +137,8 @@ button {
   padding: 0 16px;
   border: 0;
   border-radius: 999px;
-  background: #087c62;
-  color: white;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   cursor: pointer;
   font-weight: 700;
 }

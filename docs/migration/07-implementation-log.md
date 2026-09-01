@@ -4655,11 +4655,11 @@ mock API http://127.0.0.1:51931
 
 Host 文案已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是 404/推荐链接未锁、`#/migration` 仍有 Axios/Pinia 仪表盘。已去掉仪表盘并锁住 href。独立核验 PASS WITH FINDINGS：复跑 105/434、typecheck、364 modules；隔离 smoke `52021`/`52031`。第 43 轮提交 `8c29094` 仍是当时 HEAD；第 44 轮随后以 `d0f9c77` 提交。下一轮：主题。
 
-## 47. 实施第 45 轮：深浅色主题（工作区）
+## 47. 实施第 45 轮：深浅色主题
 
 > 执行日期：`2026-09-01`<br>
 > 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
-> Git commit：**本轮未创建**<br>
+> Git commit：`3301ed0`<br>
 > Push：**本轮未执行**
 
 ### 47.1 开始边界与范围
@@ -4727,4 +4727,148 @@ mock API http://127.0.0.1:52131
 
 ### 47.4 本轮结果
 
-深浅色主题已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是深色按钮白字对比不足，已加 `--color-on-accent`；LOW 含重新配置不清主题测试、Host 单独应用主题测试。独立核验 PASS WITH FINDINGS：复跑当时 107/439、typecheck、366 modules；隔离 smoke `52221`/`52231`。跟进后 107/440。第 44 轮提交 `d0f9c77` 仍是当前 HEAD；第 45 轮尚未 commit / push。下一轮：内容卡片接到主题变量。
+深浅色主题已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是深色按钮白字对比不足，已加 `--color-on-accent`；LOW 含重新配置不清主题测试、Host 单独应用主题测试。独立核验 PASS WITH FINDINGS：复跑当时 107/439、typecheck、366 modules；隔离 smoke `52221`/`52231`。跟进后 107/440。第 45 轮随后以 `3301ed0` 提交。下一轮：内容卡片接到主题变量。
+
+## 48. 实施第 46 轮：内容卡片接到主题变量（工作区）
+
+> 执行日期：`2026-09-01`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 48.1 开始边界与范围
+
+第 46 轮开始时第 45 轮已经提交：
+
+```text
+HEAD 3301ed0
+master...origin/master
+```
+
+本轮把内容卡片接到已有主题变量。不用 Tailwind 4。播放条本轮不改。
+
+范围：
+
+- `--color-well`、`--color-danger-border`；
+- Discover 空状态和同色卡片、队列/歌词层用 CSS 变量。
+
+### 48.2 自动验证
+
+```text
+bun run test
+Test Files  107 passed (107)
+Tests       442 passed (442)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 48.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:52321
+mock API http://127.0.0.1:52331
+```
+
+验证步骤：
+
+1. Host 保存后 Discover 四个空卡片浅色为 `rgb(248, 250, 252)`（`--color-well`）；
+2. 点深色后空卡片为 `rgb(34, 35, 38)`，不是 `rgb(248, 250, 252)`；
+3. 视频页错误卡用 `--color-danger-bg` / `--color-danger-border`；重试按钮深色为 `rgb(240, 163, 163)` / `rgb(16, 36, 28)`；
+4. 「重新配置 API」后 `THEME=dark` 仍在；再保存后空卡片仍深色；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round46-discover-dark-1440.png`、`/tmp/vue3-music-round46-video-dark-390.png` 和 `/tmp/vue3-music-round46-discover-dark-after-reconfig.png`，不进仓库。开发服务器和 mock API 未停（本轮隔离口仍在听）。
+
+成功路径控制台无应用错误。未打真实网易云 API。
+
+### 48.4 本轮结果
+
+内容卡片主题已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是深色骨架对比弱、封面 HQ/付费仍用浅色 RGB，已改成 `--color-border` 高光和 `color-mix`；LOW 含搜索框字色，已加 `--color-text`。独立核验 PASS：复跑 107/442、typecheck、366 modules；隔离 smoke `52421`/`52431`。第 45 轮提交 `3301ed0` 仍是当前 HEAD；第 46 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 49. 实施第 47 轮：歌曲 MV 入口（工作区）
+
+> 执行日期：`2026-09-01`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 49.1 开始边界与范围
+
+第 47 轮开始时第 45 轮已经提交，第 46 轮内容卡片主题仍在工作区：
+
+```text
+HEAD 3301ed0
+master...origin/master
+```
+
+文档写的下一轮是播放条保持深色，不是可实施切片。本轮改接歌曲 `mv` 到已有 MV 页。不用 Tailwind 4。播放条本轮不改。
+
+范围：
+
+- `normalizeSong` 正整数 `mv` / 搜索 `mvid`；
+- `PlaylistSongItem` MV 链接到 `#/mvDetail?id=`。
+
+### 49.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       447 passed (447)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 49.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:52521
+mock API http://127.0.0.1:52531
+```
+
+验证步骤：
+
+1. 保存 Host 后打开 `#/playlist?id=101`；
+2. 两首歌曲中只有「晚风来信」有 MV 链接，`href="#/mvDetail?id=701"`，`aria-label="打开 MV：晚风来信"`；
+3. 点击后 hash 为 `#/mvDetail?id=701`。
+
+Chrome DevTools MCP 本轮不可用，改用本机 `google-chrome --headless=new` CDP。核验复跑隔离口 `52621`/`52631`，并测播放条仍为 `rgb(23, 32, 51)`。未打真实网易云 API。
+
+### 49.4 本轮结果
+
+歌曲行 MV 入口已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是搜索 suggest 用 `mvid`、队列和新歌卡片没有 MV。已把 `mvid` 写入 `Song.mv`。队列和新歌卡片未改。独立核验 PASS：复跑 108/446 当时、跟进后 108/447、typecheck、366 modules；隔离 smoke `52621`/`52631`。第 45 轮提交 `3301ed0` 仍是当前 HEAD；第 46、47 轮尚未 commit / push。下一轮：播放列表抽屉或推荐新歌卡片的 MV 链接。播放条保持深色。登录、专辑空评论继续跳过。

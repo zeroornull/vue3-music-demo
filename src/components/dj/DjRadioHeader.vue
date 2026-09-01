@@ -45,7 +45,7 @@ img {
   width: 220px;
   height: 220px;
   border-radius: 18px;
-  background: #dce5ef;
+  background: var(--color-line);
   object-fit: cover;
 }
 
@@ -55,7 +55,7 @@ img {
 
 .eyebrow {
   margin: 0 0 8px;
-  color: #087c62;
+  color: var(--color-accent);
   font-size: 0.72rem;
   font-weight: 760;
   letter-spacing: 0.13em;
@@ -77,7 +77,7 @@ h1 {
 
 .meta,
 .bio {
-  color: #5f6c82;
+  color: var(--color-muted);
   line-height: 1.55;
 }
 
@@ -96,7 +96,7 @@ h1 {
 
 .paid-note {
   margin: 12px 0 0;
-  color: #9b3838;
+  color: var(--color-danger);
   font-weight: 650;
 }
 

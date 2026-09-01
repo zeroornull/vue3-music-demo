@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.49.0`<br>
+> 文档版本：`0.51.0`<br>
 > 版本快照日期：`2026-09-01`<br>
-> 当前阶段：**实施第 45 轮深浅色主题已写入工作区（未 commit）；下一轮内容卡片接到主题变量**
+> 当前阶段：**实施第 47 轮歌曲 MV 入口已写入工作区（未 commit）；播放条保持深色**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -620,12 +620,30 @@ build: {
 
 - AppShell 深色/浅色；`THEME` 与 `html data-theme`；壳和 Host 跟 CSS 变量；
 - 107 个测试文件、440 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
-- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS；独立核验 PASS WITH FINDINGS（`52221`/`52231`）；未 commit、未 push；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS；独立核验 PASS WITH FINDINGS（`52221`/`52231`）；随后提交为 `3301ed0`；
 - 下一轮：内容卡片接到主题变量。
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 52. 主要官方资料
+## 52. 实施第 46 轮结果
+
+- Discover 空状态和同色卡片、队列/歌词层跟 CSS 变量；播放条仍深色；
+- 107 个测试文件、442 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS；独立核验 PASS（`52421`/`52431`）；未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 53. 实施第 47 轮结果
+
+- 歌单行正整数 `mv`/`mvid` 打开 `#/mvDetail?id=`，不播放；队列和新歌卡片未改；
+- 108 个测试文件、447 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS；独立核验 PASS（`52621`/`52631`）；未 commit、未 push；
+- 下一轮：播放列表抽屉或推荐新歌卡片的 MV 链接。播放条保持深色。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 54. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

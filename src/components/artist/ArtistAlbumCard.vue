@@ -50,7 +50,7 @@ defineProps<{
   overflow: hidden;
   aspect-ratio: 1;
   border-radius: 16px;
-  background: #dce5ef;
+  background: var(--color-line);
 }
 
 .cover img {
@@ -73,17 +73,17 @@ h3 {
 }
 
 p {
-  color: #6c7890;
+  color: var(--color-muted);
   font-size: 0.75rem;
 }
 
 .album-link:hover h3 {
-  color: #087c62;
+  color: var(--color-accent);
 }
 
 .album-link:focus-visible {
   border-radius: 16px;
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 4px;
 }
 </style>

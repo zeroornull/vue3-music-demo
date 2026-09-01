@@ -58,6 +58,10 @@ describe('Song API', () => {
       picUrl: 'cover',
     })
     expect(request.get).toHaveBeenCalledWith('/song/detail', { ids: 1 })
+
+    await expect(
+      getSongDetail(1, client({ songs: [{ ...response.songs[0], mv: 701 }] }).client),
+    ).resolves.toMatchObject({ id: 1, mv: 701 })
     for (const response of [
       { songs: [] },
       { songs: [{ id: 2, name: 'Other' }] },
