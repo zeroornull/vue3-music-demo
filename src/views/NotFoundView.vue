@@ -13,13 +13,13 @@
   align-content: center;
   justify-items: center;
   padding: 24px;
-  color: #172033;
+  color: var(--color-text);
   text-align: center;
 }
 
 p {
   margin: 0;
-  color: #087c62;
+  color: var(--color-accent);
   font-size: 5rem;
   font-weight: 800;
 }
@@ -29,6 +29,6 @@ h1 {
 }
 
 a {
-  color: #087c62;
+  color: var(--color-accent);
 }
 </style>

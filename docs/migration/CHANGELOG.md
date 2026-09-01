@@ -1,5 +1,18 @@
 # 迁移文档变更记录
 
+## 0.49.0 - 2026-09-01
+
+### 实施第 45 轮：深浅色主题
+
+- AppShell 增加深色/浅色；写入 `THEME` 和 `html data-theme`；Host 重新配置不清主题；
+- 壳、Host、推荐页标题用 CSS 变量；不用 Tailwind 4；内容卡片仍是浅色常量；
+- 深色按钮字色用 `--color-on-accent`；
+- 107 个测试文件、440 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:52121` + mock `127.0.0.1:52131`：深色、重新配置仍深色、桌面/移动布局；
+- 独立审查 PASS WITH FINDINGS：深色按钮对比已修；独立核验 PASS WITH FINDINGS，隔离 smoke `52221`/`52231`；
+- 第 44 轮提交为 `d0f9c77`；第 45 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：内容卡片接到主题变量。专辑空评论继续跳过。
+
 ## 0.48.0 - 2026-09-01
 
 ### 实施第 44 轮：Host 文案

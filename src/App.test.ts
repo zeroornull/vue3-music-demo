@@ -19,6 +19,7 @@ import { useSearchStore } from '@/stores/search'
 import { useVideoStore } from '@/stores/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
 import { useLyricStore } from '@/stores/lyric'
+import { THEME_STORAGE_KEY } from '@/config/theme'
 import { useHostStore } from '@/stores/host'
 
 vi.mock('@/api/song', () => ({
@@ -49,8 +50,16 @@ function mountApp() {
 describe('App host gate', () => {
   beforeEach(() => {
     localStorage.clear()
+    document.documentElement.removeAttribute('data-theme')
     setActivePinia(createPinia())
     vi.mocked(getSongUrl).mockReset()
+  })
+
+  it('applies a stored dark theme on the host form', () => {
+    localStorage.setItem(THEME_STORAGE_KEY, 'dark')
+    mountApp()
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(useHostStore().isConfigured).toBe(false)
   })
 
   it('wraps the router in the app shell after the host is configured', async () => {

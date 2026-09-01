@@ -37,15 +37,15 @@ const { apiHost } = storeToRefs(hostStore)
 .card {
   width: min(720px, 100%);
   padding: clamp(28px, 6vw, 56px);
-  border: 1px solid #dce4f0;
+  border: 1px solid var(--color-border);
   border-radius: 24px;
-  background: #ffffff;
+  background: var(--color-surface);
   box-shadow: 0 24px 70px rgb(36 55 82 / 12%);
 }
 
 .eyebrow {
   margin: 0 0 12px;
-  color: #087c62;
+  color: var(--color-accent);
   font-size: 0.78rem;
   font-weight: 760;
   letter-spacing: 0.12em;
@@ -62,7 +62,7 @@ h1 {
 .summary {
   max-width: 60ch;
   margin: 24px 0 0;
-  color: #53627a;
+  color: var(--color-muted);
   font-size: 1.05rem;
   line-height: 1.75;
 }
@@ -70,8 +70,8 @@ h1 {
 code {
   padding: 2px 7px;
   border-radius: 6px;
-  background: #eef3f8;
-  color: #29364a;
+  background: var(--color-code);
+  color: var(--color-text);
 }
 
 .counter {
@@ -80,8 +80,8 @@ code {
   justify-content: space-between;
   gap: 20px;
   padding-top: 24px;
-  border-top: 1px solid #e4eaf2;
-  color: #435169;
+  border-top: 1px solid var(--color-line);
+  color: var(--color-muted);
 }
 
 .actions {
@@ -91,7 +91,7 @@ code {
 }
 
 .actions a {
-  color: #087c62;
+  color: var(--color-accent);
   font-weight: 700;
 }
 
@@ -100,18 +100,18 @@ button {
   padding: 0 18px;
   border: 0;
   border-radius: 999px;
-  background: #087c62;
-  color: #ffffff;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   cursor: pointer;
   font-weight: 700;
 }
 
 button:hover {
-  background: #066a54;
+  filter: brightness(0.92);
 }
 
 button:focus-visible {
-  outline: 3px solid #79d8bc;
+  outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 

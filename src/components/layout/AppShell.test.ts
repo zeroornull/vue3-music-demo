@@ -25,6 +25,7 @@ async function mountShell(name: string = Pages.discover) {
 describe('AppShell', () => {
   beforeEach(() => {
     localStorage.clear()
+    document.documentElement.removeAttribute('data-theme')
     setActivePinia(createPinia())
   })
 
@@ -81,6 +82,26 @@ describe('AppShell', () => {
     await videoLink!.trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.name).toBe(Pages.video)
+  })
+
+  it('toggles dark theme from the shell without resetting the API host', async () => {
+    const wrapper = await mountShell()
+    const button = wrapper.get('[data-testid="shell-theme"]')
+    expect(button.text()).toBe('深色')
+    expect(button.attributes('aria-pressed')).toBe('false')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+    await button.trigger('click')
+    await flushPromises()
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(button.text()).toBe('浅色')
+    expect(button.attributes('aria-pressed')).toBe('true')
+    expect(localStorage.getItem('THEME')).toBe('dark')
+    expect(useHostStore().isConfigured).toBe(true)
+    await wrapper.get('[data-testid="shell-reconfigure"]').trigger('click')
+    await flushPromises()
+    expect(useHostStore().isConfigured).toBe(false)
+    expect(localStorage.getItem('THEME')).toBe('dark')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
   })
 
   it('reconfigures the API host from the shell', async () => {

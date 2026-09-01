@@ -1,28 +1,28 @@
 # 08. 当前开发进度
 
 > 更新日期：`2026-09-01`<br>
-> 文档版本：`0.48.0`<br>
-> 对照提交：`8c29094`（实施第 43 轮已在当前 HEAD）<br>
-> 工作区：实施第 44 轮代码已写入，**尚未 commit / push**
+> 文档版本：`0.49.0`<br>
+> 对照提交：`d0f9c77`（实施第 44 轮已在当前 HEAD）<br>
+> 工作区：实施第 45 轮代码已写入，**尚未 commit / push**
 
 本文是后续轮次的入口。历史盘点见 [01-current-state-audit.md](./01-current-state-audit.md)，执行约束见 [03-migration-roadmap.md](./03-migration-roadmap.md)，逐轮证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
 ## 1. 一句话状态
 
-根工程是 Bun + Vue 3.5 + TypeScript 6 + Vite 8。Discover、播放器、歌单、MV、音乐馆、歌手馆、电台大厅（含付费标记）、搜索页、顶栏搜索弹出层、专辑介绍、应用壳、视频大厅、Banner 详情跳转、顶栏视频入口和 Host 文案已经能用。独立 P5 治理轮仍没有产品缺口可修。
+根工程是 Bun + Vue 3.5 + TypeScript 6 + Vite 8。Discover、播放器、歌单、MV、音乐馆、歌手馆、电台大厅（含付费标记）、搜索页、顶栏搜索弹出层、专辑介绍、应用壳、视频大厅、Banner 详情跳转、顶栏视频入口、Host 文案和深浅色主题已经能用。独立 P5 治理轮仍没有产品缺口可修。
 
 ## 2. 路线图对照
 
-原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-054](./06-decision-log.md)。
+原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-055](./06-decision-log.md)。
 
 | 路线图阶段 | 目标 | 状态 | 对应轮次 | 缺口 |
 | --- | --- | --- | --- | --- |
 | P0 文档与基线 | 保护 `docs/`、锁定行为 | **完成** | 文档第 1 轮 | 旧工程运行基线仍未在当前环境启动（V-001） |
 | P1 legacy 归档 | 旧工程移入 `legacy/` | **完成** | 实施第 1 轮 | 无 |
 | P2 现代空壳 | Bun + Vue + TS + Vite | **完成** | 实施第 2 轮 | TypeScript 固定 6.0.3，待 `vue-tsc` 支持 TS 7 |
-| P3 基础设施 | Router、Pinia、API、主题、自动组件 | **部分完成** | 实施第 3、18、41、43、44 轮 | 顶栏含搜索弹出层和视频入口；Host 文案已改；无 Element Plus、无 Sass/Tailwind、无自动组件 |
-| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–44 轮 | Discover、播放器、歌单、MV、排行榜、分类、精选、歌手馆、电台（含付费标记）、搜索多类型、顶栏搜索、专辑介绍、应用壳、`#/video`（含顶栏入口）、Banner 详情跳转和 Host 文案完成；专辑空评论未做 |
-| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–44 轮内嵌 | 类型检查已过；无产品 `any`；直接依赖已精简。独立治理轮仍无未解释错误可修 |
+| P3 基础设施 | Router、Pinia、API、主题、自动组件 | **部分完成** | 实施第 3、18、41、43–45 轮 | 顶栏含搜索弹出层、视频入口和深浅色切换；Host 文案已改；内容卡片仍用浅色常量；无 Element Plus、无 Sass/Tailwind、无自动组件 |
+| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–45 轮 | Discover、播放器、歌单、MV、排行榜、分类、精选、歌手馆、电台（含付费标记）、搜索多类型、顶栏搜索、专辑介绍、应用壳、`#/video`（含顶栏入口）、Banner 详情跳转、Host 文案和主题切换完成；专辑空评论未做 |
+| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–45 轮内嵌 | 类型检查已过；无产品 `any`；直接依赖已精简。独立治理轮仍无未解释错误可修 |
 | P6 Tailwind 4 | 新样式入口和视觉收敛 | **未开始** | — | 当前页面继续使用 scoped CSS |
 | P7 发布闭环 | `dist/`、CI、学习总结 | **未开始** | — | 无 CI；GitHub Pages 未切到新产物 |
 
@@ -74,24 +74,25 @@
 | 实施第 41 轮 | 2026-08-31 | 顶栏搜索弹出层 | 101 文件 / 425 测试 | `5d6f227` |
 | 实施第 42 轮 | 2026-09-01 | Banner 详情跳转 | 102 文件 / 429 测试 | `b6c365f` |
 | 实施第 43 轮 | 2026-09-01 | 顶栏视频入口 | 102 文件 / 430 测试 | `8c29094` |
-| 实施第 44 轮 | 2026-09-01 | Host 文案 | 105 文件 / 434 测试 | **工作区未提交** |
+| 实施第 44 轮 | 2026-09-01 | Host 文案 | 105 文件 / 434 测试 | `d0f9c77` |
+| 实施第 45 轮 | 2026-09-01 | 深浅色主题 | 107 文件 / 440 测试 | **工作区未提交** |
 
-第 44 轮文档对齐时的当前门禁输出：
+第 45 轮文档对齐时的当前门禁输出：
 
 ```text
-bun run test       105 files / 434 tests passed
+bun run test       107 files / 440 tests passed
 bun run typecheck  PASS
-bun run build      364 modules transformed, dist/ 输出
+bun run build      366 modules transformed, dist/ 输出
 bun install --frozen-lockfile --dry-run  PASS
 bun audit          No vulnerabilities found (checked 185 packages)
 git diff --check   PASS
 ```
 
-第 44 轮已完成本地 mock API 浏览器 smoke，未打真实网易云。未 commit、未 push。独立审查 PASS WITH FINDINGS（无 HIGH/MEDIUM；LOW 已跟进：去掉基础设施仪表盘；锁住推荐页/404 链接）。独立核验 PASS WITH FINDINGS，隔离 smoke `52021`/`52031`。
+第 45 轮已完成本地 mock API 浏览器 smoke，未打真实网易云。未 commit、未 push。独立审查 PASS WITH FINDINGS（MEDIUM：深色按钮白字对比不足，已加 `--color-on-accent`；重新配置不清主题已测）。独立核验 PASS WITH FINDINGS，隔离 smoke `52221`/`52231`。
 
-Host 摘要：eyebrow 为 API Host；`#/migration` 为 API 状态；404 返回推荐页。不再写 Migration round 3。
+主题摘要：AppShell「深色/浅色」写入 `THEME` 和 `html data-theme`。壳、Host、推荐页标题跟 CSS 变量。内容卡片仍是浅色常量。不用 Tailwind 4。
 
-本地 smoke 使用 Vite `127.0.0.1:51921` 和 mock API `127.0.0.1:51931`：Host 表单 → Discover → `#/migration` → 404 → 重新配置。桌面 `1440×900` 与移动 `390×844` 无横向溢出。控制台无应用错误。核验复跑隔离口 `52021`/`52031`。
+本地 smoke 使用 Vite `127.0.0.1:52121` 和 mock API `127.0.0.1:52131`：Host 保存 → 深色 → 重新配置 Host 仍深色。桌面 `1440×900` 与移动 `390×844` 无横向溢出。控制台无应用错误。核验复跑隔离口 `52221`/`52231`。
 
 ## 4. 当前根工程能力
 
@@ -104,14 +105,14 @@ Host 摘要：eyebrow 为 API Host；`#/migration` 为 API 状态；404 返回�
 新增 / 扩展：
 
 ```text
-HostSetupView              API Host，不再写 round 3
-HomeView `#/migration`     API 已连接
-NotFoundView               返回推荐页
+useThemeStore              light/dark，THEME localStorage
+AppShell                   深色 / 浅色
+:root / [data-theme=dark]  CSS 变量
 ```
 
 ### 4.3 已安装直接依赖
 
-第 44 轮未新增依赖。
+第 45 轮未新增依赖。
 
 ## 5. 与 legacy 的功能差距
 
@@ -126,13 +127,13 @@ NotFoundView               返回推荐页
 
 ## 6. 质量与文档缺口
 
-已通过第 44 轮当前门禁：105 个测试文件 / 434 个测试、两套 typecheck、364 modules build、frozen lock、audit 和 `git diff --check`。
+已通过第 45 轮当前门禁：107 个测试文件 / 440 个测试、两套 typecheck、366 modules build、frozen lock、audit 和 `git diff --check`。
 
-仍存在、但不阻塞第 44 轮的缺口：无 lint/E2E/CI。专辑空评论、登录、主题未迁。
+仍存在、但不阻塞第 45 轮的缺口：内容卡片仍用浅色常量、无 lint/E2E/CI。专辑空评论、登录未迁。
 
 ## 7. 建议的下一轮
 
-**实施第 45 轮：主题。** P3 的深浅色主题仍未迁。独立 P5 治理轮跳过。legacy 专辑评论 tab 为空，继续跳过。
+**实施第 46 轮：把内容卡片接到主题变量。** 壳和 Host 已跟深浅色；Banner / 歌单 / 新歌 / MV 等卡片仍是浅色常量。独立 P5 治理轮跳过。legacy 专辑评论 tab 为空，继续跳过。
 
 本轮不应做：登录、Tailwind 4、CI、Element Plus、空的 P5 审计。
 
@@ -150,4 +151,4 @@ NotFoundView               返回推荐页
 | [CHANGELOG](./CHANGELOG.md) | 追加日志 | 文档版本 |
 | **本文** | **活文档** | **先读这个，再开工** |
 
-> 状态更新（2026-09-01）：第 43 轮已在当前 HEAD `8c29094` 完成。第 44 轮 Host 文案已写入工作区（独立审查 PASS WITH FINDINGS / 核验 PASS WITH FINDINGS）；主题、专辑空评论仍未迁。
+> 状态更新（2026-09-01）：第 44 轮已在当前 HEAD `d0f9c77` 完成。第 45 轮深浅色主题已写入工作区（独立审查 PASS WITH FINDINGS / 核验 PASS WITH FINDINGS）；内容卡片色、专辑空评论仍未迁。

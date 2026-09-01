@@ -72,15 +72,15 @@ async function submit() {
 .host-card {
   width: min(760px, 100%);
   padding: clamp(28px, 6vw, 56px);
-  border: 1px solid #dce4f0;
+  border: 1px solid var(--color-border);
   border-radius: 24px;
-  background: #ffffff;
+  background: var(--color-surface);
   box-shadow: 0 24px 70px rgb(36 55 82 / 12%);
 }
 
 .eyebrow {
   margin: 0 0 12px;
-  color: #087c62;
+  color: var(--color-accent);
   font-size: 0.78rem;
   font-weight: 760;
   letter-spacing: 0.12em;
@@ -96,14 +96,14 @@ h1 {
 
 .summary {
   margin: 22px 0 30px;
-  color: #53627a;
+  color: var(--color-muted);
   line-height: 1.7;
 }
 
 code {
   padding: 2px 7px;
   border-radius: 6px;
-  background: #eef3f8;
+  background: var(--color-code);
 }
 
 label {
@@ -122,14 +122,16 @@ input {
   flex: 1;
   min-height: 46px;
   padding: 0 14px;
-  border: 1px solid #bbc7d8;
+  border: 1px solid var(--color-nav-border);
   border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
 }
 
 input:focus {
-  border-color: #087c62;
-  outline: 3px solid #b6eadb;
+  border-color: var(--color-accent);
+  outline: 3px solid var(--color-focus);
   outline-offset: 1px;
 }
 
@@ -138,8 +140,8 @@ button {
   padding: 0 20px;
   border: 0;
   border-radius: 12px;
-  background: #087c62;
-  color: white;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   cursor: pointer;
   font-weight: 720;
 }
@@ -152,14 +154,14 @@ button:disabled {
 .error {
   padding: 12px 14px;
   border-radius: 10px;
-  background: #fff0f0;
-  color: #a52f2f;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 a {
   display: inline-block;
   margin-top: 22px;
-  color: #087c62;
+  color: var(--color-accent);
 }
 
 @media (max-width: 640px) {

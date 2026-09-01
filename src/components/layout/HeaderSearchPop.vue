@@ -289,15 +289,15 @@ input {
   width: 100%;
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid #c5cfdd;
+  border: 1px solid var(--color-nav-border);
   border-radius: 999px;
-  background: white;
-  color: #344156;
+  background: var(--color-surface);
+  color: var(--color-nav);
   font: inherit;
 }
 
 input:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -321,11 +321,11 @@ input:focus-visible {
   min-width: 0;
   padding: 12px;
   overflow: auto;
-  border: 1px solid #dce4f0;
+  border: 1px solid var(--color-border);
   border-radius: 16px;
-  background: white;
+  background: var(--color-surface);
   box-shadow: 0 12px 32px rgb(23 32 51 / 16%);
-  color: #172033;
+  color: var(--color-text);
 }
 
 .pop-state,
@@ -334,7 +334,7 @@ input:focus-visible {
 }
 
 .pop-state {
-  color: #5f6c82;
+  color: var(--color-muted);
   font-size: 0.88rem;
 }
 
@@ -363,7 +363,7 @@ input:focus-visible {
   padding: 8px 10px;
   border: 0;
   border-radius: 12px;
-  background: white;
+  background: var(--color-surface);
   color: inherit;
   cursor: pointer;
   font: inherit;
@@ -373,7 +373,7 @@ input:focus-visible {
 
 .song-hits button:focus-visible,
 .pop-state button:focus-visible {
-  outline: 3px solid #32b58e;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 

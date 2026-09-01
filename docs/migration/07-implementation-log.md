@@ -4653,4 +4653,78 @@ mock API http://127.0.0.1:51931
 
 ### 46.4 本轮结果
 
-Host 文案已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是 404/推荐链接未锁、`#/migration` 仍有 Axios/Pinia 仪表盘。已去掉仪表盘并锁住 href。独立核验 PASS WITH FINDINGS：复跑 105/434、typecheck、364 modules；隔离 smoke `52021`/`52031`。第 43 轮提交 `8c29094` 仍是当前 HEAD；第 44 轮尚未 commit / push。下一轮：主题。
+Host 文案已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM；LOW 是 404/推荐链接未锁、`#/migration` 仍有 Axios/Pinia 仪表盘。已去掉仪表盘并锁住 href。独立核验 PASS WITH FINDINGS：复跑 105/434、typecheck、364 modules；隔离 smoke `52021`/`52031`。第 43 轮提交 `8c29094` 仍是当时 HEAD；第 44 轮随后以 `d0f9c77` 提交。下一轮：主题。
+
+## 47. 实施第 45 轮：深浅色主题（工作区）
+
+> 执行日期：`2026-09-01`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 47.1 开始边界与范围
+
+第 45 轮开始时第 44 轮已经提交：
+
+```text
+HEAD d0f9c77
+master...origin/master
+```
+
+本轮加深浅色切换。不用 Tailwind 4。内容卡片本轮不改。
+
+范围：
+
+- `THEME` + `html data-theme`；
+- AppShell 深色/浅色；
+- 壳、Host、推荐页标题用 CSS 变量。
+
+### 47.2 自动验证
+
+```text
+bun run test
+Test Files  107 passed (107)
+Tests       440 passed (440)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 47.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:52121
+mock API http://127.0.0.1:52131
+```
+
+验证步骤：
+
+1. Host 保存后顶栏出现「深色」；
+2. 点深色后 `data-theme=dark`，`THEME=dark`，壳背景变深；
+3. 「重新配置 API」后 Host 卡片仍是深色；
+4. 桌面 `1440×900` 与移动 `390×844` 无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round45-desktop-dark.png`、`/tmp/vue3-music-round45-host-dark.png` 和 `/tmp/vue3-music-round45-mobile-dark.png`，不进仓库。开发服务器和 mock API 已停。
+
+成功路径控制台无应用错误。未打真实网易云 API。
+
+### 47.4 本轮结果
+
+深浅色主题已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是深色按钮白字对比不足，已加 `--color-on-accent`；LOW 含重新配置不清主题测试、Host 单独应用主题测试。独立核验 PASS WITH FINDINGS：复跑当时 107/439、typecheck、366 modules；隔离 smoke `52221`/`52231`。跟进后 107/440。第 44 轮提交 `d0f9c77` 仍是当前 HEAD；第 45 轮尚未 commit / push。下一轮：内容卡片接到主题变量。
