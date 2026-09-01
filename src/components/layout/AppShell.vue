@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
+import HeaderSearchPop from '@/components/layout/HeaderSearchPop.vue'
 import { Pages } from '@/router/pages'
 import { useHostStore } from '@/stores/host'
 
@@ -33,6 +34,7 @@ const currentMenu = computed(() =>
           {{ item.label }}
         </RouterLink>
       </nav>
+      <HeaderSearchPop />
       <button
         type="button"
         data-testid="shell-reconfigure"

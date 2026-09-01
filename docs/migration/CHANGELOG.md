@@ -1,5 +1,18 @@
 # 迁移文档变更记录
 
+## 0.45.0 - 2026-08-31
+
+### 实施第 41 轮：顶栏搜索弹出层
+
+- AppShell 增加原生搜索框；空关键词显示热搜，输入走 `/search/suggest`；
+- 单曲可播，歌单/歌手/专辑打开已有页；`<img>` 当文本；Escape 关闭；
+- 不用 Element Plus、不加 lodash；
+- 101 个测试文件、425 个测试通过；typecheck、build（363 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:51321` + mock `127.0.0.1:51331`：热搜、点词出建议、播放、重新配置、桌面/移动布局；
+- 独立审查 PASS WITH FINDINGS：弹出层自己拉 suggest；独立核验 PASS WITH FINDINGS，隔离 smoke `51421`/`51431`；
+- 第 40 轮提交为 `410ad9a`；第 41 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：P5 类型与依赖。专辑空评论继续跳过。
+
 ## 0.44.0 - 2026-08-31
 
 ### 实施第 40 轮：付费电台

@@ -4355,4 +4355,78 @@ mock API http://127.0.0.1:51131
 
 ### 42.4 本轮结果
 
-付费标记已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是推荐节目没读嵌套 fee、DjView 付费播放没测。已让 `readDjProgram` 走嵌套 radio/program，并补了不调用 play 的测试。LOW 是卡片模板重复、`paid?` 可选。独立核验 PASS WITH FINDINGS：复跑当时 100/420、typecheck、360 modules；隔离 smoke `51221`/`51231`。跟进后 100/421。第 39 轮提交 `a4dc6c8` 仍是当前 HEAD；第 40 轮尚未 commit / push。下一轮：Header 弹出层。
+付费标记已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是推荐节目没读嵌套 fee、DjView 付费播放没测。已让 `readDjProgram` 走嵌套 radio/program，并补了不调用 play 的测试。LOW 是卡片模板重复、`paid?` 可选。独立核验 PASS WITH FINDINGS：复跑当时 100/420、typecheck、360 modules；隔离 smoke `51221`/`51231`。跟进后 100/421。随后提交为 `410ad9a`。下一轮：Header 弹出层。
+
+## 43. 实施第 41 轮：顶栏搜索弹出层（工作区）
+
+> 执行日期：`2026-08-31`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 43.1 开始边界与范围
+
+第 41 轮开始时第 40 轮已经提交：
+
+```text
+HEAD 410ad9a
+master...origin/master
+```
+
+本轮给 AppShell 加原生搜索弹出层。不迁用户信息、主题、登录、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- 空关键词显示热搜；输入走已有 `/search/suggest`；
+- 单曲播放，歌单/歌手/专辑打开已有详情。
+
+### 43.2 自动验证
+
+```text
+bun run test
+Test Files  101 passed (101)
+Tests       425 passed (425)
+
+bun run typecheck
+PASS
+
+bun run build
+363 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 43.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:51321
+mock API http://127.0.0.1:51331
+```
+
+验证步骤：
+
+1. Host 保存后顶栏出现搜索框；
+2. 点开看到「深夜民谣」热搜；点热词出现单曲/歌单/歌手/专辑；`<img src=x>` 是文本；
+3. 点单曲，PlayerBar 播放「晚风来信.<img src=x>」；
+4. Escape 关掉面板，「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round41-desktop.png` 和 `/tmp/vue3-music-round41-mobile.png`，不进仓库。开发服务器和 mock API 已停。
+
+成功路径控制台无应用错误。未打真实网易云 API。
+
+### 43.4 本轮结果
+
+顶栏搜索弹出层已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是共用 search store 会改搜索页、Escape 后输入不打开、关闭不清 debounce、热搜重试未 catch。已改成弹出层自己请求 suggest，close 清 timer，输入会 reopen，retry 吞掉拒绝。独立核验 PASS WITH FINDINGS：复跑当时 101/424、typecheck、363 modules；隔离 smoke `51421`/`51431`。跟进后 101/425。第 40 轮提交 `410ad9a` 仍是当前 HEAD；第 41 轮尚未 commit / push。下一轮：P5 类型与依赖。

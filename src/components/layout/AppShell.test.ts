@@ -37,6 +37,7 @@ describe('AppShell', () => {
     expect(nav.text()).not.toContain('视频')
     expect(nav.text()).not.toContain('电台')
     expect(wrapper.get('[aria-current="page"]').text()).toBe('推荐')
+    expect(wrapper.find('[data-testid="header-search-input"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="shell-outlet"]').text()).toBe('page')
   })
 
