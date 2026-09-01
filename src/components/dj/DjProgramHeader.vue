@@ -36,13 +36,17 @@ defineEmits<{
       <p v-if="program.description" class="bio">{{ program.description }}</p>
       <p class="counts">
         <span v-if="program.listenerCount">{{ program.listenerCount }} 人听过</span>
-        <span v-if="program.song">可播放「{{ program.song.name }}」</span>
+        <span v-if="program.paid">付费节目</span>
+        <span v-else-if="program.song">可播放「{{ program.song.name }}」</span>
         <span v-else>这个节目没有可播放的歌曲</span>
+      </p>
+      <p v-if="program.paid" class="paid-note" data-testid="dj-program-paid">
+        付费节目，本应用不支持购买
       </p>
       <button
         type="button"
         data-testid="dj-play"
-        :disabled="!playable"
+        :disabled="!playable || program.paid"
         @click="$emit('play')"
       >
         播放节目
@@ -122,6 +126,12 @@ button {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.paid-note {
+  margin: 12px 0 0;
+  color: #9b3838;
+  font-weight: 650;
 }
 
 @media (max-width: 700px) {

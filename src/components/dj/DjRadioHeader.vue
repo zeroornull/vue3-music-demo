@@ -25,6 +25,9 @@ defineProps<{
       </p>
       <p v-if="radio.desc" class="bio">{{ radio.desc }}</p>
       <p v-else class="bio" data-testid="dj-radio-desc-empty">暂无介绍</p>
+      <p v-if="radio.paid" class="paid-note" data-testid="dj-radio-paid">
+        付费电台，本应用不支持购买
+      </p>
     </div>
   </header>
 </template>
@@ -89,6 +92,12 @@ h1 {
   margin-top: 12px;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+.paid-note {
+  margin: 12px 0 0;
+  color: #9b3838;
+  font-weight: 650;
 }
 
 @media (max-width: 700px) {

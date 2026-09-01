@@ -29,7 +29,9 @@ function requestProgram(force = false) {
 }
 
 function playProgram() {
-  const song = program.value?.song
+  const current = program.value
+  if (!current || current.paid) return
+  const song = current.song
   if (!song) return
   const serial = ++playSerial
   void playerStore
@@ -101,7 +103,7 @@ watch(
     <template v-else-if="program">
       <DjProgramHeader
         :program="program"
-        :playable="Boolean(program.song)"
+        :playable="Boolean(program.song) && !program.paid"
         @play="playProgram"
       />
       <p v-if="notice" class="notice" role="status">{{ notice }}</p>

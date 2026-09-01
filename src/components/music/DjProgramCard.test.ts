@@ -34,4 +34,14 @@ describe('DjProgramCard', () => {
       query: { id: 901 },
     })
   })
+
+  it('does not link a paid program', () => {
+    const wrapper = mount(DjProgramCard, {
+      props: { program: { ...program, paid: true } },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.find('[data-testid="dj-link"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="dj-card-paid"]').text()).toBe('付费')
+    expect(wrapper.text()).toContain('深夜民谣')
+  })
 })

@@ -4281,4 +4281,78 @@ mock API http://127.0.0.1:50931
 
 ### 41.4 本轮结果
 
-逐字卡拉 OK 已在工作区形成。独立审查 PASS WITH FINDINGS：MEDIUM 是 LRC/YRC 用浮点秒当 Map 键会对不上，已改成毫秒取整并补了 `[00:01.118]` 回归；LOW 是 JSON yrc、行尾空格 token、括号歌词，未改产品行为。独立核验 PASS：复跑当时 100/413、typecheck、360 modules；隔离 smoke `51021`/`51031`。跟进后 100/415。第 38 轮提交 `d2ba58f` 仍是当前 HEAD；第 39 轮尚未 commit / push。下一轮建议迁移付费电台。
+逐字卡拉 OK 已在工作区形成。独立审查 PASS WITH FINDINGS：MEDIUM 是 LRC/YRC 用浮点秒当 Map 键会对不上，已改成毫秒取整并补了 `[00:01.118]` 回归；LOW 是 JSON yrc、行尾空格 token、括号歌词，未改产品行为。独立核验 PASS：复跑当时 100/413、typecheck、360 modules；隔离 smoke `51021`/`51031`。跟进后 100/415。随后提交为 `a4dc6c8`。下一轮建议迁移付费电台。
+
+## 42. 实施第 40 轮：付费电台（工作区）
+
+> 执行日期：`2026-08-31`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 42.1 开始边界与范围
+
+第 40 轮开始时第 39 轮已经提交：
+
+```text
+HEAD a4dc6c8
+master...origin/master
+```
+
+本轮给电台补付费标记。不接登录、购买、`/dj/paygift`、专辑空评论、Tailwind 4、CI 或 Element Plus。
+
+范围：
+
+- `feeScope` / `fee` / `programFeeType` 大于 0 视为付费；
+- 卡片标「付费」；详情说明不支持购买；付费节目没有播放链接。
+
+### 42.2 自动验证
+
+```text
+bun run test
+Test Files  100 passed (100)
+Tests       421 passed (421)
+
+bun run typecheck
+PASS
+
+bun run build
+360 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 42.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:51121
+mock API http://127.0.0.1:51131
+```
+
+验证步骤：
+
+1. Host 保存后打开 `#/music/dj`，「付费夜航」带「付费」标记；
+2. 点进去看到「付费电台，本应用不支持购买」，介绍里 `<img src=x>` 是文本；
+3. 「付费期」没有节目链接；
+4. 「重新配置 API」回到 Host 表单；
+5. 桌面 `1440×900` 与移动 `390×844` 无横向溢出。
+
+截图保存在 `/tmp/vue3-music-round40-desktop.png` 和 `/tmp/vue3-music-round40-mobile.png`，不进仓库。开发服务器和 mock API 已停。
+
+成功路径控制台无应用错误。未打真实网易云 API。
+
+### 42.4 本轮结果
+
+付费标记已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是推荐节目没读嵌套 fee、DjView 付费播放没测。已让 `readDjProgram` 走嵌套 radio/program，并补了不调用 play 的测试。LOW 是卡片模板重复、`paid?` 可选。独立核验 PASS WITH FINDINGS：复跑当时 100/420、typecheck、360 modules；隔离 smoke `51221`/`51231`。跟进后 100/421。第 39 轮提交 `a4dc6c8` 仍是当前 HEAD；第 40 轮尚未 commit / push。下一轮：Header 弹出层。

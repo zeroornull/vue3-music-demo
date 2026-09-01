@@ -152,4 +152,13 @@ describe('DjView', () => {
     expect(playSong).toHaveBeenCalledWith(detail.song)
     expect(wrapper.get('[role="status"]').text()).toContain('正在播放“晚风来信”。')
   })
+
+  it('does not play a paid program', async () => {
+    vi.mocked(getDjProgramDetail).mockResolvedValue({ ...detail, paid: true })
+    const { wrapper } = await mountView()
+    await flushPromises()
+    await wrapper.get('[data-testid="play-program"]').trigger('click')
+    await flushPromises()
+    expect(playSong).not.toHaveBeenCalled()
+  })
 })

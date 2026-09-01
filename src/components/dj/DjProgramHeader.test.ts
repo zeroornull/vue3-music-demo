@@ -44,4 +44,17 @@ describe('DjProgramHeader', () => {
     expect(empty.get('[data-testid="dj-play"]').attributes('disabled')).toBeDefined()
     expect(empty.text()).toContain('这个节目没有可播放的歌曲')
   })
+
+  it('blocks play on a paid program', () => {
+    const wrapper = mount(DjProgramHeader, {
+      props: {
+        playable: false,
+        program: { ...program, paid: true },
+      },
+    })
+    expect(wrapper.get('[data-testid="dj-play"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-testid="dj-program-paid"]').text()).toContain(
+      '付费节目，本应用不支持购买',
+    )
+  })
 })

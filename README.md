@@ -42,8 +42,9 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 36 轮：电台分类 + 最小电台详情——已完成并提交 `a20eb51`；
 - 实施第 37 轮：翻译歌词——已完成并提交 `e7399c3`；
 - 实施第 38 轮：罗马音歌词——已完成并提交 `d2ba58f`；
-- 实施第 39 轮：逐字卡拉 OK——代码已落地，当前工作区尚未 commit；
-- 下一轮：付费电台。
+- 实施第 39 轮：逐字卡拉 OK——已完成并提交 `a4dc6c8`；
+- 实施第 40 轮：付费电台——代码已写入工作区，尚未 commit；
+- 下一轮：Header 弹出层。
 
 当前进度总览：[`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
 
@@ -95,4 +96,4 @@ bun run preview
 └── package.json
 ```
 
-当前已完成到第 39 轮：歌词面板可以显示翻译、罗马音和逐字高亮。下一轮是付费电台。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。
+当前已完成到第 40 轮：付费电台会标出来，不能播。下一轮是 Header 弹出层。活进度见 [`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。

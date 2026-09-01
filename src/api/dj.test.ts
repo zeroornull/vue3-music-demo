@@ -85,6 +85,7 @@ describe('DJ API', () => {
         copywriter: '睡前电台',
         id: 901,
         name: '深夜民谣',
+        paid: false,
         picUrl: 'https://images.example.com/dj.jpg',
       },
     ])
@@ -126,6 +127,7 @@ describe('DJ API', () => {
       id: 901,
       listenerCount: 1280,
       name: '深夜民谣',
+      paid: false,
       radioName: '林间电台',
       song: {
         album: { id: 1, name: '专辑', picUrl: 'https://images.example.com/a.jpg' },
@@ -160,6 +162,7 @@ describe('DJ API', () => {
       id: 902,
       listenerCount: 0,
       name: '清晨广播',
+      paid: false,
       radioName: '海岸信号',
       song: null,
     })
@@ -206,6 +209,7 @@ describe('DJ API', () => {
           djName: '林间主播',
           id: 801,
           name: '夜航电台',
+          paid: false,
           picUrl: 'https://images.example.com/radio.jpg',
           playCount: 12_000,
           rcmdText: '睡前故事',
@@ -248,6 +252,7 @@ describe('DJ API', () => {
       djName: '林间主播',
       id: 801,
       name: '夜航电台',
+      paid: false,
       picUrl: 'https://images.example.com/radio.jpg',
     })
     expect(detail.get).toHaveBeenCalledWith('/dj/detail', { rid: 801 })
@@ -274,6 +279,7 @@ describe('DJ API', () => {
           copywriter: '夜航电台',
           id: 901,
           name: '深夜民谣',
+          paid: false,
           picUrl: 'https://images.example.com/ep.jpg',
         },
       ],
@@ -283,5 +289,80 @@ describe('DJ API', () => {
       offset: 0,
       rid: 801,
     })
+  })
+
+  it('marks paid radios and programs from fee fields', async () => {
+    await expect(
+      getHotDjRadios(
+        { cateId: 2001 },
+        client({
+          djRadios: [
+            { feeScope: 1, id: 802, name: '付费夜航' },
+            { fee: 0, id: 801, name: '免费夜航' },
+          ],
+          hasMore: false,
+        }).client,
+      ),
+    ).resolves.toMatchObject({
+      radios: [
+        { id: 802, name: '付费夜航', paid: true },
+        { id: 801, name: '免费夜航', paid: false },
+      ],
+    })
+
+    await expect(
+      getDjRadioDetail(
+        802,
+        client({
+          djRadio: { feeScope: 2, id: 802, name: '付费夜航' },
+        }).client,
+      ),
+    ).resolves.toMatchObject({ id: 802, paid: true })
+
+    await expect(
+      getDjRadioPrograms(
+        { rid: 802 },
+        client({
+          more: false,
+          programs: [
+            { id: 911, name: '试听', programFeeType: 0 },
+            { fee: 5, id: 912, name: '付费期' },
+          ],
+        }).client,
+      ),
+    ).resolves.toMatchObject({
+      programs: [
+        { id: 911, name: '试听', paid: false },
+        { id: 912, name: '付费期', paid: true },
+      ],
+    })
+
+    await expect(
+      getDjProgramDetail(
+        912,
+        client({
+          program: {
+            id: 912,
+            name: '付费期',
+            radio: { feeScope: 1, name: '付费夜航' },
+          },
+        }).client,
+      ),
+    ).resolves.toMatchObject({ id: 912, name: '付费期', paid: true, song: null })
+
+    await expect(
+      getPersonalizedDjPrograms(
+        client({
+          result: [
+            {
+              id: 913,
+              name: '推荐付费期',
+              picUrl: 'https://images.example.com/dj.jpg',
+              program: { radio: { feeScope: 1 } },
+            },
+          ],
+        }).client,
+      ),
+    ).resolves.toMatchObject([{ id: 913, name: '推荐付费期', paid: true }])
   })
 })

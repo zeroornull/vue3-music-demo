@@ -31,6 +31,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
+function isPaidRecord(value: Record<string, unknown>): boolean {
+  return (
+    (typeof value.feeScope === 'number' && value.feeScope > 0) ||
+    (typeof value.fee === 'number' && value.fee > 0) ||
+    (typeof value.programFeeType === 'number' && value.programFeeType > 0)
+  )
+}
+
+function isPaidValue(value: unknown): boolean {
+  if (!isRecord(value)) return false
+  if (isPaidRecord(value)) return true
+  const nested = isRecord(value.program) ? value.program : null
+  if (nested && isPaidRecord(nested)) return true
+  const radio = isRecord(value.radio)
+    ? value.radio
+    : nested && isRecord(nested.radio)
+      ? nested.radio
+      : null
+  return radio !== null && isPaidRecord(radio)
+}
+
 function isNetworkSong(value: unknown): value is NetworkSong {
   return (
     isRecord(value) &&
@@ -61,6 +82,7 @@ function readDjProgram(value: unknown): DjProgram | null {
     name: value.name,
     copywriter: typeof value.copywriter === 'string' ? value.copywriter : '',
     picUrl: typeof value.picUrl === 'string' ? value.picUrl : '',
+    paid: isPaidValue(value),
   }
 }
 
@@ -85,6 +107,7 @@ function readHallRadio(value: unknown): HallRadio | null {
     rcmdText: typeof value.rcmdText === 'string' ? value.rcmdText : '',
     djName: dj && typeof dj.nickname === 'string' ? dj.nickname : '',
     playCount: typeof value.playCount === 'number' ? Math.max(0, value.playCount) : 0,
+    paid: isPaidRecord(value),
   }
 }
 
@@ -110,6 +133,7 @@ function readRadioProgram(value: unknown): DjProgram | null {
     name: value.name,
     copywriter,
     picUrl: cover,
+    paid: isPaidValue(value),
   }
 }
 
@@ -181,6 +205,7 @@ export async function getDjProgramDetail(
         ? raw.duration
         : song?.duration ?? 0,
     song,
+    paid: isPaidValue(raw),
   }
 }
 
@@ -244,6 +269,7 @@ export async function getDjRadioDetail(
     desc: typeof raw.desc === 'string' ? raw.desc : '',
     djName: dj && typeof dj.nickname === 'string' ? dj.nickname : '',
     category: typeof raw.category === 'string' ? raw.category : '',
+    paid: isPaidRecord(raw),
   }
 }
 

@@ -1,5 +1,18 @@
 # 迁移文档变更记录
 
+## 0.44.0 - 2026-08-31
+
+### 实施第 40 轮：付费电台
+
+- 分类电台和详情读取 `feeScope` / `fee` / `programFeeType`；大于 0 标「付费」；
+- 详情提示本应用不支持购买；付费节目没有播放链接；介绍里的 `<img>` 仍是文本；
+- 不接登录、购买、`/dj/paygift`；
+- 100 个测试文件、421 个测试通过；typecheck、build（360 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:51121` + mock `127.0.0.1:51131`：大厅徽章、付费详情、节目不可点、重新配置、桌面/移动布局；
+- 独立审查 PASS WITH FINDINGS：推荐节目继承嵌套付费字段；独立核验 PASS WITH FINDINGS，隔离 smoke `51221`/`51231`；
+- 第 39 轮提交为 `a4dc6c8`；第 40 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：Header 弹出层。专辑评论 tab 在 legacy 里为空，继续跳过。
+
 ## 0.43.0 - 2026-08-31
 
 ### 实施第 39 轮：逐字卡拉 OK

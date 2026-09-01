@@ -13,6 +13,7 @@ export interface DjProgram {
   name: string
   copywriter: string
   picUrl: string
+  paid?: boolean
 }
 
 export interface DjProgramDetail {
@@ -25,6 +26,7 @@ export interface DjProgramDetail {
   listenerCount: number
   duration: number
   song: Song | null
+  paid?: boolean
 }
 
 export interface DjCategory {
@@ -39,6 +41,7 @@ export interface HallRadio {
   rcmdText: string
   djName: string
   playCount: number
+  paid?: boolean
 }
 
 export interface HallRadioPage {
@@ -53,6 +56,7 @@ export interface DjRadioDetail {
   desc: string
   djName: string
   category: string
+  paid?: boolean
 }
 
 export interface DjRadioProgramPage {

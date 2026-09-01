@@ -36,5 +36,21 @@ describe('DjRadioCard', () => {
     expect(wrapper.get('a').attributes('aria-label')).toBe('打开电台：夜航电台')
     expect(wrapper.text()).toContain('夜航电台')
     expect(wrapper.text()).toContain('睡前故事')
+    expect(wrapper.text()).not.toContain('付费')
+  })
+
+  it('marks a paid radio', () => {
+    const wrapper = mount(DjRadioCard, {
+      props: { radio: { ...radio, paid: true } },
+      global: {
+        stubs: {
+          RouterLink: defineComponent({
+            props: ['to'],
+            template: '<a><slot /></a>',
+          }),
+        },
+      },
+    })
+    expect(wrapper.get('[data-testid="dj-radio-paid"]').text()).toBe('付费')
   })
 })

@@ -25,6 +25,7 @@ defineProps<{
           loading="lazy"
           decoding="async"
         />
+        <span v-if="radio.paid" class="paid-mark" data-testid="dj-radio-paid">付费</span>
         <span v-if="radio.playCount" class="play-count">{{
           formatPlayCount(radio.playCount)
         }}</span>
@@ -62,15 +63,25 @@ img {
   object-fit: cover;
 }
 
+.paid-mark,
 .play-count {
   position: absolute;
-  right: 8px;
-  bottom: 8px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgb(23 32 51 / 72%);
   color: white;
   font-size: 0.7rem;
+}
+
+.paid-mark {
+  top: 8px;
+  left: 8px;
+  background: rgb(155 56 56 / 86%);
+}
+
+.play-count {
+  right: 8px;
+  bottom: 8px;
+  background: rgb(23 32 51 / 72%);
 }
 
 h3,
