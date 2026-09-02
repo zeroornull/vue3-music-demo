@@ -160,4 +160,58 @@ describe('PlayerQueueDrawer', () => {
     expect(player.showQueue).toBe(false)
     wrapper.unmount()
   })
+
+  it('links positive artist ids without playing and closes the queue', async () => {
+    const player = usePlayerStore()
+    player.current = {
+      artists: [
+        { id: 401, name: '林间电台' },
+        { id: 402, name: '海岸信号' },
+      ],
+      id: 1,
+      name: '晚风',
+    }
+    player.queue = [player.current]
+    player.openQueue()
+    const play = vi.spyOn(player, 'play').mockResolvedValue(true)
+    const wrapper = mountDrawer()
+    const artists = [...document.querySelectorAll('[data-testid="song-artist"]')]
+    expect(artists).toHaveLength(2)
+    expect(artists[0]?.textContent).toBe('林间电台')
+    expect(artists[0]?.getAttribute('aria-label')).toBe('打开歌手：林间电台')
+    expect(
+      document.querySelector('button.queue-song [data-testid="song-artist"]'),
+    ).toBeNull()
+    const artistLinks = wrapper
+      .findAllComponents({ name: 'RouterLink' })
+      .filter((link) => link.attributes('data-testid') === 'song-artist')
+    expect(artistLinks[0]?.props('to')).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 401 },
+    })
+    expect(artistLinks[1]?.props('to')).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 402 },
+    })
+    artists[0]?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+    expect(play).not.toHaveBeenCalled()
+    expect(player.showQueue).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('shows artist names as text when artist id is missing', async () => {
+    const player = usePlayerStore()
+    player.current = {
+      artists: [{ id: 0, name: '未入驻歌手' }],
+      id: 1,
+      name: '晚风',
+    }
+    player.queue = [player.current]
+    player.openQueue()
+    const wrapper = mountDrawer()
+    expect(document.querySelector('[data-testid="song-artist"]')).toBeNull()
+    expect(bodyEl('[data-testid="player-queue"]').textContent).toContain('未入驻歌手')
+    wrapper.unmount()
+  })
 })

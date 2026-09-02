@@ -10,8 +10,12 @@ import { formatDuration } from '@/utils/number'
 const player = usePlayerStore()
 const { current, queue, showQueue } = storeToRefs(player)
 
+function namedArtists(song: Song) {
+  return song.artists.filter((artist) => artist.name.trim())
+}
+
 function artistNames(song: Song) {
-  const names = song.artists.map((artist) => artist.name.trim()).filter(Boolean)
+  const names = namedArtists(song).map((artist) => artist.name.trim())
   return names.length ? names.join(' / ') : '未知歌手'
 }
 
@@ -86,22 +90,46 @@ onUnmounted(() => {
       </p>
       <ul v-else class="queue-list">
         <li v-for="song in queue" :key="song.id" class="queue-row">
-          <button
-            type="button"
-            class="queue-song"
+          <div
+            class="queue-main"
             :class="{ 'is-current': current?.id === song.id }"
-            :aria-current="current?.id === song.id ? 'true' : undefined"
-            :aria-label="`播放：${song.name}，${artistNames(song)}`"
-            @click="playSong(song)"
           >
-            <span class="queue-copy">
-              <strong>{{ song.name }}</strong>
-              <span>{{ artistNames(song) }}</span>
+            <button
+              type="button"
+              class="queue-song"
+              :aria-current="current?.id === song.id ? 'true' : undefined"
+              :aria-label="`播放：${song.name}，${artistNames(song)}`"
+              @click="playSong(song)"
+            >
+              <span class="queue-copy">
+                <strong>{{ song.name }}</strong>
+              </span>
+              <span v-if="song.duration" class="queue-duration">{{
+                formatDuration(song.duration)
+              }}</span>
+            </button>
+            <span class="queue-artists">
+              <template v-if="namedArtists(song).length">
+                <template
+                  v-for="(artist, index) in namedArtists(song)"
+                  :key="`${artist.id}-${artist.name}`"
+                >
+                  <span v-if="index > 0"> / </span>
+                  <RouterLink
+                    v-if="typeof artist.id === 'number' && Number.isInteger(artist.id) && artist.id > 0"
+                    data-testid="song-artist"
+                    :to="{ name: Pages.artistDetail, query: { id: artist.id } }"
+                    :aria-label="`打开歌手：${artist.name.trim()}`"
+                    @click.stop="player.closeQueue()"
+                  >
+                    {{ artist.name.trim() }}
+                  </RouterLink>
+                  <span v-else>{{ artist.name.trim() }}</span>
+                </template>
+              </template>
+              <span v-else>未知歌手</span>
             </span>
-            <span v-if="song.duration" class="queue-duration">{{
-              formatDuration(song.duration)
-            }}</span>
-          </button>
+          </div>
           <RouterLink
             v-if="isPositiveMvId(song.mv)"
             data-testid="song-mv"
@@ -213,6 +241,18 @@ onUnmounted(() => {
   gap: 4px;
 }
 
+.queue-main {
+  display: grid;
+  min-width: 0;
+  border-left: 3px solid transparent;
+}
+
+.queue-main.is-current {
+  border-left-color: var(--color-focus);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+
 .queue-mv {
   margin-right: 12px;
   padding: 4px 8px;
@@ -236,19 +276,12 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 16px;
+  padding: 10px 16px 4px;
   border: 0;
-  border-left: 3px solid transparent;
   background: transparent;
   color: inherit;
   cursor: pointer;
   text-align: left;
-}
-
-.queue-song.is-current {
-  border-left-color: var(--color-focus);
-  background: var(--color-accent-soft);
-  color: var(--color-accent-text);
 }
 
 .queue-song:focus-visible {
@@ -263,17 +296,41 @@ onUnmounted(() => {
 }
 
 .queue-copy strong,
-.queue-copy span,
+.queue-artists,
 .queue-duration {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.queue-copy span,
+.queue-artists,
 .queue-duration {
   color: var(--color-muted);
   font-size: 0.78rem;
+}
+
+.queue-artists {
+  padding: 0 16px 10px;
+}
+
+.queue-artists a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.queue-artists a:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.queue-artists a:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.queue-main.is-current .queue-artists,
+.queue-main.is-current .queue-duration {
+  color: var(--color-accent-text);
 }
 
 .queue-duration {
