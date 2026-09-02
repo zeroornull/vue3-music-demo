@@ -27,6 +27,12 @@ const {
 const { showLyric } = storeToRefs(lyrics)
 
 const loopLabel = computed(() => LOOP_MODE_LABEL[loopMode.value])
+const coverUrl = computed(() => {
+  const song = current.value
+  if (!song) return ''
+  const url = song.picUrl?.trim() || song.album?.picUrl?.trim() || ''
+  return url
+})
 
 async function togglePlayback() {
   try {
@@ -98,11 +104,28 @@ watch(
     data-testid="player-bar"
   >
     <div class="player-copy">
-      <strong>{{ current?.name || '正在准备歌曲' }}</strong
-      ><span v-if="current" class="artists">{{
-        current.artists.map((artist) => artist.name).join(' / ') || '未知歌手'
-      }}</span
-      ><span v-if="error" role="alert">{{ error }}</span>
+      <img
+        v-if="coverUrl"
+        data-testid="player-cover"
+        class="player-cover"
+        :src="coverUrl"
+        alt=""
+        width="44"
+        height="44"
+      />
+      <span
+        v-else-if="current"
+        data-testid="player-cover-fallback"
+        class="player-cover"
+        aria-hidden="true"
+      />
+      <div class="player-meta">
+        <strong>{{ current?.name || '正在准备歌曲' }}</strong
+        ><span v-if="current" class="artists">{{
+          current.artists.map((artist) => artist.name).join(' / ') || '未知歌手'
+        }}</span
+        ><span v-if="error" role="alert">{{ error }}</span>
+      </div>
     </div>
     <div v-if="current" class="player-transport">
       <div class="player-skip">
@@ -231,6 +254,21 @@ watch(
 }
 .player-copy {
   display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+.player-cover {
+  display: block;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #243044;
+  object-fit: cover;
+}
+.player-meta {
+  display: grid;
+  min-width: 0;
   gap: 3px;
 }
 .player-copy strong {
@@ -245,7 +283,7 @@ watch(
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.player-copy span {
+.player-meta [role='alert'] {
   color: #ffbaba;
   font-size: 0.8rem;
 }

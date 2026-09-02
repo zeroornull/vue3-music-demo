@@ -63,6 +63,39 @@ describe('PlayerBar', () => {
     player.isPlaying = true
     await wrapper.vm.$nextTick()
     expect(wrapper.find('button[aria-label="暂停"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="player-cover"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="player-cover-fallback"]').exists()).toBe(true)
+  })
+
+  it('shows the current song cover from picUrl', () => {
+    const player = usePlayerStore()
+    player.current = {
+      id: 1,
+      name: '晚风',
+      artists: [{ id: 2, name: '林间电台' }],
+      picUrl: 'https://images.example.com/cover.jpg',
+    }
+    player.hasPlayableSource = true
+    const wrapper = mountBar()
+    const cover = wrapper.get('[data-testid="player-cover"]')
+    expect(cover.attributes('src')).toBe('https://images.example.com/cover.jpg')
+    expect(cover.attributes('alt')).toBe('')
+    expect(wrapper.find('[data-testid="player-cover-fallback"]').exists()).toBe(false)
+  })
+
+  it('falls back to album picUrl when song picUrl is missing', () => {
+    const player = usePlayerStore()
+    player.current = {
+      album: { id: 501, name: '晚风来信', picUrl: 'https://images.example.com/album.jpg' },
+      artists: [],
+      id: 1,
+      name: '晚风',
+    }
+    player.hasPlayableSource = true
+    const wrapper = mountBar()
+    expect(wrapper.get('[data-testid="player-cover"]').attributes('src')).toBe(
+      'https://images.example.com/album.jpg',
+    )
   })
 
   it('shows error and disables while the source is not ready', () => {

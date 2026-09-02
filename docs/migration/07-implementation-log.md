@@ -5064,3 +5064,67 @@ mock API http://127.0.0.1:53131
 ### 52.4 本轮结果
 
 歌曲行专辑已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM。独立核验 PASS：复跑 108/456、typecheck、366 modules；隔离 smoke `53221`/`53231`。第 47 轮提交 `5d76aba` 仍是当前 HEAD；第 48–50 轮尚未 commit / push。下一轮：播放条封面。播放条保持深色。登录、专辑空评论继续跳过。
+
+## 53. 实施第 51 轮：播放条封面（工作区）
+
+> 执行日期：`2026-09-02`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 53.1 开始边界与范围
+
+第 51 轮开始时第 48–50 轮已经提交：
+
+```text
+HEAD fd36e83
+master...origin/master
+```
+
+本轮把当前曲 `picUrl` / `album.picUrl` 接到 PlayerBar。不用 Tailwind 4。播放条底色本轮不改。
+
+### 53.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       458 passed (458)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 53.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:53321
+mock API http://127.0.0.1:53331
+```
+
+验证步骤：
+
+1. `#/playlist?id=101` 点歌曲行播放；
+2. 播放条出现封面 `src=https://images.example.com/album.jpg`，歌名「晚风来信」，条底 `rgb(23, 32, 51)`。
+
+核验复跑隔离口 `53421`/`53431`，缺封面走占位 span。未打真实网易云 API。
+
+### 53.4 本轮结果
+
+播放条封面已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM。独立核验 PASS：复跑 108/458、typecheck、366 modules；隔离 smoke `53421`/`53431`。第 48–50 轮提交 `fd36e83` 仍是当前 HEAD；第 51 轮尚未 commit / push。下一轮：新歌卡片专辑。播放条保持深色。登录、专辑空评论继续跳过。

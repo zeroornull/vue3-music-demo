@@ -1,5 +1,17 @@
 # 迁移文档变更记录
 
+## 0.55.0 - 2026-09-02
+
+### 实施第 51 轮：播放条封面
+
+- PlayerBar 显示当前曲 44×44 封面：`picUrl` 优先，否则 `album.picUrl`；缺省用占位，不渲染空 `src`；
+- 播放条仍为 `#172033`；封面不是链接；
+- 108 个测试文件、458 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:53321` + mock `127.0.0.1:53331`：歌单 101 点播后封面 `src=https://images.example.com/album.jpg`，条底 `rgb(23, 32, 51)`；
+- 独立审查 PASS WITH FINDINGS（LOW：空白 picUrl / 仅 loading 无单测）；独立核验 PASS，隔离 smoke `53421`/`53431`；
+- 第 48–50 轮已提交 `fd36e83`；第 51 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：新歌卡片专辑。播放条保持深色。登录、专辑空评论继续跳过。
+
 ## 0.54.0 - 2026-09-02
 
 ### 实施第 50 轮：歌曲行专辑
