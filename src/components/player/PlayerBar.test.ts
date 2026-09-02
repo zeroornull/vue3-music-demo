@@ -1,10 +1,12 @@
 // @vitest-environment happy-dom
+import { defineComponent } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getLyric } from '@/api/lyric'
 import type { AudioAdapter } from '@/audio/audioAdapter'
 import PlayerBar from '@/components/player/PlayerBar.vue'
+import { Pages } from '@/router/pages'
 import { useLyricStore } from '@/stores/lyric'
 import {
   resetAudioAdapter,
@@ -16,10 +18,16 @@ vi.mock('@/api/lyric', () => ({
   getLyric: vi.fn(),
 }))
 
+const RouterLinkStub = defineComponent({
+  name: 'RouterLink',
+  props: ['to'],
+  template: '<a><slot /></a>',
+})
+
 function mountBar(options: { attachTo?: HTMLElement } = {}) {
   return mount(PlayerBar, {
     ...options,
-    global: { stubs: { RouterLink: true } },
+    global: { stubs: { RouterLink: RouterLinkStub } },
   })
 }
 
@@ -95,6 +103,51 @@ describe('PlayerBar', () => {
     const wrapper = mountBar()
     expect(wrapper.get('[data-testid="player-cover"]').attributes('src')).toBe(
       'https://images.example.com/album.jpg',
+    )
+  })
+
+  it('links a positive album id on the cover and does not toggle playback', async () => {
+    const player = usePlayerStore()
+    const toggle = vi.spyOn(player, 'toggle')
+    player.current = {
+      album: { id: 501, name: '晚风来信', picUrl: 'https://images.example.com/album.jpg' },
+      artists: [{ id: 2, name: '林间电台' }],
+      id: 1,
+      name: '晚风',
+      picUrl: 'https://images.example.com/cover.jpg',
+    }
+    player.hasPlayableSource = true
+    const wrapper = mountBar()
+    const album = wrapper.get('[data-testid="song-album"]')
+    expect(album.attributes('aria-label')).toBe('打开专辑：晚风来信')
+    expect(album.get('[data-testid="player-cover"]').attributes('src')).toBe(
+      'https://images.example.com/cover.jpg',
+    )
+    const albumLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.attributes('data-testid') === 'song-album')
+    expect(albumLink?.props('to')).toEqual({
+      name: Pages.album,
+      query: { id: 501 },
+    })
+
+    await album.trigger('click')
+    expect(toggle).not.toHaveBeenCalled()
+  })
+
+  it('does not link the cover when album id is missing', () => {
+    const player = usePlayerStore()
+    player.current = {
+      artists: [],
+      id: 1,
+      name: '晚风',
+      picUrl: 'https://images.example.com/cover.jpg',
+    }
+    player.hasPlayableSource = true
+    const wrapper = mountBar()
+    expect(wrapper.find('[data-testid="song-album"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="player-cover"]').attributes('src')).toBe(
+      'https://images.example.com/cover.jpg',
     )
   })
 

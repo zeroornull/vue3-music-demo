@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import PlayerLyricPanel from '@/components/player/PlayerLyricPanel.vue'
 import PlayerQueueDrawer from '@/components/player/PlayerQueueDrawer.vue'
 import { useLyricStore } from '@/stores/lyric'
+import { Pages } from '@/router/pages'
 import { LOOP_MODE_LABEL, usePlayerStore } from '@/stores/player'
 import { formatClock } from '@/utils/number'
 
@@ -33,6 +34,13 @@ const coverUrl = computed(() => {
   const url = song.picUrl?.trim() || song.album?.picUrl?.trim() || ''
   return url
 })
+const albumId = computed(() => {
+  const id = current.value?.album?.id
+  return typeof id === 'number' && Number.isInteger(id) && id > 0 ? id : null
+})
+const albumName = computed(
+  () => current.value?.album?.name.trim() || '专辑',
+)
 
 async function togglePlayback() {
   try {
@@ -104,8 +112,31 @@ watch(
     data-testid="player-bar"
   >
     <div class="player-copy">
+      <RouterLink
+        v-if="albumId"
+        data-testid="song-album"
+        class="player-cover-link"
+        :to="{ name: Pages.album, query: { id: albumId } }"
+        :aria-label="`打开专辑：${albumName}`"
+      >
+        <img
+          v-if="coverUrl"
+          data-testid="player-cover"
+          class="player-cover"
+          :src="coverUrl"
+          alt=""
+          width="44"
+          height="44"
+        />
+        <span
+          v-else
+          data-testid="player-cover-fallback"
+          class="player-cover"
+          aria-hidden="true"
+        />
+      </RouterLink>
       <img
-        v-if="coverUrl"
+        v-else-if="coverUrl"
         data-testid="player-cover"
         class="player-cover"
         :src="coverUrl"
@@ -257,6 +288,17 @@ watch(
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 10px;
+}
+.player-cover-link {
+  display: block;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+.player-cover-link:focus-visible {
+  outline: 3px solid #32b58e;
+  outline-offset: 2px;
+  border-radius: 8px;
 }
 .player-cover {
   display: block;
