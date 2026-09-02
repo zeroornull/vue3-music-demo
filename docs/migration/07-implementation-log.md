@@ -5257,3 +5257,67 @@ mock API http://127.0.0.1:53731
 ### 55.4 本轮结果
 
 播放条封面进专辑已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM。独立核验 PASS：复跑 108/462、typecheck、366 modules；隔离 smoke `53821`/`53831`。第 52 轮提交 `02cc258` 仍是当前 HEAD；第 53 轮尚未 commit / push。下一轮：新歌卡片歌手。播放条保持深色。登录、专辑空评论继续跳过。
+
+## 56. 实施第 54 轮：新歌卡片歌手（工作区）
+
+> 执行日期：`2026-09-02`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 56.1 开始边界与范围
+
+第 54 轮开始时第 53 轮已经提交：
+
+```text
+HEAD 7a1bf48
+master...origin/master
+```
+
+本轮把推荐新歌卡片的歌手名接到已有 `#/artistDetail`。不用 Tailwind 4。播放条本轮不改。测完停掉作者 smoke 端口。
+
+### 56.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       464 passed (464)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 56.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:53921
+mock API http://127.0.0.1:53931
+```
+
+验证步骤：
+
+1. Discover 新歌卡片歌手 `href="#/artistDetail?id=401"`，不在播放按钮内；
+2. 点击后 hash 为 `#/artistDetail?id=401`，标题「林间电台」，播放条未出现。
+
+独立审查 MEDIUM：歌手行掉出卡片边框。已把边框收到 `.card-main`。核验复跑隔离口 `54021`/`54031`。测完已停 `53921`/`53931`。未打真实网易云 API。
+
+### 56.4 本轮结果
+
+新歌卡片歌手已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 布局已修。独立核验 PASS：复跑 108/464、typecheck、366 modules；隔离 smoke `54021`/`54031`。第 53 轮提交 `7a1bf48` 仍是当前 HEAD；第 54 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

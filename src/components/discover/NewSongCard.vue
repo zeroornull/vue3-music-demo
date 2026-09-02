@@ -13,8 +13,11 @@ const emit = defineEmits<{
   select: [item: PersonalizedNewSong]
 }>()
 
+const namedArtists = computed(() =>
+  props.item.song.artists.filter((artist) => artist.name.trim()),
+)
 const artistNames = computed(() => {
-  const names = props.item.song.artists.map((artist) => artist.name.trim()).filter(Boolean)
+  const names = namedArtists.value.map((artist) => artist.name.trim())
   return names.length ? names.join(' / ') : '未知歌手'
 })
 
@@ -30,6 +33,7 @@ const mvId = computed(() =>
 
 <template>
   <article class="new-song-card" data-testid="new-song-card">
+    <div class="card-main">
     <button
       type="button"
       :aria-label="`选择歌曲：${item.name}，${artistNames}`"
@@ -45,7 +49,6 @@ const mvId = computed(() =>
       />
       <span class="song-copy">
         <strong>{{ item.name }}</strong>
-        <span class="artists">{{ artistNames }}</span>
         <span v-if="!albumId" class="album">专辑：{{ albumName }}</span>
       </span>
       <span class="play-intent" aria-hidden="true">
@@ -53,6 +56,28 @@ const mvId = computed(() =>
         播放
       </span>
     </button>
+    <span class="artists">
+      <template v-if="namedArtists.length">
+        <template
+          v-for="(artist, index) in namedArtists"
+          :key="`${artist.id}-${artist.name}`"
+        >
+          <span v-if="index > 0"> / </span>
+          <RouterLink
+            v-if="typeof artist.id === 'number' && Number.isInteger(artist.id) && artist.id > 0"
+            data-testid="song-artist"
+            :to="{ name: Pages.artistDetail, query: { id: artist.id } }"
+            :aria-label="`打开歌手：${artist.name.trim()}`"
+            @click.stop
+          >
+            {{ artist.name.trim() }}
+          </RouterLink>
+          <span v-else>{{ artist.name.trim() }}</span>
+        </template>
+      </template>
+      <span v-else>未知歌手</span>
+    </span>
+    </div>
     <div v-if="albumId || mvId" class="card-actions">
       <RouterLink
         v-if="albumId"
@@ -85,6 +110,26 @@ const mvId = computed(() =>
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+
+.card-main {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.card-main:hover {
+  border-color: var(--color-focus);
+  box-shadow: 0 12px 28px rgb(30 48 72 / 10%);
+  transform: translateY(-2px);
 }
 
 .card-actions {
@@ -123,17 +168,13 @@ button {
   grid-template-columns: 72px minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
-  padding: 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
-  background: var(--color-surface);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: inherit;
   cursor: pointer;
   text-align: left;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
 }
 
 img {
@@ -163,8 +204,29 @@ img {
 }
 
 .artists {
+  grid-column: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 86px;
   color: var(--color-muted);
   font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artists a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.artists a:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.artists a:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .album {
@@ -185,12 +247,6 @@ img {
   white-space: nowrap;
 }
 
-button:hover {
-  border-color: var(--color-focus);
-  box-shadow: 0 12px 28px rgb(30 48 72 / 10%);
-  transform: translateY(-2px);
-}
-
 button:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
@@ -206,13 +262,17 @@ button:focus-visible {
     height: 64px;
   }
 
+  .artists {
+    padding-left: 78px;
+  }
+
   .play-intent {
     display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  button {
+  .card-main {
     transition: none;
   }
 }
