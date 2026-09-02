@@ -19,6 +19,10 @@ const artistNames = computed(() => {
 })
 
 const albumName = computed(() => props.item.song.album?.name.trim() || '专辑信息待补充')
+const albumId = computed(() => {
+  const id = props.item.song.album?.id
+  return typeof id === 'number' && Number.isInteger(id) && id > 0 ? id : null
+})
 const mvId = computed(() =>
   isPositiveMvId(props.item.song.mv) ? props.item.song.mv : null,
 )
@@ -42,23 +46,35 @@ const mvId = computed(() =>
       <span class="song-copy">
         <strong>{{ item.name }}</strong>
         <span class="artists">{{ artistNames }}</span>
-        <span class="album">专辑：{{ albumName }}</span>
+        <span v-if="!albumId" class="album">专辑：{{ albumName }}</span>
       </span>
       <span class="play-intent" aria-hidden="true">
         <span>▶</span>
         播放
       </span>
     </button>
-    <RouterLink
-      v-if="mvId"
-      data-testid="song-mv"
-      class="song-mv"
-      :to="{ name: Pages.mvDetail, query: { id: mvId } }"
-      :aria-label="`打开 MV：${item.name}`"
-      @click.stop
-    >
-      MV
-    </RouterLink>
+    <div v-if="albumId || mvId" class="card-actions">
+      <RouterLink
+        v-if="albumId"
+        data-testid="song-album"
+        class="song-album"
+        :to="{ name: Pages.album, query: { id: albumId } }"
+        :aria-label="`打开专辑：${albumName}`"
+        @click.stop
+      >
+        专辑：{{ albumName }}
+      </RouterLink>
+      <RouterLink
+        v-if="mvId"
+        data-testid="song-mv"
+        class="song-mv"
+        :to="{ name: Pages.mvDetail, query: { id: mvId } }"
+        :aria-label="`打开 MV：${item.name}`"
+        @click.stop
+      >
+        MV
+      </RouterLink>
+    </div>
   </article>
 </template>
 
@@ -71,7 +87,17 @@ const mvId = computed(() =>
   min-width: 0;
 }
 
+.card-actions {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  min-width: 0;
+}
+
+.song-album,
 .song-mv {
+  max-width: 12rem;
+  overflow: hidden;
   padding: 4px 8px;
   border-radius: 999px;
   background: var(--color-accent-soft);
@@ -80,8 +106,11 @@ const mvId = computed(() =>
   font-weight: 720;
   letter-spacing: 0.06em;
   text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+.song-album:focus-visible,
 .song-mv:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;

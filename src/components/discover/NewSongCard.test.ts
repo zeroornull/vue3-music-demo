@@ -70,7 +70,10 @@ describe('NewSongCard', () => {
     const mv = wrapper.get('[data-testid="song-mv"]')
     expect(mv.text()).toBe('MV')
     expect(mv.attributes('aria-label')).toBe('打开 MV：晚风来信')
-    expect(wrapper.getComponent(RouterLinkStub).props('to')).toEqual({
+    const mvLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.attributes('data-testid') === 'song-mv')
+    expect(mvLink?.props('to')).toEqual({
       name: Pages.mvDetail,
       query: { id: 701 },
     })
@@ -88,5 +91,33 @@ describe('NewSongCard', () => {
         .find('[data-testid="song-mv"]')
         .exists(),
     ).toBe(false)
+  })
+
+  it('links a positive album id without selecting the card', async () => {
+    const wrapper = mountCard()
+    const album = wrapper.get('[data-testid="song-album"]')
+    expect(album.text()).toBe('专辑：晚风来信')
+    expect(album.attributes('aria-label')).toBe('打开专辑：晚风来信')
+    const albumLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.attributes('data-testid') === 'song-album')
+    expect(albumLink?.props('to')).toEqual({
+      name: Pages.album,
+      query: { id: 501 },
+    })
+    await album.trigger('click')
+    expect(wrapper.emitted('select')).toBeUndefined()
+  })
+
+  it('shows album text without a link when album id is missing', () => {
+    const wrapper = mountCard({
+      ...newSong,
+      song: {
+        ...newSong.song,
+        album: { id: 0, name: '草稿专辑', picUrl: 'https://images.example.com/draft.jpg' },
+      },
+    })
+    expect(wrapper.find('[data-testid="song-album"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('专辑：草稿专辑')
   })
 })
