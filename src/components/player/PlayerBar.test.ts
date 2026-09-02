@@ -151,6 +151,56 @@ describe('PlayerBar', () => {
     )
   })
 
+  it('links a positive artist id on the bar and does not toggle playback', async () => {
+    const player = usePlayerStore()
+    const toggle = vi.spyOn(player, 'toggle')
+    player.current = {
+      artists: [
+        { id: 401, name: '林间电台' },
+        { id: 402, name: '海岸信号' },
+      ],
+      id: 1,
+      name: '晚风',
+      picUrl: 'https://images.example.com/cover.jpg',
+    }
+    player.hasPlayableSource = true
+    const wrapper = mountBar()
+    const artists = wrapper.findAll('[data-testid="song-artist"]')
+    expect(artists).toHaveLength(2)
+    expect(artists[0]?.text()).toBe('林间电台')
+    expect(artists[0]?.attributes('aria-label')).toBe('打开歌手：林间电台')
+    expect(wrapper.get('button[aria-label="播放"]').find('[data-testid="song-artist"]').exists()).toBe(
+      false,
+    )
+    const artistLinks = wrapper
+      .findAllComponents(RouterLinkStub)
+      .filter((link) => link.attributes('data-testid') === 'song-artist')
+    expect(artistLinks[0]?.props('to')).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 401 },
+    })
+    expect(artistLinks[1]?.props('to')).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 402 },
+    })
+
+    await artists[0]?.trigger('click')
+    expect(toggle).not.toHaveBeenCalled()
+  })
+
+  it('shows artist names as text when artist id is missing', () => {
+    const player = usePlayerStore()
+    player.current = {
+      artists: [{ id: 0, name: '未入驻歌手' }],
+      id: 1,
+      name: '晚风',
+    }
+    player.hasPlayableSource = true
+    const wrapper = mountBar()
+    expect(wrapper.find('[data-testid="song-artist"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('未入驻歌手')
+  })
+
   it('shows error and disables while the source is not ready', () => {
     const player = usePlayerStore()
     player.current = { id: 1, name: '晚风', artists: [] }

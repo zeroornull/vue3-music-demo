@@ -41,6 +41,9 @@ const albumId = computed(() => {
 const albumName = computed(
   () => current.value?.album?.name.trim() || '专辑',
 )
+const namedArtists = computed(() =>
+  (current.value?.artists ?? []).filter((artist) => artist.name.trim()),
+)
 
 async function togglePlayback() {
   try {
@@ -151,11 +154,28 @@ watch(
         aria-hidden="true"
       />
       <div class="player-meta">
-        <strong>{{ current?.name || '正在准备歌曲' }}</strong
-        ><span v-if="current" class="artists">{{
-          current.artists.map((artist) => artist.name).join(' / ') || '未知歌手'
-        }}</span
-        ><span v-if="error" role="alert">{{ error }}</span>
+        <strong>{{ current?.name || '正在准备歌曲' }}</strong>
+        <span v-if="current" class="artists">
+          <template v-if="namedArtists.length">
+            <template
+              v-for="(artist, index) in namedArtists"
+              :key="`${artist.id}-${artist.name}`"
+            >
+              <span v-if="index > 0"> / </span>
+              <RouterLink
+                v-if="typeof artist.id === 'number' && Number.isInteger(artist.id) && artist.id > 0"
+                data-testid="song-artist"
+                :to="{ name: Pages.artistDetail, query: { id: artist.id } }"
+                :aria-label="`打开歌手：${artist.name.trim()}`"
+              >
+                {{ artist.name.trim() }}
+              </RouterLink>
+              <span v-else>{{ artist.name.trim() }}</span>
+            </template>
+          </template>
+          <span v-else>未知歌手</span>
+        </span>
+        <span v-if="error" role="alert">{{ error }}</span>
       </div>
     </div>
     <div v-if="current" class="player-transport">
@@ -324,6 +344,18 @@ watch(
   font-size: 0.78rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.player-copy .artists a {
+  color: inherit;
+  text-decoration: none;
+}
+.player-copy .artists a:hover {
+  color: #32b58e;
+  text-decoration: underline;
+}
+.player-copy .artists a:focus-visible {
+  outline: 3px solid #32b58e;
+  outline-offset: 2px;
 }
 .player-meta [role='alert'] {
   color: #ffbaba;
