@@ -8,7 +8,7 @@ import { getSearchSuggest } from '@/api/search'
 import SearchHitList from '@/components/search/SearchHitList.vue'
 import SearchHotList from '@/components/search/SearchHotList.vue'
 import type { SearchAlbum, SearchArtist, SearchPlaylist } from '@/models/search'
-import type { Song } from '@/models/song'
+import { isPositiveMvId, type Song } from '@/models/song'
 import { Pages } from '@/router/pages'
 import { usePlayerStore } from '@/stores/player'
 import { useSearchStore } from '@/stores/search'
@@ -228,7 +228,7 @@ onUnmounted(() => {
         <section v-if="songs.length" class="song-hits" aria-labelledby="header-search-songs">
           <h2 id="header-search-songs">单曲</h2>
           <ul>
-            <li v-for="song in songs" :key="song.id">
+            <li v-for="song in songs" :key="song.id" class="song-hit-row">
               <button
                 type="button"
                 data-testid="header-search-play"
@@ -236,6 +236,16 @@ onUnmounted(() => {
               >
                 {{ song.name }}
               </button>
+              <RouterLink
+                v-if="isPositiveMvId(song.mv)"
+                data-testid="song-mv"
+                class="song-mv"
+                :to="{ name: Pages.mvDetail, query: { id: song.mv } }"
+                :aria-label="`打开 MV：${song.name}`"
+                @click.stop="close()"
+              >
+                MV
+              </RouterLink>
             </li>
           </ul>
         </section>
@@ -356,6 +366,13 @@ input:focus-visible {
   font-size: 1.05rem;
 }
 
+.song-hit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+
 .song-hits button,
 .pop-state button {
   width: 100%;
@@ -371,8 +388,19 @@ input:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.song-mv {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--color-accent);
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+}
+
 .song-hits button:focus-visible,
-.pop-state button:focus-visible {
+.pop-state button:focus-visible,
+.song-mv:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }

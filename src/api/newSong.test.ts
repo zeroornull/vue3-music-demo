@@ -28,6 +28,16 @@ describe('Personalized new-song API', () => {
     expect(get).toHaveBeenCalledWith('/personalized/newsong')
   })
 
+  it('copies nested song mvid onto song.mv', async () => {
+    const get = vi.fn().mockResolvedValue({
+      result: [{ ...newSong, song: { ...newSong.song, mvid: 701 } }],
+    })
+
+    await expect(
+      getPersonalizedNewSongs({ get } as unknown as Pick<HttpClient, 'get'>),
+    ).resolves.toMatchObject([{ song: { id: 301, mv: 701 } }])
+  })
+
   it('rejects an invalid result instead of returning unknown data', async () => {
     const get = vi.fn().mockResolvedValue({ result: null })
 

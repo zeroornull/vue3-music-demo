@@ -154,4 +154,42 @@ describe('HeaderSearchPop', () => {
     expect(getSearchSuggest).toHaveBeenCalledWith('夜航')
     wrapper.unmount()
   })
+
+  it('links a suggested song mv without playing and closes', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      ...suggest,
+      songs: [{ ...song, mv: 701 }],
+    })
+    const { wrapper } = await mountPop()
+    const input = wrapper.get('[data-testid="header-search-input"]')
+    await input.trigger('focus')
+    await input.setValue('夜航')
+    await input.trigger('input')
+    await vi.advanceTimersByTimeAsync(400)
+    await flushPromises()
+
+    const mv = wrapper.get('[data-testid="song-mv"]')
+    expect(mv.text()).toBe('MV')
+    expect(mv.attributes('aria-label')).toBe('打开 MV：晚风来信.<img src=x>')
+    expect(mv.attributes('data-to')).toBe(
+      JSON.stringify({ name: Pages.mvDetail, query: { id: 701 } }),
+    )
+    await mv.trigger('click')
+    await flushPromises()
+    expect(playSong).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="header-search-pop"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('hides the MV link when the suggested song has no mv', async () => {
+    const { wrapper } = await mountPop()
+    const input = wrapper.get('[data-testid="header-search-input"]')
+    await input.trigger('focus')
+    await input.setValue('夜航')
+    await input.trigger('input')
+    await vi.advanceTimersByTimeAsync(400)
+    await flushPromises()
+    expect(wrapper.find('[data-testid="song-mv"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
 })

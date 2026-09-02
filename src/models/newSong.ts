@@ -14,6 +14,8 @@ export interface SongSummary {
   artists: SongArtistSummary[]
   id: number
   name: string
+  mv?: number
+  mvid?: number
 }
 
 export interface PersonalizedNewSong {

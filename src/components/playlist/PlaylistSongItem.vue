@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { Song } from '@/models/song'
+import { isPositiveMvId, type Song } from '@/models/song'
 import { Pages } from '@/router/pages'
 import { formatDuration } from '@/utils/number'
 
@@ -23,6 +23,10 @@ const artistNames = computed(() => {
 })
 
 const albumName = computed(() => props.song.album?.name.trim() || '未知专辑')
+const albumId = computed(() => {
+  const id = props.song.album?.id
+  return typeof id === 'number' && Number.isInteger(id) && id > 0 ? id : null
+})
 const durationLabel = computed(() =>
   formatDuration(props.song.duration ?? 0),
 )
@@ -46,7 +50,7 @@ const durationLabel = computed(() =>
             <strong>{{ song.name }}</strong>
           </button>
           <RouterLink
-            v-if="typeof song.mv === 'number' && Number.isInteger(song.mv) && song.mv > 0"
+            v-if="isPositiveMvId(song.mv)"
             data-testid="song-mv"
             :to="{ name: Pages.mvDetail, query: { id: song.mv } }"
             :aria-label="`打开 MV：${song.name}`"
@@ -74,7 +78,18 @@ const durationLabel = computed(() =>
           <span v-else>未知歌手</span>
         </span>
       </div>
-      <span class="album">{{ albumName }}</span>
+      <span class="album">
+        <RouterLink
+          v-if="albumId"
+          data-testid="song-album"
+          :to="{ name: Pages.album, query: { id: albumId } }"
+          :aria-label="`打开专辑：${albumName}`"
+          @click.stop
+        >
+          {{ albumName }}
+        </RouterLink>
+        <template v-else>{{ albumName }}</template>
+      </span>
       <span class="duration">{{ durationLabel }}</span>
     </div>
   </li>
@@ -154,12 +169,14 @@ const durationLabel = computed(() =>
   font-variant-numeric: tabular-nums;
 }
 
-.artists a {
+.artists a,
+.album a {
   color: inherit;
   text-decoration: none;
 }
 
-.artists a:hover {
+.artists a:hover,
+.album a:hover {
   color: var(--color-accent);
   text-decoration: underline;
 }
@@ -171,7 +188,8 @@ const durationLabel = computed(() =>
 
 .song-copy button:focus-visible,
 .title-row a:focus-visible,
-.artists a:focus-visible {
+.artists a:focus-visible,
+.album a:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }

@@ -4871,4 +4871,196 @@ Chrome DevTools MCP 本轮不可用，改用本机 `google-chrome --headless=new
 
 ### 49.4 本轮结果
 
-歌曲行 MV 入口已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是搜索 suggest 用 `mvid`、队列和新歌卡片没有 MV。已把 `mvid` 写入 `Song.mv`。队列和新歌卡片未改。独立核验 PASS：复跑 108/446 当时、跟进后 108/447、typecheck、366 modules；隔离 smoke `52621`/`52631`。第 45 轮提交 `3301ed0` 仍是当前 HEAD；第 46、47 轮尚未 commit / push。下一轮：播放列表抽屉或推荐新歌卡片的 MV 链接。播放条保持深色。登录、专辑空评论继续跳过。
+歌曲行 MV 入口已在工作区。独立审查 PASS WITH FINDINGS：MEDIUM 是搜索 suggest 用 `mvid`、队列和新歌卡片没有 MV。已把 `mvid` 写入 `Song.mv`。队列和新歌卡片未改。独立核验 PASS：复跑 108/446 当时、跟进后 108/447、typecheck、366 modules；隔离 smoke `52621`/`52631`。第 46、47 轮随后以 `5d76aba` 提交。下一轮：播放列表抽屉或推荐新歌卡片的 MV 链接。播放条保持深色。登录、专辑空评论继续跳过。
+
+## 50. 实施第 48 轮：队列和新歌 MV（工作区）
+
+> 执行日期：`2026-09-01`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 50.1 开始边界与范围
+
+第 48 轮开始时第 47 轮已经提交：
+
+```text
+HEAD 5d76aba
+master...origin/master
+```
+
+本轮把播放列表抽屉和推荐新歌卡片接到已有 MV 页。不用 Tailwind 4。播放条本轮不改。
+
+### 50.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       452 passed (452)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 50.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:52721
+mock API http://127.0.0.1:52731
+```
+
+验证步骤：
+
+1. Discover 新歌卡片 MV `href="#/mvDetail?id=701"`，点击后 hash 相同；
+2. `#/playlist?id=101` 播放后打开播放列表，队列 MV 同样 `href`，点击后 hash `#/mvDetail?id=701`。
+
+核验复跑隔离口 `52821`/`52831`，播放条仍为 `rgb(23, 32, 51)`。未打真实网易云 API。
+
+### 50.4 本轮结果
+
+队列和新歌 MV 已在工作区。独立审查先 FAIL：Discover 点播丢掉 `mv`，队列点 MV 不关抽屉。已把 `mv` 传入 `play()`，队列点击会 `closeQueue()`。独立核验 PASS：复跑当时 108/451、typecheck、366 modules；隔离 smoke `52821`/`52831`。跟进后 108/452。第 47 轮提交 `5d76aba` 仍是当前 HEAD；第 48 轮尚未 commit / push。下一轮：顶栏搜索弹出层 MV。播放条保持深色。登录、专辑空评论继续跳过。
+
+## 51. 实施第 49 轮：顶栏搜索弹出层 MV（工作区）
+
+> 执行日期：`2026-09-02`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 51.1 开始边界与范围
+
+第 49 轮开始时第 47 轮已经提交，第 48 轮队列和新歌 MV 仍在工作区：
+
+```text
+HEAD 5d76aba
+master...origin/master
+```
+
+本轮把顶栏搜索弹出层单曲接到已有 MV 页。不用 Tailwind 4。播放条本轮不改。
+
+### 51.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       454 passed (454)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 51.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:52921
+mock API http://127.0.0.1:52931
+```
+
+验证步骤：
+
+1. Discover 顶栏搜索输入后弹出层出现 MV，`href="#/mvDetail?id=701"`；
+2. 点击后 hash 为 `#/mvDetail?id=701`，弹出层关闭。
+
+核验复跑隔离口 `53021`/`53031`。未打真实网易云 API。
+
+### 51.4 本轮结果
+
+顶栏搜索弹出层 MV 已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM。独立核验 PASS：复跑 108/454、typecheck、366 modules；隔离 smoke `53021`/`53031`。第 47 轮提交 `5d76aba` 仍是当前 HEAD；第 48、49 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 52. 实施第 50 轮：歌曲行专辑（工作区）
+
+> 执行日期：`2026-09-02`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 52.1 开始边界与范围
+
+第 50 轮开始时第 47 轮已经提交，第 48、49 轮 MV 接线仍在工作区：
+
+```text
+HEAD 5d76aba
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者/消费者：`Song.album.id` → 已有 `#/album`。不用 Tailwind 4。播放条本轮不改。
+
+### 52.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       456 passed (456)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile --dry-run
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 52.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:53121
+mock API http://127.0.0.1:53131
+```
+
+验证步骤：
+
+1. `#/playlist?id=101` 歌曲行专辑 `href="#/album?id=501"`，`aria-label="打开专辑：晚风来信"`；
+2. 点击后 hash 为 `#/album?id=501`，标题「晚风来信」，播放条未出现。
+
+核验复跑隔离口 `53221`/`53231`。未打真实网易云 API。
+
+### 52.4 本轮结果
+
+歌曲行专辑已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM。独立核验 PASS：复跑 108/456、typecheck、366 modules；隔离 smoke `53221`/`53231`。第 47 轮提交 `5d76aba` 仍是当前 HEAD；第 48–50 轮尚未 commit / push。下一轮：播放条封面。播放条保持深色。登录、专辑空评论继续跳过。

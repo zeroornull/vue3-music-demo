@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 
 import type { PersonalizedNewSong } from '@/models/newSong'
+import { isPositiveMvId } from '@/models/song'
+import { Pages } from '@/router/pages'
 
 const props = defineProps<{
   item: PersonalizedNewSong
@@ -17,6 +19,9 @@ const artistNames = computed(() => {
 })
 
 const albumName = computed(() => props.item.song.album?.name.trim() || '专辑信息待补充')
+const mvId = computed(() =>
+  isPositiveMvId(props.item.song.mv) ? props.item.song.mv : null,
+)
 </script>
 
 <template>
@@ -44,12 +49,42 @@ const albumName = computed(() => props.item.song.album?.name.trim() || '专辑�
         播放
       </span>
     </button>
+    <RouterLink
+      v-if="mvId"
+      data-testid="song-mv"
+      class="song-mv"
+      :to="{ name: Pages.mvDetail, query: { id: mvId } }"
+      :aria-label="`打开 MV：${item.name}`"
+      @click.stop
+    >
+      MV
+    </RouterLink>
   </article>
 </template>
 
 <style scoped>
 .new-song-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
+}
+
+.song-mv {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+}
+
+.song-mv:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 button {

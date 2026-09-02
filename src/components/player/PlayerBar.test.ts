@@ -16,6 +16,13 @@ vi.mock('@/api/lyric', () => ({
   getLyric: vi.fn(),
 }))
 
+function mountBar(options: { attachTo?: HTMLElement } = {}) {
+  return mount(PlayerBar, {
+    ...options,
+    global: { stubs: { RouterLink: true } },
+  })
+}
+
 function mockAdapter(overrides: Partial<AudioAdapter> = {}) {
   return {
     src: 'x',
@@ -49,7 +56,7 @@ describe('PlayerBar', () => {
       artists: [{ id: 2, name: '林间电台' }],
     }
     player.hasPlayableSource = true
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
     expect(wrapper.text()).toContain('晚风')
     expect(wrapper.text()).toContain('林间电台')
     expect(wrapper.find('button[aria-label="播放"]').exists()).toBe(true)
@@ -63,7 +70,7 @@ describe('PlayerBar', () => {
     player.current = { id: 1, name: '晚风', artists: [] }
     player.loading = true
     player.error = '播放失败'
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
     expect(wrapper.get('[role="alert"]').text()).toContain('播放失败')
     expect(wrapper.get('button[aria-label="播放"]').attributes('disabled')).toBeDefined()
   })
@@ -73,7 +80,7 @@ describe('PlayerBar', () => {
     player.current = { id: 1, name: '晚风', artists: [] }
     player.hasPlayableSource = true
     player.loading = true
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
     expect(wrapper.get('button[aria-label="播放"]').attributes('disabled')).toBeUndefined()
   })
 
@@ -87,7 +94,7 @@ describe('PlayerBar', () => {
       artists: [{ id: 2, name: '林间电台' }],
     }
     player.hasPlayableSource = true
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
 
     await wrapper.get('button[aria-label="播放"]').trigger('click')
     expect(play).toHaveBeenCalledOnce()
@@ -103,7 +110,7 @@ describe('PlayerBar', () => {
     )
     player.current = { id: 1, name: '晚风', artists: [] }
     player.hasPlayableSource = true
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
 
     await wrapper.get('button[aria-label="播放"]').trigger('click')
     await flushPromises()
@@ -118,7 +125,7 @@ describe('PlayerBar', () => {
     player.currentTime = 65
     player.duration = 180
     player.volume = 0.4
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
 
     expect(wrapper.get('[data-testid="player-clock"]').text()).toBe('01:05 / 03:00')
     const progress = wrapper.get('input[aria-label="播放进度"]')
@@ -136,7 +143,7 @@ describe('PlayerBar', () => {
     player.current = { id: 1, name: '晚风', artists: [] }
     player.hasPlayableSource = true
     player.duration = 0
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
     expect(wrapper.get('input[aria-label="播放进度"]').attributes('disabled')).toBeDefined()
     expect(wrapper.get('[data-testid="player-clock"]').text()).toBe('00:00 / 00:00')
   })
@@ -148,7 +155,7 @@ describe('PlayerBar', () => {
     player.current = { id: 1, name: '晚风', artists: [] }
     player.hasPlayableSource = true
     player.duration = 180
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
 
     await wrapper.get('input[aria-label="播放进度"]').setValue('45')
     expect(player.currentTime).toBe(45)
@@ -160,7 +167,7 @@ describe('PlayerBar', () => {
     player.current = { id: 1, name: '晚风', artists: [] }
     player.queue = [player.current]
     player.hasPlayableSource = true
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
     expect(wrapper.get('button[aria-label="上一首"]').attributes('disabled')).toBeDefined()
     expect(wrapper.get('button[aria-label="下一首"]').attributes('disabled')).toBeDefined()
   })
@@ -175,7 +182,7 @@ describe('PlayerBar', () => {
     player.hasPlayableSource = true
     const next = vi.spyOn(player, 'next').mockResolvedValue(true)
     const prev = vi.spyOn(player, 'prev').mockResolvedValue(true)
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
     expect(wrapper.get('button[aria-label="下一首"]').attributes('disabled')).toBeUndefined()
     expect(wrapper.get('button[aria-label="上一首"]').attributes('disabled')).toBeUndefined()
 
@@ -193,7 +200,7 @@ describe('PlayerBar', () => {
       { id: 2, name: '下一首', artists: [] },
     ]
     player.hasPlayableSource = true
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
     const loop = wrapper.get('button[aria-label="单曲循环"]')
     expect(loop.attributes('disabled')).toBeUndefined()
 
@@ -212,7 +219,7 @@ describe('PlayerBar', () => {
     setAudioAdapter(adapter)
     player.current = { id: 1, name: '晚风', artists: [] }
     player.hasPlayableSource = true
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
 
     await wrapper.get('input[aria-label="音量"]').setValue('25')
     expect(player.volume).toBe(0.25)
@@ -226,7 +233,7 @@ describe('PlayerBar', () => {
     player.current = { id: 1, name: '晚风', artists: [] }
     player.hasPlayableSource = true
     player.volume = 0.4
-    const wrapper = mount(PlayerBar)
+    const wrapper = mountBar()
     const mute = wrapper.get('button[aria-label="静音"]')
     expect(mute.attributes('aria-pressed')).toBe('false')
     expect(wrapper.get('input[aria-label="音量"]').attributes('disabled')).toBeUndefined()
@@ -257,7 +264,7 @@ describe('PlayerBar', () => {
     ]
     player.hasPlayableSource = true
     const play = vi.spyOn(player, 'play').mockResolvedValue(true)
-    const wrapper = mount(PlayerBar, { attachTo: document.body })
+    const wrapper = mountBar({ attachTo: document.body })
     const toggle = wrapper.get('button[aria-label="播放列表"]')
     expect(toggle.text()).toContain('2')
     expect(toggle.attributes('aria-expanded')).toBe('false')
@@ -295,7 +302,7 @@ describe('PlayerBar', () => {
     player.current = { id: 301, name: '晚风', artists: [] }
     player.hasPlayableSource = true
     player.showQueue = true
-    const wrapper = mount(PlayerBar, { attachTo: document.body })
+    const wrapper = mountBar({ attachTo: document.body })
     const toggle = wrapper.get('button[aria-label="歌词"]')
     expect(toggle.attributes('aria-expanded')).toBe('false')
 

@@ -1,9 +1,11 @@
 // @vitest-environment happy-dom
+import { defineComponent } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PlayerQueueDrawer from '@/components/player/PlayerQueueDrawer.vue'
+import { Pages } from '@/router/pages'
 import {
   resetAudioAdapter,
   setAudioAdapter,
@@ -33,7 +35,18 @@ describe('PlayerQueueDrawer', () => {
   })
 
   function mountDrawer() {
-    return mount(PlayerQueueDrawer, { attachTo: document.body })
+    return mount(PlayerQueueDrawer, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          RouterLink: defineComponent({
+            name: 'RouterLink',
+            props: ['to'],
+            template: '<a><slot /></a>',
+          }),
+        },
+      },
+    })
   }
 
   function bodyEl(selector: string) {
@@ -123,6 +136,28 @@ describe('PlayerQueueDrawer', () => {
     expect(play.mock.calls[0]?.[0]).toMatchObject({ id: 2, name: '下一首' })
     expect(player.queue).toHaveLength(2)
     expect(player.showQueue).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('links a queued song mv without playing', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [], mv: 701 }
+    player.queue = [player.current, { id: 2, name: '无 MV', artists: [] }]
+    player.openQueue()
+    const play = vi.spyOn(player, 'play').mockResolvedValue(true)
+    const wrapper = mountDrawer()
+    const links = [...document.querySelectorAll('[data-testid="song-mv"]')]
+    expect(links).toHaveLength(1)
+    expect(links[0]?.getAttribute('aria-label')).toBe('打开 MV：晚风')
+    const stub = wrapper.findAllComponents({ name: 'RouterLink' })[0]
+    expect(stub?.props('to')).toEqual({
+      name: Pages.mvDetail,
+      query: { id: 701 },
+    })
+    links[0]?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+    expect(play).not.toHaveBeenCalled()
+    expect(player.showQueue).toBe(false)
     wrapper.unmount()
   })
 })

@@ -2,7 +2,8 @@
 import { onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 
-import type { Song } from '@/models/song'
+import { isPositiveMvId, type Song } from '@/models/song'
+import { Pages } from '@/router/pages'
 import { usePlayerStore } from '@/stores/player'
 import { formatDuration } from '@/utils/number'
 
@@ -84,7 +85,7 @@ onUnmounted(() => {
         暂无待播歌曲
       </p>
       <ul v-else class="queue-list">
-        <li v-for="song in queue" :key="song.id">
+        <li v-for="song in queue" :key="song.id" class="queue-row">
           <button
             type="button"
             class="queue-song"
@@ -101,6 +102,16 @@ onUnmounted(() => {
               formatDuration(song.duration)
             }}</span>
           </button>
+          <RouterLink
+            v-if="isPositiveMvId(song.mv)"
+            data-testid="song-mv"
+            class="queue-mv"
+            :to="{ name: Pages.mvDetail, query: { id: song.mv } }"
+            :aria-label="`打开 MV：${song.name}`"
+            @click.stop="player.closeQueue()"
+          >
+            MV
+          </RouterLink>
         </li>
       </ul>
     </aside>
@@ -193,6 +204,29 @@ onUnmounted(() => {
   padding: 0 0 16px;
   overflow: auto;
   list-style: none;
+}
+
+.queue-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.queue-mv {
+  margin-right: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--color-accent);
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+}
+
+.queue-mv:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .queue-song {

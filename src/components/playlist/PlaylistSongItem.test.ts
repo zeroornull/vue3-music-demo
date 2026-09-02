@@ -96,4 +96,37 @@ describe('PlaylistSongItem', () => {
     })
     expect(wrapper.find('[data-testid="song-mv"]').exists()).toBe(false)
   })
+
+  it('links a positive album id to the album page and does not play', async () => {
+    const wrapper = mount(PlaylistSongItem, {
+      props: { current: false, song },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+
+    const album = wrapper.get('[data-testid="song-album"]')
+    expect(album.text()).toBe('晚风来信')
+    expect(album.attributes('aria-label')).toBe('打开专辑：晚风来信')
+    const albumLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.attributes('data-testid') === 'song-album')
+    expect(albumLink?.props('to')).toEqual({
+      name: Pages.album,
+      query: { id: 501 },
+    })
+
+    await album.trigger('click')
+    expect(wrapper.emitted('play')).toBeUndefined()
+  })
+
+  it('shows the album name as text when album id is missing', () => {
+    const wrapper = mount(PlaylistSongItem, {
+      props: {
+        current: false,
+        song: { ...song, album: { id: 0, name: '草稿专辑' } },
+      },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.find('[data-testid="song-album"]').exists()).toBe(false)
+    expect(wrapper.get('.album').text()).toBe('草稿专辑')
+  })
 })

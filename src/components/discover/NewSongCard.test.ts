@@ -1,10 +1,18 @@
 // @vitest-environment happy-dom
 
+import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import NewSongCard from '@/components/discover/NewSongCard.vue'
 import type { PersonalizedNewSong } from '@/models/newSong'
+import { Pages } from '@/router/pages'
+
+const RouterLinkStub = defineComponent({
+  name: 'RouterLink',
+  props: ['to'],
+  template: '<a><slot /></a>',
+})
 
 const newSong: PersonalizedNewSong = {
   alg: 'featured',
@@ -24,9 +32,16 @@ const newSong: PersonalizedNewSong = {
   type: 4,
 }
 
+function mountCard(item: PersonalizedNewSong = newSong) {
+  return mount(NewSongCard, {
+    props: { item },
+    global: { stubs: { RouterLink: RouterLinkStub } },
+  })
+}
+
 describe('NewSongCard', () => {
   it('renders song, artists and album metadata', () => {
-    const wrapper = mount(NewSongCard, { props: { item: newSong } })
+    const wrapper = mountCard()
 
     expect(wrapper.get('img').attributes('alt')).toBe('晚风来信')
     expect(wrapper.text()).toContain('晚风来信')
@@ -36,16 +51,42 @@ describe('NewSongCard', () => {
   })
 
   it('emits a typed song selection', async () => {
-    const wrapper = mount(NewSongCard, { props: { item: newSong } })
+    const wrapper = mountCard()
     await wrapper.get('button').trigger('click')
 
     expect(wrapper.emitted<PersonalizedNewSong[]>('select')?.[0]?.[0]).toEqual(newSong)
   })
 
   it('renders an unknown-artist fallback', () => {
-    const wrapper = mount(NewSongCard, {
-      props: { item: { ...newSong, song: { ...newSong.song, artists: [] } } },
-    })
+    const wrapper = mountCard({ ...newSong, song: { ...newSong.song, artists: [] } })
     expect(wrapper.text()).toContain('未知歌手')
+  })
+
+  it('links a positive song mv without selecting the card', async () => {
+    const wrapper = mountCard({
+      ...newSong,
+      song: { ...newSong.song, mv: 701 },
+    })
+    const mv = wrapper.get('[data-testid="song-mv"]')
+    expect(mv.text()).toBe('MV')
+    expect(mv.attributes('aria-label')).toBe('打开 MV：晚风来信')
+    expect(wrapper.getComponent(RouterLinkStub).props('to')).toEqual({
+      name: Pages.mvDetail,
+      query: { id: 701 },
+    })
+    await mv.trigger('click')
+    expect(wrapper.emitted('select')).toBeUndefined()
+  })
+
+  it('hides the MV link when the nested song has no mv', () => {
+    expect(mountCard().find('[data-testid="song-mv"]').exists()).toBe(false)
+  })
+
+  it('hides the MV link when nested mv is zero', () => {
+    expect(
+      mountCard({ ...newSong, song: { ...newSong.song, mv: 0 } })
+        .find('[data-testid="song-mv"]')
+        .exists(),
+    ).toBe(false)
   })
 })

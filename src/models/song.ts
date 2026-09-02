@@ -33,6 +33,10 @@ export interface NetworkSong {
   mvid?: number
 }
 
+export function isPositiveMvId(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+}
+
 export function normalizeSong(song: NetworkSong): Song {
   const album = song.album ?? song.al
   const duration = song.duration ?? song.dt
@@ -46,7 +50,7 @@ export function normalizeSong(song: NetworkSong): Song {
     ...(typeof duration === 'number' && Number.isFinite(duration)
       ? { duration }
       : {}),
-    ...(typeof mv === 'number' && Number.isInteger(mv) && mv > 0 ? { mv } : {}),
+    ...(isPositiveMvId(mv) ? { mv } : {}),
   }
 }
 

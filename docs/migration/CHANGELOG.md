@@ -1,5 +1,42 @@
 # 迁移文档变更记录
 
+## 0.54.0 - 2026-09-02
+
+### 实施第 50 轮：歌曲行专辑
+
+- 歌单/专辑/歌手/搜索歌曲行的专辑名接到 `#/album?id=`，点击不播放；零或缺省 id 仍是文本；
+- 播放条仍深色；新歌卡片和队列本轮不改专辑入口；
+- 108 个测试文件、456 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:53121` + mock `127.0.0.1:53131`：歌单 101 专辑 `href="#/album?id=501"`，点击后 hash 相同，标题「晚风来信」，未打开播放条；
+- 独立审查 PASS WITH FINDINGS（LOW：albumId 与 `isPositiveMvId` 重复、stub 无 href）；独立核验 PASS，隔离 smoke `53221`/`53231`；
+- 第 47 轮提交为 `5d76aba`；第 48–50 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条封面。播放条保持深色。登录、专辑空评论继续跳过。
+
+## 0.53.0 - 2026-09-02
+
+### 实施第 49 轮：顶栏搜索弹出层 MV
+
+- 顶栏搜索单曲结果增加 MV 链接，指向 `#/mvDetail?id=`，点击不播放并关闭弹出层；
+- 沿用 suggest 的 `mvid` → `song.mv`；播放条仍深色；
+- 108 个测试文件、454 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:52921` + mock `127.0.0.1:52931`：弹出层 `href="#/mvDetail?id=701"`，点击后 hash 相同，弹出层关闭；
+- 独立审查 PASS WITH FINDINGS（LOW：hash href 未在单元测试锁）；独立核验 PASS，隔离 smoke `53021`/`53031`；
+- 第 47 轮提交为 `5d76aba`；第 48、49 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 0.52.0 - 2026-09-01
+
+### 实施第 48 轮：队列和新歌 MV
+
+- 播放列表抽屉和推荐新歌卡片增加 MV 链接，指向 `#/mvDetail?id=`，点击不播放；
+- `/personalized/newsong` 的嵌套 `mvid` 写入 `song.mv`；Discover 点播保留 `mv`；队列点 MV 会关掉抽屉；
+- 顶栏搜索弹出层本轮不改；播放条仍深色；
+- 108 个测试文件、452 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:52721` + mock `127.0.0.1:52731`：Discover 新歌 `href="#/mvDetail?id=701"`，点击后 hash 相同；歌单播放后队列同样链接；
+- 独立审查先 FAIL：点播丢掉 `mv`、队列不关抽屉。已修。独立核验 PASS，隔离 smoke `52821`/`52831`；
+- 第 47 轮提交为 `5d76aba`；第 48 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：顶栏搜索弹出层 MV。播放条保持深色。登录、专辑空评论继续跳过。
+
 ## 0.51.0 - 2026-09-01
 
 ### 实施第 47 轮：歌曲 MV 入口
