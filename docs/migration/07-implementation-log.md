@@ -5451,3 +5451,68 @@ mock API http://127.0.0.1:54331
 ### 58.4 本轮结果
 
 队列歌手已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM。独立核验 PASS：复跑 108/468、typecheck、366 modules；隔离 smoke `54421`/`54431`。第 55 轮提交 `70044de` 仍是当前 HEAD；第 56 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 59. 实施第 57 轮：队列专辑（工作区）
+
+> 执行日期：`2026-09-02`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 59.1 开始边界与范围
+
+第 57 轮开始时第 56 轮已经提交：
+
+```text
+HEAD a80ea4d
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者/消费者：队列专辑名 → 已有 `#/album`。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 59.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       470 passed (470)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS (166 installs / 189 packages, no changes)
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 59.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:54521
+mock API http://127.0.0.1:54531
+```
+
+验证步骤：
+
+1. `#/playlist?id=101` 点歌曲行播放，再打开播放列表；
+2. 队列专辑 `href="#/album?id=501"`，`aria-label="打开专辑：晚风来信"`，不在播放按钮内，条底 `rgb(23, 32, 51)`；
+3. 点击后 hash 为 `#/album?id=501`，标题「晚风来信」，抽屉关闭，播放条仍在。
+
+独立审查 PASS WITH FINDINGS：LOW 模板重复调用 helper、id 门重复、testid 未限定在抽屉。核验复跑隔离口 `54621`/`54631`。测完已停 `54521`/`54531`。未打真实网易云 API。
+
+### 59.4 本轮结果
+
+队列专辑已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM。独立核验 PASS：复跑 108/470、typecheck、366 modules；隔离 smoke `54621`/`54631`。第 56 轮提交 `a80ea4d` 仍是当前 HEAD；第 57 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

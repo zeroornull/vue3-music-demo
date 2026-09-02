@@ -19,6 +19,15 @@ function artistNames(song: Song) {
   return names.length ? names.join(' / ') : '未知歌手'
 }
 
+function albumId(song: Song) {
+  const id = song.album?.id
+  return typeof id === 'number' && Number.isInteger(id) && id > 0 ? id : null
+}
+
+function albumName(song: Song) {
+  return song.album?.name.trim() || '未知专辑'
+}
+
 function playSong(song: Song) {
   void player.play(song).catch(() => {
     // The store records the play error for the bar.
@@ -130,16 +139,29 @@ onUnmounted(() => {
               <span v-else>未知歌手</span>
             </span>
           </div>
-          <RouterLink
-            v-if="isPositiveMvId(song.mv)"
-            data-testid="song-mv"
-            class="queue-mv"
-            :to="{ name: Pages.mvDetail, query: { id: song.mv } }"
-            :aria-label="`打开 MV：${song.name}`"
-            @click.stop="player.closeQueue()"
-          >
-            MV
-          </RouterLink>
+          <div class="queue-side">
+            <RouterLink
+              v-if="albumId(song)"
+              data-testid="song-album"
+              class="queue-album"
+              :to="{ name: Pages.album, query: { id: albumId(song) } }"
+              :aria-label="`打开专辑：${albumName(song)}`"
+              @click.stop="player.closeQueue()"
+            >
+              {{ albumName(song) }}
+            </RouterLink>
+            <span v-else class="queue-album is-text">{{ albumName(song) }}</span>
+            <RouterLink
+              v-if="isPositiveMvId(song.mv)"
+              data-testid="song-mv"
+              class="queue-mv"
+              :to="{ name: Pages.mvDetail, query: { id: song.mv } }"
+              :aria-label="`打开 MV：${song.name}`"
+              @click.stop="player.closeQueue()"
+            >
+              MV
+            </RouterLink>
+          </div>
         </li>
       </ul>
     </aside>
@@ -253,8 +275,18 @@ onUnmounted(() => {
   color: var(--color-accent-text);
 }
 
-.queue-mv {
+.queue-side {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  min-width: 0;
   margin-right: 12px;
+}
+
+.queue-album,
+.queue-mv {
+  max-width: 8rem;
+  overflow: hidden;
   padding: 4px 8px;
   border-radius: 999px;
   color: var(--color-accent);
@@ -262,8 +294,17 @@ onUnmounted(() => {
   font-weight: 720;
   letter-spacing: 0.06em;
   text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+.queue-album.is-text {
+  color: var(--color-muted);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.queue-album:focus-visible,
 .queue-mv:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;

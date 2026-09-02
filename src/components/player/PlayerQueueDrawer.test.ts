@@ -214,4 +214,52 @@ describe('PlayerQueueDrawer', () => {
     expect(bodyEl('[data-testid="player-queue"]').textContent).toContain('未入驻歌手')
     wrapper.unmount()
   })
+
+  it('links a positive album id without playing and closes the queue', async () => {
+    const player = usePlayerStore()
+    player.current = {
+      album: { id: 501, name: '晚风来信' },
+      artists: [{ id: 401, name: '林间电台' }],
+      id: 1,
+      name: '晚风',
+    }
+    player.queue = [player.current]
+    player.openQueue()
+    const play = vi.spyOn(player, 'play').mockResolvedValue(true)
+    const wrapper = mountDrawer()
+    const album = document.querySelector('[data-testid="song-album"]')
+    expect(album?.textContent).toBe('晚风来信')
+    expect(album?.getAttribute('aria-label')).toBe('打开专辑：晚风来信')
+    expect(
+      document.querySelector('button.queue-song [data-testid="song-album"]'),
+    ).toBeNull()
+    const albumLink = wrapper
+      .findAllComponents({ name: 'RouterLink' })
+      .find((link) => link.attributes('data-testid') === 'song-album')
+    expect(albumLink?.props('to')).toEqual({
+      name: Pages.album,
+      query: { id: 501 },
+    })
+    album?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+    expect(play).not.toHaveBeenCalled()
+    expect(player.showQueue).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('shows the album name as text when album id is missing', async () => {
+    const player = usePlayerStore()
+    player.current = {
+      album: { id: 0, name: '草稿专辑' },
+      artists: [],
+      id: 1,
+      name: '晚风',
+    }
+    player.queue = [player.current]
+    player.openQueue()
+    const wrapper = mountDrawer()
+    expect(document.querySelector('[data-testid="song-album"]')).toBeNull()
+    expect(bodyEl('[data-testid="player-queue"]').textContent).toContain('草稿专辑')
+    wrapper.unmount()
+  })
 })
