@@ -1,5 +1,5 @@
 import { http, type HttpClient } from '@/api/http'
-import type { MvArtistSummary, MvDetail, MvUrl, PersonalizedMv } from '@/models/mv'
+import type { MvArtistSummary, MvDetail, MvUrl, PersonalizedMv, SimiMv } from '@/models/mv'
 
 interface PersonalizedMvResponse {
   result: PersonalizedMv[]
@@ -96,4 +96,44 @@ export async function getMvDetail(
     name: raw.name.trim(),
     picUrl,
   }
+}
+
+function readSimiMv(value: unknown): SimiMv | null {
+  if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
+    return null
+  }
+  const id = readPositiveId(value.id)
+  const name = value.name.trim()
+  if (!id || !name) return null
+  const picUrl =
+    typeof value.cover === 'string' && value.cover.trim()
+      ? value.cover.trim()
+      : typeof value.picUrl === 'string'
+        ? value.picUrl.trim()
+        : ''
+  const artistName =
+    typeof value.artistName === 'string' ? value.artistName.trim() : ''
+  return {
+    artistId: readPositiveId(value.artistId),
+    artistName,
+    artists: readArtists(value.artists),
+    duration: typeof value.duration === 'number' ? value.duration : 0,
+    id,
+    name,
+    picUrl,
+    playCount: typeof value.playCount === 'number' ? value.playCount : 0,
+  }
+}
+
+export async function getSimiMvs(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SimiMv[]> {
+  const response = await client.get<{ mvs?: unknown }>('/simi/mv', { mvid: id })
+  if (!Array.isArray(response.mvs)) {
+    throw new Error('相关 MV 响应格式不正确')
+  }
+  return response.mvs
+    .map(readSimiMv)
+    .filter((item): item is SimiMv => item !== null)
 }

@@ -1,13 +1,25 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getMvDetail, getMvUrl } from '@/api/mv'
+import { getMvDetail, getMvUrl, getSimiMvs } from '@/api/mv'
 import { useMvStore } from '@/stores/mv'
 
 vi.mock('@/api/mv', () => ({
   getMvDetail: vi.fn(),
   getMvUrl: vi.fn(),
+  getSimiMvs: vi.fn(),
 }))
+
+const simi = {
+  artistId: 402,
+  artistName: '海岸信号',
+  artists: [{ id: 402, name: '海岸信号' }],
+  duration: 180_000,
+  id: 702,
+  name: '潮汐回声',
+  picUrl: 'https://images.example.com/simi.jpg',
+  playCount: 12_000,
+}
 
 const detail = {
   artistId: 401,
@@ -42,6 +54,8 @@ describe('mv store', () => {
     vi.mocked(getMvUrl).mockReset()
     vi.mocked(getMvDetail).mockReset()
     vi.mocked(getMvDetail).mockRejectedValue(new Error('no detail'))
+    vi.mocked(getSimiMvs).mockReset()
+    vi.mocked(getSimiMvs).mockRejectedValue(new Error('no simi'))
   })
 
   it('loads an MV URL and caches the same id', async () => {
@@ -195,6 +209,75 @@ describe('mv store', () => {
     expect(store.detail).toEqual(nextDetail)
   })
 
+  it('loads related MVs with the URL and ignores a related failure', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getSimiMvs).mockResolvedValue([simi, { ...simi, id: 701, name: '自己' }])
+    const store = useMvStore()
+
+    await store.load(701)
+    await settle()
+    await store.load(701)
+
+    expect(store.relatedMvs).toEqual([simi])
+    expect(getMvUrl).toHaveBeenCalledTimes(1)
+    expect(getSimiMvs).toHaveBeenCalledTimes(1)
+    expect(getSimiMvs).toHaveBeenCalledWith(701)
+  })
+
+  it('keeps playback when related MVs fail', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getSimiMvs).mockRejectedValue(new Error('simi offline'))
+    const store = useMvStore()
+
+    await store.load(701)
+    await settle()
+
+    expect(store.playback).toEqual(playback)
+    expect(store.relatedMvs).toBeNull()
+    expect(store.error).toBeNull()
+  })
+
+  it('retries related MVs on a cached URL when the first related request failed', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getSimiMvs)
+      .mockRejectedValueOnce(new Error('simi offline'))
+      .mockResolvedValueOnce([simi])
+    const store = useMvStore()
+
+    await store.load(701)
+    await settle()
+    expect(store.relatedMvs).toBeNull()
+
+    await store.load(701)
+    await settle()
+
+    expect(getMvUrl).toHaveBeenCalledTimes(1)
+    expect(getSimiMvs).toHaveBeenCalledTimes(2)
+    expect(store.relatedMvs).toEqual([simi])
+  })
+
+  it('does not keep stale related MVs after the MV id changes', async () => {
+    const first = deferred<typeof simi[]>()
+    const nextPlayback = { id: 702, url: 'https://media.example.com/next.mp4' }
+    const nextSimi = { ...simi, id: 703, name: '下一支相关' }
+    vi.mocked(getMvUrl)
+      .mockResolvedValueOnce(playback)
+      .mockResolvedValueOnce(nextPlayback)
+    vi.mocked(getSimiMvs)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce([nextSimi])
+    const store = useMvStore()
+
+    await store.load(701)
+    await store.load(702)
+    await settle()
+    first.resolve([simi])
+    await settle()
+
+    expect(store.playback?.id).toBe(702)
+    expect(store.relatedMvs).toEqual([nextSimi])
+  })
+
   it('reset drops cached playback', async () => {
     vi.mocked(getMvUrl).mockResolvedValue(playback)
     vi.mocked(getMvDetail).mockResolvedValue(detail)
@@ -204,6 +287,7 @@ describe('mv store', () => {
 
     expect(store.playback).toBeNull()
     expect(store.detail).toBeNull()
+    expect(store.relatedMvs).toBeNull()
     expect(store.loadedId).toBeNull()
     expect(store.error).toBeNull()
   })

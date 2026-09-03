@@ -5970,3 +5970,68 @@ mock API http://127.0.0.1:55931
 ### 66.4 本轮结果
 
 MV 详情资料已在工作区。独立审查 PASS WITH FINDINGS（MEDIUM 已修，LOW 保留）。独立核验 PASS：复跑 108/493、typecheck、366 modules；隔离 smoke `56021`/`56031`。第 63 轮提交 `244c9a9` 仍是当前 HEAD；第 64 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 67. 实施第 65 轮：相关 MV（工作区）
+
+> 执行日期：`2026-09-03`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 67.1 开始边界与范围
+
+第 65 轮开始时第 64 轮已经提交：
+
+```text
+HEAD a3aa6e1
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者：`/simi/mv` → 已有 MvCard。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 67.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       501 passed (501)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS (166 installs / 189 packages, no changes)
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 67.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:56121
+mock API http://127.0.0.1:56131
+```
+
+验证步骤：
+
+1. `#/playlist?id=101` 点歌曲行 MV 进入 `#/mvDetail?id=701`；
+2. 相关区封面 `href="#/mvDetail?id=702"`，歌手 `href="#/artistDetail?id=402"`，不在封面链接内；
+3. 点封面后 hash 为 `#/mvDetail?id=702`，标题「潮汐回声」，未打开播放条。
+
+独立审查 PASS WITH FINDINGS：LOW 相关区未锁歌手不在封面内、picUrl 回落未测、失败隐藏未在页面测。核验复跑隔离口 `56221`/`56231`。测完已停 `56121`/`56131`。未打真实网易云 API。
+
+### 67.4 本轮结果
+
+相关 MV 已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/501、typecheck、366 modules；隔离 smoke `56221`/`56231`。第 64 轮提交 `a3aa6e1` 仍是当前 HEAD；第 65 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

@@ -19,6 +19,17 @@ export interface MvDetail {
   picUrl: string
 }
 
+export interface SimiMv {
+  artistId: number
+  artistName: string
+  artists: MvArtistSummary[]
+  duration: number
+  id: number
+  name: string
+  picUrl: string
+  playCount: number
+}
+
 export interface PersonalizedMv {
   alg: string
   artistId: number

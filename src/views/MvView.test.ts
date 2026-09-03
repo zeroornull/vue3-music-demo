@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getMvDetail, getMvUrl } from '@/api/mv'
+import { getMvDetail, getMvUrl, getSimiMvs } from '@/api/mv'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useMvStore } from '@/stores/mv'
@@ -16,6 +16,7 @@ import MvView from '@/views/MvView.vue'
 vi.mock('@/api/mv', () => ({
   getMvDetail: vi.fn(),
   getMvUrl: vi.fn(),
+  getSimiMvs: vi.fn(),
 }))
 
 const pauseAudio = vi.fn()
@@ -89,6 +90,8 @@ describe('MvView', () => {
     vi.mocked(getMvUrl).mockResolvedValue(playback)
     vi.mocked(getMvDetail).mockReset()
     vi.mocked(getMvDetail).mockRejectedValue(new Error('no detail'))
+    vi.mocked(getSimiMvs).mockReset()
+    vi.mocked(getSimiMvs).mockRejectedValue(new Error('no simi'))
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -308,6 +311,45 @@ describe('MvView', () => {
 
     expect(wrapper.find('[data-testid="song-artist"]').exists()).toBe(false)
     expect(wrapper.get('.mv-copy').text()).toContain('未入驻歌手')
+  })
+
+  it('renders related MV cards without blocking playback', async () => {
+    vi.mocked(getSimiMvs).mockResolvedValue([
+      {
+        artistId: 402,
+        artistName: '海岸信号',
+        artists: [{ id: 402, name: '海岸信号' }],
+        duration: 180_000,
+        id: 702,
+        name: '潮汐回声',
+        picUrl: 'https://images.example.com/simi.jpg',
+        playCount: 12_000,
+      },
+    ])
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="mv-player"]').attributes('src')).toBe(
+      playback.url,
+    )
+    const related = wrapper.get('[data-testid="related-mvs"]')
+    expect(related.get('[data-testid="mv-card"]').text()).toContain('潮汐回声')
+    expect(related.get('[data-testid="song-artist"]').text()).toBe('海岸信号')
+    const mvLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.classes().includes('mv-link'))
+    expect(mvLink?.props('to')).toEqual({
+      name: Pages.mvDetail,
+      query: { id: 702 },
+    })
+  })
+
+  it('hides related MVs when the list is empty', async () => {
+    vi.mocked(getSimiMvs).mockResolvedValue([])
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="related-mvs"]').exists()).toBe(false)
   })
 
   it('resets cached playback when the route id is removed', async () => {

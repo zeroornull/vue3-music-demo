@@ -3,6 +3,7 @@ import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
+import MvCard from '@/components/discover/MvCard.vue'
 import MvPlayer from '@/components/mv/MvPlayer.vue'
 import { Pages } from '@/router/pages'
 import { useMvStore } from '@/stores/mv'
@@ -13,7 +14,7 @@ const route = useRoute()
 const mvStore = useMvStore()
 const playerStore = usePlayerStore()
 const videoStore = useVideoStore()
-const { playback, detail, loading, error } = storeToRefs(mvStore)
+const { playback, detail, relatedMvs, loading, error } = storeToRefs(mvStore)
 const { mvs, privateContents } = storeToRefs(videoStore)
 
 const mvId = computed(() => {
@@ -144,6 +145,17 @@ watch(
       </header>
       <p v-if="error" class="notice error-notice" role="alert">{{ error }}</p>
       <MvPlayer :src="playback.url" :poster="related?.picUrl" :title="title" />
+      <section
+        v-if="relatedMvs?.length"
+        class="related-mvs"
+        data-testid="related-mvs"
+        aria-labelledby="related-mvs-title"
+      >
+        <h2 id="related-mvs-title">相关 MV</h2>
+        <div class="related-grid">
+          <MvCard v-for="item in relatedMvs" :key="item.id" :mv="item" />
+        </div>
+      </section>
     </template>
   </main>
 </template>
@@ -209,6 +221,33 @@ h1 {
 .artists a:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+.related-mvs {
+  margin-top: 36px;
+}
+
+.related-mvs h2 {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 22px);
+}
+
+@media (max-width: 900px) {
+  .related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .related-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .state-card {

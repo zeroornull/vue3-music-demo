@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { getMvDetail, getMvUrl, getPersonalizedMvs } from '@/api/mv'
+import { getMvDetail, getMvUrl, getPersonalizedMvs, getSimiMvs } from '@/api/mv'
 
 const mv = {
   alg: 'featured',
@@ -148,5 +148,57 @@ describe('MV detail API', () => {
         'MV 详情格式不正确',
       )
     }
+  })
+})
+
+describe('Similar MV API', () => {
+  const client = (response: unknown) => {
+    const get = vi.fn(
+      async <T>(_path: string, _params?: unknown) => response as T,
+    )
+    return { client: { get } as Pick<HttpClient, 'get'>, get }
+  }
+
+  it('unwraps /simi/mv covers and artists', async () => {
+    const request = client({
+      mvs: [
+        {
+          artistId: 402,
+          artistName: '海岸信号',
+          artists: [{ extra: true, id: 402, name: '海岸信号' }],
+          cover: 'https://images.example.com/simi.jpg',
+          duration: 180_000,
+          extra: true,
+          id: 702,
+          name: '潮汐回声',
+          playCount: 12_000,
+        },
+        {
+          duration: 1,
+          id: 0,
+          name: '无效',
+        },
+      ],
+    })
+
+    await expect(getSimiMvs(701, request.client)).resolves.toEqual([
+      {
+        artistId: 402,
+        artistName: '海岸信号',
+        artists: [{ id: 402, name: '海岸信号' }],
+        duration: 180_000,
+        id: 702,
+        name: '潮汐回声',
+        picUrl: 'https://images.example.com/simi.jpg',
+        playCount: 12_000,
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/simi/mv', { mvid: 701 })
+  })
+
+  it('rejects a missing mvs array', async () => {
+    await expect(getSimiMvs(701, client({ mvs: null }).client)).rejects.toThrow(
+      '相关 MV 响应格式不正确',
+    )
   })
 })
