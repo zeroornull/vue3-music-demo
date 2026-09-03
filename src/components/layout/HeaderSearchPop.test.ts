@@ -192,4 +192,62 @@ describe('HeaderSearchPop', () => {
     expect(wrapper.find('[data-testid="song-mv"]').exists()).toBe(false)
     wrapper.unmount()
   })
+
+  it('links suggested song artists without playing and closes', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      ...suggest,
+      songs: [
+        {
+          ...song,
+          artists: [
+            { id: 401, name: '林间电台' },
+            { id: 402, name: '海岸信号' },
+          ],
+        },
+      ],
+    })
+    const { wrapper } = await mountPop()
+    const input = wrapper.get('[data-testid="header-search-input"]')
+    await input.trigger('focus')
+    await input.setValue('夜航')
+    await input.trigger('input')
+    await vi.advanceTimersByTimeAsync(400)
+    await flushPromises()
+
+    const artists = wrapper.findAll('[data-testid="song-artist"]')
+    expect(artists).toHaveLength(2)
+    expect(artists[0]?.text()).toBe('林间电台')
+    expect(artists[0]?.attributes('aria-label')).toBe('打开歌手：林间电台')
+    expect(
+      wrapper.get('[data-testid="header-search-play"]').find('[data-testid="song-artist"]').exists(),
+    ).toBe(false)
+    expect(artists[0]?.attributes('data-to')).toBe(
+      JSON.stringify({ name: Pages.artistDetail, query: { id: 401 } }),
+    )
+    expect(artists[1]?.attributes('data-to')).toBe(
+      JSON.stringify({ name: Pages.artistDetail, query: { id: 402 } }),
+    )
+    await artists[0]?.trigger('click')
+    await flushPromises()
+    expect(playSong).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="header-search-pop"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('shows artist names as text when artist id is missing', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      ...suggest,
+      songs: [{ ...song, artists: [{ id: 0, name: '未入驻歌手' }] }],
+    })
+    const { wrapper } = await mountPop()
+    const input = wrapper.get('[data-testid="header-search-input"]')
+    await input.trigger('focus')
+    await input.setValue('夜航')
+    await input.trigger('input')
+    await vi.advanceTimersByTimeAsync(400)
+    await flushPromises()
+    expect(wrapper.find('[data-testid="song-artist"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="header-search-pop"]').text()).toContain('未入驻歌手')
+    wrapper.unmount()
+  })
 })

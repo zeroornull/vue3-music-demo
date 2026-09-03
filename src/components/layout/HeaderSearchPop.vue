@@ -140,6 +140,10 @@ function goSearchPage() {
   void router.push({ name: Pages.search, query: { q: next } })
 }
 
+function namedArtists(song: Song) {
+  return song.artists.filter((artist) => artist.name.trim())
+}
+
 function playSong(song: Song) {
   close()
   void playerStore.play(song).catch(() => undefined)
@@ -229,13 +233,36 @@ onUnmounted(() => {
           <h2 id="header-search-songs">单曲</h2>
           <ul>
             <li v-for="song in songs" :key="song.id" class="song-hit-row">
-              <button
-                type="button"
-                data-testid="header-search-play"
-                @click="playSong(song)"
-              >
-                {{ song.name }}
-              </button>
+              <div class="hit-main">
+                <button
+                  type="button"
+                  data-testid="header-search-play"
+                  @click="playSong(song)"
+                >
+                  {{ song.name }}
+                </button>
+                <span class="hit-artists">
+                  <template v-if="namedArtists(song).length">
+                    <template
+                      v-for="(artist, index) in namedArtists(song)"
+                      :key="`${artist.id}-${artist.name}`"
+                    >
+                      <span v-if="index > 0"> / </span>
+                      <RouterLink
+                        v-if="typeof artist.id === 'number' && Number.isInteger(artist.id) && artist.id > 0"
+                        data-testid="song-artist"
+                        :to="{ name: Pages.artistDetail, query: { id: artist.id } }"
+                        :aria-label="`打开歌手：${artist.name.trim()}`"
+                        @click.stop="close()"
+                      >
+                        {{ artist.name.trim() }}
+                      </RouterLink>
+                      <span v-else>{{ artist.name.trim() }}</span>
+                    </template>
+                  </template>
+                  <span v-else>未知歌手</span>
+                </span>
+              </div>
               <RouterLink
                 v-if="isPositiveMvId(song.mv)"
                 data-testid="song-mv"
@@ -373,7 +400,27 @@ input:focus-visible {
   gap: 6px;
 }
 
-.song-hits button,
+.hit-main {
+  display: grid;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.song-hits button {
+  width: 100%;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
 .pop-state button {
   width: 100%;
   min-height: 36px;
@@ -385,7 +432,29 @@ input:focus-visible {
   cursor: pointer;
   font: inherit;
   text-align: left;
-  overflow-wrap: anywhere;
+}
+
+.hit-artists {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hit-artists a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.hit-artists a:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.hit-artists a:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .song-mv {
