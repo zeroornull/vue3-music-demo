@@ -1,5 +1,17 @@
 # 迁移文档变更记录
 
+## 0.65.0 - 2026-09-02
+
+### 实施第 61 轮：MV 卡片歌手
+
+- 推荐 MV 卡片的歌手名做成封面链接的兄弟 `RouterLink`，正整数 `artist.id` 指向 `#/artistDetail?id=`；点击不打开 MV；零或缺省 id 仍是文本；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、478 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:55321` + mock `127.0.0.1:55331`：Discover MV 卡片歌手 `href="#/artistDetail?id=401"`，不在封面链接内，点击后 hash 相同，标题「林间电台」，未打开播放条；测完已停服务；
+- 独立审查 PASS WITH FINDINGS（LOW：点击未证不进 MV、fallback 未单测、焦点环可能被 ellipsis 裁切）；独立核验 PASS，隔离 smoke `55421`/`55431`；
+- 第 60 轮已提交 `ef48c3c`；第 61 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
 ## 0.64.0 - 2026-09-02
 
 ### 实施第 60 轮：播放条 MV

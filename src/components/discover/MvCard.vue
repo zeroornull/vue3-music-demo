@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import { Pages } from '@/router/pages'
 import { formatDuration, formatPlayCount } from '@/utils/number'
 
-defineProps<{
+const props = defineProps<{
   mv: {
+    artistId?: number
     artistName?: string
-    artists?: { name: string }[]
+    artists?: { id?: number; name: string }[]
     duration: number
     id: number
     name: string
@@ -13,6 +16,10 @@ defineProps<{
     playCount: number
   }
 }>()
+
+const namedArtists = computed(() =>
+  (props.mv.artists ?? []).filter((artist) => artist.name.trim()),
+)
 </script>
 
 <template>
@@ -36,9 +43,38 @@ defineProps<{
       </div>
       <div class="copy">
         <h3>{{ mv.name }}</h3>
-        <p>{{ mv.artistName || mv.artists?.map((artist) => artist.name).join(' / ') || '未知艺人' }}</p>
       </div>
     </RouterLink>
+    <span class="artists">
+      <template v-if="namedArtists.length">
+        <template
+          v-for="(artist, index) in namedArtists"
+          :key="`${artist.id ?? 'x'}-${artist.name}`"
+        >
+          <span v-if="index > 0"> / </span>
+          <RouterLink
+            v-if="typeof artist.id === 'number' && Number.isInteger(artist.id) && artist.id > 0"
+            data-testid="song-artist"
+            :to="{ name: Pages.artistDetail, query: { id: artist.id } }"
+            :aria-label="`打开歌手：${artist.name.trim()}`"
+            @click.stop
+          >
+            {{ artist.name.trim() }}
+          </RouterLink>
+          <span v-else>{{ artist.name.trim() }}</span>
+        </template>
+      </template>
+      <RouterLink
+        v-else-if="typeof mv.artistId === 'number' && Number.isInteger(mv.artistId) && mv.artistId > 0 && mv.artistName?.trim()"
+        data-testid="song-artist"
+        :to="{ name: Pages.artistDetail, query: { id: mv.artistId } }"
+        :aria-label="`打开歌手：${mv.artistName.trim()}`"
+        @click.stop
+      >
+        {{ mv.artistName.trim() }}
+      </RouterLink>
+      <span v-else>{{ mv.artistName?.trim() || '未知艺人' }}</span>
+    </span>
   </article>
 </template>
 
@@ -106,7 +142,7 @@ defineProps<{
 }
 
 .copy h3,
-.copy p {
+.artists {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -117,10 +153,26 @@ defineProps<{
   font-size: 0.96rem;
 }
 
-.copy p {
-  margin: 7px 0 0;
+.artists {
+  display: block;
+  padding: 7px 2px 0;
   color: var(--color-muted);
   font-size: 0.78rem;
+}
+
+.artists a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.artists a:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.artists a:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .mv-link:hover img {

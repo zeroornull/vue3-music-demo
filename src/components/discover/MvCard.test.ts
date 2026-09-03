@@ -45,4 +45,51 @@ describe('MvCard', () => {
       query: { id: 701 },
     })
   })
+
+  it('links positive artist ids without opening the MV', async () => {
+    const wrapper = mount(MvCard, {
+      props: {
+        mv: {
+          ...mv,
+          artists: [
+            { id: 401, name: '林间电台' },
+            { id: 402, name: '海岸信号' },
+          ],
+        },
+      },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    const artists = wrapper.findAll('[data-testid="song-artist"]')
+    expect(artists).toHaveLength(2)
+    expect(artists[0]?.text()).toBe('林间电台')
+    expect(artists[0]?.attributes('aria-label')).toBe('打开歌手：林间电台')
+    expect(wrapper.get('.mv-link').find('[data-testid="song-artist"]').exists()).toBe(false)
+    const artistLinks = wrapper
+      .findAllComponents(RouterLinkStub)
+      .filter((link) => link.attributes('data-testid') === 'song-artist')
+    expect(artistLinks[0]?.props('to')).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 401 },
+    })
+    expect(artistLinks[1]?.props('to')).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 402 },
+    })
+    await artists[0]?.trigger('click')
+    expect(wrapper.getComponent(RouterLinkStub).props('to')).toEqual({
+      name: Pages.mvDetail,
+      query: { id: 701 },
+    })
+  })
+
+  it('shows artist names as text when artist id is missing', () => {
+    const wrapper = mount(MvCard, {
+      props: {
+        mv: { ...mv, artistId: 0, artists: [{ id: 0, name: '未入驻歌手' }] },
+      },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.find('[data-testid="song-artist"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('未入驻歌手')
+  })
 })
