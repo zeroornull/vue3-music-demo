@@ -201,6 +201,42 @@ describe('PlayerBar', () => {
     expect(wrapper.text()).toContain('未入驻歌手')
   })
 
+  it('links a positive mv id on the bar and does not toggle playback', async () => {
+    const player = usePlayerStore()
+    const toggle = vi.spyOn(player, 'toggle')
+    player.current = {
+      artists: [],
+      id: 1,
+      mv: 701,
+      name: '晚风',
+    }
+    player.hasPlayableSource = true
+    const wrapper = mountBar()
+    const mv = wrapper.get('[data-testid="song-mv"]')
+    expect(mv.text()).toBe('MV')
+    expect(mv.attributes('aria-label')).toBe('打开 MV：晚风')
+    expect(wrapper.get('button[aria-label="播放"]').find('[data-testid="song-mv"]').exists()).toBe(
+      false,
+    )
+    const mvLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.attributes('data-testid') === 'song-mv')
+    expect(mvLink?.props('to')).toEqual({
+      name: Pages.mvDetail,
+      query: { id: 701 },
+    })
+    await mv.trigger('click')
+    expect(toggle).not.toHaveBeenCalled()
+  })
+
+  it('hides the MV link when mv is missing', () => {
+    const player = usePlayerStore()
+    player.current = { artists: [], id: 1, mv: 0, name: '晚风' }
+    player.hasPlayableSource = true
+    const wrapper = mountBar()
+    expect(wrapper.find('[data-testid="song-mv"]').exists()).toBe(false)
+  })
+
   it('shows error and disables while the source is not ready', () => {
     const player = usePlayerStore()
     player.current = { id: 1, name: '晚风', artists: [] }

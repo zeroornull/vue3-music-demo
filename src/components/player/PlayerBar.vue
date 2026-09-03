@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import PlayerLyricPanel from '@/components/player/PlayerLyricPanel.vue'
 import PlayerQueueDrawer from '@/components/player/PlayerQueueDrawer.vue'
 import { useLyricStore } from '@/stores/lyric'
+import { isPositiveMvId } from '@/models/song'
 import { Pages } from '@/router/pages'
 import { LOOP_MODE_LABEL, usePlayerStore } from '@/stores/player'
 import { formatClock } from '@/utils/number'
@@ -44,6 +45,10 @@ const albumName = computed(
 const namedArtists = computed(() =>
   (current.value?.artists ?? []).filter((artist) => artist.name.trim()),
 )
+const mvId = computed(() => {
+  const id = current.value?.mv
+  return isPositiveMvId(id) ? id : null
+})
 
 async function togglePlayback() {
   try {
@@ -154,7 +159,18 @@ watch(
         aria-hidden="true"
       />
       <div class="player-meta">
-        <strong>{{ current?.name || '正在准备歌曲' }}</strong>
+        <div class="player-title">
+          <strong>{{ current?.name || '正在准备歌曲' }}</strong>
+          <RouterLink
+            v-if="mvId"
+            data-testid="song-mv"
+            class="player-mv"
+            :to="{ name: Pages.mvDetail, query: { id: mvId } }"
+            :aria-label="`打开 MV：${current?.name || '当前歌曲'}`"
+          >
+            MV
+          </RouterLink>
+        </div>
         <span v-if="current" class="artists">
           <template v-if="namedArtists.length">
             <template
@@ -333,10 +349,30 @@ watch(
   min-width: 0;
   gap: 3px;
 }
+.player-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
 .player-copy strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.player-mv {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #32b58e;
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+}
+.player-mv:focus-visible {
+  outline: 3px solid #32b58e;
+  outline-offset: 2px;
 }
 .player-copy .artists {
   overflow: hidden;
