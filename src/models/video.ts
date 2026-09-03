@@ -27,3 +27,10 @@ export interface VideoUrl {
   r?: number
   size?: number
 }
+
+export interface VideoDetail {
+  coverUrl: string
+  creatorName: string
+  title: string
+  vid: string
+}

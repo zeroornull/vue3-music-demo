@@ -1,19 +1,19 @@
 # 08. 当前开发进度
 
 > 更新日期：`2026-09-03`<br>
-> 文档版本：`0.69.0`<br>
-> 对照提交：`a3aa6e1`（实施第 64 轮已在当前 HEAD）<br>
-> 工作区：实施第 65 轮代码已写入，**尚未 commit / push**
+> 文档版本：`0.70.0`<br>
+> 对照提交：`0f757e7`（实施第 65 轮已在当前 HEAD）<br>
+> 工作区：实施第 66 轮代码已写入，**尚未 commit / push**
 
 本文是后续轮次的入口。历史盘点见 [01-current-state-audit.md](./01-current-state-audit.md)，执行约束见 [03-migration-roadmap.md](./03-migration-roadmap.md)，逐轮证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
 ## 1. 一句话状态
 
-根工程是 Bun + Vue 3.5 + TypeScript 6 + Vite 8。Discover、播放器（含封面进专辑、播放条歌手、队列歌手、队列专辑、播放条 MV）、歌单、MV、音乐馆、歌手馆、电台大厅（含付费标记）、搜索页、顶栏搜索弹出层（含单曲 MV、单曲歌手和单曲专辑）、专辑介绍、应用壳、视频大厅、Banner 详情跳转、顶栏视频入口、Host 文案、深浅色主题、内容卡片主题、歌曲 MV 入口、歌曲行专辑、新歌卡片专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料和相关 MV 已经能用。独立 P5 治理轮仍没有产品缺口可修。
+根工程是 Bun + Vue 3.5 + TypeScript 6 + Vite 8。Discover、播放器（含封面进专辑、播放条歌手、队列歌手、队列专辑、播放条 MV）、歌单、MV、音乐馆、歌手馆、电台大厅（含付费标记）、搜索页、顶栏搜索弹出层（含单曲 MV、单曲歌手和单曲专辑）、专辑介绍、应用壳、视频大厅、Banner 详情跳转、顶栏视频入口、Host 文案、深浅色主题、内容卡片主题、歌曲 MV 入口、歌曲行专辑、新歌卡片专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV 和视频详情资料已经能用。独立 P5 治理轮仍没有产品缺口可修。
 
 ## 2. 路线图对照
 
-原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-075](./06-decision-log.md)。
+原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-076](./06-decision-log.md)。
 
 | 路线图阶段 | 目标 | 状态 | 对应轮次 | 缺口 |
 | --- | --- | --- | --- | --- |
@@ -21,8 +21,8 @@
 | P1 legacy 归档 | 旧工程移入 `legacy/` | **完成** | 实施第 1 轮 | 无 |
 | P2 现代空壳 | Bun + Vue + TS + Vite | **完成** | 实施第 2 轮 | TypeScript 固定 6.0.3，待 `vue-tsc` 支持 TS 7 |
 | P3 基础设施 | Router、Pinia、API、主题、自动组件 | **部分完成** | 实施第 3、18、41、43–46 轮 | 顶栏含搜索弹出层、视频入口和深浅色切换；Host 文案已改；内容卡片已跟主题变量；无 Element Plus、无 Sass/Tailwind、无自动组件 |
-| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–65 轮 | Discover、播放器（含封面进专辑、播放条歌手、队列歌手、队列专辑、播放条 MV）、歌单、MV、排行榜、分类、精选、歌手馆、电台（含付费标记）、搜索多类型、顶栏搜索（含单曲 MV、单曲歌手和单曲专辑）、专辑介绍、应用壳、`#/video`（含顶栏入口）、Banner 详情跳转、Host 文案、主题切换、内容卡片主题、歌曲 MV 入口、歌曲行专辑、新歌卡片专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料和相关 MV 完成；专辑空评论未做 |
-| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–65 轮内嵌 | 类型检查已过；无产品 `any`；直接依赖已精简。独立治理轮仍无未解释错误可修 |
+| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–66 轮 | Discover、播放器（含封面进专辑、播放条歌手、队列歌手、队列专辑、播放条 MV）、歌单、MV、排行榜、分类、精选、歌手馆、电台（含付费标记）、搜索多类型、顶栏搜索（含单曲 MV、单曲歌手和单曲专辑）、专辑介绍、应用壳、`#/video`（含顶栏入口）、Banner 详情跳转、Host 文案、主题切换、内容卡片主题、歌曲 MV 入口、歌曲行专辑、新歌卡片专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV 和视频详情资料完成；专辑空评论未做 |
+| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–66 轮内嵌 | 类型检查已过；无产品 `any`；直接依赖已精简。独立治理轮仍无未解释错误可修 |
 | P6 Tailwind 4 | 新样式入口和视觉收敛 | **未开始** | — | 当前页面继续使用 scoped CSS |
 | P7 发布闭环 | `dist/`、CI、学习总结 | **未开始** | — | 无 CI；GitHub Pages 未切到新产物 |
 
@@ -95,12 +95,13 @@
 | 实施第 62 轮 | 2026-09-03 | MV 详情歌手 | 108 文件 / 481 测试 | `6e59a87` |
 | 实施第 63 轮 | 2026-09-03 | 歌手 MV 歌手 | 108 文件 / 483 测试 | `244c9a9` |
 | 实施第 64 轮 | 2026-09-03 | MV 详情资料 | 108 文件 / 493 测试 | `a3aa6e1` |
-| 实施第 65 轮 | 2026-09-03 | 相关 MV | 108 文件 / 501 测试 | **工作区未提交** |
+| 实施第 65 轮 | 2026-09-03 | 相关 MV | 108 文件 / 501 测试 | `0f757e7` |
+| 实施第 66 轮 | 2026-09-03 | 视频详情资料 | 108 文件 / 508 测试 | **工作区未提交** |
 
-第 65 轮文档对齐时的当前门禁输出：
+第 66 轮文档对齐时的当前门禁输出：
 
 ```text
-bun run test       108 files / 501 tests passed
+bun run test       108 files / 508 tests passed
 bun run typecheck  PASS
 bun run build      366 modules transformed, dist/ 输出
 bun install --frozen-lockfile  PASS
@@ -108,11 +109,11 @@ bun audit          No vulnerabilities found (checked 185 packages)
 git diff --check   PASS
 ```
 
-第 65 轮已完成本地 mock API 浏览器 smoke，未打真实网易云。未 commit、未 push。独立审查 PASS WITH FINDINGS（LOW：相关区未锁歌手不在封面内、picUrl 回落未测、失败隐藏未在页面测）。独立核验 PASS，隔离 smoke `56221`/`56231`。作者 smoke 测完已停 `56121`/`56131`。
+第 66 轮已完成本地 mock API 浏览器 smoke，未打真实网易云。未 commit、未 push。独立审查 PASS WITH FINDINGS（LOW：空 id 未断言 getVideoDetail、缺 stale 详情测试、页面未锁 poster）。独立核验 PASS，隔离 smoke `56421`/`56431`。作者 smoke 第一次 wrapper `src` 失败，换独立 profile `56391` 通过；测完已停 `56321`/`56331`。
 
-相关 MV：`/simi/mv` 用 MvCard 打开另一支 MV，歌手不在封面链接内。播放条仍深色。
+视频详情资料：`/video/detail` 补标题和作者，不依赖大厅缓存。播放条仍深色。
 
-本地 smoke 使用 Vite `127.0.0.1:56121` 和 mock API `127.0.0.1:56131`：歌单 101 点 MV 进 `#/mvDetail?id=701`，相关封面 `href="#/mvDetail?id=702"`，歌手 `href="#/artistDetail?id=402"`，点封面后标题「潮汐回声」，未打开播放条。核验复跑隔离口 `56221`/`56231`。
+本地 smoke 使用 Vite `127.0.0.1:56321` 和 mock API `127.0.0.1:56331`：直达 `#/videoDetail?id=VID001`，标题「晚风现场」，作者「林间电台」，播放器有 `src`，未打开播放条。核验复跑隔离口 `56421`/`56431`。
 
 ## 4. 当前根工程能力
 
@@ -139,11 +140,13 @@ MvCard                     歌手兄弟链接 → #/artistDetail
 MvView                     页头歌手链接 → #/artistDetail；/mv/detail 补标题和歌手；/simi/mv 相关卡片
 ArtistMv                   artistId + artists 来自 /artist/mv 的 artist.id
 useMvStore                 playback + detail + relatedMvs；详情/相关失败不挡住 URL
+useVideoDetailStore        playback + detail；详情失败不挡住 URL
+VideoDetailView            /video/detail 补标题和作者；大厅缓存优先
 ```
 
 ### 4.3 已安装直接依赖
 
-第 65 轮未新增依赖。
+第 66 轮未新增依赖。
 
 ## 5. 与 legacy 的功能差距
 
@@ -171,16 +174,17 @@ useMvStore                 playback + detail + relatedMvs；详情/相关失败�
 | 歌手 MV 歌手 | `/artist/mv` 丢掉 artist.id，卡片上是文本 | 正整数 artist.id 进 `#/artistDetail`，不打开 MV | 完成 |
 | MV 详情资料 | 非推荐入口标题是 `MV #id`，无歌手 | `/mv/detail` 补标题和页头歌手 | 完成 |
 | 相关 MV | legacy 占位「大家都在看」无数据 | `/simi/mv` + MvCard | 完成 |
+| 视频详情资料 | 非大厅入口标题是 `视频 #id` | `/video/detail` 补标题和作者 | 完成 |
 
 ## 6. 质量与文档缺口
 
-已通过第 65 轮当前门禁：108 个测试文件 / 501 个测试、两套 typecheck、366 modules build、frozen lock、audit 和 `git diff --check`。
+已通过第 66 轮当前门禁：108 个测试文件 / 508 个测试、两套 typecheck、366 modules build、frozen lock、audit 和 `git diff --check`。
 
-仍存在、但不阻塞第 65 轮的缺口：播放条仍用深色常量、无 lint/E2E/CI。专辑空评论、登录未迁。
+仍存在、但不阻塞第 66 轮的缺口：播放条仍用深色常量、无 lint/E2E/CI。专辑空评论、登录未迁。
 
 ## 7. 建议的下一轮
 
-**播放条保持深色。** 相关 MV 已接到 `/simi/mv`。登录、专辑空评论、Tailwind 4、CI、Element Plus 继续跳过。独立 P5 治理轮仍无产品缺口可修。
+**播放条保持深色。** 视频详情资料已接到 `/video/detail`。登录、专辑空评论、Tailwind 4、CI、Element Plus 继续跳过。独立 P5 治理轮仍无产品缺口可修。
 
 ## 8. 文档怎么读
 
@@ -196,4 +200,4 @@ useMvStore                 playback + detail + relatedMvs；详情/相关失败�
 | [CHANGELOG](./CHANGELOG.md) | 追加日志 | 文档版本 |
 | **本文** | **活文档** | **先读这个，再开工** |
 
-> 状态更新（2026-09-03）：第 64 轮已在当前 HEAD `a3aa6e1` 完成。第 65 轮已写入工作区（独立审查 PASS WITH FINDINGS / 核验 PASS）；播放条仍深色，专辑空评论仍未迁。
+> 状态更新（2026-09-03）：第 65 轮已在当前 HEAD `0f757e7` 完成。第 66 轮已写入工作区（独立审查 PASS WITH FINDINGS / 核验 PASS）；播放条仍深色，专辑空评论仍未迁。

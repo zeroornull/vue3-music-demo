@@ -6035,3 +6035,68 @@ mock API http://127.0.0.1:56131
 ### 67.4 本轮结果
 
 相关 MV 已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/501、typecheck、366 modules；隔离 smoke `56221`/`56231`。第 64 轮提交 `a3aa6e1` 仍是当前 HEAD；第 65 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 68. 实施第 66 轮：视频详情资料（工作区）
+
+> 执行日期：`2026-09-03`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 68.1 开始边界与范围
+
+第 66 轮开始时第 65 轮已经提交：
+
+```text
+HEAD 0f757e7
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者：`/video/detail` → 已有视频详情页标题/作者。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 68.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       508 passed (508)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS (166 installs / 189 packages, no changes)
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 68.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:56321
+mock API http://127.0.0.1:56331
+```
+
+验证步骤：
+
+1. 不进视频大厅，直达 `#/videoDetail?id=VID001`；
+2. 标题「晚风现场」，作者「林间电台」，`[data-testid="mv-player"] video` 有 `src`；
+3. 未打开播放条。
+
+第一次 Chrome 用 wrapper 上的 `src` 失败（testid 在外层 div）。换独立 profile `56391` 后通过。独立审查 PASS WITH FINDINGS：LOW 空 id 未断言 getVideoDetail、缺 stale 详情测试、页面未锁 poster。核验复跑隔离口 `56421`/`56431`。测完已停 `56321`/`56331`。未打真实网易云 API。
+
+### 68.4 本轮结果
+
+视频详情资料已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/508、typecheck、366 modules；隔离 smoke `56421`/`56431`。第 65 轮提交 `0f757e7` 仍是当前 HEAD；第 66 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

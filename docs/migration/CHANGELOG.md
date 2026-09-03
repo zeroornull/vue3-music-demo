@@ -1,5 +1,17 @@
 # 迁移文档变更记录
 
+## 0.70.0 - 2026-09-03
+
+### 实施第 66 轮：视频详情资料
+
+- 接入 `/video/detail?id=`，直达 `#/videoDetail` 不依赖大厅缓存也能显示标题、作者和封面；详情失败不挡住播放；URL 已缓存而详情为空时会再试；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、508 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:56321` + mock `127.0.0.1:56331`：直达 `#/videoDetail?id=VID001`，标题「晚风现场」，作者「林间电台」，播放器 `src` 有地址，未打开播放条；第一次 Chrome 用 wrapper `src` 失败，换独立 profile `56391` 通过；测完已停服务；
+- 独立审查 PASS WITH FINDINGS（LOW：空 id 未断言 getVideoDetail、缺 stale 详情测试、页面未锁 poster）；独立核验 PASS，隔离 smoke `56421`/`56431`；
+- 第 65 轮已提交 `0f757e7`；第 66 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
 ## 0.69.0 - 2026-09-03
 
 ### 实施第 65 轮：相关 MV

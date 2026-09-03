@@ -13,7 +13,7 @@ const route = useRoute()
 const videoStore = useVideoStore()
 const detailStore = useVideoDetailStore()
 const playerStore = usePlayerStore()
-const { playback, loading, error } = storeToRefs(detailStore)
+const { playback, detail, loading, error } = storeToRefs(detailStore)
 const { clips } = storeToRefs(videoStore)
 
 const videoId = computed(() => {
@@ -22,9 +22,12 @@ const videoId = computed(() => {
   return typeof raw === 'string' && raw.trim() ? raw.trim() : null
 })
 
-const related = computed(
-  () => clips.value.find((item) => item.vid === videoId.value) ?? null,
-)
+const related = computed(() => {
+  const cached = clips.value.find((item) => item.vid === videoId.value)
+  if (cached) return cached
+  const meta = detail.value
+  return meta && meta.vid === videoId.value ? meta : null
+})
 const title = computed(() => related.value?.title || `视频 #${videoId.value ?? '未知'}`)
 const creator = computed(() => related.value?.creatorName || '')
 

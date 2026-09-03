@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { getHallVideos, getVideoGroups, getVideoUrl } from '@/api/video'
+import { getHallVideos, getVideoDetail, getVideoGroups, getVideoUrl } from '@/api/video'
 import { VIDEO_HALL_PAGE_SIZE } from '@/models/video'
 
 const client = (response: unknown) => {
@@ -115,5 +115,37 @@ describe('Video API', () => {
       id: 'VID001',
       url: 'https://media.example.com/full.mp4',
     })
+  })
+
+  it('unwraps /video/detail title and creator when the vid matches', async () => {
+    const request = client({
+      data: {
+        coverUrl: 'https://images.example.com/clip.jpg',
+        creator: { extra: true, nickname: '林间电台' },
+        extra: true,
+        title: '晚风现场',
+        vid: 'VID001',
+      },
+    })
+
+    await expect(getVideoDetail('VID001', request.client)).resolves.toEqual({
+      coverUrl: 'https://images.example.com/clip.jpg',
+      creatorName: '林间电台',
+      title: '晚风现场',
+      vid: 'VID001',
+    })
+    expect(request.get).toHaveBeenCalledWith('/video/detail', { id: 'VID001' })
+  })
+
+  it('rejects empty or mismatched detail payloads', async () => {
+    for (const response of [
+      { data: null },
+      { data: { title: '晚风现场', vid: 'VID999' } },
+      { data: { vid: 'VID001' } },
+    ]) {
+      await expect(
+        getVideoDetail('VID001', client(response).client),
+      ).rejects.toThrow('视频详情格式不正确')
+    }
   })
 })

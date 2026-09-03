@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.69.0`<br>
+> 文档版本：`0.70.0`<br>
 > 版本快照日期：`2026-09-03`<br>
-> 当前阶段：**实施第 65 轮相关 MV 已写入工作区（未 commit）；播放条保持深色**
+> 当前阶段：**实施第 66 轮视频详情资料已写入工作区（未 commit）；播放条保持深色**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -800,12 +800,21 @@ build: {
 
 - MV 详情页相关视频打开另一支 `#/mvDetail`，歌手打开 `#/artistDetail`，不打开封面里的 MV；
 - 108 个测试文件、501 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
-- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（LOW 保留）；独立核验 PASS（`56221`/`56231`）；未 commit、未 push；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（LOW 保留）；独立核验 PASS（`56221`/`56231`）；随后提交为 `0f757e7`；
 - 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 72. 主要官方资料
+## 72. 实施第 66 轮结果
+
+- 直达视频详情用 `/video/detail` 显示标题和作者，不依赖大厅缓存；
+- 108 个测试文件、508 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（LOW 保留）；独立核验 PASS（`56421`/`56431`）；未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 73. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

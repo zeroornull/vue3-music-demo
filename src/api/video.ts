@@ -3,6 +3,7 @@ import {
   VIDEO_HALL_PAGE_SIZE,
   type HallVideo,
   type HallVideoPage,
+  type VideoDetail,
   type VideoGroup,
   type VideoUrl,
 } from '@/models/video'
@@ -125,4 +126,29 @@ export async function getVideoUrl(
     parsed.find((item) => item.id === vid) ?? parsed.find((item) => !item.id)
   if (!match) throw new Error('视频暂无可播放地址')
   return { ...match, id: match.id || vid }
+}
+
+export async function getVideoDetail(
+  id: string,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<VideoDetail> {
+  const vid = id.trim()
+  if (!vid) throw new Error('缺少有效的视频 ID')
+  const response = await client.get<{ data?: unknown }>('/video/detail', { id: vid })
+  const raw = response.data
+  if (
+    !isRecord(raw) ||
+    typeof raw.vid !== 'string' ||
+    raw.vid.trim() !== vid ||
+    typeof raw.title !== 'string' ||
+    !raw.title.trim()
+  ) {
+    throw new Error('视频详情格式不正确')
+  }
+  return {
+    coverUrl: typeof raw.coverUrl === 'string' ? raw.coverUrl : '',
+    creatorName: readCreatorName(raw.creator),
+    title: raw.title.trim(),
+    vid,
+  }
 }
