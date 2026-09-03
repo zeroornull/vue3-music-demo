@@ -33,6 +33,28 @@ const PlayerStub = defineComponent({
   template: '<video data-testid="mv-player" :src="src" :aria-label="title" />',
 })
 
+const RouterLinkStub = defineComponent({
+  name: 'RouterLink',
+  props: ['to'],
+  template: '<a><slot /></a>',
+})
+
+const relatedMv = {
+  alg: 'featured',
+  artistId: 401,
+  artistName: '林间电台',
+  artists: [{ id: 401, name: '林间电台' }],
+  canDislike: false,
+  copywriter: '热门推荐',
+  duration: 238_000,
+  id: 701,
+  name: '晚风来信 · Live',
+  picUrl: 'https://images.example.com/mv.jpg',
+  playCount: 3_280_000,
+  subed: false,
+  type: 1,
+}
+
 async function mountView(query: Record<string, string> = { id: '701' }) {
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -43,10 +65,19 @@ async function mountView(query: Record<string, string> = { id: '701' }) {
       plugins: [pinia, router],
       stubs: {
         MvPlayer: PlayerStub,
-        RouterLink: defineComponent({ template: '<a><slot /></a>' }),
+        RouterLink: RouterLinkStub,
       },
     },
   })
+}
+
+async function mountWithRelated(
+  related: typeof relatedMv = relatedMv,
+) {
+  const wrapper = await mountView({ id: String(related.id) })
+  useVideoStore().mvs = [related]
+  await flushPromises()
+  return wrapper
 }
 
 describe('MvView', () => {
@@ -144,6 +175,72 @@ describe('MvView', () => {
     await flushPromises()
 
     expect(wrapper.get('h1').text()).toBe('林间现场')
+    expect(wrapper.find('[data-testid="song-artist"]').exists()).toBe(false)
+    expect(wrapper.find('.artists').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('未知艺人')
+  })
+
+  it('links positive artist ids from personalized cache', async () => {
+    const wrapper = await mountWithRelated({
+      ...relatedMv,
+      artists: [
+        { id: 401, name: '林间电台' },
+        { id: 402, name: '海岸信号' },
+      ],
+    })
+    const artists = wrapper.findAll('[data-testid="song-artist"]')
+    expect(artists).toHaveLength(2)
+    expect(artists[0]?.text()).toBe('林间电台')
+    expect(artists[0]?.attributes('aria-label')).toBe('打开歌手：林间电台')
+    expect(wrapper.get('.mv-copy').find('[data-testid="song-artist"]').exists()).toBe(
+      true,
+    )
+    expect(wrapper.get('[data-testid="mv-player"]').find('[data-testid="song-artist"]').exists()).toBe(
+      false,
+    )
+    const artistLinks = wrapper
+      .findAllComponents(RouterLinkStub)
+      .filter((link) => link.attributes('data-testid') === 'song-artist')
+    expect(artistLinks[0]?.props('to')).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 401 },
+    })
+    expect(artistLinks[1]?.props('to')).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 402 },
+    })
+    await artists[0]?.trigger('click')
+    expect(wrapper.get('[data-testid="mv-player"]').attributes('src')).toBe(
+      playback.url,
+    )
+  })
+
+  it('shows artist names as text when artist id is missing', async () => {
+    const wrapper = await mountWithRelated({
+      ...relatedMv,
+      artistId: 0,
+      artists: [{ id: 0, name: '未入驻歌手' }],
+    })
+    expect(wrapper.find('[data-testid="song-artist"]').exists()).toBe(false)
+    expect(wrapper.get('.mv-copy').text()).toContain('未入驻歌手')
+  })
+
+  it('falls back to artistId when the artists list is empty', async () => {
+    const wrapper = await mountWithRelated({
+      ...relatedMv,
+      artists: [],
+    })
+    const artist = wrapper.get('[data-testid="song-artist"]')
+    expect(artist.text()).toBe('林间电台')
+    expect(
+      wrapper
+        .findAllComponents(RouterLinkStub)
+        .find((link) => link.attributes('data-testid') === 'song-artist')
+        ?.props('to'),
+    ).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 401 },
+    })
   })
 
   it('resets cached playback when the route id is removed', async () => {

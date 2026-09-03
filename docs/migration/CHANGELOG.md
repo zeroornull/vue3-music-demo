@@ -1,5 +1,17 @@
 # 迁移文档变更记录
 
+## 0.66.0 - 2026-09-03
+
+### 实施第 62 轮：MV 详情歌手
+
+- MV 详情页头歌手名做成 `RouterLink`，正整数 `artist.id` 指向 `#/artistDetail?id=`；零或缺省 id 仍是文本；没有 `artists` 时，正整数 `artistId` 配 `artistName` 仍可链接，否则隐藏；个性化缓存未命中不显示「未知艺人」；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、481 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:55521` + mock `127.0.0.1:55531`：Discover 点 MV 封面进 `#/mvDetail?id=701`，页头歌手 `href="#/artistDetail?id=401"`，不在播放器内，点击后 hash 相同，标题「林间电台」，未打开播放条；测完已停服务；
+- 独立审查先 PASS WITH FINDINGS（MEDIUM：独家/缓存未命中未锁「未知艺人」；LOW：缺 id 夹具把 artistId 置 0、播放器内嵌检查恒空、stub 点击不能证明跳转）。已补独家路径断言后复审 PASS，LOW 保留；独立核验 PASS，隔离 smoke `55621`/`55631`；
+- 第 61 轮已提交 `cab4659`；第 62 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
 ## 0.65.0 - 2026-09-02
 
 ### 实施第 61 轮：MV 卡片歌手

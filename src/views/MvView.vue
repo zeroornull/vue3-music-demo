@@ -36,20 +36,10 @@ const title = computed(() => {
     typeof exclusive.value?.name === 'string' ? exclusive.value.name.trim() : ''
   return relatedName || exclusiveName || `MV #${mvId.value ?? '未知'}`
 })
-const artists = computed(() => {
-  if (!related.value) return ''
-  const artistName =
-    typeof related.value.artistName === 'string'
-      ? related.value.artistName.trim()
-      : ''
-  if (artistName) return artistName
-  return related.value.artists
-    .map((artist) =>
-      typeof artist.name === 'string' ? artist.name.trim() : '',
-    )
-    .filter(Boolean)
-    .join(' / ')
-})
+const namedArtists = computed(() =>
+  (related.value?.artists ?? []).filter((artist) => artist.name.trim()),
+)
+const artistName = computed(() => related.value?.artistName?.trim() || '')
 
 function requestMv(force = false) {
   const id = mvId.value
@@ -118,7 +108,36 @@ watch(
       <header class="mv-copy">
         <p class="eyebrow">Music video</p>
         <h1>{{ title }}</h1>
-        <p v-if="artists">{{ artists }}</p>
+        <p v-if="namedArtists.length || artistName" class="artists">
+          <template v-if="namedArtists.length">
+            <template
+              v-for="(artist, index) in namedArtists"
+              :key="`${artist.id ?? 'x'}-${artist.name}`"
+            >
+              <span v-if="index > 0"> / </span>
+              <RouterLink
+                v-if="typeof artist.id === 'number' && Number.isInteger(artist.id) && artist.id > 0"
+                data-testid="song-artist"
+                :to="{ name: Pages.artistDetail, query: { id: artist.id } }"
+                :aria-label="`打开歌手：${artist.name.trim()}`"
+                @click.stop
+              >
+                {{ artist.name.trim() }}
+              </RouterLink>
+              <span v-else>{{ artist.name.trim() }}</span>
+            </template>
+          </template>
+          <RouterLink
+            v-else-if="typeof related?.artistId === 'number' && Number.isInteger(related.artistId) && related.artistId > 0 && artistName"
+            data-testid="song-artist"
+            :to="{ name: Pages.artistDetail, query: { id: related.artistId } }"
+            :aria-label="`打开歌手：${artistName}`"
+            @click.stop
+          >
+            {{ artistName }}
+          </RouterLink>
+          <span v-else>{{ artistName }}</span>
+        </p>
       </header>
       <p v-if="error" class="notice error-notice" role="alert">{{ error }}</p>
       <MvPlayer :src="playback.url" :poster="related?.picUrl" :title="title" />
@@ -172,6 +191,21 @@ h1 {
 .mv-copy p:not(.eyebrow) {
   margin-top: 10px;
   color: var(--color-muted);
+}
+
+.artists a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.artists a:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.artists a:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .state-card {
