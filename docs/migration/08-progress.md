@@ -1,19 +1,19 @@
 # 08. 当前开发进度
 
 > 更新日期：`2026-09-02`<br>
-> 文档版本：`0.62.0`<br>
-> 对照提交：`b180b1c`（实施第 57 轮已在当前 HEAD）<br>
-> 工作区：实施第 58 轮代码已写入，**尚未 commit / push**
+> 文档版本：`0.63.0`<br>
+> 对照提交：`4ccb78f`（实施第 58 轮已在当前 HEAD）<br>
+> 工作区：实施第 59 轮代码已写入，**尚未 commit / push**
 
 本文是后续轮次的入口。历史盘点见 [01-current-state-audit.md](./01-current-state-audit.md)，执行约束见 [03-migration-roadmap.md](./03-migration-roadmap.md)，逐轮证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
 ## 1. 一句话状态
 
-根工程是 Bun + Vue 3.5 + TypeScript 6 + Vite 8。Discover、播放器（含封面进专辑、播放条歌手、队列歌手、队列专辑）、歌单、MV、音乐馆、歌手馆、电台大厅（含付费标记）、搜索页、顶栏搜索弹出层（含单曲 MV 和单曲歌手）、专辑介绍、应用壳、视频大厅、Banner 详情跳转、顶栏视频入口、Host 文案、深浅色主题、内容卡片主题、歌曲 MV 入口、歌曲行专辑、新歌卡片专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑和顶栏搜索歌手已经能用。独立 P5 治理轮仍没有产品缺口可修。
+根工程是 Bun + Vue 3.5 + TypeScript 6 + Vite 8。Discover、播放器（含封面进专辑、播放条歌手、队列歌手、队列专辑）、歌单、MV、音乐馆、歌手馆、电台大厅（含付费标记）、搜索页、顶栏搜索弹出层（含单曲 MV、单曲歌手和单曲专辑）、专辑介绍、应用壳、视频大厅、Banner 详情跳转、顶栏视频入口、Host 文案、深浅色主题、内容卡片主题、歌曲 MV 入口、歌曲行专辑、新歌卡片专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手和顶栏搜索专辑已经能用。独立 P5 治理轮仍没有产品缺口可修。
 
 ## 2. 路线图对照
 
-原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-068](./06-decision-log.md)。
+原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-069](./06-decision-log.md)。
 
 | 路线图阶段 | 目标 | 状态 | 对应轮次 | 缺口 |
 | --- | --- | --- | --- | --- |
@@ -21,8 +21,8 @@
 | P1 legacy 归档 | 旧工程移入 `legacy/` | **完成** | 实施第 1 轮 | 无 |
 | P2 现代空壳 | Bun + Vue + TS + Vite | **完成** | 实施第 2 轮 | TypeScript 固定 6.0.3，待 `vue-tsc` 支持 TS 7 |
 | P3 基础设施 | Router、Pinia、API、主题、自动组件 | **部分完成** | 实施第 3、18、41、43–46 轮 | 顶栏含搜索弹出层、视频入口和深浅色切换；Host 文案已改；内容卡片已跟主题变量；无 Element Plus、无 Sass/Tailwind、无自动组件 |
-| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–58 轮 | Discover、播放器（含封面进专辑、播放条歌手、队列歌手、队列专辑）、歌单、MV、排行榜、分类、精选、歌手馆、电台（含付费标记）、搜索多类型、顶栏搜索（含单曲 MV 和单曲歌手）、专辑介绍、应用壳、`#/video`（含顶栏入口）、Banner 详情跳转、Host 文案、主题切换、内容卡片主题、歌曲 MV 入口、歌曲行专辑、新歌卡片专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑和顶栏搜索歌手完成；专辑空评论未做 |
-| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–58 轮内嵌 | 类型检查已过；无产品 `any`；直接依赖已精简。独立治理轮仍无未解释错误可修 |
+| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–59 轮 | Discover、播放器（含封面进专辑、播放条歌手、队列歌手、队列专辑）、歌单、MV、排行榜、分类、精选、歌手馆、电台（含付费标记）、搜索多类型、顶栏搜索（含单曲 MV、单曲歌手和单曲专辑）、专辑介绍、应用壳、`#/video`（含顶栏入口）、Banner 详情跳转、Host 文案、主题切换、内容卡片主题、歌曲 MV 入口、歌曲行专辑、新歌卡片专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手和顶栏搜索专辑完成；专辑空评论未做 |
+| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–59 轮内嵌 | 类型检查已过；无产品 `any`；直接依赖已精简。独立治理轮仍无未解释错误可修 |
 | P6 Tailwind 4 | 新样式入口和视觉收敛 | **未开始** | — | 当前页面继续使用 scoped CSS |
 | P7 发布闭环 | `dist/`、CI、学习总结 | **未开始** | — | 无 CI；GitHub Pages 未切到新产物 |
 
@@ -88,12 +88,13 @@
 | 实施第 55 轮 | 2026-09-02 | 播放条歌手 | 108 文件 / 466 测试 | `70044de` |
 | 实施第 56 轮 | 2026-09-02 | 队列歌手 | 108 文件 / 468 测试 | `a80ea4d` |
 | 实施第 57 轮 | 2026-09-02 | 队列专辑 | 108 文件 / 470 测试 | `b180b1c` |
-| 实施第 58 轮 | 2026-09-02 | 顶栏搜索歌手 | 108 文件 / 472 测试 | **工作区未提交** |
+| 实施第 58 轮 | 2026-09-02 | 顶栏搜索歌手 | 108 文件 / 472 测试 | `4ccb78f` |
+| 实施第 59 轮 | 2026-09-02 | 顶栏搜索专辑 | 108 文件 / 474 测试 | **工作区未提交** |
 
-第 58 轮文档对齐时的当前门禁输出：
+第 59 轮文档对齐时的当前门禁输出：
 
 ```text
-bun run test       108 files / 472 tests passed
+bun run test       108 files / 474 tests passed
 bun run typecheck  PASS
 bun run build      366 modules transformed, dist/ 输出
 bun install --frozen-lockfile  PASS
@@ -101,11 +102,11 @@ bun audit          No vulnerabilities found (checked 185 packages)
 git diff --check   PASS
 ```
 
-第 58 轮已完成本地 mock API 浏览器 smoke，未打真实网易云。未 commit、未 push。独立审查 PASS WITH FINDINGS（LOW：`.hit-main` 未单测、未知歌手未单测、artist-link 块重复）。独立核验 PASS，隔离 smoke `54821`/`54831`。作者 smoke 测完已停 `54721`/`54731`。
+第 59 轮已完成本地 mock API 浏览器 smoke，未打真实网易云。未 commit、未 push。独立审查 PASS WITH FINDINGS（LOW：模板重复调用 helper、testid 唯一性未锁）。独立核验 PASS，隔离 smoke `55021`/`55031`。作者 smoke 测完已停 `54921`/`54931`。
 
-顶栏搜索歌手：正整数歌手 id 的兄弟链接进 `#/artistDetail`，点击不播放并关弹出层。播放条仍深色。
+顶栏搜索专辑：正整数专辑 id 的兄弟链接进 `#/album`，点击不播放并关弹出层。播放条仍深色。
 
-本地 smoke 使用 Vite `127.0.0.1:54721` 和 mock API `127.0.0.1:54731`：搜索「夜航」后弹出层歌手 `href="#/artistDetail?id=401"`，不在播放按钮内，点击后 hash 相同，标题「林间电台」，弹出层关闭，未打开播放条。核验复跑隔离口 `54821`/`54831`。
+本地 smoke 使用 Vite `127.0.0.1:54921` 和 mock API `127.0.0.1:54931`：搜索「夜航」后弹出层专辑 `href="#/album?id=501"`，不在播放按钮内，点击后 hash 相同，标题「晚风来信」，弹出层关闭，未打开播放条。核验复跑隔离口 `55021`/`55031`。
 
 ## 4. 当前根工程能力
 
@@ -126,13 +127,13 @@ Song.mv                    正整数；搜索 suggest 读 mvid
 PlaylistSongItem           MV → #/mvDetail?id=；专辑名 → #/album?id=
 PlayerQueueDrawer          MV / 歌手 / 专辑兄弟链接，点击关抽屉
 NewSongCard                MV / 专辑 / 歌手兄弟链接
-HeaderSearchPop            单曲 MV / 歌手兄弟链接，点击关弹出层
+HeaderSearchPop            单曲 MV / 歌手 / 专辑兄弟链接，点击关弹出层
 PlayerBar                  封面 picUrl / album.picUrl；正整数 album.id → #/album；正整数 artist.id → #/artistDetail
 ```
 
 ### 4.3 已安装直接依赖
 
-第 58 轮未新增依赖。
+第 59 轮未新增依赖。
 
 ## 5. 与 legacy 的功能差距
 
@@ -153,17 +154,17 @@ PlayerBar                  封面 picUrl / album.picUrl；正整数 album.id →
 | 队列歌手 | 点歌手会播歌 | 兄弟链接进 `#/artistDetail`，点击关抽屉 | 完成 |
 | 队列专辑 | 无独立专辑入口 | 兄弟链接进 `#/album`，点击关抽屉 | 完成 |
 | 顶栏搜索歌手 | 单曲行无歌手入口 | 兄弟链接进 `#/artistDetail`，点击关弹出层 | 完成 |
-| 顶栏搜索专辑 | 单曲行无专辑入口 | 未迁 | 下一轮候选 |
+| 顶栏搜索专辑 | 单曲行无专辑入口 | 兄弟链接进 `#/album`，点击关弹出层 | 完成 |
 
 ## 6. 质量与文档缺口
 
-已通过第 58 轮当前门禁：108 个测试文件 / 472 个测试、两套 typecheck、366 modules build、frozen lock、audit 和 `git diff --check`。
+已通过第 59 轮当前门禁：108 个测试文件 / 474 个测试、两套 typecheck、366 modules build、frozen lock、audit 和 `git diff --check`。
 
-仍存在、但不阻塞第 58 轮的缺口：播放条仍用深色常量、顶栏搜索单曲行无专辑入口、无 lint/E2E/CI。专辑空评论、登录未迁。
+仍存在、但不阻塞第 59 轮的缺口：播放条仍用深色常量、无 lint/E2E/CI。专辑空评论、登录未迁。
 
 ## 7. 建议的下一轮
 
-**播放条保持深色。** 顶栏搜索歌手已接到 `#/artistDetail`。登录、专辑空评论、Tailwind 4、CI、Element Plus 继续跳过。独立 P5 治理轮仍无产品缺口可修。
+**播放条保持深色。** 顶栏搜索专辑已接到 `#/album`。登录、专辑空评论、Tailwind 4、CI、Element Plus 继续跳过。独立 P5 治理轮仍无产品缺口可修。
 
 ## 8. 文档怎么读
 
@@ -179,4 +180,4 @@ PlayerBar                  封面 picUrl / album.picUrl；正整数 album.id →
 | [CHANGELOG](./CHANGELOG.md) | 追加日志 | 文档版本 |
 | **本文** | **活文档** | **先读这个，再开工** |
 
-> 状态更新（2026-09-02）：第 57 轮已在当前 HEAD `b180b1c` 完成。第 58 轮已写入工作区（独立审查 PASS WITH FINDINGS / 核验 PASS）；播放条仍深色，专辑空评论仍未迁。
+> 状态更新（2026-09-02）：第 58 轮已在当前 HEAD `4ccb78f` 完成。第 59 轮已写入工作区（独立审查 PASS WITH FINDINGS / 核验 PASS）；播放条仍深色，专辑空评论仍未迁。

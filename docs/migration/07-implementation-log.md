@@ -5581,3 +5581,68 @@ mock API http://127.0.0.1:54731
 ### 60.4 本轮结果
 
 顶栏搜索歌手已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM。独立核验 PASS：复跑 108/472、typecheck、366 modules；隔离 smoke `54821`/`54831`。第 57 轮提交 `b180b1c` 仍是当前 HEAD；第 58 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 61. 实施第 59 轮：顶栏搜索专辑（工作区）
+
+> 执行日期：`2026-09-02`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 61.1 开始边界与范围
+
+第 59 轮开始时第 58 轮已经提交：
+
+```text
+HEAD 4ccb78f
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者/消费者：顶栏搜索单曲专辑名 → 已有 `#/album`。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 61.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       474 passed (474)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS (166 installs / 189 packages, no changes)
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。全量套件第一次在并行负载下 flaked Discover 横幅点播；隔离复跑 DiscoverView 8/8，随后全量 108/474 通过。
+
+### 61.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:54921
+mock API http://127.0.0.1:54931
+```
+
+验证步骤：
+
+1. `#/discover` 顶栏搜索输入「夜航」；
+2. 弹出层单曲专辑 `href="#/album?id=501"`，`aria-label="打开专辑：晚风来信"`，不在播放按钮内；
+3. 点击后 hash 为 `#/album?id=501`，标题「晚风来信」，弹出层关闭，未打开播放条。
+
+独立审查 PASS WITH FINDINGS：LOW 模板重复调用 helper、testid 唯一性未锁。核验复跑隔离口 `55021`/`55031`。测完已停 `54921`/`54931`。未打真实网易云 API。
+
+### 61.4 本轮结果
+
+顶栏搜索专辑已在工作区。独立审查 PASS WITH FINDINGS：无 HIGH/MEDIUM。独立核验 PASS：复跑 108/474、typecheck、366 modules；隔离 smoke `55021`/`55031`。第 58 轮提交 `4ccb78f` 仍是当前 HEAD；第 59 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

@@ -250,4 +250,56 @@ describe('HeaderSearchPop', () => {
     expect(wrapper.get('[data-testid="header-search-pop"]').text()).toContain('未入驻歌手')
     wrapper.unmount()
   })
+
+  it('links a suggested song album without playing and closes', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      ...suggest,
+      songs: [
+        {
+          ...song,
+          album: { id: 501, name: '晚风来信' },
+        },
+      ],
+    })
+    const { wrapper } = await mountPop()
+    const input = wrapper.get('[data-testid="header-search-input"]')
+    await input.trigger('focus')
+    await input.setValue('夜航')
+    await input.trigger('input')
+    await vi.advanceTimersByTimeAsync(400)
+    await flushPromises()
+
+    const album = wrapper.get('[data-testid="song-album"]')
+    expect(album.text()).toBe('晚风来信')
+    expect(album.attributes('aria-label')).toBe('打开专辑：晚风来信')
+    expect(
+      wrapper.get('[data-testid="header-search-play"]').find('[data-testid="song-album"]').exists(),
+    ).toBe(false)
+    expect(album.attributes('data-to')).toBe(
+      JSON.stringify({ name: Pages.album, query: { id: 501 } }),
+    )
+    await album.trigger('click')
+    await flushPromises()
+    expect(playSong).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="header-search-pop"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('shows the album name as text when album id is missing', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      ...suggest,
+      albums: [],
+      songs: [{ ...song, album: { id: 0, name: '草稿专辑' } }],
+    })
+    const { wrapper } = await mountPop()
+    const input = wrapper.get('[data-testid="header-search-input"]')
+    await input.trigger('focus')
+    await input.setValue('夜航')
+    await input.trigger('input')
+    await vi.advanceTimersByTimeAsync(400)
+    await flushPromises()
+    expect(wrapper.find('[data-testid="song-album"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="header-search-pop"]').text()).toContain('草稿专辑')
+    wrapper.unmount()
+  })
 })

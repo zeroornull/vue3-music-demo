@@ -144,6 +144,15 @@ function namedArtists(song: Song) {
   return song.artists.filter((artist) => artist.name.trim())
 }
 
+function albumId(song: Song) {
+  const id = song.album?.id
+  return typeof id === 'number' && Number.isInteger(id) && id > 0 ? id : null
+}
+
+function albumName(song: Song) {
+  return song.album?.name.trim() || '未知专辑'
+}
+
 function playSong(song: Song) {
   close()
   void playerStore.play(song).catch(() => undefined)
@@ -263,16 +272,29 @@ onUnmounted(() => {
                   <span v-else>未知歌手</span>
                 </span>
               </div>
-              <RouterLink
-                v-if="isPositiveMvId(song.mv)"
-                data-testid="song-mv"
-                class="song-mv"
-                :to="{ name: Pages.mvDetail, query: { id: song.mv } }"
-                :aria-label="`打开 MV：${song.name}`"
-                @click.stop="close()"
-              >
-                MV
-              </RouterLink>
+              <div class="hit-side">
+                <RouterLink
+                  v-if="albumId(song)"
+                  data-testid="song-album"
+                  class="song-album"
+                  :to="{ name: Pages.album, query: { id: albumId(song) } }"
+                  :aria-label="`打开专辑：${albumName(song)}`"
+                  @click.stop="close()"
+                >
+                  {{ albumName(song) }}
+                </RouterLink>
+                <span v-else class="song-album is-text">{{ albumName(song) }}</span>
+                <RouterLink
+                  v-if="isPositiveMvId(song.mv)"
+                  data-testid="song-mv"
+                  class="song-mv"
+                  :to="{ name: Pages.mvDetail, query: { id: song.mv } }"
+                  :aria-label="`打开 MV：${song.name}`"
+                  @click.stop="close()"
+                >
+                  MV
+                </RouterLink>
+              </div>
             </li>
           </ul>
         </section>
@@ -457,7 +479,17 @@ input:focus-visible {
   outline-offset: 2px;
 }
 
+.hit-side {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  min-width: 0;
+}
+
+.song-album,
 .song-mv {
+  max-width: 8rem;
+  overflow: hidden;
   padding: 4px 8px;
   border-radius: 999px;
   color: var(--color-accent);
@@ -465,10 +497,19 @@ input:focus-visible {
   font-weight: 720;
   letter-spacing: 0.06em;
   text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song-album.is-text {
+  color: var(--color-muted);
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .song-hits button:focus-visible,
 .pop-state button:focus-visible,
+.song-album:focus-visible,
 .song-mv:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;

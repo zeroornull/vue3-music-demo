@@ -61,7 +61,8 @@ Vue3 Music 的现代化迁移版本。当前根工程已经完成 Bun/Vue 空壳
 - 实施第 55 轮：播放条歌手——已完成并提交 `70044de`；
 - 实施第 56 轮：队列歌手——已完成并提交 `a80ea4d`；
 - 实施第 57 轮：队列专辑——已完成并提交 `b180b1c`；
-- 实施第 58 轮：顶栏搜索歌手——代码已写入工作区，尚未 commit；
+- 实施第 58 轮：顶栏搜索歌手——已完成并提交 `4ccb78f`；
+- 实施第 59 轮：顶栏搜索专辑——代码已写入工作区，尚未 commit；
 - 下一轮：播放条保持深色。
 
 当前进度总览：[`docs/migration/08-progress.md`](./docs/migration/08-progress.md)。完整迁移资料见 [`docs/migration/`](./docs/migration/README.md)。
