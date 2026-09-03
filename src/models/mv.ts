@@ -10,6 +10,15 @@ export interface MvUrl {
   size?: number
 }
 
+export interface MvDetail {
+  artistId: number
+  artistName: string
+  artists: MvArtistSummary[]
+  id: number
+  name: string
+  picUrl: string
+}
+
 export interface PersonalizedMv {
   alg: string
   artistId: number

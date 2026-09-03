@@ -1,5 +1,5 @@
 import { http, type HttpClient } from '@/api/http'
-import type { MvUrl, PersonalizedMv } from '@/models/mv'
+import type { MvArtistSummary, MvDetail, MvUrl, PersonalizedMv } from '@/models/mv'
 
 interface PersonalizedMvResponse {
   result: PersonalizedMv[]
@@ -43,5 +43,57 @@ export async function getMvUrl(
     url: raw.url.trim(),
     ...(typeof raw.r === 'number' ? { r: raw.r } : {}),
     ...(typeof raw.size === 'number' ? { size: raw.size } : {}),
+  }
+}
+
+function readPositiveId(value: unknown): number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+    ? value
+    : 0
+}
+
+function readArtists(value: unknown): MvArtistSummary[] {
+  if (!Array.isArray(value)) return []
+  const artists: MvArtistSummary[] = []
+  for (const item of value) {
+    if (!isRecord(item) || typeof item.name !== 'string' || !item.name.trim()) {
+      continue
+    }
+    artists.push({
+      id: readPositiveId(item.id),
+      name: item.name.trim(),
+    })
+  }
+  return artists
+}
+
+export async function getMvDetail(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MvDetail> {
+  const response = await client.get<{ data?: unknown }>('/mv/detail', { mvid: id })
+  const raw = response.data
+  if (
+    !isRecord(raw) ||
+    raw.id !== id ||
+    typeof raw.name !== 'string'
+  ) {
+    throw new Error('MV 详情格式不正确')
+  }
+  const artistName =
+    typeof raw.artistName === 'string' ? raw.artistName.trim() : ''
+  const picUrl =
+    typeof raw.cover === 'string' && raw.cover.trim()
+      ? raw.cover.trim()
+      : typeof raw.picUrl === 'string'
+        ? raw.picUrl.trim()
+        : ''
+  return {
+    artistId: readPositiveId(raw.artistId),
+    artistName,
+    artists: readArtists(raw.artists),
+    id: raw.id,
+    name: raw.name.trim(),
+    picUrl,
   }
 }

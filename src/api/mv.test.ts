@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { getMvUrl, getPersonalizedMvs } from '@/api/mv'
+import { getMvDetail, getMvUrl, getPersonalizedMvs } from '@/api/mv'
 
 const mv = {
   alg: 'featured',
@@ -74,6 +74,78 @@ describe('MV URL API', () => {
     ]) {
       await expect(getMvUrl(701, client(response).client)).rejects.toThrow(
         'MV 暂无可播放地址',
+      )
+    }
+  })
+})
+
+describe('MV detail API', () => {
+  const client = (response: unknown) => {
+    const get = vi.fn(
+      async <T>(_path: string, _params?: unknown) => response as T,
+    )
+    return { client: { get } as Pick<HttpClient, 'get'>, get }
+  }
+
+  it('unwraps /mv/detail artists and cover when the ID matches', async () => {
+    const request = client({
+      data: {
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [
+          { id: 401, name: '林间电台' },
+          { extra: true, id: 402, name: '海岸信号' },
+        ],
+        cover: 'https://images.example.com/cover.jpg',
+        extra: true,
+        id: 701,
+        name: '晚风来信 · Live',
+      },
+    })
+
+    await expect(getMvDetail(701, request.client)).resolves.toEqual({
+      artistId: 401,
+      artistName: '林间电台',
+      artists: [
+        { id: 401, name: '林间电台' },
+        { id: 402, name: '海岸信号' },
+      ],
+      id: 701,
+      name: '晚风来信 · Live',
+      picUrl: 'https://images.example.com/cover.jpg',
+    })
+    expect(request.get).toHaveBeenCalledWith('/mv/detail', { mvid: 701 })
+  })
+
+  it('falls back to artistId when artists is empty', async () => {
+    const request = client({
+      data: {
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [],
+        id: 701,
+        name: '晚风来信 · Live',
+      },
+    })
+
+    await expect(getMvDetail(701, request.client)).resolves.toEqual({
+      artistId: 401,
+      artistName: '林间电台',
+      artists: [],
+      id: 701,
+      name: '晚风来信 · Live',
+      picUrl: '',
+    })
+  })
+
+  it('rejects empty or mismatched detail payloads', async () => {
+    for (const response of [
+      { data: null },
+      { data: { id: 702, name: '错号' } },
+      { data: { id: 701 } },
+    ]) {
+      await expect(getMvDetail(701, client(response).client)).rejects.toThrow(
+        'MV 详情格式不正确',
       )
     }
   })

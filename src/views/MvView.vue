@@ -13,7 +13,7 @@ const route = useRoute()
 const mvStore = useMvStore()
 const playerStore = usePlayerStore()
 const videoStore = useVideoStore()
-const { playback, loading, error } = storeToRefs(mvStore)
+const { playback, detail, loading, error } = storeToRefs(mvStore)
 const { mvs, privateContents } = storeToRefs(videoStore)
 
 const mvId = computed(() => {
@@ -23,9 +23,12 @@ const mvId = computed(() => {
   return Number.isInteger(id) && id > 0 ? id : null
 })
 
-const related = computed(
-  () => mvs.value.find((item) => item.id === mvId.value) ?? null,
-)
+const related = computed(() => {
+  const cached = mvs.value.find((item) => item.id === mvId.value)
+  if (cached) return cached
+  const meta = detail.value
+  return meta && meta.id === mvId.value ? meta : null
+})
 const exclusive = computed(
   () => privateContents.value.find((item) => item.id === mvId.value) ?? null,
 )

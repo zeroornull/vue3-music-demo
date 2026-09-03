@@ -1,16 +1,31 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getMvUrl } from '@/api/mv'
+import { getMvDetail, getMvUrl } from '@/api/mv'
 import { useMvStore } from '@/stores/mv'
 
 vi.mock('@/api/mv', () => ({
+  getMvDetail: vi.fn(),
   getMvUrl: vi.fn(),
 }))
+
+const detail = {
+  artistId: 401,
+  artistName: '林间电台',
+  artists: [{ id: 401, name: '林间电台' }],
+  id: 701,
+  name: '晚风来信 · Live',
+  picUrl: 'https://images.example.com/cover.jpg',
+}
 
 const playback = {
   id: 701,
   url: 'https://media.example.com/mv.mp4',
+}
+
+async function settle() {
+  await Promise.resolve()
+  await Promise.resolve()
 }
 
 function deferred<T>() {
@@ -25,6 +40,8 @@ describe('mv store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.mocked(getMvUrl).mockReset()
+    vi.mocked(getMvDetail).mockReset()
+    vi.mocked(getMvDetail).mockRejectedValue(new Error('no detail'))
   })
 
   it('loads an MV URL and caches the same id', async () => {
@@ -107,13 +124,86 @@ describe('mv store', () => {
     expect(store.error).toBeNull()
   })
 
+  it('loads MV detail with the URL and ignores a detail failure', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvDetail).mockResolvedValue(detail)
+    const store = useMvStore()
+
+    await store.load(701)
+    await settle()
+    await store.load(701)
+
+    expect(store.playback).toEqual(playback)
+    expect(store.detail).toEqual(detail)
+    expect(getMvUrl).toHaveBeenCalledTimes(1)
+    expect(getMvDetail).toHaveBeenCalledTimes(1)
+    expect(getMvDetail).toHaveBeenCalledWith(701)
+  })
+
+  it('keeps playback when MV detail fails', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvDetail).mockRejectedValue(new Error('detail offline'))
+    const store = useMvStore()
+
+    await store.load(701)
+    await settle()
+
+    expect(store.playback).toEqual(playback)
+    expect(store.detail).toBeNull()
+    expect(store.error).toBeNull()
+    expect(store.loading).toBe(false)
+  })
+
+  it('retries detail on a cached URL when the first detail request failed', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvDetail)
+      .mockRejectedValueOnce(new Error('detail offline'))
+      .mockResolvedValueOnce(detail)
+    const store = useMvStore()
+
+    await store.load(701)
+    await settle()
+    expect(store.detail).toBeNull()
+
+    await store.load(701)
+    await settle()
+
+    expect(getMvUrl).toHaveBeenCalledTimes(1)
+    expect(getMvDetail).toHaveBeenCalledTimes(2)
+    expect(store.detail).toEqual(detail)
+  })
+
+  it('does not keep a stale detail after the MV id changes', async () => {
+    const first = deferred<typeof detail>()
+    const nextPlayback = { id: 702, url: 'https://media.example.com/next.mp4' }
+    const nextDetail = { ...detail, id: 702, name: '下一支' }
+    vi.mocked(getMvUrl)
+      .mockResolvedValueOnce(playback)
+      .mockResolvedValueOnce(nextPlayback)
+    vi.mocked(getMvDetail)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce(nextDetail)
+    const store = useMvStore()
+
+    await store.load(701)
+    await store.load(702)
+    await settle()
+    first.resolve(detail)
+    await settle()
+
+    expect(store.playback?.id).toBe(702)
+    expect(store.detail).toEqual(nextDetail)
+  })
+
   it('reset drops cached playback', async () => {
     vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvDetail).mockResolvedValue(detail)
     const store = useMvStore()
     await store.load(701)
     store.reset()
 
     expect(store.playback).toBeNull()
+    expect(store.detail).toBeNull()
     expect(store.loadedId).toBeNull()
     expect(store.error).toBeNull()
   })
