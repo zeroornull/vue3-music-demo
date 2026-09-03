@@ -125,7 +125,9 @@ describe('App host gate', () => {
     artistStore.loadedId = 401
     artistStore.mvs = [
       {
+        artistId: 401,
         artistName: '林间电台',
+        artists: [{ id: 401, name: '林间电台' }],
         duration: 1,
         id: 701,
         name: '晚风来信 · Live',

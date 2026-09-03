@@ -126,6 +126,15 @@ describe('Artist API', () => {
           name: '备选封面',
           playCount: 1,
         },
+        {
+          artistId: 403,
+          artistName: '海岸信号',
+          duration: 1,
+          id: 703,
+          imgurl: 'https://images.example.com/side.jpg',
+          name: '无嵌套歌手',
+          playCount: 1,
+        },
       ],
     })
 
@@ -135,7 +144,9 @@ describe('Artist API', () => {
       more: true,
       mvs: [
         {
+          artistId: 401,
           artistName: '林间电台',
+          artists: [{ id: 401, name: '林间电台' }],
           duration: 238_000,
           id: 701,
           name: '晚风来信 · Live',
@@ -143,11 +154,23 @@ describe('Artist API', () => {
           playCount: 3_280_000,
         },
         {
+          artistId: 0,
           artistName: '',
+          artists: [],
           duration: 1,
           id: 702,
           name: '备选封面',
           picUrl: 'https://images.example.com/fallback.jpg',
+          playCount: 1,
+        },
+        {
+          artistId: 403,
+          artistName: '海岸信号',
+          artists: [],
+          duration: 1,
+          id: 703,
+          name: '无嵌套歌手',
+          picUrl: 'https://images.example.com/side.jpg',
           playCount: 1,
         },
       ],

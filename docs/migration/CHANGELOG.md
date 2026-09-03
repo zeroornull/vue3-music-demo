@@ -1,5 +1,17 @@
 # 迁移文档变更记录
 
+## 0.67.0 - 2026-09-03
+
+### 实施第 63 轮：歌手 MV 歌手
+
+- `/artist/mv` 把嵌套 `artist.id`（否则顶层 `artistId`）写进 `ArtistMv.artistId`，具名 `artist` 写进 `artists[]`，歌手页 MV 卡片沿用 MvCard 链到 `#/artistDetail?id=`；点击不打开 MV；零或缺省 id 仍是文本；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、483 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:55721` + mock `127.0.0.1:55731`：`#/artistDetail?id=401` 打开视频 tab，MV 卡片歌手 `href="#/artistDetail?id=401"`，不在封面链接内，点击后仍在歌手页、未进 MV、标题「林间电台」，未打开播放条；测完已停服务；
+- 独立审查先 PASS WITH FINDINGS（MEDIUM：未锁顶层 `artistId` 回落；LOW：零 id 未走 API 夹具、整数门未单测、stub 点击不能证明不进 MV）。已补顶层 `artistId` 夹具后复审无剩余 HIGH/MEDIUM，LOW 保留；独立核验 PASS，隔离 smoke `55821`/`55831`；
+- 第 62 轮已提交 `6e59a87`；第 63 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
 ## 0.66.0 - 2026-09-03
 
 ### 实施第 62 轮：MV 详情歌手

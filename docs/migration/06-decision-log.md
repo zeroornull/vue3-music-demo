@@ -614,6 +614,14 @@
 - **原因**：推荐 MV 卡片歌手已能进歌手页（D-071），详情页头仍是纯文本；`PersonalizedMv` 已有 `artistId` 和 `artists`，`#/artistDetail` 已经能用。
 - **本轮不做**：登录、Tailwind 4、CI、专辑空评论、播放条换色、歌单行歌手 testid 对齐。
 
+### D-073：歌手页 MV 把 API 里的歌手 id 交给已有 MV 卡片
+
+- **状态**：已验证
+- **日期**：`2026-09-03`
+- **决策**：第 63 轮让 `/artist/mv` 保留正整数 `artist.id`（没有嵌套对象时用顶层 `artistId`），并映射具名 `artists[]`。歌手页 MV 网格继续用 MvCard，正整数 id 指向 `#/artistDetail?id=`。点击不打开 MV。零或缺省 id 仍是文本。播放条背景保持 `#172033`。
+- **原因**：接口 payload 已有 `artist: { id, name }`，解析只留了名字；MvCard 和 `#/artistDetail` 已经能用。
+- **本轮不做**：登录、Tailwind 4、CI、专辑空评论、播放条换色、歌单行歌手 testid 对齐、`/mv/detail`。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

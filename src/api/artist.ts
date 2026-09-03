@@ -100,6 +100,12 @@ export async function getArtistSongs(
   }
 }
 
+function readPositiveId(value: unknown): number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+    ? value
+    : 0
+}
+
 function readArtistMv(value: unknown): ArtistMv | null {
   if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
     return null
@@ -114,16 +120,23 @@ function readArtistMv(value: unknown): ArtistMv | null {
           : ''
   const artist = isRecord(value.artist) ? value.artist : null
   const artistName =
-    typeof value.artistName === 'string' && value.artistName
-      ? value.artistName
+    typeof value.artistName === 'string' && value.artistName.trim()
+      ? value.artistName.trim()
       : artist && typeof artist.name === 'string'
-        ? artist.name
+        ? artist.name.trim()
         : ''
+  const artistId = readPositiveId(artist?.id) || readPositiveId(value.artistId)
+  const artists =
+    artist && typeof artist.name === 'string' && artist.name.trim()
+      ? [{ id: readPositiveId(artist.id), name: artist.name.trim() }]
+      : []
   return {
     id: value.id,
     name: value.name,
     picUrl,
+    artistId,
     artistName,
+    artists,
     playCount: typeof value.playCount === 'number' ? value.playCount : 0,
     duration: typeof value.duration === 'number' ? value.duration : 0,
   }

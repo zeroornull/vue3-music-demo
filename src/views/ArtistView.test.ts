@@ -166,7 +166,9 @@ describe('ArtistView', () => {
       more: true,
       mvs: [
         {
+          artistId: 401,
           artistName: '林间电台',
+          artists: [{ id: 401, name: '林间电台' }],
           duration: 1,
           id: 701,
           name: '晚风来信 · Live',
@@ -270,7 +272,9 @@ describe('ArtistView', () => {
         more: false,
         mvs: [
           {
+            artistId: 401,
             artistName: '林间电台',
+            artists: [{ id: 401, name: '林间电台' }],
             duration: 1,
             id: 701,
             name: '晚风来信 · Live',
@@ -311,7 +315,9 @@ describe('ArtistView', () => {
       more: false,
       mvs: [
         {
+          artistId: 401,
           artistName: '林间电台',
+          artists: [{ id: 401, name: '林间电台' }],
           duration: 1,
           id: 702,
           name: '下一支',

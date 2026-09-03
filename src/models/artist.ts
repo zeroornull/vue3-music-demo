@@ -19,7 +19,9 @@ export interface ArtistMv {
   id: number
   name: string
   picUrl: string
+  artistId: number
   artistName: string
+  artists: { id: number; name: string }[]
   playCount: number
   duration: number
 }

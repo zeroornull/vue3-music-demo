@@ -5840,3 +5840,68 @@ mock API http://127.0.0.1:55531
 ### 64.4 本轮结果
 
 MV 详情歌手已在工作区。独立审查 PASS（MEDIUM 已补测）；独立核验 PASS：复跑 108/481、typecheck、366 modules；隔离 smoke `55621`/`55631`。第 61 轮提交 `cab4659` 仍是当前 HEAD；第 62 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 65. 实施第 63 轮：歌手 MV 歌手（工作区）
+
+> 执行日期：`2026-09-03`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 65.1 开始边界与范围
+
+第 63 轮开始时第 62 轮已经提交：
+
+```text
+HEAD 6e59a87
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者：`/artist/mv` 的 `artist.id` → 已有 MvCard / `#/artistDetail`。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 65.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       483 passed (483)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS (166 installs / 189 packages, no changes)
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 65.3 本地 mock API 浏览器 smoke
+
+本轮开始时 `3002` 空闲；隔离端口：
+
+```text
+Vite     http://127.0.0.1:55721
+mock API http://127.0.0.1:55731
+```
+
+验证步骤：
+
+1. `#/artistDetail?id=401` 打开视频 tab；
+2. MV 卡片歌手 `href="#/artistDetail?id=401"`，`aria-label="打开歌手：林间电台"`，不在封面链接内；
+3. 点击后仍为 `#/artistDetail?id=401`，未进 `mvDetail`，标题「林间电台」，未打开播放条。
+
+独立审查先 PASS WITH FINDINGS：MEDIUM 未锁顶层 `artistId` 回落；LOW 零 id 未走 API 夹具、整数门未单测、stub 点击不能证明不进 MV。已补顶层 `artistId` 夹具后复审无剩余 HIGH/MEDIUM，LOW 保留。核验复跑隔离口 `55821`/`55831`。测完已停 `55721`/`55731`。未打真实网易云 API。
+
+### 65.4 本轮结果
+
+歌手 MV 歌手已在工作区。独立审查 PASS WITH FINDINGS（MEDIUM 已补测，LOW 保留）。独立核验 PASS：复跑 108/483、typecheck、366 modules；隔离 smoke `55821`/`55831`。第 62 轮提交 `6e59a87` 仍是当前 HEAD；第 63 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

@@ -54,7 +54,9 @@ const album = {
 }
 
 const mv = {
+  artistId: 401,
   artistName: '林间电台',
+  artists: [{ id: 401, name: '林间电台' }],
   duration: 238_000,
   id: 701,
   name: '晚风来信 · Live',

@@ -5,6 +5,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import ArtistMvSection from '@/components/artist/ArtistMvSection.vue'
+import { Pages } from '@/router/pages'
 
 const CardStub = defineComponent({
   name: 'MvCard',
@@ -12,8 +13,16 @@ const CardStub = defineComponent({
   template: '<article>{{ mv.name }}</article>',
 })
 
+const RouterLinkStub = defineComponent({
+  name: 'RouterLink',
+  props: ['to'],
+  template: '<a><slot /></a>',
+})
+
 const mv = {
+  artistId: 401,
   artistName: '林间电台',
+  artists: [{ id: 401, name: '林间电台' }],
   duration: 238_000,
   id: 701,
   name: '晚风来信 · Live',
@@ -47,6 +56,50 @@ describe('ArtistMvSection', () => {
     })
     expect(wrapper.get('a').attributes('href')).toContain('"name":"mvDetail"')
     expect(wrapper.get('a').attributes('href')).toContain('"id":701')
+  })
+
+  it('links positive artist ids without opening the MV', async () => {
+    const wrapper = mount(ArtistMvSection, {
+      props: { mvs: [mv] },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    const artist = wrapper.get('[data-testid="song-artist"]')
+    expect(artist.text()).toBe('林间电台')
+    expect(artist.attributes('aria-label')).toBe('打开歌手：林间电台')
+    expect(wrapper.get('.mv-link').find('[data-testid="song-artist"]').exists()).toBe(
+      false,
+    )
+    expect(
+      wrapper
+        .findAllComponents(RouterLinkStub)
+        .find((link) => link.attributes('data-testid') === 'song-artist')
+        ?.props('to'),
+    ).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 401 },
+    })
+    await artist.trigger('click')
+    expect(wrapper.getComponent(RouterLinkStub).props('to')).toEqual({
+      name: Pages.mvDetail,
+      query: { id: 701 },
+    })
+  })
+
+  it('shows artist names as text when artist id is missing', () => {
+    const wrapper = mount(ArtistMvSection, {
+      props: {
+        mvs: [
+          {
+            ...mv,
+            artistId: 0,
+            artists: [{ id: 0, name: '未入驻歌手' }],
+          },
+        ],
+      },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.find('[data-testid="song-artist"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('未入驻歌手')
   })
 
   it('retries after an empty error state', async () => {
