@@ -646,6 +646,14 @@
 - **原因**：直达 `#/videoDetail` 时大厅 `clips` 为空，标题会落到 `视频 #id`；`/mv/detail` 已经用同一模式补过 MV 页。
 - **本轮不做**：登录、Tailwind 4、CI、专辑空评论、播放条换色、相关视频、用户主页链接。
 
+### D-077：视频详情页用 `/related/allvideo` 接相关视频
+
+- **状态**：已验证
+- **日期**：`2026-09-04`
+- **决策**：第 67 轮接入 `/related/allvideo?id=`。URL 成功后异步拉相关视频，失败不挡住播放。过滤当前 vid。同一 id 若 URL 已缓存而 `relatedVideos` 仍为 `null`，再试一次。网格复用 VideoClipCard。作者同时认 `creator.nickname` 和 `creator[].userName`。播放条背景保持 `#172033`。
+- **原因**：D-076 明确后置相关视频；Round 65 已用 `/simi/mv` + MvCard 接过 MV 详情。直达视频详情时大厅缓存为空，相关区必须自己拉。
+- **本轮不做**：登录、Tailwind 4、CI、专辑空评论、播放条换色、歌单行歌手 testid 对齐、用户主页链接。
+
 ## 2. 默认假设
 
 以下假设用于让文档可执行，但必须在对应阶段验证：

@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { getHallVideos, getVideoDetail, getVideoGroups, getVideoUrl } from '@/api/video'
+import {
+  getHallVideos,
+  getRelatedVideos,
+  getVideoDetail,
+  getVideoGroups,
+  getVideoUrl,
+} from '@/api/video'
 import { VIDEO_HALL_PAGE_SIZE } from '@/models/video'
 
 const client = (response: unknown) => {
@@ -147,5 +153,46 @@ describe('Video API', () => {
         getVideoDetail('VID001', client(response).client),
       ).rejects.toThrow('视频详情格式不正确')
     }
+  })
+})
+
+describe('Related video API', () => {
+  it('unwraps /related/allvideo clips and creator names', async () => {
+    const request = client({
+      data: [
+        {
+          alg: 'itemCF',
+          coverUrl: 'https://images.example.com/simi.jpg',
+          creator: [{ extra: true, userId: 402, userName: '海岸信号' }],
+          durationms: 180_000,
+          extra: true,
+          playTime: 12_000,
+          title: '潮汐回声',
+          type: 1,
+          vid: 'VID002',
+        },
+        {
+          title: '缺 vid',
+        },
+      ],
+    })
+
+    await expect(getRelatedVideos('VID001', request.client)).resolves.toEqual([
+      {
+        coverUrl: 'https://images.example.com/simi.jpg',
+        creatorName: '海岸信号',
+        durationms: 180_000,
+        playTime: 12_000,
+        title: '潮汐回声',
+        vid: 'VID002',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/related/allvideo', { id: 'VID001' })
+  })
+
+  it('rejects a missing data array', async () => {
+    await expect(
+      getRelatedVideos('VID001', client({ data: null }).client),
+    ).rejects.toThrow('相关视频响应格式不正确')
   })
 })

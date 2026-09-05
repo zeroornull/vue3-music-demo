@@ -1,5 +1,17 @@
 # 迁移文档变更记录
 
+## 0.71.0 - 2026-09-04
+
+### 实施第 67 轮：相关视频
+
+- 接入 `/related/allvideo?id=`，视频详情页用已有 VideoClipCard 展示相关视频；失败不挡住播放；去掉当前视频自己；URL 已缓存而相关列表为空时会再试；作者字段同时认 `nickname` 和 `userName` 数组；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、516 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:56521` + mock `127.0.0.1:56531`：直达 `#/videoDetail?id=VID001`，标题「晚风现场」，作者「林间电台」，相关卡片 `href="#/videoDetail?id=VID002"`（当前 vid 已过滤），点封面后标题「潮汐回声」，未打开播放条；测完已停服务；
+- 独立审查 PASS WITH FINDINGS（LOW：相关接口测试未覆盖 nickname、未知作者哨兵、`related` 与 `relatedVideos` 重名）；独立核验 PASS，隔离 smoke `56621`/`56631`；
+- 第 66 轮已提交 `0f845a8`；第 67 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
 ## 0.70.0 - 2026-09-03
 
 ### 实施第 66 轮：视频详情资料

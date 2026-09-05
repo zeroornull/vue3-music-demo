@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
 import MvPlayer from '@/components/mv/MvPlayer.vue'
+import VideoClipCard from '@/components/video/VideoClipCard.vue'
 import { Pages } from '@/router/pages'
 import { usePlayerStore } from '@/stores/player'
 import { useVideoStore } from '@/stores/video'
@@ -13,7 +14,7 @@ const route = useRoute()
 const videoStore = useVideoStore()
 const detailStore = useVideoDetailStore()
 const playerStore = usePlayerStore()
-const { playback, detail, loading, error } = storeToRefs(detailStore)
+const { playback, detail, relatedVideos, loading, error } = storeToRefs(detailStore)
 const { clips } = storeToRefs(videoStore)
 
 const videoId = computed(() => {
@@ -107,6 +108,17 @@ watch(
         :poster="related?.coverUrl"
         :title="title"
       />
+      <section
+        v-if="relatedVideos?.length"
+        class="related-videos"
+        data-testid="related-videos"
+        aria-labelledby="related-videos-title"
+      >
+        <h2 id="related-videos-title">相关视频</h2>
+        <div class="related-grid">
+          <VideoClipCard v-for="item in relatedVideos" :key="item.vid" :clip="item" />
+        </div>
+      </section>
     </template>
   </main>
 </template>
@@ -158,6 +170,33 @@ h1 {
 .video-copy p:not(.eyebrow) {
   margin-top: 10px;
   color: var(--color-muted);
+}
+
+.related-videos {
+  margin-top: 36px;
+}
+
+.related-videos h2 {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 22px);
+}
+
+@media (max-width: 900px) {
+  .related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .related-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .state-card {

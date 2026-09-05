@@ -6100,3 +6100,68 @@ mock API http://127.0.0.1:56331
 ### 68.4 本轮结果
 
 视频详情资料已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/508、typecheck、366 modules；隔离 smoke `56421`/`56431`。第 65 轮提交 `0f757e7` 仍是当前 HEAD；第 66 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 69. 实施第 67 轮：相关视频（工作区）
+
+> 执行日期：`2026-09-04`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 69.1 开始边界与范围
+
+第 67 轮开始时第 66 轮已经提交：
+
+```text
+HEAD 0f845a8
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者：`/related/allvideo` → 已有 VideoClipCard。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 69.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       516 passed (516)
+
+bun run typecheck
+PASS（第一次因 DOMWrapper.findAllComponents 回调隐式 any 失败，改为从根 wrapper 查找后通过）
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+第一次 npm 503，重试 No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 69.3 本地 mock API 浏览器 smoke
+
+本轮开始时隔离端口：
+
+```text
+Vite     http://127.0.0.1:56521
+mock API http://127.0.0.1:56531
+```
+
+验证步骤：
+
+1. 不进视频大厅，直达 `#/videoDetail?id=VID001`；
+2. 标题「晚风现场」，作者「林间电台」，`[data-testid="mv-player"] video` 有 `src`；
+3. 相关区封面 `href="#/videoDetail?id=VID002"`，当前 vid 已过滤（只剩 1 张卡），点封面后 hash 为 `#/videoDetail?id=VID002`，标题「潮汐回声」，未打开播放条。
+
+独立审查 PASS WITH FINDINGS：LOW 相关接口测试未覆盖 nickname、未知作者哨兵、`related` 与 `relatedVideos` 重名。核验复跑隔离口 `56621`/`56631`。测完已停 `56521`/`56531`。未打真实网易云 API。
+
+### 69.4 本轮结果
+
+相关视频已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/516、typecheck、366 modules；隔离 smoke `56621`/`56631`。第 66 轮提交 `0f845a8` 仍是当前 HEAD；第 67 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

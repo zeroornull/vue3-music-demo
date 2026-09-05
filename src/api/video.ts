@@ -29,10 +29,20 @@ function readGroup(value: unknown): VideoGroup | null {
 }
 
 function readCreatorName(value: unknown): string {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const name = readCreatorName(item)
+      if (name !== '未知作者') return name
+    }
+    return '未知作者'
+  }
   const creator = isRecord(value) ? value : {}
-  return typeof creator.nickname === 'string' && creator.nickname.trim()
-    ? creator.nickname.trim()
-    : '未知作者'
+  const nickname =
+    typeof creator.nickname === 'string' ? creator.nickname.trim() : ''
+  if (nickname) return nickname
+  const userName =
+    typeof creator.userName === 'string' ? creator.userName.trim() : ''
+  return userName || '未知作者'
 }
 
 function readClip(value: unknown): HallVideo | null {
@@ -151,4 +161,21 @@ export async function getVideoDetail(
     title: raw.title.trim(),
     vid,
   }
+}
+
+export async function getRelatedVideos(
+  id: string,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallVideo[]> {
+  const vid = id.trim()
+  if (!vid) throw new Error('缺少有效的视频 ID')
+  const response = await client.get<{ data?: unknown }>('/related/allvideo', {
+    id: vid,
+  })
+  if (!Array.isArray(response.data)) {
+    throw new Error('相关视频响应格式不正确')
+  }
+  return response.data
+    .map(readClip)
+    .filter((item): item is HallVideo => item !== null)
 }
