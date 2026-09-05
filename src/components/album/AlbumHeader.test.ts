@@ -1,9 +1,17 @@
 // @vitest-environment happy-dom
 
+import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import AlbumHeader from '@/components/album/AlbumHeader.vue'
+import { Pages } from '@/router/pages'
+
+const RouterLinkStub = defineComponent({
+  name: 'RouterLink',
+  props: ['to'],
+  template: '<a><slot /></a>',
+})
 
 const album = {
   artist: { id: 401, name: '林间电台' },
@@ -38,5 +46,41 @@ describe('AlbumHeader', () => {
     expect(wrapper.text()).not.toContain('夜航第一张专辑')
     await wrapper.get('[data-testid="play-all"]').trigger('click')
     expect(wrapper.emitted('play-all')).toHaveLength(1)
+  })
+
+  it('links a positive artist id without playing', async () => {
+    const wrapper = mount(AlbumHeader, {
+      props: { album, playable: true },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+
+    const artist = wrapper.get('[data-testid="song-artist"]')
+    expect(artist.text()).toBe('林间电台')
+    expect(artist.attributes('aria-label')).toBe('打开歌手：林间电台')
+    expect(wrapper.get('[data-testid="play-all"]').find('[data-testid="song-artist"]').exists()).toBe(
+      false,
+    )
+    const artistLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.attributes('data-testid') === 'song-artist')
+    expect(artistLink?.props('to')).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 401 },
+    })
+
+    await artist.trigger('click')
+    expect(wrapper.emitted('play-all')).toBeUndefined()
+  })
+
+  it('shows the artist name as text when artist id is missing', () => {
+    const wrapper = mount(AlbumHeader, {
+      props: {
+        album: { ...album, artist: { id: 0, name: '未入驻歌手' } },
+        playable: true,
+      },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.find('[data-testid="song-artist"]').exists()).toBe(false)
+    expect(wrapper.get('.artist').text()).toBe('未入驻歌手')
   })
 })

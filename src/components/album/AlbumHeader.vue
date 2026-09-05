@@ -44,8 +44,11 @@ const published = computed(() => formatPublishDate(props.album.publishTime))
       <h1>{{ album.name }}</h1>
       <p class="artist">
         <RouterLink
-          v-if="album.artist.id > 0"
+          v-if="typeof album.artist.id === 'number' && Number.isInteger(album.artist.id) && album.artist.id > 0"
+          data-testid="song-artist"
           :to="{ name: Pages.artistDetail, query: { id: album.artist.id } }"
+          :aria-label="`打开歌手：${album.artist.name}`"
+          @click.stop
         >
           {{ album.artist.name }}
         </RouterLink>
