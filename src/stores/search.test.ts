@@ -44,10 +44,24 @@ const album = {
   picUrl: 'https://images.example.com/album.jpg',
 }
 
+const mv = {
+  cover: 'https://images.example.com/mv.jpg',
+  id: 701,
+  name: '晚风来信 · Live',
+}
+
+const radio = {
+  id: 801,
+  name: '夜航电台',
+  picUrl: 'https://images.example.com/radio.jpg',
+}
+
 const suggest = {
   albums: [album],
   artists: [artist],
+  mvs: [mv],
   playlists: [playlist],
+  radios: [radio],
   songs: [song],
 }
 
@@ -95,6 +109,8 @@ describe('search store', () => {
     expect(store.playlists).toEqual([playlist])
     expect(store.artists).toEqual([artist])
     expect(store.albums).toEqual([album])
+    expect(store.mvs).toEqual([mv])
+    expect(store.radios).toEqual([radio])
     expect(store.hots).toEqual([hot])
     expect(getSearchSuggest).toHaveBeenCalledTimes(1)
   })
@@ -112,6 +128,8 @@ describe('search store', () => {
     expect(store.playlists).toEqual([])
     expect(store.artists).toEqual([])
     expect(store.albums).toEqual([])
+    expect(store.mvs).toEqual([])
+    expect(store.radios).toEqual([])
     expect(store.songsError).toBe('search offline')
   })
 
@@ -129,6 +147,8 @@ describe('search store', () => {
     expect(store.playlists).toEqual([])
     expect(store.artists).toEqual([])
     expect(store.albums).toEqual([])
+    expect(store.mvs).toEqual([])
+    expect(store.radios).toEqual([])
     expect(store.keyword).toBe('')
     expect(store.hots).toEqual([hot])
   })
@@ -138,7 +158,9 @@ describe('search store', () => {
     const second = {
       albums: [{ ...album, id: 502, name: '秋日' }],
       artists: [{ ...artist, id: 402, name: '城市电台' }],
+      mvs: [{ ...mv, id: 702, name: '下一支' }],
       playlists: [{ ...playlist, id: 102, name: '秋日电台' }],
+      radios: [{ ...radio, id: 802, name: '秋日电台' }],
       songs: [{ ...song, id: 302, name: '下一首' }],
     }
     vi.mocked(getSearchSuggest)
@@ -156,6 +178,8 @@ describe('search store', () => {
     expect(store.playlists).toEqual(second.playlists)
     expect(store.artists).toEqual(second.artists)
     expect(store.albums).toEqual(second.albums)
+    expect(store.mvs).toEqual(second.mvs)
+    expect(store.radios).toEqual(second.radios)
   })
 
   it('drops in-flight hot search after reset', async () => {
@@ -184,6 +208,8 @@ describe('search store', () => {
     expect(store.playlists).toEqual([])
     expect(store.artists).toEqual([])
     expect(store.albums).toEqual([])
+    expect(store.mvs).toEqual([])
+    expect(store.radios).toEqual([])
     expect(store.songsLoading).toBe(false)
     expect(store.hots).toEqual([])
   })

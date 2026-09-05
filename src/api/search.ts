@@ -3,7 +3,9 @@ import type {
   SearchAlbum,
   SearchArtist,
   SearchHot,
+  SearchMv,
   SearchPlaylist,
+  SearchRadio,
   SearchSuggestPage,
 } from '@/models/search'
 import { normalizeSong, type NetworkSong } from '@/models/song'
@@ -12,6 +14,8 @@ export const SEARCH_SONG_LIMIT = 10
 export const SEARCH_PLAYLIST_LIMIT = 10
 export const SEARCH_ARTIST_LIMIT = 10
 export const SEARCH_ALBUM_LIMIT = 10
+export const SEARCH_MV_LIMIT = 10
+export const SEARCH_RADIO_LIMIT = 10
 export const SEARCH_HOT_LIMIT = 10
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -61,6 +65,46 @@ function readArtist(value: unknown): SearchArtist | null {
   return { id: value.id, name: value.name, img1v1Url: cover }
 }
 
+function readMv(value: unknown): SearchMv | null {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'number' ||
+    !Number.isInteger(value.id) ||
+    value.id <= 0
+  ) {
+    return null
+  }
+  const name = typeof value.name === 'string' ? value.name.trim() : ''
+  if (!name) return null
+  const cover =
+    typeof value.cover === 'string' && value.cover
+      ? value.cover
+      : typeof value.picUrl === 'string'
+        ? value.picUrl
+        : typeof value.imgurl16v9 === 'string'
+          ? value.imgurl16v9
+          : ''
+  return { cover, id: value.id, name }
+}
+
+function readRadio(value: unknown): SearchRadio | null {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'number' ||
+    !Number.isInteger(value.id) ||
+    value.id <= 0
+  ) {
+    return null
+  }
+  const name = typeof value.name === 'string' ? value.name.trim() : ''
+  if (!name) return null
+  return {
+    id: value.id,
+    name,
+    picUrl: typeof value.picUrl === 'string' ? value.picUrl : '',
+  }
+}
+
 function readAlbum(value: unknown): SearchAlbum | null {
   if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
     return null
@@ -102,6 +146,8 @@ export async function getSearchSuggest(
   const playlists = Array.isArray(result.playlists) ? result.playlists : []
   const artists = Array.isArray(result.artists) ? result.artists : []
   const albums = Array.isArray(result.albums) ? result.albums : []
+  const mvs = Array.isArray(result.mvs) ? result.mvs : []
+  const radios = Array.isArray(result.djRadios) ? result.djRadios : []
   return {
     songs: songs
       .filter(isNetworkSong)
@@ -119,5 +165,13 @@ export async function getSearchSuggest(
       .map(readAlbum)
       .filter((item): item is SearchAlbum => item !== null)
       .slice(0, SEARCH_ALBUM_LIMIT),
+    mvs: mvs
+      .map(readMv)
+      .filter((item): item is SearchMv => item !== null)
+      .slice(0, SEARCH_MV_LIMIT),
+    radios: radios
+      .map(readRadio)
+      .filter((item): item is SearchRadio => item !== null)
+      .slice(0, SEARCH_RADIO_LIMIT),
   }
 }

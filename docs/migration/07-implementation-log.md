@@ -6357,3 +6357,130 @@ mock API http://127.0.0.1:57131
 ### 72.4 本轮结果
 
 相关歌单已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/528、typecheck、366 modules；隔离 smoke `57221`/`57231`。第 69 轮提交 `c9ff073` 仍是当前 HEAD；第 70 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 73. 实施第 71 轮：搜索 MV（工作区）
+
+> 执行日期：`2026-09-05`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 73.1 开始边界与范围
+
+第 71 轮开始时第 70 轮已经提交：
+
+```text
+HEAD 9135025
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者：`/search/suggest` 的 `mvs` → 已有 `#/mvDetail` 和 SearchHitList。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 73.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       530 passed (530)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 73.3 本地 mock API 浏览器 smoke
+
+计划隔离口 `57321` 被占用，改用：
+
+```text
+Vite     http://127.0.0.1:57521
+mock API http://127.0.0.1:57531
+```
+
+验证步骤：
+
+1. `#/search?q=夜航` MV 区 `href="#/mvDetail?id=701"`；
+2. 点条目后 hash 为 `#/mvDetail?id=701`，标题「晚风来信 · Live」，`[data-testid="mv-player"] video` 有 `src`，未打开播放条。
+
+独立审查 PASS WITH FINDINGS：LOW picUrl/imgurl16v9 回落未测、空 picUrl 挡住 imgurl16v9、顶栏仅 MV 空态未测、App 清 host 未断言 mvs。核验复跑隔离口 `57621`/`57631`。测完已停 `57521`/`57531`。未打真实网易云 API。未结束占用 `57321` 的未知进程。
+
+### 73.4 本轮结果
+
+搜索 MV 已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/530、typecheck、366 modules；隔离 smoke `57621`/`57631`。第 70 轮提交 `9135025` 仍是当前 HEAD；第 71 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 74. 实施第 72 轮：搜索电台（工作区）
+
+> 执行日期：`2026-09-05`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 74.1 开始边界与范围
+
+第 72 轮开始时第 70 轮已经提交，第 71 轮搜索 MV 仍在工作区：
+
+```text
+HEAD 9135025
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者：`/search/suggest` 的 `djRadios` → 已有 `#/djRadio` 和 SearchHitList。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 74.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       532 passed (532)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 74.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:57721
+mock API http://127.0.0.1:57731
+```
+
+验证步骤：
+
+1. `#/search?q=夜航` 电台区 `href="#/djRadio?id=801"`，`aria-label="打开电台：夜航电台"`；
+2. 点条目后 hash 为 `#/djRadio?id=801`，页头标题「夜航电台」，未打开播放条；
+3. Discover 摘要含「搜索电台」。
+
+独立审查 PASS WITH FINDINGS：LOW 顶栏仅电台空态未测、trim/非整数 id 未单测、picUrl-only 负例未测、弹出层失败不清 radios、空结果文案未锁「电台」。核验复跑隔离口 `57821`/`57831`。测完已停 `57721`/`57731`。未打真实网易云 API。
+
+### 74.4 本轮结果
+
+搜索电台已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/532、typecheck、366 modules；隔离 smoke `57821`/`57831`。第 70 轮提交 `9135025` 仍是当前 HEAD；第 71、72 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

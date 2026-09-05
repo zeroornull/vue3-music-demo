@@ -1,5 +1,29 @@
 # 迁移文档变更记录
 
+## 0.76.0 - 2026-09-05
+
+### 实施第 72 轮：搜索电台
+
+- `/search/suggest` 增加 `result.djRadios`，搜索页和顶栏弹出层用已有 SearchHitList 打开 `#/djRadio`；正整数 id 才保留；只有电台时不算空结果；封面只认 `picUrl`；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、532 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:57721` + mock `127.0.0.1:57731`：`#/search?q=夜航` 电台 `href="#/djRadio?id=801"`，点击后标题「夜航电台」，未打开播放条；Discover 文案含「搜索电台」；
+- 独立审查 PASS WITH FINDINGS（LOW：顶栏仅电台空态未测、trim/非整数 id 未单测、picUrl-only 负例未测、弹出层失败不清 radios、空结果文案未锁「电台」）；独立核验 PASS，隔离 smoke `57821`/`57831`；
+- 第 70 轮已提交 `9135025`；第 71、72 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 0.75.0 - 2026-09-05
+
+### 实施第 71 轮：搜索 MV
+
+- `/search/suggest` 增加 `result.mvs`，搜索页和顶栏弹出层用已有 SearchHitList 打开 `#/mvDetail`；无效 id 丢掉；只有 MV 时不算空结果；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、530 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:57521` + mock `127.0.0.1:57531`：`#/search?q=夜航` MV `href="#/mvDetail?id=701"`，点击后标题「晚风来信 · Live」，播放器有 `src`，未打开播放条（`57321` 被占用，改用 `57521`）；测完已停服务；
+- 独立审查 PASS WITH FINDINGS（LOW：picUrl/imgurl16v9 回落未测、空 picUrl 挡住 imgurl16v9、顶栏仅 MV 空态未测、App 清 host 未断言 mvs）；独立核验 PASS，隔离 smoke `57621`/`57631`；
+- 第 70 轮已提交 `9135025`；第 71 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
 ## 0.74.0 - 2026-09-05
 
 ### 实施第 70 轮：相关歌单

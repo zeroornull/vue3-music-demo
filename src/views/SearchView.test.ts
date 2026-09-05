@@ -57,11 +57,25 @@ const suggest = {
       name: '林间电台',
     },
   ],
+  mvs: [
+    {
+      cover: 'https://images.example.com/mv.jpg',
+      id: 701,
+      name: '晚风来信 · Live',
+    },
+  ],
   playlists: [
     {
       coverImgUrl: 'https://images.example.com/p.jpg',
       id: 101,
       name: '深夜民谣',
+    },
+  ],
+  radios: [
+    {
+      id: 801,
+      name: '夜航电台',
+      picUrl: 'https://images.example.com/radio.jpg',
     },
   ],
   songs: [song],
@@ -143,6 +157,18 @@ describe('SearchView', () => {
     expect(
       wrapper.get('[aria-label="打开专辑：夜航"]').attributes('href'),
     ).toContain('album?id=501')
+    expect(wrapper.get('[data-testid="search-mvs"]').text()).toContain(
+      '晚风来信 · Live',
+    )
+    expect(
+      wrapper.get('[aria-label="打开MV：晚风来信 · Live"]').attributes('href'),
+    ).toContain('mvDetail?id=701')
+    expect(wrapper.get('[data-testid="search-radios"]').text()).toContain(
+      '夜航电台',
+    )
+    expect(
+      wrapper.get('[aria-label="打开电台：夜航电台"]').attributes('href'),
+    ).toContain('djRadio?id=801')
   })
 
   it('retries a failed song search and plays a result', async () => {
@@ -162,11 +188,13 @@ describe('SearchView', () => {
     expect(wrapper.get('[role="status"]').text()).toContain('正在播放“晚风来信”。')
   })
 
-  it('shows an empty card when suggest has no songs, playlists, artists or albums', async () => {
+  it('shows an empty card when suggest has no songs, playlists, artists, albums, MVs or radios', async () => {
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
+      mvs: [],
       playlists: [],
+      radios: [],
       songs: [],
     })
     const { wrapper } = await mountView({ q: '无结果' })
@@ -180,7 +208,9 @@ describe('SearchView', () => {
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [{ id: 501, name: '夜航', picUrl: '' }],
       artists: [],
+      mvs: [],
       playlists: [],
+      radios: [],
       songs: [],
     })
     const { wrapper } = await mountView({ q: '夜航' })
@@ -189,5 +219,51 @@ describe('SearchView', () => {
     expect(wrapper.get('[aria-label="打开专辑：夜航"]').attributes('href')).toContain(
       'album?id=501',
     )
+  })
+
+  it('keeps MV-only hits out of the empty card', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      albums: [],
+      artists: [],
+      mvs: [
+        {
+          cover: 'https://images.example.com/mv.jpg',
+          id: 701,
+          name: '晚风来信 · Live',
+        },
+      ],
+      playlists: [],
+      radios: [],
+      songs: [],
+    })
+    const { wrapper } = await mountView({ q: '现场' })
+    await flushPromises()
+    expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
+    expect(
+      wrapper.get('[aria-label="打开MV：晚风来信 · Live"]').attributes('href'),
+    ).toContain('mvDetail?id=701')
+  })
+
+  it('keeps radio-only hits out of the empty card', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      albums: [],
+      artists: [],
+      mvs: [],
+      playlists: [],
+      radios: [
+        {
+          id: 801,
+          name: '夜航电台',
+          picUrl: 'https://images.example.com/radio.jpg',
+        },
+      ],
+      songs: [],
+    })
+    const { wrapper } = await mountView({ q: '夜航' })
+    await flushPromises()
+    expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
+    expect(
+      wrapper.get('[aria-label="打开电台：夜航电台"]').attributes('href'),
+    ).toContain('djRadio?id=801')
   })
 })

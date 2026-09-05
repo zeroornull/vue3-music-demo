@@ -334,6 +334,12 @@ describe('App host gate', () => {
     searchStore.albums = [
       { id: 501, name: '夜航', picUrl: '' },
     ]
+    searchStore.mvs = [
+      { cover: '', id: 701, name: '晚风来信 · Live' },
+    ]
+    searchStore.radios = [
+      { id: 801, name: '夜航电台', picUrl: '' },
+    ]
     mountApp()
 
     useHostStore().clearHost()
@@ -344,6 +350,8 @@ describe('App host gate', () => {
     expect(searchStore.playlists).toEqual([])
     expect(searchStore.artists).toEqual([])
     expect(searchStore.albums).toEqual([])
+    expect(searchStore.mvs).toEqual([])
+    expect(searchStore.radios).toEqual([])
     expect(searchStore.keyword).toBe('')
   })
 

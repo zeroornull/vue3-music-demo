@@ -23,6 +23,8 @@ const {
   playlists,
   artists,
   albums,
+  mvs,
+  radios,
   songs,
   songsError,
   songsLoading,
@@ -37,7 +39,9 @@ const hasHits = computed(
     songs.value.length +
       playlists.value.length +
       artists.value.length +
-      albums.value.length >
+      albums.value.length +
+      mvs.value.length +
+      radios.value.length >
     0,
 )
 
@@ -59,6 +63,22 @@ const artistHits = computed(() =>
 
 const albumHits = computed(() =>
   albums.value.map((item) => ({
+    cover: item.picUrl,
+    id: item.id,
+    name: item.name,
+  })),
+)
+
+const mvHits = computed(() =>
+  mvs.value.map((item) => ({
+    cover: item.cover,
+    id: item.id,
+    name: item.name,
+  })),
+)
+
+const radioHits = computed(() =>
+  radios.value.map((item) => ({
     cover: item.picUrl,
     id: item.id,
     name: item.name,
@@ -133,7 +153,7 @@ onMounted(() => {
     <header class="page-header">
       <p class="eyebrow">Search</p>
       <h1>搜索</h1>
-      <p>输入关键词或点选热门搜索。单曲可以播放，歌单、歌手和专辑会打开已有详情页。</p>
+      <p>输入关键词或点选热门搜索。单曲可以播放，歌单、歌手、专辑、MV 和电台会打开已有详情页。</p>
     </header>
 
     <form data-testid="search-submit" @submit.prevent="submit">
@@ -145,7 +165,7 @@ onMounted(() => {
           name="q"
           type="search"
           autocomplete="off"
-          placeholder="搜索歌曲、歌单、歌手或专辑"
+          placeholder="搜索歌曲、歌单、歌手、专辑、MV 或电台"
         />
         <button type="submit">搜索</button>
       </div>
@@ -161,7 +181,7 @@ onMounted(() => {
       aria-busy="true"
     >
       <strong>正在搜索</strong>
-      <p>正在查找“{{ keyword }}”的单曲、歌单、歌手和专辑。</p>
+      <p>正在查找“{{ keyword }}”的单曲、歌单、歌手、专辑、MV 和电台。</p>
     </div>
 
     <div
@@ -210,6 +230,22 @@ onMounted(() => {
         :hits="albumHits"
         :to-name="Pages.album"
       />
+      <SearchHitList
+        v-if="mvs.length"
+        data-testid="search-mvs"
+        kind="MV"
+        title="MV"
+        :hits="mvHits"
+        :to-name="Pages.mvDetail"
+      />
+      <SearchHitList
+        v-if="radios.length"
+        data-testid="search-radios"
+        kind="电台"
+        title="电台"
+        :hits="radioHits"
+        :to-name="Pages.djRadio"
+      />
     </div>
 
     <div
@@ -218,7 +254,7 @@ onMounted(() => {
       data-testid="search-empty"
     >
       <strong>没有找到结果</strong>
-      <p>没有找到可播放的单曲或可打开的歌单、歌手、专辑。</p>
+      <p>没有找到可播放的单曲或可打开的歌单、歌手、专辑、MV、电台。</p>
     </div>
 
     <SearchHotList

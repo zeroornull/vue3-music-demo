@@ -4,7 +4,9 @@ import type { HttpClient } from '@/api/http'
 import {
   SEARCH_ALBUM_LIMIT,
   SEARCH_ARTIST_LIMIT,
+  SEARCH_MV_LIMIT,
   SEARCH_PLAYLIST_LIMIT,
+  SEARCH_RADIO_LIMIT,
   SEARCH_SONG_LIMIT,
   getSearchHotDetail,
   getSearchSuggest,
@@ -66,7 +68,32 @@ describe('Search API', () => {
             name: '林间电台',
           },
         ],
-        order: ['songs', 'playlists', 'artists', 'albums'],
+        djRadios: [
+          {
+            extra: true,
+            id: 801,
+            name: '夜航电台',
+            picUrl: 'https://images.example.com/radio.jpg',
+          },
+          {
+            id: 0,
+            name: '无效电台',
+          },
+        ],
+        mvs: [
+          {
+            artistId: 401,
+            cover: 'https://images.example.com/mv.jpg',
+            extra: true,
+            id: 701,
+            name: '晚风来信 · Live',
+          },
+          {
+            id: 0,
+            name: '无效',
+          },
+        ],
+        order: ['songs', 'playlists', 'artists', 'albums', 'mvs', 'djRadios'],
         playlists: [
           {
             coverImgUrl: 'https://images.example.com/p.jpg',
@@ -104,11 +131,25 @@ describe('Search API', () => {
           name: '林间电台',
         },
       ],
+      mvs: [
+        {
+          cover: 'https://images.example.com/mv.jpg',
+          id: 701,
+          name: '晚风来信 · Live',
+        },
+      ],
       playlists: [
         {
           coverImgUrl: 'https://images.example.com/p.jpg',
           id: 101,
           name: '深夜民谣',
+        },
+      ],
+      radios: [
+        {
+          id: 801,
+          name: '夜航电台',
+          picUrl: 'https://images.example.com/radio.jpg',
         },
       ],
       songs: [
@@ -131,7 +172,14 @@ describe('Search API', () => {
   it('returns empty groups when suggest has no hits and slices each group', async () => {
     await expect(
       getSearchSuggest('无结果', client({ result: { order: [] } }).client),
-    ).resolves.toEqual({ albums: [], artists: [], playlists: [], songs: [] })
+    ).resolves.toEqual({
+      albums: [],
+      artists: [],
+      mvs: [],
+      playlists: [],
+      radios: [],
+      songs: [],
+    })
 
     const manySongs = Array.from({ length: 12 }, (_, index) => ({
       artists: [{ id: 401, name: '林间电台' }],
@@ -155,12 +203,24 @@ describe('Search API', () => {
       id: 500 + index,
       name: `专 ${index + 1}`,
     }))
+    const manyMvs = Array.from({ length: 12 }, (_, index) => ({
+      cover: 'https://images.example.com/m.jpg',
+      id: 700 + index,
+      name: `MV ${index + 1}`,
+    }))
+    const manyRadios = Array.from({ length: 12 }, (_, index) => ({
+      id: 800 + index,
+      name: `电台 ${index + 1}`,
+      picUrl: 'https://images.example.com/r.jpg',
+    }))
     const page = await getSearchSuggest(
       '很多',
       client({
         result: {
           albums: manyAlbums,
           artists: manyArtists,
+          djRadios: manyRadios,
+          mvs: manyMvs,
           playlists: manyPlaylists,
           songs: manySongs,
         },
@@ -170,6 +230,8 @@ describe('Search API', () => {
     expect(page.playlists).toHaveLength(SEARCH_PLAYLIST_LIMIT)
     expect(page.artists).toHaveLength(SEARCH_ARTIST_LIMIT)
     expect(page.albums).toHaveLength(SEARCH_ALBUM_LIMIT)
+    expect(page.mvs).toHaveLength(SEARCH_MV_LIMIT)
+    expect(page.radios).toHaveLength(SEARCH_RADIO_LIMIT)
     expect(page.artists[0]?.img1v1Url).toBe('https://images.example.com/f.jpg')
     expect(page.albums[0]?.picUrl).toBe('https://images.example.com/b.jpg')
   })

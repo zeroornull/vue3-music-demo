@@ -47,9 +47,11 @@ const suggest = {
   artists: [
     { id: 401, img1v1Url: 'https://images.example.com/a.jpg', name: '林间电台' },
   ],
+  mvs: [],
   playlists: [
     { coverImgUrl: 'https://images.example.com/p.jpg', id: 101, name: '深夜民谣' },
   ],
+  radios: [],
   songs: [song],
 }
 
@@ -300,6 +302,58 @@ describe('HeaderSearchPop', () => {
     await flushPromises()
     expect(wrapper.find('[data-testid="song-album"]').exists()).toBe(false)
     expect(wrapper.get('[data-testid="header-search-pop"]').text()).toContain('草稿专辑')
+    wrapper.unmount()
+  })
+
+  it('links a suggested MV', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      ...suggest,
+      mvs: [
+        {
+          cover: 'https://images.example.com/mv.jpg',
+          id: 701,
+          name: '晚风来信 · Live',
+        },
+      ],
+    })
+    const { wrapper } = await mountPop()
+    const input = wrapper.get('[data-testid="header-search-input"]')
+    await input.trigger('focus')
+    await input.setValue('夜航')
+    await input.trigger('input')
+    await vi.advanceTimersByTimeAsync(400)
+    await flushPromises()
+
+    const mv = wrapper.get('[aria-label="打开MV：晚风来信 · Live"]')
+    expect(mv.attributes('data-to')).toBe(
+      JSON.stringify({ name: Pages.mvDetail, query: { id: 701 } }),
+    )
+    wrapper.unmount()
+  })
+
+  it('links a suggested radio', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      ...suggest,
+      radios: [
+        {
+          id: 801,
+          name: '夜航电台',
+          picUrl: 'https://images.example.com/radio.jpg',
+        },
+      ],
+    })
+    const { wrapper } = await mountPop()
+    const input = wrapper.get('[data-testid="header-search-input"]')
+    await input.trigger('focus')
+    await input.setValue('夜航')
+    await input.trigger('input')
+    await vi.advanceTimersByTimeAsync(400)
+    await flushPromises()
+
+    const radio = wrapper.get('[aria-label="打开电台：夜航电台"]')
+    expect(radio.attributes('data-to')).toBe(
+      JSON.stringify({ name: Pages.djRadio, query: { id: 801 } }),
+    )
     wrapper.unmount()
   })
 })

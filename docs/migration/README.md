@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.74.0`<br>
+> 文档版本：`0.76.0`<br>
 > 版本快照日期：`2026-09-05`<br>
-> 当前阶段：**实施第 70 轮相关歌单已写入工作区（未 commit）；播放条保持深色**
+> 当前阶段：**实施第 72 轮搜索电台已写入工作区（未 commit）；播放条保持深色**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -845,12 +845,30 @@ build: {
 
 - 歌单详情页相关歌单打开另一张 `#/playlist`，不挡住歌曲列表；
 - 108 个测试文件、528 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
-- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（LOW 保留）；独立核验 PASS（`57221`/`57231`）；未 commit、未 push；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（LOW 保留）；独立核验 PASS（`57221`/`57231`）；随后提交为 `9135025`；
 - 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 77. 主要官方资料
+## 77. 实施第 71 轮结果
+
+- 搜索页和顶栏弹出层的 MV 打开 `#/mvDetail`；
+- 108 个测试文件、530 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（LOW 保留）；独立核验 PASS（`57621`/`57631`）；未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 78. 实施第 72 轮结果
+
+- 搜索页和顶栏弹出层的电台打开 `#/djRadio`；
+- 108 个测试文件、532 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（LOW 保留）；独立核验 PASS（`57821`/`57831`）；未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 79. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

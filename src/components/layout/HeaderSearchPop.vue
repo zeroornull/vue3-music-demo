@@ -7,7 +7,7 @@ import { getErrorMessage } from '@/api/http'
 import { getSearchSuggest } from '@/api/search'
 import SearchHitList from '@/components/search/SearchHitList.vue'
 import SearchHotList from '@/components/search/SearchHotList.vue'
-import type { SearchAlbum, SearchArtist, SearchPlaylist } from '@/models/search'
+import type { SearchAlbum, SearchArtist, SearchMv, SearchPlaylist, SearchRadio } from '@/models/search'
 import { isPositiveMvId, type Song } from '@/models/song'
 import { Pages } from '@/router/pages'
 import { usePlayerStore } from '@/stores/player'
@@ -27,6 +27,8 @@ const songs = ref<Song[]>([])
 const playlists = ref<SearchPlaylist[]>([])
 const artists = ref<SearchArtist[]>([])
 const albums = ref<SearchAlbum[]>([])
+const mvs = ref<SearchMv[]>([])
+const radios = ref<SearchRadio[]>([])
 const songsError = ref<string | null>(null)
 const songsLoading = ref(false)
 let debounceId = 0
@@ -37,7 +39,9 @@ const hasHits = computed(
     songs.value.length +
       playlists.value.length +
       artists.value.length +
-      albums.value.length >
+      albums.value.length +
+      mvs.value.length +
+      radios.value.length >
     0,
 )
 
@@ -65,6 +69,22 @@ const albumHits = computed(() =>
   })),
 )
 
+const mvHits = computed(() =>
+  mvs.value.map((item) => ({
+    cover: item.cover,
+    id: item.id,
+    name: item.name,
+  })),
+)
+
+const radioHits = computed(() =>
+  radios.value.map((item) => ({
+    cover: item.picUrl,
+    id: item.id,
+    name: item.name,
+  })),
+)
+
 function clearHits() {
   suggestSerial++
   keyword.value = ''
@@ -72,6 +92,8 @@ function clearHits() {
   playlists.value = []
   artists.value = []
   albums.value = []
+  mvs.value = []
+  radios.value = []
   songsError.value = null
   songsLoading.value = false
 }
@@ -104,6 +126,8 @@ function runSearch(word: string) {
       playlists.value = page.playlists
       artists.value = page.artists
       albums.value = page.albums
+      mvs.value = page.mvs
+      radios.value = page.radios
     })
     .catch((requestError: unknown) => {
       if (serial !== suggestSerial) return
@@ -201,7 +225,7 @@ onUnmounted(() => {
         v-model="draft"
         type="search"
         autocomplete="off"
-        placeholder="搜索歌曲、歌单、歌手或专辑"
+        placeholder="搜索歌曲、歌单、歌手、专辑、MV 或电台"
         data-testid="header-search-input"
         role="combobox"
         aria-autocomplete="list"
@@ -318,6 +342,22 @@ onUnmounted(() => {
           title="专辑"
           :hits="albumHits"
           :to-name="Pages.album"
+        />
+        <SearchHitList
+          v-if="mvs.length"
+          data-testid="header-search-mvs"
+          kind="MV"
+          title="MV"
+          :hits="mvHits"
+          :to-name="Pages.mvDetail"
+        />
+        <SearchHitList
+          v-if="radios.length"
+          data-testid="header-search-radios"
+          kind="电台"
+          title="电台"
+          :hits="radioHits"
+          :to-name="Pages.djRadio"
         />
       </div>
 

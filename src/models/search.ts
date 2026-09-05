@@ -24,9 +24,23 @@ export interface SearchAlbum {
   picUrl: string
 }
 
+export interface SearchMv {
+  cover: string
+  id: number
+  name: string
+}
+
+export interface SearchRadio {
+  id: number
+  name: string
+  picUrl: string
+}
+
 export interface SearchSuggestPage {
   songs: Song[]
   playlists: SearchPlaylist[]
   artists: SearchArtist[]
   albums: SearchAlbum[]
+  mvs: SearchMv[]
+  radios: SearchRadio[]
 }
