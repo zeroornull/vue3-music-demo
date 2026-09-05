@@ -1,5 +1,17 @@
 # 迁移文档变更记录
 
+## 0.72.0 - 2026-09-05
+
+### 实施第 68 轮：歌曲行歌手
+
+- 歌单/专辑/歌手/搜索歌曲行的歌手改为与新歌卡片同一套门槛：正整数 `artist.id`、`data-testid="song-artist"`、`aria-label`、兄弟链接、`@click.stop`，点歌手不播放；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、518 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:56721` + mock `127.0.0.1:56731`：`#/playlist?id=101` 歌手 `href="#/artistDetail?id=401"` 不在播放按钮内，点击后标题「林间电台」，未打开播放条；测完已停服务；
+- 独立审查 PASS WITH FINDINGS（LOW：缺席测试未锁非整数 id）；独立核验 PASS，隔离 smoke `56821`/`56831`；
+- 第 67 轮已提交 `1bbf18e`；第 68 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
 ## 0.71.0 - 2026-09-04
 
 ### 实施第 67 轮：相关视频

@@ -129,4 +129,45 @@ describe('PlaylistSongItem', () => {
     expect(wrapper.find('[data-testid="song-album"]').exists()).toBe(false)
     expect(wrapper.get('.album').text()).toBe('草稿专辑')
   })
+
+  it('links positive artist ids without playing', async () => {
+    const wrapper = mount(PlaylistSongItem, {
+      props: { current: false, song },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+
+    const artists = wrapper.findAll('[data-testid="song-artist"]')
+    expect(artists).toHaveLength(2)
+    expect(artists[0]?.text()).toBe('林间电台')
+    expect(artists[0]?.attributes('aria-label')).toBe('打开歌手：林间电台')
+    expect(wrapper.get('button').find('[data-testid="song-artist"]').exists()).toBe(
+      false,
+    )
+    const artistLinks = wrapper
+      .findAllComponents(RouterLinkStub)
+      .filter((link) => link.attributes('data-testid') === 'song-artist')
+    expect(artistLinks[0]?.props('to')).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 401 },
+    })
+    expect(artistLinks[1]?.props('to')).toEqual({
+      name: Pages.artistDetail,
+      query: { id: 402 },
+    })
+
+    await artists[0]?.trigger('click')
+    expect(wrapper.emitted('play')).toBeUndefined()
+  })
+
+  it('shows artist names as text when artist id is missing', () => {
+    const wrapper = mount(PlaylistSongItem, {
+      props: {
+        current: false,
+        song: { ...song, artists: [{ id: 0, name: '未入驻歌手' }] },
+      },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.find('[data-testid="song-artist"]').exists()).toBe(false)
+    expect(wrapper.get('.artists').text()).toBe('未入驻歌手')
+  })
 })

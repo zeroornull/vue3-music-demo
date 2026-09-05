@@ -67,8 +67,11 @@ const durationLabel = computed(() =>
             >
               <span v-if="index > 0"> / </span>
               <RouterLink
-                v-if="artist.id > 0"
+                v-if="typeof artist.id === 'number' && Number.isInteger(artist.id) && artist.id > 0"
+                data-testid="song-artist"
                 :to="{ name: Pages.artistDetail, query: { id: artist.id } }"
+                :aria-label="`打开歌手：${artist.name.trim()}`"
+                @click.stop
               >
                 {{ artist.name.trim() }}
               </RouterLink>
