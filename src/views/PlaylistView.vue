@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
+import CategoryPlaylistCard from '@/components/music/CategoryPlaylistCard.vue'
 import PlaylistHeader from '@/components/playlist/PlaylistHeader.vue'
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
 import type { Song } from '@/models/song'
@@ -13,7 +14,7 @@ import { usePlaylistStore } from '@/stores/playlist'
 const route = useRoute()
 const playlistStore = usePlaylistStore()
 const playerStore = usePlayerStore()
-const { playlist, songs, loading, error } = storeToRefs(playlistStore)
+const { playlist, songs, relatedPlaylists, loading, error } = storeToRefs(playlistStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
 let playSerial = 0
@@ -130,6 +131,21 @@ watch(
         :current-id="current?.id ?? null"
         @play="playSong"
       />
+      <section
+        v-if="relatedPlaylists?.length"
+        class="related-playlists"
+        data-testid="related-playlists"
+        aria-labelledby="related-playlists-title"
+      >
+        <h2 id="related-playlists-title">相关歌单</h2>
+        <div class="related-grid">
+          <CategoryPlaylistCard
+            v-for="item in relatedPlaylists"
+            :key="item.id"
+            :playlist="item"
+          />
+        </div>
+      </section>
     </template>
   </main>
 </template>
@@ -151,6 +167,33 @@ watch(
   color: var(--color-accent);
   font-weight: 720;
   text-decoration: none;
+}
+
+.related-playlists {
+  margin-top: 36px;
+}
+
+.related-playlists h2 {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 22px);
+}
+
+@media (max-width: 900px) {
+  .related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .related-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .state-card {

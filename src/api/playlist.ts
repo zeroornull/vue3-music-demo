@@ -1,5 +1,5 @@
 import { http, type HttpClient } from '@/api/http'
-import type { PlaylistCreator, PlaylistDetail } from '@/models/playlist'
+import type { PlaylistCreator, PlaylistDetail, RelatedPlaylist } from '@/models/playlist'
 import { normalizeSong, type NetworkSong, type Song } from '@/models/song'
 
 interface PlaylistDetailResponse {
@@ -74,4 +74,45 @@ function isNetworkSong(value: unknown): value is NetworkSong {
     typeof value.id === 'number' &&
     typeof value.name === 'string'
   )
+}
+
+function readRelatedPlaylist(value: unknown): RelatedPlaylist | null {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'number' ||
+    !Number.isInteger(value.id) ||
+    value.id <= 0
+  ) {
+    return null
+  }
+  const name = typeof value.name === 'string' ? value.name.trim() : ''
+  if (!name) return null
+  const coverImgUrl =
+    typeof value.coverImgUrl === 'string' && value.coverImgUrl
+      ? value.coverImgUrl
+      : typeof value.picUrl === 'string'
+        ? value.picUrl
+        : ''
+  return {
+    coverImgUrl,
+    creator: { nickname: readCreator(value.creator).nickname },
+    id: value.id,
+    name,
+    playCount: typeof value.playCount === 'number' ? Math.max(0, value.playCount) : 0,
+  }
+}
+
+export async function getRelatedPlaylists(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<RelatedPlaylist[]> {
+  const response = await client.get<{ playlists?: unknown }>('/related/playlist', {
+    id,
+  })
+  if (!Array.isArray(response.playlists)) {
+    throw new Error('相关歌单响应格式不正确')
+  }
+  return response.playlists
+    .map(readRelatedPlaylist)
+    .filter((item): item is RelatedPlaylist => item !== null)
 }

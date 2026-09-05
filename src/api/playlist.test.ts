@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { getPlaylistDetail, getPlaylistTracks } from '@/api/playlist'
+import { getPlaylistDetail, getPlaylistTracks, getRelatedPlaylists } from '@/api/playlist'
 
 const client = (response: unknown) => {
   const get = vi.fn(
@@ -110,5 +110,43 @@ describe('Playlist API', () => {
     await expect(
       getPlaylistTracks(101, client({ songs: null }).client),
     ).rejects.toThrow('歌单歌曲响应格式不正确')
+  })
+})
+
+describe('Related playlist API', () => {
+  it('unwraps /related/playlist covers and creators', async () => {
+    const request = client({
+      playlists: [
+        {
+          coverImgUrl: 'https://images.example.com/simi.jpg',
+          creator: { extra: true, nickname: '海岸信号', userId: 402 },
+          extra: true,
+          id: 202,
+          name: '潮汐歌单',
+          playCount: 12_000,
+        },
+        {
+          id: 0,
+          name: '无效',
+        },
+      ],
+    })
+
+    await expect(getRelatedPlaylists(101, request.client)).resolves.toEqual([
+      {
+        coverImgUrl: 'https://images.example.com/simi.jpg',
+        creator: { nickname: '海岸信号' },
+        id: 202,
+        name: '潮汐歌单',
+        playCount: 12_000,
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/related/playlist', { id: 101 })
+  })
+
+  it('rejects a missing playlists array', async () => {
+    await expect(
+      getRelatedPlaylists(101, client({ playlists: null }).client),
+    ).rejects.toThrow('相关歌单响应格式不正确')
   })
 })

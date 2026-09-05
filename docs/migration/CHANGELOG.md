@@ -1,5 +1,17 @@
 # 迁移文档变更记录
 
+## 0.74.0 - 2026-09-05
+
+### 实施第 70 轮：相关歌单
+
+- 接入 `/related/playlist?id=`，歌单详情页用已有 CategoryPlaylistCard 展示相关歌单；失败不挡住歌曲列表；去掉当前歌单自己；详情已缓存而相关列表为空时会再试；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、528 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:57121` + mock `127.0.0.1:57131`：`#/playlist?id=101` 标题「夜航歌单」，相关卡片 `href="#/playlist?id=202"`（当前 id 已过滤），点封面后标题「潮汐歌单」，未打开播放条；测完已停服务；
+- 独立审查 PASS WITH FINDINGS（LOW：RelatedPlaylist 与 CategoryPlaylist 重复、picUrl 回落未测、缓存命中可能重叠在途请求）；独立核验 PASS，隔离 smoke `57221`/`57231`；
+- 第 69 轮已提交 `c9ff073`；第 70 轮代码仍在工作区，未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
 ## 0.73.0 - 2026-09-05
 
 ### 实施第 69 轮：专辑页头歌手

@@ -1,12 +1,13 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getPlaylistDetail, getPlaylistTracks } from '@/api/playlist'
+import { getPlaylistDetail, getPlaylistTracks, getRelatedPlaylists } from '@/api/playlist'
 import { usePlaylistStore } from '@/stores/playlist'
 
 vi.mock('@/api/playlist', () => ({
   getPlaylistDetail: vi.fn(),
   getPlaylistTracks: vi.fn(),
+  getRelatedPlaylists: vi.fn(),
 }))
 
 const playlist = {
@@ -19,6 +20,19 @@ const playlist = {
   playCount: 128_000,
   tags: ['独立'],
   trackCount: 2,
+}
+
+const related = {
+  coverImgUrl: 'https://images.example.com/simi.jpg',
+  creator: { nickname: '海岸信号' },
+  id: 202,
+  name: '潮汐歌单',
+  playCount: 12_000,
+}
+
+async function settle() {
+  await Promise.resolve()
+  await Promise.resolve()
 }
 
 const songs = [
@@ -51,6 +65,8 @@ describe('playlist store', () => {
     setActivePinia(createPinia())
     vi.mocked(getPlaylistDetail).mockReset()
     vi.mocked(getPlaylistTracks).mockReset()
+    vi.mocked(getRelatedPlaylists).mockReset()
+    vi.mocked(getRelatedPlaylists).mockRejectedValue(new Error('no related'))
   })
 
   it('loads detail and tracks together and caches the same id', async () => {
@@ -175,6 +191,7 @@ describe('playlist store', () => {
     store.reset()
     expect(store.playlist).toBeNull()
     expect(store.songs).toHaveLength(0)
+    expect(store.relatedPlaylists).toBeNull()
     expect(store.loadedId).toBeNull()
     expect(store.error).toBeNull()
   })
@@ -184,7 +201,85 @@ describe('playlist store', () => {
 
     await expect(store.load(0)).rejects.toThrow('缺少有效的歌单 ID')
     expect(getPlaylistDetail).not.toHaveBeenCalled()
+    expect(getRelatedPlaylists).not.toHaveBeenCalled()
     expect(store.error).toBe('缺少有效的歌单 ID')
     expect(store.playlist).toBeNull()
+  })
+
+  it('loads related playlists with the detail and ignores a related failure', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getRelatedPlaylists).mockResolvedValue([
+      related,
+      { ...related, id: 101, name: '自己' },
+    ])
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+    await store.load(101)
+
+    expect(store.relatedPlaylists).toEqual([related])
+    expect(getPlaylistDetail).toHaveBeenCalledTimes(1)
+    expect(getRelatedPlaylists).toHaveBeenCalledTimes(1)
+    expect(getRelatedPlaylists).toHaveBeenCalledWith(101)
+  })
+
+  it('keeps the playlist when related playlists fail', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getRelatedPlaylists).mockRejectedValue(new Error('related offline'))
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+
+    expect(store.playlist).toEqual(playlist)
+    expect(store.songs).toEqual(songs)
+    expect(store.relatedPlaylists).toBeNull()
+    expect(store.error).toBeNull()
+  })
+
+  it('retries related playlists on a cached playlist when the first related request failed', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getRelatedPlaylists)
+      .mockRejectedValueOnce(new Error('related offline'))
+      .mockResolvedValueOnce([related])
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+    expect(store.relatedPlaylists).toBeNull()
+
+    await store.load(101)
+    await settle()
+
+    expect(getPlaylistDetail).toHaveBeenCalledTimes(1)
+    expect(getRelatedPlaylists).toHaveBeenCalledTimes(2)
+    expect(store.relatedPlaylists).toEqual([related])
+  })
+
+  it('does not keep stale related playlists after the playlist id changes', async () => {
+    const first = deferred<typeof related[]>()
+    const nextPlaylist = { ...playlist, id: 202, name: '下一张歌单' }
+    const nextRelated = { ...related, id: 303, name: '下一张相关' }
+    vi.mocked(getPlaylistDetail)
+      .mockResolvedValueOnce(playlist)
+      .mockResolvedValueOnce(nextPlaylist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getRelatedPlaylists)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce([nextRelated])
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await store.load(202)
+    await settle()
+    first.resolve([related])
+    await settle()
+
+    expect(store.playlist?.id).toBe(202)
+    expect(store.relatedPlaylists).toEqual([nextRelated])
   })
 })

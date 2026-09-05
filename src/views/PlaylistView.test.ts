@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getPlaylistDetail, getPlaylistTracks } from '@/api/playlist'
+import { getPlaylistDetail, getPlaylistTracks, getRelatedPlaylists } from '@/api/playlist'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { usePlaylistStore } from '@/stores/playlist'
@@ -15,6 +15,7 @@ import PlaylistView from '@/views/PlaylistView.vue'
 vi.mock('@/api/playlist', () => ({
   getPlaylistDetail: vi.fn(),
   getPlaylistTracks: vi.fn(),
+  getRelatedPlaylists: vi.fn(),
 }))
 
 const playSong = vi.fn().mockResolvedValue(true)
@@ -69,6 +70,20 @@ const HeaderStub = defineComponent({
   `,
 })
 
+const RouterLinkStub = defineComponent({
+  name: 'RouterLink',
+  props: ['to'],
+  template: '<a><slot /></a>',
+})
+
+const relatedPlaylist = {
+  coverImgUrl: 'https://images.example.com/simi.jpg',
+  creator: { nickname: '海岸信号' },
+  id: 202,
+  name: '潮汐歌单',
+  playCount: 12_000,
+}
+
 const SongListStub = defineComponent({
   name: 'PlaylistSongList',
   props: ['currentId', 'songs'],
@@ -97,7 +112,7 @@ async function mountView(query: Record<string, string> = { id: '101' }) {
       stubs: {
         PlaylistHeader: HeaderStub,
         PlaylistSongList: SongListStub,
-        RouterLink: defineComponent({ template: '<a><slot /></a>' }),
+        RouterLink: RouterLinkStub,
       },
     },
   })
@@ -114,6 +129,8 @@ describe('PlaylistView', () => {
     vi.mocked(getPlaylistTracks).mockReset()
     vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
     vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getRelatedPlaylists).mockReset()
+    vi.mocked(getRelatedPlaylists).mockRejectedValue(new Error('no related'))
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -208,5 +225,31 @@ describe('PlaylistView', () => {
 
     expect(getPlaylistDetail).toHaveBeenCalledWith(202)
     expect(wrapper.get('h1').text()).toBe('下一张歌单')
+  })
+
+  it('renders related playlist cards without blocking the song list', async () => {
+    vi.mocked(getRelatedPlaylists).mockResolvedValue([relatedPlaylist])
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="playlist-songs"]').exists()).toBe(true)
+    const related = wrapper.get('[data-testid="related-playlists"]')
+    expect(related.get('[data-testid="category-card"]').text()).toContain('潮汐歌单')
+    expect(related.get('[data-testid="category-card"]').text()).toContain('海岸信号')
+    const cardLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.classes().includes('category-link'))
+    expect(cardLink?.props('to')).toEqual({
+      name: Pages.playlist,
+      query: { id: 202 },
+    })
+  })
+
+  it('hides related playlists when the list is empty', async () => {
+    vi.mocked(getRelatedPlaylists).mockResolvedValue([])
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="related-playlists"]').exists()).toBe(false)
   })
 })

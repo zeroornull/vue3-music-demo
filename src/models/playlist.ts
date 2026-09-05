@@ -15,3 +15,11 @@ export interface PlaylistDetail {
   highQuality: boolean
   creator: PlaylistCreator
 }
+
+export interface RelatedPlaylist {
+  coverImgUrl: string
+  creator: { nickname: string }
+  id: number
+  name: string
+  playCount: number
+}

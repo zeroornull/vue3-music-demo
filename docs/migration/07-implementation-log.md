@@ -6293,3 +6293,67 @@ mock API http://127.0.0.1:56931
 ### 71.4 本轮结果
 
 专辑页头歌手已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/520、typecheck、366 modules；隔离 smoke `57021`/`57031`。第 68 轮提交 `ab0302c` 仍是当前 HEAD；第 69 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 72. 实施第 70 轮：相关歌单（工作区）
+
+> 执行日期：`2026-09-05`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 72.1 开始边界与范围
+
+第 70 轮开始时第 69 轮已经提交：
+
+```text
+HEAD c9ff073
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者：`/related/playlist` → 已有 CategoryPlaylistCard。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 72.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       528 passed (528)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 72.3 本地 mock API 浏览器 smoke
+
+隔离端口：
+
+```text
+Vite     http://127.0.0.1:57121
+mock API http://127.0.0.1:57131
+```
+
+验证步骤：
+
+1. `#/playlist?id=101` 标题「夜航歌单」；
+2. 相关区封面 `href="#/playlist?id=202"`，当前 id 已过滤（只剩 1 张卡），点封面后 hash 为 `#/playlist?id=202`，标题「潮汐歌单」，未打开播放条。
+
+独立审查 PASS WITH FINDINGS：LOW RelatedPlaylist 与 CategoryPlaylist 重复、picUrl 回落未测、缓存命中可能重叠在途请求。核验复跑隔离口 `57221`/`57231`。测完已停 `57121`/`57131`。未打真实网易云 API。
+
+### 72.4 本轮结果
+
+相关歌单已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/528、typecheck、366 modules；隔离 smoke `57221`/`57231`。第 69 轮提交 `c9ff073` 仍是当前 HEAD；第 70 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

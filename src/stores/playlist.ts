@@ -2,8 +2,8 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
-import { getPlaylistDetail, getPlaylistTracks } from '@/api/playlist'
-import type { PlaylistDetail } from '@/models/playlist'
+import { getPlaylistDetail, getPlaylistTracks, getRelatedPlaylists } from '@/api/playlist'
+import type { PlaylistDetail, RelatedPlaylist } from '@/models/playlist'
 import type { Song } from '@/models/song'
 
 let requestSerial = 0
@@ -11,6 +11,7 @@ let requestSerial = 0
 export const usePlaylistStore = defineStore('playlist', () => {
   const playlist = ref<PlaylistDetail | null>(null)
   const songs = ref<Song[]>([])
+  const relatedPlaylists = ref<RelatedPlaylist[] | null>(null)
   const error = ref<string | null>(null)
   const loading = ref(false)
   const loadedId = ref<number | null>(null)
@@ -19,6 +20,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     requestSerial++
     playlist.value = null
     songs.value = []
+    relatedPlaylists.value = null
     loadedId.value = null
     error.value = null
     loading.value = false
@@ -32,6 +34,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     }
 
     if (!force && loadedId.value === id && playlist.value && !error.value) {
+      if (relatedPlaylists.value === null) requestRelated(id, requestSerial)
       return true
     }
 
@@ -39,6 +42,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     if (loadedId.value !== id) {
       playlist.value = null
       songs.value = []
+      relatedPlaylists.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -52,6 +56,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
       playlist.value = detail
       songs.value = tracks
       loadedId.value = id
+      requestRelated(id, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -62,5 +67,26 @@ export const usePlaylistStore = defineStore('playlist', () => {
     }
   }
 
-  return { load, reset, playlist, songs, error, loading, loadedId }
+  function requestRelated(id: number, serial: number) {
+    void getRelatedPlaylists(id)
+      .then((list) => {
+        if (serial !== requestSerial) return
+        if (loadedId.value !== id) return
+        relatedPlaylists.value = list.filter((item) => item.id !== id)
+      })
+      .catch(() => {
+        if (serial !== requestSerial) return
+      })
+  }
+
+  return {
+    load,
+    reset,
+    playlist,
+    songs,
+    relatedPlaylists,
+    error,
+    loading,
+    loadedId,
+  }
 })
