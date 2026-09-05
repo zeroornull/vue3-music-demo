@@ -143,6 +143,9 @@ describe('App host gate', () => {
     artistStore.artists = [
       { id: 401, img1v1Url: '', name: '林间电台' },
     ]
+    artistStore.relatedArtists = [
+      { id: 402, img1v1Url: '', name: '海岸信号' },
+    ]
     artistStore.area = 7
     artistStore.type = 1
     artistStore.initial = 'a'
@@ -157,6 +160,7 @@ describe('App host gate', () => {
     expect(artistStore.desc).toBeNull()
     expect(artistStore.descLoadedId).toBeNull()
     expect(artistStore.artists).toEqual([])
+    expect(artistStore.relatedArtists).toBeNull()
     expect(artistStore.area).toBe(-1)
     expect(artistStore.type).toBe(-1)
     expect(artistStore.initial).toBe('-1')

@@ -12,6 +12,7 @@ import {
   getArtistList,
   getArtistMvs,
   getArtistSongs,
+  getSimiArtists,
 } from '@/api/artist'
 import { getErrorMessage } from '@/api/http'
 import type { ArtistAlbum, ArtistDesc, ArtistDetail, ArtistMv, HallArtist } from '@/models/artist'
@@ -44,6 +45,7 @@ export const useArtistStore = defineStore('artist', () => {
   const descError = ref<string | null>(null)
   const descLoading = ref(false)
   const descLoadedId = ref<number | null>(null)
+  const relatedArtists = ref<HallArtist[] | null>(null)
   const artists = ref<HallArtist[]>([])
   const artistsError = ref<string | null>(null)
   const artistsLoading = ref(false)
@@ -86,6 +88,7 @@ export const useArtistStore = defineStore('artist', () => {
     loading.value = false
     more.value = false
     loadedId.value = null
+    relatedArtists.value = null
     clearMvs()
     clearAlbums()
     clearDesc()
@@ -111,6 +114,7 @@ export const useArtistStore = defineStore('artist', () => {
     }
 
     if (!force && loadedId.value === id && artist.value && !error.value) {
+      if (relatedArtists.value === null) requestRelated(id)
       return true
     }
 
@@ -120,6 +124,7 @@ export const useArtistStore = defineStore('artist', () => {
       songs.value = []
       loadedId.value = null
       more.value = false
+      relatedArtists.value = null
       clearMvs()
       clearAlbums()
       clearDesc()
@@ -136,6 +141,7 @@ export const useArtistStore = defineStore('artist', () => {
       songs.value = page.songs
       more.value = page.more
       loadedId.value = id
+      requestRelated(id)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -144,6 +150,15 @@ export const useArtistStore = defineStore('artist', () => {
     } finally {
       if (serial === requestSerial) loading.value = false
     }
+  }
+
+  function requestRelated(id: number) {
+    void Promise.resolve(getSimiArtists(id))
+      .then((list) => {
+        if (loadedId.value !== id) return
+        relatedArtists.value = list.filter((item) => item.id !== id)
+      })
+      .catch(() => undefined)
   }
 
   async function loadMvs(id: number, force = false) {
@@ -408,6 +423,7 @@ export const useArtistStore = defineStore('artist', () => {
     loading,
     more,
     loadedId,
+    relatedArtists,
     mvs,
     mvsError,
     mvsLoading,

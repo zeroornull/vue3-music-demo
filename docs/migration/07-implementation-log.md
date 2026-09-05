@@ -6484,3 +6484,66 @@ mock API http://127.0.0.1:57731
 ### 74.4 本轮结果
 
 搜索电台已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/532、typecheck、366 modules；隔离 smoke `57821`/`57831`。第 70 轮提交 `9135025` 仍是当前 HEAD；第 71、72 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 75. 实施第 73 轮：相似歌手（工作区）
+
+> 执行日期：`2026-09-06`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 75.1 开始边界与范围
+
+第 73 轮开始时第 72 轮已经提交：
+
+```text
+HEAD d82b731
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者：`/simi/artist` → 已有 `#/artistDetail` 和 ArtistHallCard。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 75.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       542 passed (542)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 75.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:57921
+mock API http://127.0.0.1:57931
+```
+
+验证步骤：
+
+1. `#/artistDetail?id=401` 标题「林间电台」，相似区 `href="#/artistDetail?id=402"`，`aria-label="打开歌手：海岸信号"`；
+2. 点卡片后 hash 为 `#/artistDetail?id=402`，标题「海岸信号」，未打开播放条；
+3. Discover 摘要含「相似歌手」。
+
+独立审查先 FAIL：HIGH `loadMore` 递增歌曲序号会丢掉在途 `/simi/artist`。已改为只按 `loadedId` 提交，并补「加载更多歌曲不丢掉在途相似歌手」测试。复审 APPROVE。LOW：非整数/空白名未单测、缓存重试可能重叠在途请求、缺 resetDetail 在途测试。核验复跑隔离口 `58021`/`58031`。测完已停 `57921`/`57931`。未打真实网易云 API。
+
+### 75.4 本轮结果
+
+相似歌手已在工作区。独立审查先 FAIL → 已修 → APPROVE（LOW 保留）。独立核验 PASS WITH FINDINGS：复跑 108/541 后跟进 108/542、typecheck、366 modules；隔离 smoke `58021`/`58031`。第 72 轮提交 `d82b731` 仍是当前 HEAD；第 73 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

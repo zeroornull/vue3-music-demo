@@ -12,6 +12,7 @@ import {
   getArtistList,
   getArtistMvs,
   getArtistSongs,
+  getSimiArtists,
 } from '@/api/artist'
 import { useArtistStore } from '@/stores/artist'
 
@@ -25,6 +26,7 @@ vi.mock('@/api/artist', async (importOriginal) => {
     getArtistList: vi.fn(),
     getArtistMvs: vi.fn(),
     getArtistSongs: vi.fn(),
+    getSimiArtists: vi.fn(),
   }
 })
 
@@ -72,6 +74,11 @@ function deferred<T>() {
   return { promise, resolve }
 }
 
+async function settle() {
+  await Promise.resolve()
+  await Promise.resolve()
+}
+
 describe('artist store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -81,6 +88,8 @@ describe('artist store', () => {
     vi.mocked(getArtistList).mockReset()
     vi.mocked(getArtistMvs).mockReset()
     vi.mocked(getArtistSongs).mockReset()
+    vi.mocked(getSimiArtists).mockReset()
+    vi.mocked(getSimiArtists).mockRejectedValue(new Error('no similar'))
   })
 
   it('loads detail and the first hot page once', async () => {
@@ -471,5 +480,141 @@ describe('artist store', () => {
     expect(store.desc).toBeNull()
     expect(store.descLoadedId).toBeNull()
     expect(store.descLoading).toBe(false)
+  })
+
+  it('loads similar artists with the detail and ignores a similar failure', async () => {
+    const related = {
+      id: 402,
+      img1v1Url: 'https://images.example.com/c.jpg',
+      name: '海岸信号',
+    }
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getSimiArtists).mockResolvedValue([
+      related,
+      { id: 401, img1v1Url: '', name: '自己' },
+    ])
+    const store = useArtistStore()
+
+    await store.load(401)
+    await settle()
+    await store.load(401)
+
+    expect(store.relatedArtists).toEqual([related])
+    expect(store.artists).toEqual([])
+    expect(getArtistDetail).toHaveBeenCalledTimes(1)
+    expect(getSimiArtists).toHaveBeenCalledTimes(1)
+    expect(getSimiArtists).toHaveBeenCalledWith(401)
+  })
+
+  it('keeps the artist when similar artists fail', async () => {
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getSimiArtists).mockRejectedValue(new Error('simi offline'))
+    const store = useArtistStore()
+
+    await store.load(401)
+    await settle()
+
+    expect(store.artist).toEqual(artist)
+    expect(store.songs).toEqual([song])
+    expect(store.relatedArtists).toBeNull()
+    expect(store.error).toBeNull()
+  })
+
+  it('retries similar artists on a cached artist when the first similar request failed', async () => {
+    const related = {
+      id: 402,
+      img1v1Url: 'https://images.example.com/c.jpg',
+      name: '海岸信号',
+    }
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getSimiArtists)
+      .mockRejectedValueOnce(new Error('simi offline'))
+      .mockResolvedValueOnce([related])
+    const store = useArtistStore()
+
+    await store.load(401)
+    await settle()
+    expect(store.relatedArtists).toBeNull()
+
+    await store.load(401)
+    await settle()
+
+    expect(getArtistDetail).toHaveBeenCalledTimes(1)
+    expect(getSimiArtists).toHaveBeenCalledTimes(2)
+    expect(store.relatedArtists).toEqual([related])
+  })
+
+  it('does not keep stale similar artists after the artist id changes', async () => {
+    const related = {
+      id: 402,
+      img1v1Url: 'https://images.example.com/c.jpg',
+      name: '海岸信号',
+    }
+    const first = deferred<typeof related[]>()
+    const nextArtist = { ...artist, id: 402, name: '海岸信号' }
+    const nextRelated = { ...related, id: 403, name: '下一组' }
+    vi.mocked(getArtistDetail)
+      .mockResolvedValueOnce(artist)
+      .mockResolvedValueOnce(nextArtist)
+    vi.mocked(getArtistSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getSimiArtists)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce([nextRelated])
+    const store = useArtistStore()
+
+    await store.load(401)
+    await store.load(402)
+    await settle()
+    first.resolve([related])
+    await settle()
+
+    expect(store.artist?.id).toBe(402)
+    expect(store.relatedArtists).toEqual([nextRelated])
+  })
+
+  it('does not drop in-flight similar artists when loading more songs', async () => {
+    const related = {
+      id: 402,
+      img1v1Url: 'https://images.example.com/c.jpg',
+      name: '海岸信号',
+    }
+    const first = deferred<typeof related[]>()
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs)
+      .mockResolvedValueOnce({ more: true, songs: [song] })
+      .mockResolvedValueOnce({ more: false, songs: [{ ...song, id: 302 }] })
+    vi.mocked(getSimiArtists).mockReturnValueOnce(first.promise)
+    const store = useArtistStore()
+
+    await store.load(401)
+    await store.loadMore()
+    first.resolve([related])
+    await settle()
+
+    expect(store.relatedArtists).toEqual([related])
+    expect(store.songs.map((item) => item.id)).toEqual([301, 302])
+  })
+
+  it('resetDetail drops similar artists and keeps the hall list', async () => {
+    const related = {
+      id: 402,
+      img1v1Url: 'https://images.example.com/c.jpg',
+      name: '海岸信号',
+    }
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getSimiArtists).mockResolvedValue([related])
+    const store = useArtistStore()
+    store.artists = [{ id: 401, img1v1Url: '', name: '林间电台' }]
+    await store.load(401)
+    await settle()
+
+    store.resetDetail()
+
+    expect(store.relatedArtists).toBeNull()
+    expect(store.artists).toEqual([{ id: 401, img1v1Url: '', name: '林间电台' }])
   })
 })

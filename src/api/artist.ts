@@ -286,3 +286,24 @@ export async function getArtistList(
     artists,
   }
 }
+
+function readSimiArtist(value: unknown): HallArtist | null {
+  const artist = readHallArtist(value)
+  if (!artist || !Number.isInteger(artist.id) || artist.id <= 0) return null
+  const name = artist.name.trim()
+  if (!name) return null
+  return { ...artist, name }
+}
+
+export async function getSimiArtists(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallArtist[]> {
+  const response = await client.get<{ artists?: unknown }>('/simi/artist', { id })
+  if (!Array.isArray(response.artists)) {
+    throw new Error('相似歌手响应格式不正确')
+  }
+  return response.artists
+    .map(readSimiArtist)
+    .filter((item): item is HallArtist => item !== null)
+}

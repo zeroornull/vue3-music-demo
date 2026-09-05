@@ -12,6 +12,7 @@ import {
   getArtistDetail,
   getArtistMvs,
   getArtistSongs,
+  getSimiArtists,
 } from '@/api/artist'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -27,6 +28,7 @@ vi.mock('@/api/artist', async (importOriginal) => {
     getArtistDetail: vi.fn(),
     getArtistMvs: vi.fn(),
     getArtistSongs: vi.fn(),
+    getSimiArtists: vi.fn(),
   }
 })
 
@@ -144,7 +146,10 @@ async function mountView(query: Record<string, string> = { id: '401' }) {
         ArtistDescSection: DescSectionStub,
         ArtistMvSection: MvSectionStub,
         PlaylistSongList: SongListStub,
-        RouterLink: defineComponent({ template: '<a><slot /></a>' }),
+        RouterLink: defineComponent({
+          props: ['to'],
+          template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+        }),
       },
     },
   })
@@ -160,6 +165,7 @@ describe('ArtistView', () => {
     vi.mocked(getArtistDetail).mockReset()
     vi.mocked(getArtistMvs).mockReset()
     vi.mocked(getArtistSongs).mockReset()
+    vi.mocked(getSimiArtists).mockReset()
     vi.mocked(getArtistDetail).mockResolvedValue(artist)
     vi.mocked(getArtistSongs).mockResolvedValue({ more: true, songs })
     vi.mocked(getArtistMvs).mockResolvedValue({
@@ -193,6 +199,7 @@ describe('ArtistView', () => {
       briefDesc: '林间电台的简介',
       introduction: [{ text: '从校园电台出发。', title: '经历' }],
     })
+    vi.mocked(getSimiArtists).mockRejectedValue(new Error('no similar'))
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -427,5 +434,32 @@ describe('ArtistView', () => {
     expect(wrapper.get('[data-testid="artist-desc"]').text()).toContain('经历')
     expect(getArtistDesc).toHaveBeenCalledTimes(2)
     expect(getArtistDesc).toHaveBeenCalledWith(401)
+  })
+
+  it('renders similar artist cards without blocking songs', async () => {
+    vi.mocked(getSimiArtists).mockResolvedValue([
+      {
+        id: 402,
+        img1v1Url: 'https://images.example.com/c.jpg',
+        name: '海岸信号',
+      },
+    ])
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="play-song"]').exists()).toBe(true)
+    const related = wrapper.get('[data-testid="related-artists"]')
+    expect(related.get('[data-testid="artist-card"]').text()).toContain('海岸信号')
+    expect(related.get('[aria-label="打开歌手：海岸信号"]').attributes('data-to')).toBe(
+      JSON.stringify({ name: Pages.artistDetail, query: { id: 402 } }),
+    )
+  })
+
+  it('hides similar artists when the list is empty', async () => {
+    vi.mocked(getSimiArtists).mockResolvedValue([])
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="related-artists"]').exists()).toBe(false)
   })
 })

@@ -7,6 +7,7 @@ import ArtistAlbumSection from '@/components/artist/ArtistAlbumSection.vue'
 import ArtistDescSection from '@/components/artist/ArtistDescSection.vue'
 import ArtistHeader from '@/components/artist/ArtistHeader.vue'
 import ArtistMvSection from '@/components/artist/ArtistMvSection.vue'
+import ArtistHallCard from '@/components/music/ArtistHallCard.vue'
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
 import type { Song } from '@/models/song'
 import { Pages } from '@/router/pages'
@@ -33,6 +34,7 @@ const {
   desc,
   descError,
   descLoading,
+  relatedArtists,
 } = storeToRefs(artistStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
@@ -309,6 +311,21 @@ watch(
           @retry="retryDesc"
         />
       </div>
+      <section
+        v-if="relatedArtists?.length"
+        class="related-artists"
+        data-testid="related-artists"
+        aria-labelledby="related-artists-title"
+      >
+        <h2 id="related-artists-title">相似歌手</h2>
+        <div class="related-grid">
+          <ArtistHallCard
+            v-for="item in relatedArtists"
+            :key="item.id"
+            :artist="item"
+          />
+        </div>
+      </section>
     </template>
   </main>
 </template>
@@ -330,6 +347,33 @@ watch(
   color: var(--color-accent);
   font-weight: 720;
   text-decoration: none;
+}
+
+.related-artists {
+  margin-top: 36px;
+}
+
+.related-artists h2 {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 22px);
+}
+
+@media (max-width: 900px) {
+  .related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .related-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .state-card {

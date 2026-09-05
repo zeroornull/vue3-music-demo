@@ -12,6 +12,7 @@ import {
   getArtistList,
   getArtistMvs,
   getArtistSongs,
+  getSimiArtists,
 } from '@/api/artist'
 
 const client = (response: unknown) => {
@@ -347,5 +348,39 @@ describe('Artist API', () => {
         },
       ],
     })
+  })
+})
+
+describe('Similar artist API', () => {
+  it('unwraps /simi/artist covers and drops invalid ids', async () => {
+    const request = client({
+      artists: [
+        {
+          extra: true,
+          id: 402,
+          name: '  海岸信号  ',
+          picUrl: 'https://images.example.com/c.jpg',
+        },
+        {
+          id: 0,
+          name: '无效',
+        },
+      ],
+    })
+
+    await expect(getSimiArtists(401, request.client)).resolves.toEqual([
+      {
+        id: 402,
+        img1v1Url: 'https://images.example.com/c.jpg',
+        name: '海岸信号',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/simi/artist', { id: 401 })
+  })
+
+  it('rejects a missing artists array', async () => {
+    await expect(
+      getSimiArtists(401, client({ artists: null }).client),
+    ).rejects.toThrow('相似歌手响应格式不正确')
   })
 })
