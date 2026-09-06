@@ -2,7 +2,7 @@
 import type { PageName } from '@/router/pages'
 
 export interface SearchHit {
-  id: number
+  id: number | string
   name: string
   cover: string
 }

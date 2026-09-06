@@ -7,7 +7,7 @@ import { getErrorMessage } from '@/api/http'
 import { getSearchSuggest } from '@/api/search'
 import SearchHitList from '@/components/search/SearchHitList.vue'
 import SearchHotList from '@/components/search/SearchHotList.vue'
-import type { SearchAlbum, SearchArtist, SearchMv, SearchPlaylist, SearchRadio } from '@/models/search'
+import type { SearchAlbum, SearchArtist, SearchMv, SearchPlaylist, SearchRadio, SearchVideo } from '@/models/search'
 import { isPositiveMvId, type Song } from '@/models/song'
 import { Pages } from '@/router/pages'
 import { usePlayerStore } from '@/stores/player'
@@ -29,6 +29,7 @@ const artists = ref<SearchArtist[]>([])
 const albums = ref<SearchAlbum[]>([])
 const mvs = ref<SearchMv[]>([])
 const radios = ref<SearchRadio[]>([])
+const videos = ref<SearchVideo[]>([])
 const songsError = ref<string | null>(null)
 const songsLoading = ref(false)
 let debounceId = 0
@@ -41,7 +42,8 @@ const hasHits = computed(
       artists.value.length +
       albums.value.length +
       mvs.value.length +
-      radios.value.length >
+      radios.value.length +
+      videos.value.length >
     0,
 )
 
@@ -85,6 +87,14 @@ const radioHits = computed(() =>
   })),
 )
 
+const videoHits = computed(() =>
+  videos.value.map((item) => ({
+    cover: item.cover,
+    id: item.vid,
+    name: item.name,
+  })),
+)
+
 function clearHits() {
   suggestSerial++
   keyword.value = ''
@@ -94,6 +104,7 @@ function clearHits() {
   albums.value = []
   mvs.value = []
   radios.value = []
+  videos.value = []
   songsError.value = null
   songsLoading.value = false
 }
@@ -128,6 +139,7 @@ function runSearch(word: string) {
       albums.value = page.albums
       mvs.value = page.mvs
       radios.value = page.radios
+      videos.value = page.videos
     })
     .catch((requestError: unknown) => {
       if (serial !== suggestSerial) return
@@ -225,7 +237,7 @@ onUnmounted(() => {
         v-model="draft"
         type="search"
         autocomplete="off"
-        placeholder="搜索歌曲、歌单、歌手、专辑、MV 或电台"
+        placeholder="搜索歌曲、歌单、歌手、专辑、MV、电台或视频"
         data-testid="header-search-input"
         role="combobox"
         aria-autocomplete="list"
@@ -358,6 +370,14 @@ onUnmounted(() => {
           title="电台"
           :hits="radioHits"
           :to-name="Pages.djRadio"
+        />
+        <SearchHitList
+          v-if="videos.length"
+          data-testid="header-search-videos"
+          kind="视频"
+          title="视频"
+          :hits="videoHits"
+          :to-name="Pages.videoDetail"
         />
       </div>
 

@@ -53,6 +53,7 @@ const suggest = {
   ],
   radios: [],
   songs: [song],
+  videos: [],
 }
 
 async function mountPop() {
@@ -353,6 +354,32 @@ describe('HeaderSearchPop', () => {
     const radio = wrapper.get('[aria-label="打开电台：夜航电台"]')
     expect(radio.attributes('data-to')).toBe(
       JSON.stringify({ name: Pages.djRadio, query: { id: 801 } }),
+    )
+    wrapper.unmount()
+  })
+
+  it('links a suggested video', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      ...suggest,
+      videos: [
+        {
+          cover: 'https://images.example.com/clip.jpg',
+          name: '夜航现场',
+          vid: 'VID001',
+        },
+      ],
+    })
+    const { wrapper } = await mountPop()
+    const input = wrapper.get('[data-testid="header-search-input"]')
+    await input.trigger('focus')
+    await input.setValue('夜航')
+    await input.trigger('input')
+    await vi.advanceTimersByTimeAsync(400)
+    await flushPromises()
+
+    const video = wrapper.get('[aria-label="打开视频：夜航现场"]')
+    expect(video.attributes('data-to')).toBe(
+      JSON.stringify({ name: Pages.videoDetail, query: { id: 'VID001' } }),
     )
     wrapper.unmount()
   })

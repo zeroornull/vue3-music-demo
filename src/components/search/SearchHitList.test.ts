@@ -67,4 +67,19 @@ describe('SearchHitList', () => {
     expect(wrapper.get('a').attributes('href')).toContain('"id":501')
     expect(wrapper.get('a').attributes('aria-label')).toBe('打开专辑：夜航')
   })
+
+  it('opens video detail for string vid hits', () => {
+    const wrapper = mount(SearchHitList, {
+      props: {
+        hits: [{ cover: '', id: 'VID001', name: '夜航现场' }],
+        kind: '视频',
+        title: '视频',
+        toName: Pages.videoDetail,
+      },
+      global: { stubs: { RouterLink: LinkStub } },
+    })
+    expect(wrapper.get('a').attributes('href')).toContain('"name":"videoDetail"')
+    expect(wrapper.get('a').attributes('href')).toContain('"id":"VID001"')
+    expect(wrapper.get('a').attributes('aria-label')).toBe('打开视频：夜航现场')
+  })
 })

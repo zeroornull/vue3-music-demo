@@ -8,6 +8,7 @@ import {
   SEARCH_PLAYLIST_LIMIT,
   SEARCH_RADIO_LIMIT,
   SEARCH_SONG_LIMIT,
+  SEARCH_VIDEO_LIMIT,
   getSearchHotDetail,
   getSearchSuggest,
 } from '@/api/search'
@@ -78,6 +79,21 @@ describe('Search API', () => {
           {
             id: 0,
             name: '无效电台',
+          },
+        ],
+        videos: [
+          {
+            coverUrl: 'https://images.example.com/clip.jpg',
+            extra: true,
+            title: '夜航现场',
+            vid: 'VID001',
+          },
+          {
+            title: '缺 vid',
+          },
+          {
+            name: '空白',
+            vid: '   ',
           },
         ],
         mvs: [
@@ -152,6 +168,13 @@ describe('Search API', () => {
           picUrl: 'https://images.example.com/radio.jpg',
         },
       ],
+      videos: [
+        {
+          cover: 'https://images.example.com/clip.jpg',
+          name: '夜航现场',
+          vid: 'VID001',
+        },
+      ],
       songs: [
         {
           album: { id: 1, name: '专辑', picUrl: 'https://images.example.com/a.jpg' },
@@ -179,6 +202,7 @@ describe('Search API', () => {
       playlists: [],
       radios: [],
       songs: [],
+      videos: [],
     })
 
     const manySongs = Array.from({ length: 12 }, (_, index) => ({
@@ -213,6 +237,11 @@ describe('Search API', () => {
       name: `电台 ${index + 1}`,
       picUrl: 'https://images.example.com/r.jpg',
     }))
+    const manyVideos = Array.from({ length: 12 }, (_, index) => ({
+      coverUrl: 'https://images.example.com/v.jpg',
+      title: `视频 ${index + 1}`,
+      vid: `VID${String(index + 1).padStart(3, '0')}`,
+    }))
     const page = await getSearchSuggest(
       '很多',
       client({
@@ -221,6 +250,7 @@ describe('Search API', () => {
           artists: manyArtists,
           djRadios: manyRadios,
           mvs: manyMvs,
+          videos: manyVideos,
           playlists: manyPlaylists,
           songs: manySongs,
         },
@@ -232,6 +262,7 @@ describe('Search API', () => {
     expect(page.albums).toHaveLength(SEARCH_ALBUM_LIMIT)
     expect(page.mvs).toHaveLength(SEARCH_MV_LIMIT)
     expect(page.radios).toHaveLength(SEARCH_RADIO_LIMIT)
+    expect(page.videos).toHaveLength(SEARCH_VIDEO_LIMIT)
     expect(page.artists[0]?.img1v1Url).toBe('https://images.example.com/f.jpg')
     expect(page.albums[0]?.picUrl).toBe('https://images.example.com/b.jpg')
   })

@@ -79,6 +79,13 @@ const suggest = {
     },
   ],
   songs: [song],
+  videos: [
+    {
+      cover: 'https://images.example.com/clip.jpg',
+      name: '夜航现场',
+      vid: 'VID001',
+    },
+  ],
 }
 
 const SongListStub = defineComponent({
@@ -169,6 +176,12 @@ describe('SearchView', () => {
     expect(
       wrapper.get('[aria-label="打开电台：夜航电台"]').attributes('href'),
     ).toContain('djRadio?id=801')
+    expect(wrapper.get('[data-testid="search-videos"]').text()).toContain(
+      '夜航现场',
+    )
+    expect(
+      wrapper.get('[aria-label="打开视频：夜航现场"]').attributes('href'),
+    ).toContain('videoDetail?id=VID001')
   })
 
   it('retries a failed song search and plays a result', async () => {
@@ -188,7 +201,7 @@ describe('SearchView', () => {
     expect(wrapper.get('[role="status"]').text()).toContain('正在播放“晚风来信”。')
   })
 
-  it('shows an empty card when suggest has no songs, playlists, artists, albums, MVs or radios', async () => {
+  it('shows an empty card when suggest has no songs, playlists, artists, albums, MVs, radios or videos', async () => {
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -196,6 +209,7 @@ describe('SearchView', () => {
       playlists: [],
       radios: [],
       songs: [],
+      videos: [],
     })
     const { wrapper } = await mountView({ q: '无结果' })
     await flushPromises()
@@ -212,6 +226,7 @@ describe('SearchView', () => {
       playlists: [],
       radios: [],
       songs: [],
+      videos: [],
     })
     const { wrapper } = await mountView({ q: '夜航' })
     await flushPromises()
@@ -235,6 +250,7 @@ describe('SearchView', () => {
       playlists: [],
       radios: [],
       songs: [],
+      videos: [],
     })
     const { wrapper } = await mountView({ q: '现场' })
     await flushPromises()
@@ -258,6 +274,7 @@ describe('SearchView', () => {
         },
       ],
       songs: [],
+      videos: [],
     })
     const { wrapper } = await mountView({ q: '夜航' })
     await flushPromises()
@@ -265,5 +282,29 @@ describe('SearchView', () => {
     expect(
       wrapper.get('[aria-label="打开电台：夜航电台"]').attributes('href'),
     ).toContain('djRadio?id=801')
+  })
+
+  it('keeps video-only hits out of the empty card', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      albums: [],
+      artists: [],
+      mvs: [],
+      playlists: [],
+      radios: [],
+      songs: [],
+      videos: [
+        {
+          cover: 'https://images.example.com/clip.jpg',
+          name: '夜航现场',
+          vid: 'VID001',
+        },
+      ],
+    })
+    const { wrapper } = await mountView({ q: '现场' })
+    await flushPromises()
+    expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
+    expect(wrapper.get('[aria-label="打开视频：夜航现场"]').attributes('href')).toContain(
+      'videoDetail?id=VID001',
+    )
   })
 })

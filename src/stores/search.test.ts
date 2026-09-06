@@ -63,6 +63,13 @@ const suggest = {
   playlists: [playlist],
   radios: [radio],
   songs: [song],
+  videos: [
+    {
+      cover: 'https://images.example.com/clip.jpg',
+      name: '夜航现场',
+      vid: 'VID001',
+    },
+  ],
 }
 
 function deferred<T>() {
@@ -111,6 +118,7 @@ describe('search store', () => {
     expect(store.albums).toEqual([album])
     expect(store.mvs).toEqual([mv])
     expect(store.radios).toEqual([radio])
+    expect(store.videos).toEqual(suggest.videos)
     expect(store.hots).toEqual([hot])
     expect(getSearchSuggest).toHaveBeenCalledTimes(1)
   })
@@ -130,6 +138,7 @@ describe('search store', () => {
     expect(store.albums).toEqual([])
     expect(store.mvs).toEqual([])
     expect(store.radios).toEqual([])
+    expect(store.videos).toEqual([])
     expect(store.songsError).toBe('search offline')
   })
 
@@ -149,6 +158,7 @@ describe('search store', () => {
     expect(store.albums).toEqual([])
     expect(store.mvs).toEqual([])
     expect(store.radios).toEqual([])
+    expect(store.videos).toEqual([])
     expect(store.keyword).toBe('')
     expect(store.hots).toEqual([hot])
   })
@@ -162,6 +172,7 @@ describe('search store', () => {
       playlists: [{ ...playlist, id: 102, name: '秋日电台' }],
       radios: [{ ...radio, id: 802, name: '秋日电台' }],
       songs: [{ ...song, id: 302, name: '下一首' }],
+      videos: [{ cover: '', name: '秋日现场', vid: 'VID002' }],
     }
     vi.mocked(getSearchSuggest)
       .mockReturnValueOnce(pendingFirst.promise)
@@ -180,6 +191,7 @@ describe('search store', () => {
     expect(store.albums).toEqual(second.albums)
     expect(store.mvs).toEqual(second.mvs)
     expect(store.radios).toEqual(second.radios)
+    expect(store.videos).toEqual(second.videos)
   })
 
   it('drops in-flight hot search after reset', async () => {
@@ -210,6 +222,7 @@ describe('search store', () => {
     expect(store.albums).toEqual([])
     expect(store.mvs).toEqual([])
     expect(store.radios).toEqual([])
+    expect(store.videos).toEqual([])
     expect(store.songsLoading).toBe(false)
     expect(store.hots).toEqual([])
   })

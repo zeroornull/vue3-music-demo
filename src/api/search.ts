@@ -7,6 +7,7 @@ import type {
   SearchPlaylist,
   SearchRadio,
   SearchSuggestPage,
+  SearchVideo,
 } from '@/models/search'
 import { normalizeSong, type NetworkSong } from '@/models/song'
 
@@ -16,6 +17,7 @@ export const SEARCH_ARTIST_LIMIT = 10
 export const SEARCH_ALBUM_LIMIT = 10
 export const SEARCH_MV_LIMIT = 10
 export const SEARCH_RADIO_LIMIT = 10
+export const SEARCH_VIDEO_LIMIT = 10
 export const SEARCH_HOT_LIMIT = 10
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -105,6 +107,28 @@ function readRadio(value: unknown): SearchRadio | null {
   }
 }
 
+function readVideo(value: unknown): SearchVideo | null {
+  if (!isRecord(value)) return null
+  const vid = typeof value.vid === 'string' ? value.vid.trim() : ''
+  if (!vid) return null
+  const name =
+    typeof value.title === 'string' && value.title.trim()
+      ? value.title.trim()
+      : typeof value.name === 'string'
+        ? value.name.trim()
+        : ''
+  if (!name) return null
+  const cover =
+    typeof value.coverUrl === 'string' && value.coverUrl
+      ? value.coverUrl
+      : typeof value.cover === 'string' && value.cover
+        ? value.cover
+        : typeof value.picUrl === 'string'
+          ? value.picUrl
+          : ''
+  return { cover, name, vid }
+}
+
 function readAlbum(value: unknown): SearchAlbum | null {
   if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
     return null
@@ -148,6 +172,7 @@ export async function getSearchSuggest(
   const albums = Array.isArray(result.albums) ? result.albums : []
   const mvs = Array.isArray(result.mvs) ? result.mvs : []
   const radios = Array.isArray(result.djRadios) ? result.djRadios : []
+  const videos = Array.isArray(result.videos) ? result.videos : []
   return {
     songs: songs
       .filter(isNetworkSong)
@@ -173,5 +198,9 @@ export async function getSearchSuggest(
       .map(readRadio)
       .filter((item): item is SearchRadio => item !== null)
       .slice(0, SEARCH_RADIO_LIMIT),
+    videos: videos
+      .map(readVideo)
+      .filter((item): item is SearchVideo => item !== null)
+      .slice(0, SEARCH_VIDEO_LIMIT),
   }
 }

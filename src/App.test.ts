@@ -366,6 +366,9 @@ describe('App host gate', () => {
     searchStore.radios = [
       { id: 801, name: '夜航电台', picUrl: '' },
     ]
+    searchStore.videos = [
+      { cover: '', name: '夜航现场', vid: 'VID001' },
+    ]
     mountApp()
 
     useHostStore().clearHost()
@@ -378,6 +381,7 @@ describe('App host gate', () => {
     expect(searchStore.albums).toEqual([])
     expect(searchStore.mvs).toEqual([])
     expect(searchStore.radios).toEqual([])
+    expect(searchStore.videos).toEqual([])
     expect(searchStore.keyword).toBe('')
   })
 

@@ -36,6 +36,12 @@ export interface SearchRadio {
   picUrl: string
 }
 
+export interface SearchVideo {
+  cover: string
+  name: string
+  vid: string
+}
+
 export interface SearchSuggestPage {
   songs: Song[]
   playlists: SearchPlaylist[]
@@ -43,4 +49,5 @@ export interface SearchSuggestPage {
   albums: SearchAlbum[]
   mvs: SearchMv[]
   radios: SearchRadio[]
+  videos: SearchVideo[]
 }

@@ -10,6 +10,7 @@ import type {
   SearchMv,
   SearchPlaylist,
   SearchRadio,
+  SearchVideo,
 } from '@/models/search'
 import type { Song } from '@/models/song'
 
@@ -27,6 +28,7 @@ export const useSearchStore = defineStore('search', () => {
   const albums = ref<SearchAlbum[]>([])
   const mvs = ref<SearchMv[]>([])
   const radios = ref<SearchRadio[]>([])
+  const videos = ref<SearchVideo[]>([])
   const songsError = ref<string | null>(null)
   const songsLoading = ref(false)
 
@@ -37,6 +39,7 @@ export const useSearchStore = defineStore('search', () => {
     albums.value = []
     mvs.value = []
     radios.value = []
+    videos.value = []
     songsError.value = null
     songsLoading.value = false
   }
@@ -98,6 +101,7 @@ export const useSearchStore = defineStore('search', () => {
     albums.value = []
     mvs.value = []
     radios.value = []
+    videos.value = []
     songsLoading.value = true
     songsError.value = null
     try {
@@ -109,6 +113,7 @@ export const useSearchStore = defineStore('search', () => {
       albums.value = page.albums
       mvs.value = page.mvs
       radios.value = page.radios
+      videos.value = page.videos
     } catch (requestError) {
       if (serial !== searchSerial) return
       songsError.value = getErrorMessage(requestError)
@@ -132,6 +137,7 @@ export const useSearchStore = defineStore('search', () => {
     albums,
     mvs,
     radios,
+    videos,
     songsError,
     songsLoading,
   }
