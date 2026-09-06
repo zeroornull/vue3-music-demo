@@ -6,7 +6,13 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getDjBanners, getDjCategories, getHotDjRadios, getPersonalizedDjPrograms } from '@/api/dj'
+import {
+  DJ_RADIO_PAGE_SIZE,
+  getDjBanners,
+  getDjCategories,
+  getHotDjRadios,
+  getPersonalizedDjPrograms,
+} from '@/api/dj'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import DjHallPage from '@/views/music/DjHallPage.vue'
@@ -135,11 +141,11 @@ const program = {
   picUrl: 'https://images.example.com/dj.jpg',
 }
 
-async function mountPage() {
+async function mountPage(query: Record<string, string> = {}) {
   const pinia = createPinia()
   setActivePinia(pinia)
   const router = createAppRouter(createMemoryHistory())
-  await router.push({ name: Pages.djHall })
+  await router.push({ name: Pages.djHall, query })
   const wrapper = mount(DjHallPage, {
     global: {
       plugins: [pinia, router],
@@ -235,5 +241,21 @@ describe('DjHallPage', () => {
     await flushPromises()
     expect(router.currentRoute.value.name).toBe(Pages.mvDetail)
     expect(router.currentRoute.value.query.id).toBe('701')
+  })
+
+  it('loads radios for the cateId query', async () => {
+    vi.mocked(getDjCategories).mockResolvedValue([
+      { id: 2, name: '音乐故事' },
+      { id: 6, name: '创作翻唱' },
+    ])
+    const { wrapper } = await mountPage({ cateId: '6' })
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="radio-count"]').text()).toBe('1')
+    expect(getHotDjRadios).toHaveBeenCalledWith({
+      cateId: 6,
+      limit: DJ_RADIO_PAGE_SIZE,
+      offset: 0,
+    })
   })
 })

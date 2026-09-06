@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import type { Banner } from '@/models/banner'
+import { Pages } from '@/router/pages'
 import { useDjStore } from '@/stores/dj'
 import { usePlayerStore } from '@/stores/player'
 import { resolveBannerTarget } from '@/utils/banner'
 import DjHallView from '@/views/music/DjHallView.vue'
 
+const route = useRoute()
 const router = useRouter()
 const djStore = useDjStore()
 const playerStore = usePlayerStore()
@@ -31,6 +33,13 @@ const {
 const notice = ref<string | null>(null)
 let playSerial = 0
 
+const queryCateId = computed(() => {
+  const value = route.query.cateId
+  const raw = Array.isArray(value) ? value[0] : value
+  const id = Number(raw)
+  return Number.isInteger(id) && id > 0 ? id : null
+})
+
 function requestBanners(force = false) {
   void djStore.loadBanners(force).catch(() => undefined)
 }
@@ -42,6 +51,15 @@ function requestPrograms(force = false) {
 async function requestCategories(force = false) {
   try {
     await djStore.loadCategories(force)
+    const wanted = queryCateId.value
+    if (wanted) {
+      if (wanted !== djStore.cateId) {
+        await djStore.setCate(wanted)
+        return
+      }
+      if (force) await djStore.loadRadios(true)
+      return
+    }
     if (!djStore.cateId && djStore.categories[0]) {
       await djStore.setCate(djStore.categories[0].id)
     }
@@ -51,7 +69,15 @@ async function requestCategories(force = false) {
 }
 
 function selectCat(id: number) {
-  void djStore.setCate(id).catch(() => undefined)
+  const current = queryCateId.value
+  if (id === current) {
+    void djStore.setCate(id).catch(() => undefined)
+    return
+  }
+  void router.push({
+    name: Pages.djHall,
+    query: Number.isInteger(id) && id > 0 ? { cateId: String(id) } : {},
+  })
 }
 
 function loadMoreRadios() {
@@ -90,6 +116,12 @@ function selectBanner(banner: Banner) {
   }
   notice.value = `已选择“${banner.typeTitle || '电台推荐'}”，对应详情页将在后续切片迁移。`
 }
+
+watch(queryCateId, (id) => {
+  if (id && id !== djStore.cateId) {
+    void djStore.setCate(id).catch(() => undefined)
+  }
+})
 
 onMounted(() => {
   requestBanners()

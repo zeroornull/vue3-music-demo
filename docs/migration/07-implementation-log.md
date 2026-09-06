@@ -6861,4 +6861,67 @@ mock API http://127.0.0.1:58931
 
 ### 80.4 本轮结果
 
-歌单页头分类已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/573、typecheck、366 modules；隔离 smoke `59021`/`59031`。第 77 轮提交 `3ce1853` 仍是当前 HEAD；第 78 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+歌单页头分类已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/573、typecheck、366 modules；隔离 smoke `59021`/`59031`。第 77 轮提交 `3ce1853` 仍是当时 HEAD；第 78 轮随后提交为 `688c1cf`。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 81. 实施第 79 轮：电台页头分类（工作区）
+
+> 执行日期：`2026-09-06`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 81.1 开始边界与范围
+
+第 79 轮开始时第 78 轮已经提交：
+
+```text
+HEAD 688c1cf
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的消费者：电台页头 `category` → 已有 `#/music/dj`。`categoryId` 第 75 轮已经解开。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 81.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       576 passed (576)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 81.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:59121
+mock API http://127.0.0.1:59131
+```
+
+验证步骤：
+
+1. `#/djRadio?id=801` 标题「夜航电台」，分类链接 `href="#/music/dj?cateId=2"`，`aria-label="打开分类：音乐故事"`；
+2. 点链接后 hash 为 `#/music/dj?cateId=2`，分类条选中「音乐故事」，卡片含「夜航电台」，未打开播放条；
+3. Discover 摘要含「电台页头分类」。
+
+独立审查 PASS WITH FINDINGS：LOW 查询落地未锁首次缓存、分类条写查询未点测。核验复跑隔离口 `59221`/`59231`。测完已停 `59121`/`59131`。未打真实网易云 API。
+
+### 81.4 本轮结果
+
+电台页头分类已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/576、typecheck、366 modules；隔离 smoke `59221`/`59231`。第 78 轮提交 `688c1cf` 仍是当前 HEAD；第 79 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

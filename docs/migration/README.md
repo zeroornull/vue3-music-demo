@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.82.0`<br>
+> 文档版本：`0.83.0`<br>
 > 版本快照日期：`2026-09-06`<br>
-> 当前阶段：**实施第 78 轮歌单页头分类已写入工作区（未 commit）；播放条保持深色**
+> 当前阶段：**实施第 79 轮电台页头分类已写入工作区（未 commit）；播放条保持深色**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -922,7 +922,16 @@ build: {
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 85. 主要官方资料
+## 85. 实施第 79 轮结果
+
+- 电台页头分类打开 `#/music/dj?cateId=`；
+- 108 个测试文件、576 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（LOW 保留）；独立核验 PASS（`59221`/`59231`）；未 commit、未 push；
+- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 86. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)
