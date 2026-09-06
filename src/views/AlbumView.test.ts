@@ -7,6 +7,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getAlbum } from '@/api/album'
+import { getArtistAlbums } from '@/api/artist'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useAlbumStore } from '@/stores/album'
@@ -15,6 +16,14 @@ import AlbumView from '@/views/AlbumView.vue'
 vi.mock('@/api/album', () => ({
   getAlbum: vi.fn(),
 }))
+
+vi.mock('@/api/artist', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/artist')>()
+  return {
+    ...actual,
+    getArtistAlbums: vi.fn(),
+  }
+})
 
 const playSong = vi.fn().mockResolvedValue(true)
 const playAllSongs = vi.fn().mockResolvedValue(true)
@@ -104,6 +113,8 @@ describe('AlbumView', () => {
     playAllSongs.mockClear()
     vi.mocked(getAlbum).mockReset()
     vi.mocked(getAlbum).mockResolvedValue({ album, songs })
+    vi.mocked(getArtistAlbums).mockReset()
+    vi.mocked(getArtistAlbums).mockRejectedValue(new Error('no albums'))
   })
 
   it('shows a missing-id empty state', async () => {
@@ -211,5 +222,37 @@ describe('AlbumView', () => {
     expect(wrapper.get('[data-testid="album-tab-songs"]').attributes('aria-selected')).toBe(
       'true',
     )
+  })
+
+  it('renders more album cards without blocking songs', async () => {
+    vi.mocked(getArtistAlbums).mockResolvedValue({
+      more: false,
+      albums: [
+        {
+          id: 502,
+          name: '晨雾',
+          picUrl: 'https://images.example.com/next.jpg',
+          publishTime: 1_640_995_200_000,
+          size: 8,
+        },
+      ],
+    })
+    const wrapper = await mountView({ id: '501' })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="play-song"]').exists()).toBe(true)
+    const related = wrapper.get('[data-testid="related-albums"]')
+    expect(related.get('[data-testid="artist-album-card"]').text()).toContain('晨雾')
+    expect(related.get('[aria-label="打开专辑：晨雾"]').attributes('href')).toContain(
+      'album?id=502',
+    )
+  })
+
+  it('hides more albums when the list is empty', async () => {
+    vi.mocked(getArtistAlbums).mockResolvedValue({ more: false, albums: [] })
+    const wrapper = await mountView({ id: '501' })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="related-albums"]').exists()).toBe(false)
   })
 })

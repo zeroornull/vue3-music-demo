@@ -2,8 +2,10 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getAlbum } from '@/api/album'
+import { getArtistAlbums } from '@/api/artist'
 import { getErrorMessage } from '@/api/http'
 import type { AlbumDetail } from '@/models/album'
+import type { ArtistAlbum } from '@/models/artist'
 import type { Song } from '@/models/song'
 
 let requestSerial = 0
@@ -11,6 +13,7 @@ let requestSerial = 0
 export const useAlbumStore = defineStore('album', () => {
   const album = ref<AlbumDetail | null>(null)
   const songs = ref<Song[]>([])
+  const relatedAlbums = ref<ArtistAlbum[] | null>(null)
   const error = ref<string | null>(null)
   const loading = ref(false)
   const loadedId = ref<number | null>(null)
@@ -19,6 +22,7 @@ export const useAlbumStore = defineStore('album', () => {
     requestSerial++
     album.value = null
     songs.value = []
+    relatedAlbums.value = null
     loadedId.value = null
     error.value = null
     loading.value = false
@@ -32,6 +36,7 @@ export const useAlbumStore = defineStore('album', () => {
     }
 
     if (!force && loadedId.value === id && album.value && !error.value) {
+      if (relatedAlbums.value === null) requestRelated(id, album.value)
       return true
     }
 
@@ -39,6 +44,7 @@ export const useAlbumStore = defineStore('album', () => {
     if (loadedId.value !== id) {
       album.value = null
       songs.value = []
+      relatedAlbums.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -49,6 +55,7 @@ export const useAlbumStore = defineStore('album', () => {
       album.value = page.album
       songs.value = page.songs
       loadedId.value = id
+      requestRelated(id, page.album)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -59,5 +66,29 @@ export const useAlbumStore = defineStore('album', () => {
     }
   }
 
-  return { load, reset, album, songs, error, loading, loadedId }
+  function artistIdOf(detail: AlbumDetail): number | null {
+    const id = detail.artist.id
+    return typeof id === 'number' && Number.isInteger(id) && id > 0 ? id : null
+  }
+
+  function requestRelated(albumId: number, detail: AlbumDetail) {
+    const artistId = artistIdOf(detail)
+    if (artistId === null) {
+      relatedAlbums.value = []
+      return
+    }
+    void Promise.resolve(getArtistAlbums({ id: artistId }))
+      .then((page) => {
+        if (loadedId.value !== albumId) return
+        relatedAlbums.value = page.albums.filter(
+          (item) =>
+            item.id !== albumId &&
+            Number.isInteger(item.id) &&
+            item.id > 0,
+        )
+      })
+      .catch(() => undefined)
+  }
+
+  return { load, reset, album, songs, relatedAlbums, error, loading, loadedId }
 })

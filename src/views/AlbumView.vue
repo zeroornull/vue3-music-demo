@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 
 import AlbumDescSection from '@/components/album/AlbumDescSection.vue'
 import AlbumHeader from '@/components/album/AlbumHeader.vue'
+import ArtistAlbumCard from '@/components/artist/ArtistAlbumCard.vue'
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
 import type { Song } from '@/models/song'
 import { Pages } from '@/router/pages'
@@ -14,7 +15,7 @@ import { usePlayerStore } from '@/stores/player'
 const route = useRoute()
 const albumStore = useAlbumStore()
 const playerStore = usePlayerStore()
-const { album, songs, loading, error } = storeToRefs(albumStore)
+const { album, songs, relatedAlbums, loading, error } = storeToRefs(albumStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
 const tab = ref<'songs' | 'desc'>('songs')
@@ -177,6 +178,21 @@ watch(
       >
         <AlbumDescSection :description="album.description" />
       </div>
+      <section
+        v-if="relatedAlbums?.length"
+        class="related-albums"
+        data-testid="related-albums"
+        aria-labelledby="related-albums-title"
+      >
+        <h2 id="related-albums-title">更多专辑</h2>
+        <div class="related-grid">
+          <ArtistAlbumCard
+            v-for="item in relatedAlbums"
+            :key="item.id"
+            :album="item"
+          />
+        </div>
+      </section>
     </template>
   </main>
 </template>
@@ -198,6 +214,33 @@ watch(
   color: var(--color-accent);
   font-weight: 720;
   text-decoration: none;
+}
+
+.related-albums {
+  margin-top: 36px;
+}
+
+.related-albums h2 {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 22px);
+}
+
+@media (max-width: 900px) {
+  .related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .related-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .notice {

@@ -6547,3 +6547,66 @@ mock API http://127.0.0.1:57931
 ### 75.4 本轮结果
 
 相似歌手已在工作区。独立审查先 FAIL → 已修 → APPROVE（LOW 保留）。独立核验 PASS WITH FINDINGS：复跑 108/541 后跟进 108/542、typecheck、366 modules；隔离 smoke `58021`/`58031`。第 72 轮提交 `d82b731` 仍是当前 HEAD；第 73 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 76. 实施第 74 轮：更多专辑（工作区）
+
+> 执行日期：`2026-09-06`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 76.1 开始边界与范围
+
+第 74 轮开始时第 73 轮已经提交：
+
+```text
+HEAD d26bc5b
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者：`/artist/album` → 已有 `#/album` 和 ArtistAlbumCard。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 76.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       550 passed (550)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 76.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:58121
+mock API http://127.0.0.1:58131
+```
+
+验证步骤：
+
+1. `#/album?id=501` 标题「夜航」，更多专辑 `href="#/album?id=502"`，`aria-label="打开专辑：晨雾"`；
+2. 点卡片后 hash 为 `#/album?id=502`，标题「晨雾」，未打开播放条；
+3. Discover 摘要含「更多专辑」。
+
+第一次 smoke 相关文案含「无效」（`id: 0`）。已在 store 过滤非正整数 id 并补测试。第二次独立 profile `58181`（chrome-2）通过。独立审查 PASS WITH FINDINGS：LOW 测试标题、缓存重叠在途、页面未再过滤 id。核验复跑隔离口 `58221`/`58231`。测完已停 `58121`/`58131`。未打真实网易云 API。
+
+### 76.4 本轮结果
+
+更多专辑已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/550、typecheck、366 modules；隔离 smoke `58221`/`58231`。第 73 轮提交 `d26bc5b` 仍是当前 HEAD；第 74 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

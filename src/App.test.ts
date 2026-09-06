@@ -373,6 +373,15 @@ describe('App host gate', () => {
     }
     albumStore.songs = [{ id: 301, name: '晚风来信', artists: [] }]
     albumStore.loadedId = 501
+    albumStore.relatedAlbums = [
+      {
+        id: 502,
+        name: '晨雾',
+        picUrl: '',
+        publishTime: 0,
+        size: 1,
+      },
+    ]
     mountApp()
 
     useHostStore().clearHost()
@@ -381,6 +390,7 @@ describe('App host gate', () => {
     expect(albumStore.album).toBeNull()
     expect(albumStore.songs).toHaveLength(0)
     expect(albumStore.loadedId).toBeNull()
+    expect(albumStore.relatedAlbums).toBeNull()
   })
 
   it('clears music-hall top-list cache when the host gate closes', async () => {
