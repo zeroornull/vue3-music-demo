@@ -37,3 +37,34 @@ export async function getSongDetail(
   if (!song) throw new Error('歌曲详情不存在')
   return normalizeSong(song)
 }
+
+export const SIMI_SONG_LIMIT = 10
+
+function isNetworkSong(value: unknown): value is NetworkSong {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as NetworkSong).id === 'number' &&
+    typeof (value as NetworkSong).name === 'string'
+  )
+}
+
+export async function getSimiSongs(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<Song[]> {
+  const response = await client.get<{ songs?: unknown }>('/simi/song', { id })
+  if (!Array.isArray(response.songs)) {
+    throw new Error('相似歌曲响应格式不正确')
+  }
+  return response.songs
+    .filter(isNetworkSong)
+    .map(normalizeSong)
+    .filter(
+      (item) =>
+        Number.isInteger(item.id) &&
+        item.id > 0 &&
+        item.name.trim().length > 0,
+    )
+    .slice(0, SIMI_SONG_LIMIT)
+}

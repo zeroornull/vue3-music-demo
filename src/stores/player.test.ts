@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
-import { getSongDetail, getSongUrl } from '@/api/song'
+import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
 import type { AudioAdapter } from '@/audio/audioAdapter'
 import {
   resetAudioAdapter,
@@ -54,6 +54,7 @@ describe('Player store', () => {
     resetAudioAdapter()
     vi.mocked(getSongDetail).mockImplementation(async (id) => song(id))
     vi.mocked(getSongUrl).mockResolvedValue({ id: 1, url: 'x' })
+    vi.mocked(getSimiSongs).mockRejectedValue(new Error('no similar'))
   })
 
   it('loads a song, starts playback and deduplicates the queue', async () => {
@@ -724,5 +725,100 @@ describe('Player store', () => {
     player.clear()
     expect(player.showQueue).toBe(false)
     expect(player.queue).toHaveLength(0)
+    expect(player.relatedSongs).toBeNull()
+  })
+
+  it('loads similar songs with playback and filters the current id', async () => {
+    const similar = song(302)
+    similar.name = '潮汐回声'
+    vi.mocked(getSimiSongs).mockResolvedValue([
+      song(1),
+      { ...song(0), name: '无效' },
+      similar,
+    ])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await flushPromises()
+    await player.play(song(1))
+    await flushPromises()
+
+    expect(player.relatedSongs).toEqual([similar])
+    expect(player.current).toEqual(song(1))
+    expect(player.isPlaying).toBe(true)
+    expect(getSimiSongs).toHaveBeenCalledTimes(1)
+    expect(getSimiSongs).toHaveBeenCalledWith(1)
+  })
+
+  it('keeps playback when similar songs fail', async () => {
+    vi.mocked(getSimiSongs).mockRejectedValue(new Error('simi offline'))
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await flushPromises()
+
+    expect(player.current).toEqual(song(1))
+    expect(player.relatedSongs).toBeNull()
+    expect(player.error).toBeNull()
+    expect(player.isPlaying).toBe(true)
+  })
+
+  it('retries similar songs on a cached current when the first related request failed', async () => {
+    const similar = { ...song(302), name: '潮汐回声' }
+    vi.mocked(getSimiSongs)
+      .mockRejectedValueOnce(new Error('simi offline'))
+      .mockResolvedValueOnce([similar])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await flushPromises()
+    expect(player.relatedSongs).toBeNull()
+
+    await player.play(song(1))
+    await flushPromises()
+
+    expect(getSongUrl).toHaveBeenCalledTimes(2)
+    expect(getSimiSongs).toHaveBeenCalledTimes(2)
+    expect(player.relatedSongs).toEqual([similar])
+  })
+
+  it('does not keep stale similar songs after the current song changes', async () => {
+    const first = deferred<ReturnType<typeof song>[]>()
+    const nextSimilar = { ...song(303), name: '下一首相似' }
+    vi.mocked(getSimiSongs)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce([nextSimilar])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await player.play(song(2))
+    await flushPromises()
+    first.resolve([{ ...song(302), name: '潮汐回声' }])
+    await flushPromises()
+
+    expect(player.current?.id).toBe(2)
+    expect(player.relatedSongs).toEqual([nextSimilar])
+    expect(getSimiSongs).toHaveBeenLastCalledWith(2)
+  })
+
+  it('does not drop in-flight similar songs when pausing', async () => {
+    const first = deferred<ReturnType<typeof song>[]>()
+    const similar = { ...song(302), name: '潮汐回声' }
+    vi.mocked(getSimiSongs).mockReturnValueOnce(first.promise)
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    player.pause()
+    first.resolve([similar])
+    await flushPromises()
+
+    expect(player.relatedSongs).toEqual([similar])
+    expect(player.current?.id).toBe(1)
+    expect(player.isPlaying).toBe(false)
   })
 })

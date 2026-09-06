@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { HttpClient } from '@/api/http'
-import { getSongDetail, getSongUrl } from '@/api/song'
+import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
 
 const client = (response: unknown) => {
   const get = vi.fn(
@@ -71,5 +71,45 @@ describe('Song API', () => {
         '歌曲详情不存在',
       )
     }
+  })
+
+  it('unwraps /simi/song and drops invalid rows', async () => {
+    const request = client({
+      songs: [
+        {
+          al: { id: 502, name: '晨雾', picUrl: 'https://images.example.com/a.jpg' },
+          ar: [{ id: 402, name: '海岸信号' }],
+          dt: 180_000,
+          extra: true,
+          id: 302,
+          name: '潮汐回声',
+        },
+        { id: 0, name: '无效' },
+        { name: '缺 id' },
+        { id: 303, name: '  ' },
+      ],
+    })
+    await expect(getSimiSongs(301, request.client)).resolves.toEqual([
+      {
+        album: { id: 502, name: '晨雾', picUrl: 'https://images.example.com/a.jpg' },
+        artists: [{ id: 402, name: '海岸信号' }],
+        duration: 180_000,
+        id: 302,
+        name: '潮汐回声',
+        picUrl: 'https://images.example.com/a.jpg',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/simi/song', { id: 301 })
+  })
+
+  it('rejects a missing similar songs array and slices the list', async () => {
+    await expect(getSimiSongs(301, client({ songs: null }).client)).rejects.toThrow(
+      '相似歌曲响应格式不正确',
+    )
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `相似 ${index + 1}`,
+    }))
+    await expect(getSimiSongs(301, client({ songs: many }).client)).resolves.toHaveLength(10)
   })
 })

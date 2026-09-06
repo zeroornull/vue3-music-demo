@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getSongDetail, getSongUrl } from '@/api/song'
+import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
 import { createAudioAdapter, type AudioAdapter } from '@/audio/audioAdapter'
 import type { Song } from '@/models/song'
 
@@ -108,6 +108,7 @@ export const usePlayerStore = defineStore('player', {
     muted: false,
     loopMode: 'one' as LoopMode,
     showQueue: false,
+    relatedSongs: null as Song[] | null,
   }),
   getters: {
     hasSong: (state) => state.current !== null,
@@ -144,7 +145,9 @@ export const usePlayerStore = defineStore('player', {
         if (serial !== requestSerial) return false
         if (!this.queue.some((item) => item.id === song.id))
           this.queue.push(song)
+        if (this.current?.id !== song.id) this.relatedSongs = null
         this.current = song
+        if (this.relatedSongs === null) this.requestRelated(song.id)
         const url = await getSongUrl(song.id)
         if (serial !== requestSerial) return false
         const audio = injectedAdapter ?? createAudioAdapter()
@@ -321,6 +324,23 @@ export const usePlayerStore = defineStore('player', {
       this.muted = !this.muted
       if (injectedAdapter) injectedAdapter.muted = this.muted
     },
+    requestRelated(songId: number) {
+      if (!Number.isInteger(songId) || songId <= 0) {
+        this.relatedSongs = []
+        return
+      }
+      void Promise.resolve(getSimiSongs(songId))
+        .then((list) => {
+          if (this.current?.id !== songId) return
+          this.relatedSongs = list.filter(
+            (item) =>
+              item.id !== songId &&
+              Number.isInteger(item.id) &&
+              item.id > 0,
+          )
+        })
+        .catch(() => undefined)
+    },
     openQueue() {
       this.showQueue = true
     },
@@ -356,6 +376,7 @@ export const usePlayerStore = defineStore('player', {
       this.muted = false
       this.loopMode = 'one'
       this.showQueue = false
+      this.relatedSongs = null
     },
   },
 })

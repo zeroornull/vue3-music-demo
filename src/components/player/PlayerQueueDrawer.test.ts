@@ -262,4 +262,41 @@ describe('PlayerQueueDrawer', () => {
     expect(bodyEl('[data-testid="player-queue"]').textContent).toContain('草稿专辑')
     wrapper.unmount()
   })
+
+  it('renders similar songs without blocking the queue', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [{ id: 401, name: '林间电台' }] }
+    player.queue = [player.current]
+    player.relatedSongs = [
+      {
+        artists: [{ id: 402, name: '海岸信号' }],
+        id: 302,
+        name: '潮汐回声',
+      },
+    ]
+    player.openQueue()
+    const play = vi.spyOn(player, 'play').mockResolvedValue(true)
+    const wrapper = mountDrawer()
+
+    expect(bodyEl('[data-testid="player-queue"]').textContent).toContain('晚风')
+    const related = bodyEl('[data-testid="related-songs"]')
+    expect(related.textContent).toContain('潮汐回声')
+    bodyEl('[data-testid="related-song-play"]').click()
+    await flushPromises()
+    expect(play).toHaveBeenCalledOnce()
+    expect(play.mock.calls[0]?.[0]).toMatchObject({ id: 302, name: '潮汐回声' })
+    expect(player.showQueue).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('hides similar songs when the list is empty', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.queue = [player.current]
+    player.relatedSongs = []
+    player.openQueue()
+    const wrapper = mountDrawer()
+    expect(document.querySelector('[data-testid="related-songs"]')).toBeNull()
+    wrapper.unmount()
+  })
 })

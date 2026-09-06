@@ -28,6 +28,7 @@ import { useHostStore } from '@/stores/host'
 vi.mock('@/api/song', () => ({
   getSongDetail: vi.fn(),
   getSongUrl: vi.fn(),
+  getSimiSongs: vi.fn(),
 }))
 
 const RouterStub = { template: '<div data-testid="router-view" />' }
@@ -517,6 +518,7 @@ describe('App host gate', () => {
     player.volume = 0.4
     player.muted = true
     player.showQueue = true
+    player.relatedSongs = [{ id: 302, name: '潮汐回声', artists: [] }]
     const lyricStore = useLyricStore()
     lyricStore.showLyric = true
     lyricStore.lines = [{ text: '走过林间。', time: 12 }]
@@ -527,6 +529,7 @@ describe('App host gate', () => {
     await flushPromises()
 
     expect(pause).toHaveBeenCalledOnce()
+    expect(player.relatedSongs).toBeNull()
     expect(adapter.src).toBe('')
     expect(player.current).toBeNull()
     expect(player.queue).toHaveLength(0)

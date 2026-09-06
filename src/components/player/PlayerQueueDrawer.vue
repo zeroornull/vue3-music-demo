@@ -8,7 +8,7 @@ import { usePlayerStore } from '@/stores/player'
 import { formatDuration } from '@/utils/number'
 
 const player = usePlayerStore()
-const { current, queue, showQueue } = storeToRefs(player)
+const { current, queue, relatedSongs, showQueue } = storeToRefs(player)
 
 function namedArtists(song: Song) {
   return song.artists.filter((artist) => artist.name.trim())
@@ -164,6 +164,26 @@ onUnmounted(() => {
           </div>
         </li>
       </ul>
+      <section
+        v-if="relatedSongs?.length"
+        class="related-songs"
+        data-testid="related-songs"
+        aria-labelledby="related-songs-title"
+      >
+        <h3 id="related-songs-title">相似歌曲</h3>
+        <ul class="related-list">
+          <li v-for="song in relatedSongs" :key="song.id">
+            <button
+              type="button"
+              data-testid="related-song-play"
+              :aria-label="`播放：${song.name}`"
+              @click="playSong(song)"
+            >
+              {{ song.name }}
+            </button>
+          </li>
+        </ul>
+      </section>
     </aside>
     </div>
   </Teleport>
@@ -254,6 +274,45 @@ onUnmounted(() => {
   padding: 0 0 16px;
   overflow: auto;
   list-style: none;
+}
+
+.related-songs {
+  flex-shrink: 0;
+  min-width: 0;
+  padding: 12px 16px 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.related-songs h3 {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+}
+
+.related-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.related-list button {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 650;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.related-list button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .queue-row {
