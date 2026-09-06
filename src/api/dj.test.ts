@@ -238,6 +238,7 @@ describe('DJ API', () => {
     const detail = client({
       djRadio: {
         category: '音乐故事',
+        categoryId: 2,
         desc: '夜航第一季。<img src=x>',
         dj: { nickname: '林间主播' },
         extra: true,
@@ -248,6 +249,7 @@ describe('DJ API', () => {
     })
     await expect(getDjRadioDetail(801, detail.client)).resolves.toEqual({
       category: '音乐故事',
+      categoryId: 2,
       desc: '夜航第一季。<img src=x>',
       djName: '林间主播',
       id: 801,

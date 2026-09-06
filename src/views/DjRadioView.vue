@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 
 import DjRadioHeader from '@/components/dj/DjRadioHeader.vue'
 import DjProgramCard from '@/components/music/DjProgramCard.vue'
+import DjRadioCard from '@/components/music/DjRadioCard.vue'
 import { Pages } from '@/router/pages'
 import { useDjStore } from '@/stores/dj'
 
@@ -18,6 +19,7 @@ const {
   radioProgramsError,
   radioProgramsLoading,
   radioProgramsMore,
+  relatedRadios,
 } = storeToRefs(djStore)
 
 const radioId = computed(() => {
@@ -142,6 +144,21 @@ watch(
           加载更多
         </button>
       </section>
+      <section
+        v-if="relatedRadios?.length"
+        class="related-radios"
+        data-testid="related-radios"
+        aria-labelledby="related-radios-title"
+      >
+        <h2 id="related-radios-title">更多电台</h2>
+        <div class="related-grid">
+          <DjRadioCard
+            v-for="item in relatedRadios"
+            :key="item.id"
+            :radio="item"
+          />
+        </div>
+      </section>
     </template>
   </main>
 </template>
@@ -162,6 +179,35 @@ watch(
   color: var(--color-accent);
   font-weight: 720;
   text-decoration: none;
+}
+
+.related-radios {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.related-radios h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 22px);
+}
+
+@media (max-width: 900px) {
+  .related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .related-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .program-block {

@@ -284,12 +284,23 @@ describe('App host gate', () => {
     djStore.cateId = 2
     djStore.radio = {
       category: '音乐故事',
+      categoryId: 2,
       desc: '夜航',
       djName: '林间主播',
       id: 801,
       name: '夜航电台',
       picUrl: 'https://images.example.com/radio.jpg',
     }
+    djStore.relatedRadios = [
+      {
+        djName: '海岸主播',
+        id: 802,
+        name: '潮汐电台',
+        picUrl: '',
+        playCount: 1,
+        rcmdText: '',
+      },
+    ]
     djStore.radioPrograms = [
       {
         copywriter: '',
@@ -312,6 +323,7 @@ describe('App host gate', () => {
     expect(djStore.cateId).toBe(0)
     expect(djStore.radio).toBeNull()
     expect(djStore.radioPrograms).toEqual([])
+    expect(djStore.relatedRadios).toBeNull()
     expect(djStore.radioLoadedId).toBeNull()
   })
 

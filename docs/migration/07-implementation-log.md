@@ -6610,3 +6610,66 @@ mock API http://127.0.0.1:58131
 ### 76.4 本轮结果
 
 更多专辑已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/550、typecheck、366 modules；隔离 smoke `58221`/`58231`。第 73 轮提交 `d26bc5b` 仍是当前 HEAD；第 74 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 77. 实施第 75 轮：更多电台（工作区）
+
+> 执行日期：`2026-09-06`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 77.1 开始边界与范围
+
+第 75 轮开始时第 74 轮已经提交：
+
+```text
+HEAD fa5aef0
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者：`/dj/radio/hot` → 已有 `#/djRadio` 和 DjRadioCard。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 77.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       558 passed (558)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 77.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:58321
+mock API http://127.0.0.1:58331
+```
+
+验证步骤：
+
+1. `#/djRadio?id=801` 标题「夜航电台」，更多电台 `href="#/djRadio?id=802"`，`aria-label="打开电台：潮汐电台"`；
+2. 点卡片后 hash 为 `#/djRadio?id=802`，标题「潮汐电台」，未打开播放条；
+3. Discover 摘要含「更多电台」。
+
+独立审查 PASS WITH FINDINGS：LOW categoryId 非法值未单测、局部 cateId 与大厅重名、缓存重试可能重叠在途请求。核验复跑隔离口 `58421`/`58431`。测完已停 `58321`/`58331`。未打真实网易云 API。
+
+### 77.4 本轮结果
+
+更多电台已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/558、typecheck、366 modules；隔离 smoke `58421`/`58431`。第 74 轮提交 `fa5aef0` 仍是当前 HEAD；第 75 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

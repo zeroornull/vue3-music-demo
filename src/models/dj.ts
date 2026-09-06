@@ -56,6 +56,7 @@ export interface DjRadioDetail {
   desc: string
   djName: string
   category: string
+  categoryId: number
   paid?: boolean
 }
 

@@ -54,11 +54,26 @@ const radio = {
 }
 const radioDetail = {
   category: '音乐故事',
+  categoryId: 2,
   desc: '夜航第一季。<img src=x>',
   djName: '林间主播',
   id: 801,
   name: '夜航电台',
   picUrl: 'https://images.example.com/radio.jpg',
+}
+
+const relatedRadio = {
+  djName: '海岸主播',
+  id: 802,
+  name: '潮汐电台',
+  picUrl: 'https://images.example.com/radio2.jpg',
+  playCount: 8_000,
+  rcmdText: '潮汐故事',
+}
+
+async function settle() {
+  await Promise.resolve()
+  await Promise.resolve()
 }
 
 const detail = {
@@ -95,6 +110,7 @@ describe('dj store', () => {
     vi.mocked(getDjRadioDetail).mockReset()
     vi.mocked(getDjRadioPrograms).mockReset()
     vi.mocked(getHotDjRadios).mockReset()
+    vi.mocked(getHotDjRadios).mockRejectedValue(new Error('no radios'))
     vi.mocked(getPersonalizedDjPrograms).mockReset()
   })
 
@@ -295,8 +311,125 @@ describe('dj store', () => {
     store.reset()
     expect(store.radio).toBeNull()
     expect(store.radioPrograms).toEqual([])
+    expect(store.relatedRadios).toBeNull()
     expect(store.categories).toEqual([])
     expect(store.radios).toEqual([])
     expect(store.cateId).toBe(0)
+  })
+
+  it('loads more radios with the detail and ignores a related failure', async () => {
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getHotDjRadios).mockResolvedValue({
+      more: false,
+      radios: [
+        { ...radio, id: 801, name: '自己' },
+        { ...relatedRadio, id: 0, name: '无效' },
+        relatedRadio,
+      ],
+    })
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await settle()
+    await store.loadRadio(801)
+
+    expect(store.relatedRadios).toEqual([relatedRadio])
+    expect(store.radios).toEqual([])
+    expect(getDjRadioDetail).toHaveBeenCalledTimes(1)
+    expect(getHotDjRadios).toHaveBeenCalledTimes(1)
+    expect(getHotDjRadios).toHaveBeenCalledWith({ cateId: 2 })
+  })
+
+  it('keeps the radio when more radios fail', async () => {
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getHotDjRadios).mockRejectedValue(new Error('radios offline'))
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await settle()
+
+    expect(store.radio).toEqual(radioDetail)
+    expect(store.radioPrograms).toEqual([program])
+    expect(store.relatedRadios).toBeNull()
+    expect(store.radioError).toBeNull()
+  })
+
+  it('retries more radios on a cached radio when the first related request failed', async () => {
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getHotDjRadios)
+      .mockRejectedValueOnce(new Error('radios offline'))
+      .mockResolvedValueOnce({ more: false, radios: [relatedRadio] })
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await settle()
+    expect(store.relatedRadios).toBeNull()
+
+    await store.loadRadio(801)
+    await settle()
+
+    expect(getDjRadioDetail).toHaveBeenCalledTimes(1)
+    expect(getHotDjRadios).toHaveBeenCalledTimes(2)
+    expect(store.relatedRadios).toEqual([relatedRadio])
+  })
+
+  it('does not keep stale more radios after the radio id changes', async () => {
+    const first = deferred<{ more: boolean; radios: typeof relatedRadio[] }>()
+    const nextRadio = { ...radioDetail, id: 802, name: '潮汐电台', categoryId: 6 }
+    const nextRelated = { ...relatedRadio, id: 803, name: '下一台' }
+    vi.mocked(getDjRadioDetail)
+      .mockResolvedValueOnce(radioDetail)
+      .mockResolvedValueOnce(nextRadio)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getHotDjRadios)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({ more: false, radios: [nextRelated] })
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await store.loadRadio(802)
+    await settle()
+    first.resolve({ more: false, radios: [relatedRadio] })
+    await settle()
+
+    expect(store.radio?.id).toBe(802)
+    expect(store.relatedRadios).toEqual([nextRelated])
+    expect(getHotDjRadios).toHaveBeenLastCalledWith({ cateId: 6 })
+  })
+
+  it('skips more radios when the category id is missing', async () => {
+    vi.mocked(getDjRadioDetail).mockResolvedValue({ ...radioDetail, categoryId: 0 })
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await settle()
+
+    expect(getHotDjRadios).not.toHaveBeenCalled()
+    expect(store.relatedRadios).toEqual([])
+  })
+
+  it('does not drop in-flight more radios when loading more programs', async () => {
+    const first = deferred<{ more: boolean; radios: typeof relatedRadio[] }>()
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms)
+      .mockResolvedValueOnce({ more: true, programs: [program] })
+      .mockResolvedValueOnce({
+        more: false,
+        programs: [{ ...program, id: 902, name: '下一期' }],
+      })
+    vi.mocked(getHotDjRadios).mockReturnValueOnce(first.promise)
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await store.loadMoreRadioPrograms()
+    first.resolve({ more: false, radios: [relatedRadio] })
+    await settle()
+
+    expect(store.relatedRadios).toEqual([relatedRadio])
+    expect(store.radioPrograms.map((item) => item.id)).toEqual([901, 902])
   })
 })

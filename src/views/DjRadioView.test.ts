@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getDjRadioDetail, getDjRadioPrograms } from '@/api/dj'
+import { getDjRadioDetail, getDjRadioPrograms, getHotDjRadios } from '@/api/dj'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import DjRadioView from '@/views/DjRadioView.vue'
@@ -17,11 +17,13 @@ vi.mock('@/api/dj', async (importOriginal) => {
     ...actual,
     getDjRadioDetail: vi.fn(),
     getDjRadioPrograms: vi.fn(),
+    getHotDjRadios: vi.fn(),
   }
 })
 
 const radio = {
   category: '音乐故事',
+  categoryId: 2,
   desc: '夜航第一季。<img src=x>',
   djName: '林间主播',
   id: 801,
@@ -61,8 +63,10 @@ describe('DjRadioView', () => {
     setActivePinia(createPinia())
     vi.mocked(getDjRadioDetail).mockReset()
     vi.mocked(getDjRadioPrograms).mockReset()
+    vi.mocked(getHotDjRadios).mockReset()
     vi.mocked(getDjRadioDetail).mockResolvedValue(radio)
     vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs })
+    vi.mocked(getHotDjRadios).mockRejectedValue(new Error('no radios'))
   })
 
   it('shows a missing-id empty state', async () => {
@@ -86,5 +90,38 @@ describe('DjRadioView', () => {
       name: Pages.dj,
       query: { id: 901 },
     })
+  })
+
+  it('renders more radio cards without blocking programs', async () => {
+    vi.mocked(getHotDjRadios).mockResolvedValue({
+      more: false,
+      radios: [
+        {
+          djName: '海岸主播',
+          id: 802,
+          name: '潮汐电台',
+          picUrl: 'https://images.example.com/radio2.jpg',
+          playCount: 8_000,
+          rcmdText: '潮汐故事',
+        },
+      ],
+    })
+    const wrapper = await mountView({ id: '801' })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('深夜民谣')
+    const related = wrapper.get('[data-testid="related-radios"]')
+    expect(related.get('[data-testid="dj-radio-card"]').text()).toContain('潮汐电台')
+    expect(related.get('[aria-label="打开电台：潮汐电台"]').attributes('data-to')).toBe(
+      JSON.stringify({ name: Pages.djRadio, query: { id: 802 } }),
+    )
+  })
+
+  it('hides more radios when the list is empty', async () => {
+    vi.mocked(getHotDjRadios).mockResolvedValue({ more: false, radios: [] })
+    const wrapper = await mountView({ id: '801' })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="related-radios"]').exists()).toBe(false)
   })
 })

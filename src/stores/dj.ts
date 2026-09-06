@@ -57,6 +57,7 @@ export const useDjStore = defineStore('dj', () => {
   const radioProgramsError = ref<string | null>(null)
   const radioProgramsLoading = ref(false)
   const radioProgramsMore = ref(false)
+  const relatedRadios = ref<HallRadio[] | null>(null)
 
   function resetDetail() {
     requestSerial++
@@ -77,6 +78,7 @@ export const useDjStore = defineStore('dj', () => {
     radioProgramsError.value = null
     radioProgramsLoading.value = false
     radioProgramsMore.value = false
+    relatedRadios.value = null
   }
 
   function reset() {
@@ -278,6 +280,7 @@ export const useDjStore = defineStore('dj', () => {
       !radioError.value &&
       !radioProgramsError.value
     ) {
+      if (relatedRadios.value === null) requestRelated(id, radio.value)
       return
     }
 
@@ -288,6 +291,7 @@ export const useDjStore = defineStore('dj', () => {
       radioLoadedId.value = null
       radioPrograms.value = []
       radioProgramsMore.value = false
+      relatedRadios.value = null
     }
     radioLoading.value = true
     radioProgramsLoading.value = true
@@ -305,6 +309,7 @@ export const useDjStore = defineStore('dj', () => {
       if (detailSerial === radioDetailSerial) {
         radio.value = next
         radioLoadedId.value = id
+        requestRelated(id, next)
       }
       if (programSerial === radioProgramSerial) {
         radioPrograms.value = page.programs
@@ -322,6 +327,25 @@ export const useDjStore = defineStore('dj', () => {
       if (detailSerial === radioDetailSerial) radioLoading.value = false
       if (programSerial === radioProgramSerial) radioProgramsLoading.value = false
     }
+  }
+
+  function requestRelated(radioId: number, detail: DjRadioDetail) {
+    const cateId = detail.categoryId
+    if (!Number.isInteger(cateId) || cateId <= 0) {
+      relatedRadios.value = []
+      return
+    }
+    void Promise.resolve(getHotDjRadios({ cateId }))
+      .then((page) => {
+        if (radioLoadedId.value !== radioId) return
+        relatedRadios.value = page.radios.filter(
+          (item) =>
+            item.id !== radioId &&
+            Number.isInteger(item.id) &&
+            item.id > 0,
+        )
+      })
+      .catch(() => undefined)
   }
 
   async function loadMoreRadioPrograms() {
@@ -388,5 +412,6 @@ export const useDjStore = defineStore('dj', () => {
     radioProgramsError,
     radioProgramsLoading,
     radioProgramsMore,
+    relatedRadios,
   }
 })

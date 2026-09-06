@@ -269,6 +269,12 @@ export async function getDjRadioDetail(
     desc: typeof raw.desc === 'string' ? raw.desc : '',
     djName: dj && typeof dj.nickname === 'string' ? dj.nickname : '',
     category: typeof raw.category === 'string' ? raw.category : '',
+    categoryId:
+      typeof raw.categoryId === 'number' &&
+      Number.isInteger(raw.categoryId) &&
+      raw.categoryId > 0
+        ? raw.categoryId
+        : 0,
     paid: isPaidRecord(raw),
   }
 }

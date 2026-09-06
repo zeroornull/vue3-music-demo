@@ -7,6 +7,7 @@ import DjRadioHeader from '@/components/dj/DjRadioHeader.vue'
 
 const radio = {
   category: '音乐故事',
+  categoryId: 2,
   desc: '夜航第一季。<img src=x>',
   djName: '林间主播',
   id: 801,
