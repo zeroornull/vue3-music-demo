@@ -2,6 +2,7 @@
 
 import { defineComponent } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
+import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -10,6 +11,8 @@ import {
   getHighqualityPlaylists,
   getHighqualityTags,
 } from '@/api/category'
+import { createAppRouter } from '@/router'
+import { Pages } from '@/router/pages'
 import CategoryPage from '@/views/music/CategoryPage.vue'
 
 vi.mock('@/api/category', async (importOriginal) => {
@@ -87,8 +90,15 @@ describe('CategoryPage', () => {
         ],
       })
 
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createAppRouter(createMemoryHistory())
+    await router.push({ name: Pages.category })
     const wrapper = mount(CategoryPage, {
-      global: { stubs: { CategoryView: CategoryViewStub } },
+      global: {
+        plugins: [pinia, router],
+        stubs: { CategoryView: CategoryViewStub },
+      },
     })
     await flushPromises()
     expect(wrapper.get('[data-testid="cat-error"]').text()).toBe(
@@ -126,8 +136,15 @@ describe('CategoryPage', () => {
       .mockRejectedValueOnce(new Error('more failed'))
       .mockRejectedValueOnce(new Error('cat failed'))
 
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createAppRouter(createMemoryHistory())
+    await router.push({ name: Pages.category })
     const wrapper = mount(CategoryPage, {
-      global: { stubs: { CategoryView: CategoryViewStub } },
+      global: {
+        plugins: [pinia, router],
+        stubs: { CategoryView: CategoryViewStub },
+      },
     })
     await flushPromises()
 
@@ -140,5 +157,25 @@ describe('CategoryPage', () => {
     await flushPromises()
     expect(wrapper.get('[data-testid="cat-error"]').text()).toBe('cat failed')
     expect(wrapper.get('[data-testid="cat-count"]').text()).toBe('0')
+  })
+
+  it('loads playlists for the cat query', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createAppRouter(createMemoryHistory())
+    await router.push({ name: Pages.category, query: { cat: '独立' } })
+    mount(CategoryPage, {
+      global: {
+        plugins: [pinia, router],
+        stubs: { CategoryView: CategoryViewStub },
+      },
+    })
+    await flushPromises()
+
+    expect(getHighqualityPlaylists).toHaveBeenCalledWith({
+      before: 0,
+      cat: '独立',
+      limit: CATEGORY_PAGE_SIZE,
+    })
   })
 })

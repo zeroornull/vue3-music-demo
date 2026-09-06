@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 
 import type { PlaylistDetail } from '@/models/playlist'
+import { Pages } from '@/router/pages'
 import { formatPlayCount } from '@/utils/number'
 
 const props = withDefaults(
@@ -18,6 +19,12 @@ const props = withDefaults(
 
 const visibleTrackCount = computed(() =>
   typeof props.songCount === 'number' ? props.songCount : props.playlist.trackCount,
+)
+
+const tags = computed(() =>
+  props.playlist.tags
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0),
 )
 
 defineEmits<{
@@ -47,11 +54,15 @@ defineEmits<{
           height="28"
         />
         <span>{{ playlist.creator.nickname }}</span>
-        <span
-          v-for="tag in playlist.tags"
+        <RouterLink
+          v-for="tag in tags"
           :key="tag"
+          data-testid="playlist-tag"
           class="tag"
-        >#{{ tag }}</span>
+          :to="{ name: Pages.category, query: { cat: tag } }"
+          :aria-label="`打开分类：${tag}`"
+          @click.stop
+        >#{{ tag }}</RouterLink>
         <span v-if="playlist.highQuality" class="quality">精品</span>
       </p>
       <p v-if="playlist.description" class="description">{{ playlist.description }}</p>
@@ -136,6 +147,12 @@ h1 {
 .quality {
   color: var(--color-accent-text);
   font-weight: 680;
+  text-decoration: none;
+}
+
+.tag:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .quality {

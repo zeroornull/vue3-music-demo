@@ -72,6 +72,21 @@ describe('Playlist API', () => {
     }
   })
 
+  it('trims playlist tags and drops blanks', async () => {
+    await expect(
+      getPlaylistDetail(
+        101,
+        client({
+          playlist: {
+            id: 101,
+            name: '凌晨听歌指南',
+            tags: [' 独立 ', '', '民谣', '   '],
+          },
+        }).client,
+      ),
+    ).resolves.toMatchObject({ tags: ['独立', '民谣'] })
+  })
+
   it('normalizes /playlist/track/all songs from ar/al/dt fields', async () => {
     const request = client({
       songs: [

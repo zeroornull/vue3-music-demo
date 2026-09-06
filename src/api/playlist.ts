@@ -45,7 +45,10 @@ export async function getPlaylistDetail(
     coverImgUrl: typeof raw.coverImgUrl === 'string' ? raw.coverImgUrl : '',
     description: typeof raw.description === 'string' ? raw.description : '',
     tags: Array.isArray(raw.tags)
-      ? raw.tags.filter((tag): tag is string => typeof tag === 'string')
+      ? raw.tags
+          .filter((tag): tag is string => typeof tag === 'string')
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0)
       : [],
     playCount: typeof raw.playCount === 'number' ? raw.playCount : 0,
     trackCount: typeof raw.trackCount === 'number' ? raw.trackCount : 0,

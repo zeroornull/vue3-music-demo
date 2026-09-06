@@ -1,9 +1,17 @@
 // @vitest-environment happy-dom
 
+import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import PlaylistHeader from '@/components/playlist/PlaylistHeader.vue'
+import { Pages } from '@/router/pages'
+
+const RouterLinkStub = defineComponent({
+  name: 'RouterLink',
+  props: ['to'],
+  template: '<a><slot /></a>',
+})
 
 const playlist = {
   coverImgUrl: 'https://images.example.com/cover.jpg',
@@ -24,6 +32,7 @@ describe('PlaylistHeader', () => {
   it('renders cover, creator, tags, play count and play-all', async () => {
     const wrapper = mount(PlaylistHeader, {
       props: { playable: true, playlist },
+      global: { stubs: { RouterLink: RouterLinkStub } },
     })
 
     expect(wrapper.get('img').attributes('alt')).toBe('凌晨听歌指南')
@@ -43,6 +52,7 @@ describe('PlaylistHeader', () => {
   it('disables play-all when the song list is empty', () => {
     const wrapper = mount(PlaylistHeader, {
       props: { playable: false, playlist, songCount: 0 },
+      global: { stubs: { RouterLink: RouterLinkStub } },
     })
 
     expect(
@@ -50,5 +60,41 @@ describe('PlaylistHeader', () => {
     ).toBeDefined()
     expect(wrapper.text()).toContain('0 首')
     expect(wrapper.text()).not.toContain('12 首')
+  })
+
+  it('links trimmed tags to category without playing', async () => {
+    const wrapper = mount(PlaylistHeader, {
+      props: { playable: true, playlist },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+
+    const tag = wrapper.get('[data-testid="playlist-tag"]')
+    expect(tag.text()).toBe('#独立')
+    expect(tag.attributes('aria-label')).toBe('打开分类：独立')
+    expect(wrapper.get('[data-testid="play-all"]').find('[data-testid="playlist-tag"]').exists()).toBe(
+      false,
+    )
+    const tagLinks = wrapper
+      .findAllComponents(RouterLinkStub)
+      .filter((link) => link.attributes('data-testid') === 'playlist-tag')
+    expect(tagLinks.map((link) => link.props('to'))).toEqual([
+      { name: Pages.category, query: { cat: '独立' } },
+      { name: Pages.category, query: { cat: '民谣' } },
+    ])
+
+    await tag.trigger('click')
+    expect(wrapper.emitted('play-all')).toBeUndefined()
+  })
+
+  it('skips blank tags', () => {
+    const wrapper = mount(PlaylistHeader, {
+      props: {
+        playable: true,
+        playlist: { ...playlist, tags: ['独立', '', '   '] },
+      },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.findAll('[data-testid="playlist-tag"]')).toHaveLength(1)
+    expect(wrapper.get('[data-testid="playlist-tag"]').text()).toBe('#独立')
   })
 })

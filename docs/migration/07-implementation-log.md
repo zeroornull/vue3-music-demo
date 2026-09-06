@@ -6798,4 +6798,67 @@ mock API http://127.0.0.1:58731
 
 ### 79.4 本轮结果
 
-节目页头电台已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/569、typecheck、366 modules；隔离 smoke `58821`/`58831`。第 76 轮提交 `a647f16` 仍是当前 HEAD；第 77 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+节目页头电台已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/569、typecheck、366 modules；隔离 smoke `58821`/`58831`。第 76 轮提交 `a647f16` 仍是当时 HEAD；第 77 轮随后提交为 `3ce1853`。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 80. 实施第 78 轮：歌单页头分类（工作区）
+
+> 执行日期：`2026-09-06`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 80.1 开始边界与范围
+
+第 78 轮开始时第 77 轮已经提交：
+
+```text
+HEAD 3ce1853
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者/消费者：歌单 `tags` → 已有 `#/music/category`。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 80.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       573 passed (573)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 80.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:58921
+mock API http://127.0.0.1:58931
+```
+
+验证步骤：
+
+1. `#/playlist?id=101` 标题「凌晨听歌指南」，标签 `href="#/music/category?cat=独立"`，`aria-label="打开分类：独立"`；
+2. 点标签后 hash 为 `#/music/category?cat=独立`，分类条选中「独立」，卡片含「潮汐民谣」，未打开播放条；
+3. Discover 摘要含「歌单页头分类」。
+
+独立审查 PASS WITH FINDINGS：LOW 查询落地未锁单次请求、watch 未按路由名门控、去重、标签 hover。核验复跑隔离口 `59021`/`59031`。测完已停 `58921`/`58931`。未打真实网易云 API。
+
+### 80.4 本轮结果
+
+歌单页头分类已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/573、typecheck、366 modules；隔离 smoke `59021`/`59031`。第 77 轮提交 `3ce1853` 仍是当前 HEAD；第 78 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
