@@ -6863,11 +6863,11 @@ mock API http://127.0.0.1:58931
 
 歌单页头分类已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/573、typecheck、366 modules；隔离 smoke `59021`/`59031`。第 77 轮提交 `3ce1853` 仍是当时 HEAD；第 78 轮随后提交为 `688c1cf`。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
 
-## 81. 实施第 79 轮：电台页头分类（工作区）
+## 81. 实施第 79 轮：电台页头分类
 
 > 执行日期：`2026-09-06`<br>
 > 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
-> Git commit：**本轮未创建**<br>
+> Git commit：`f865287`<br>
 > Push：**本轮未执行**
 
 ### 81.1 开始边界与范围
@@ -6924,4 +6924,376 @@ mock API http://127.0.0.1:59131
 
 ### 81.4 本轮结果
 
-电台页头分类已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/576、typecheck、366 modules；隔离 smoke `59221`/`59231`。第 78 轮提交 `688c1cf` 仍是当前 HEAD；第 79 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+电台页头分类已提交 `f865287`。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/576、typecheck、366 modules；隔离 smoke `59221`/`59231`。测完已停 `59121`/`59131`。未 push。下一轮文档写「播放条保持深色」（跳过，见 D-045）。登录、专辑空评论继续跳过。
+
+## 82. 实施第 80 轮：相似歌曲
+
+> 执行日期：`2026-09-06`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：`7a35da0`（与第 81 轮同一次提交）<br>
+> Push：**本轮未执行**
+
+### 82.1 开始边界与范围
+
+第 80 轮开始时第 79 轮已经提交：
+
+```text
+HEAD f865287
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过，见 D-045）。本轮接入 `/simi/song`。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 82.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       585 passed (585)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。第 81 轮随后写入同一提交，测试数升到 593。
+
+### 82.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:59321
+mock API http://127.0.0.1:59331
+```
+
+验证步骤：
+
+1. Discover 点播「晚风来信」，打开播放列表；
+2. 相似歌曲出现「潮汐回声」；
+3. 点播后播放条标题换成「潮汐回声」，抽屉仍开；
+4. Discover 摘要含「相似歌曲」。
+
+独立审查 PASS WITH FINDINGS：MEDIUM 相似区被播放条挡住（第 84 轮修）、pause 序号类比缺口；LOW 同 id 在途双请求。核验复跑隔离口 `59421`/`59431`/`59481`。测完已停 `59321`/`59331`。未打真实网易云 API。
+
+### 82.4 本轮结果
+
+相似歌曲已与第 81 轮一并提交 `7a35da0`。独立审查 PASS WITH FINDINGS（MEDIUM/LOW 保留）。独立核验 PASS：复跑当时 108/585、typecheck、366 modules；隔离 smoke `59421`/`59431`。未 push。下一轮：视频大厅分类 URL。布局挡住相似歌曲留到第 84 轮。
+
+## 83. 实施第 81 轮：视频大厅分类
+
+> 执行日期：`2026-09-06`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：`7a35da0`（与第 80 轮同一次提交）<br>
+> Push：**本轮未执行**
+
+### 83.1 开始边界与范围
+
+第 81 轮接在第 80 轮工作区之上，尚未单独提交。本轮让 `#/video` 读 `query.groupId`。正整数才生效，否则全部视频。落地不先拉 `groupId=0`。watch 按 `Pages.video` 门控。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 83.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       593 passed (593)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 83.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:59521
+mock API http://127.0.0.1:59531
+```
+
+验证步骤：
+
+1. `#/video?groupId=101` 分类条选中「现场」，卡片含「夜航现场」；
+2. 点「全部视频」后查询清掉，卡片含「晚风现场」；
+3. Discover 摘要含「视频大厅分类」。
+
+独立审查 PASS WITH FINDINGS：MEDIUM 无效 id / keepAlive 未点测，随后已补。核验复跑隔离口 `59621`/`59631`/`59681`。测完已停 `59521`/`59531`。未打真实网易云 API。
+
+### 83.4 本轮结果
+
+视频大厅分类与相似歌曲一并提交 `7a35da0`。独立审查 PASS WITH FINDINGS（MEDIUM 已补）。独立核验 PASS：复跑 108/593、typecheck、366 modules；隔离 smoke `59621`/`59631`。未 push。下一轮：歌手馆筛选 URL。
+
+## 84. 实施第 82 轮：歌手馆筛选
+
+> 执行日期：`2026-09-06`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：`d9550c4`<br>
+> Push：**本轮未执行**
+
+### 84.1 开始边界与范围
+
+第 82 轮开始时第 80、81 轮已经提交：
+
+```text
+HEAD 7a35da0
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮让 `#/music/artist` 读 `area` / `type` / `initial`。只认允许列表。`area=0` 是「其他」。默认值不写进 URL。`applyHallFilters` 一次请求。watch 按 `Pages.artist` 门控。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 84.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       604 passed (604)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 84.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:59721
+mock API http://127.0.0.1:59731
+```
+
+验证步骤：
+
+1. `#/music/artist?area=7` 标题「华语歌手」，卡片含「夜航歌手」；
+2. 点语种「全部」后查询清掉；
+3. Discover 摘要含「歌手馆筛选」。
+
+独立审查 PASS WITH FINDINGS：MEDIUM 空 `area=` 被当成其他（`Number('') === 0`），随后改为空 token 回落全部。核验复跑隔离口 `59821`/`59831`/`59881`。测完已停 `59721`/`59731`。未打真实网易云 API。
+
+### 84.4 本轮结果
+
+歌手馆筛选已提交 `d9550c4`。独立审查 PASS WITH FINDINGS（MEDIUM 已修）。独立核验 PASS：复跑 108/604、typecheck、366 modules；隔离 smoke `59821`/`59831`。未 push。下一轮：搜索 suggest 视频。
+
+## 85. 实施第 83 轮：搜索视频
+
+> 执行日期：`2026-09-06`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：`c6c94c2`<br>
+> Push：**本轮未执行**
+
+### 85.1 开始边界与范围
+
+第 83 轮开始时第 82 轮已经提交：
+
+```text
+HEAD d9550c4
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮继续用 `/search/suggest`，解开 `result.videos`。非空字符串 `vid` 才进 `#/videoDetail`。不另开 `/cloudsearch`。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 85.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       607 passed (607)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 85.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:59921
+mock API http://127.0.0.1:59931
+```
+
+验证步骤：
+
+1. `#/search?q=现场` 出现视频链接 `#/videoDetail?id=VID001`；
+2. 点击后标题「夜航现场」，未打开播放条；
+3. Discover 摘要含「搜索视频」。
+
+独立审查 PASS WITH FINDINGS：LOW 封面/name 回落、混合结果页、顶栏非视频-only。核验复跑隔离口 `60021`/`60031`/`60081`。测完已停 `59921`/`59931`。未打真实网易云 API。
+
+### 85.4 本轮结果
+
+搜索视频已提交 `c6c94c2`。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/607、typecheck、366 modules；隔离 smoke `60021`/`60031`。未 push。下一轮：播放列表相似歌曲被播放条挡住。
+
+## 86. 实施第 84 轮：相似歌曲露出
+
+> 执行日期：`2026-09-06`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：`9bb48d8`<br>
+> Push：**本轮未执行**
+
+### 86.1 开始边界与范围
+
+第 84 轮开始时第 83 轮已经提交：
+
+```text
+HEAD c6c94c2
+master...origin/master
+```
+
+本轮修第 80 轮审查 MEDIUM：相似歌曲被播放条挡住。PlayerBar 把实测高度写到 `--player-bar-height`。条出现后才写，卸载后清掉。播放列表面板 `bottom` 用该变量，带 `data-above-player`。队列层仍 `z-index: 30`。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 86.2 自动验证
+
+```text
+bun run test
+Test Files  109 passed (109)
+Tests       612 passed (612)
+
+bun run typecheck
+PASS
+
+bun run build
+367 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 86.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:60121
+mock API http://127.0.0.1:60131
+```
+
+验证步骤：
+
+1. Discover 点播「晚风来信」，打开播放列表；
+2. 「潮汐回声」底边贴播放条顶边（736/736）；高度变量 `"64px"`；播放条背景 `rgb(23, 32, 51)`；
+3. Discover 摘要含「相似歌曲露出」。
+
+独立审查 PASS WITH FINDINGS：MEDIUM 卸载清变量未点测，随后已补。核验复跑隔离口 `60221`/`60231`/`60281`。测完已停 `60121`/`60131`。未打真实网易云 API。
+
+### 86.4 本轮结果
+
+相似歌曲露出已提交 `9bb48d8`。独立审查 PASS WITH FINDINGS（MEDIUM 已补）。独立核验 PASS：复跑 109/612、typecheck、367 modules；隔离 smoke `60221`/`60231`。未 push。下一轮：歌词面板同样让出播放条。
+
+## 87. 实施第 85 轮：歌词露出
+
+> 执行日期：`2026-09-06`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：`6bd8971`<br>
+> Push：**本轮未执行**
+
+### 87.1 开始边界与范围
+
+第 85 轮开始时第 84 轮已经提交：
+
+```text
+HEAD 9bb48d8
+master...origin/master
+```
+
+本轮修第 84 轮审查 LOW：歌词面板仍 `bottom: 0`。歌词面板复用 `--player-bar-height`，带 `data-above-player`。歌词层仍 `z-index: 30`。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 87.2 自动验证
+
+```text
+bun run test
+Test Files  109 passed (109)
+Tests       612 passed (612)
+
+bun run typecheck
+PASS
+
+bun run build
+367 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 87.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:60321
+mock API http://127.0.0.1:60331
+```
+
+验证步骤：
+
+1. Discover 点播「晚风来信」，打开歌词；
+2. 文案含「走过林间。」；面板底边贴播放条顶边（719/719）；播放条背景 `rgb(23, 32, 51)`；
+3. Discover 摘要含「歌词露出」。
+
+独立审查 PASS WITH FINDINGS：LOW 属性断言未锁 CSS。核验复跑隔离口 `60421`/`60431`/`60481`。测完已停 `60321`/`60331`。未打真实网易云 API。
+
+### 87.4 本轮结果
+
+歌词露出已提交 `6bd8971`。当前 HEAD。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 109/612、typecheck、367 modules；隔离 smoke `60421`/`60431`。未 push。下一轮建议队列删歌或音量记住。播放条保持 `#172033` 是约束。登录、专辑空评论、Tailwind 4、CI、Element Plus 继续跳过。

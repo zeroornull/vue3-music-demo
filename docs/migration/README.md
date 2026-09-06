@@ -1,8 +1,8 @@
 # Vue3 Music 现代化迁移文档
 
-> 文档版本：`0.83.0`<br>
+> 文档版本：`0.89.0`<br>
 > 版本快照日期：`2026-09-06`<br>
-> 当前阶段：**实施第 79 轮电台页头分类已写入工作区（未 commit）；播放条保持深色**
+> 当前阶段：**实施第 85 轮歌词露出已提交 `6bd8971`（未 push）；下一轮建议队列删歌或音量记住**
 
 先读 [08-progress.md](./08-progress.md)，再进入具体轮次。
 
@@ -926,12 +926,66 @@ build: {
 
 - 电台页头分类打开 `#/music/dj?cateId=`；
 - 108 个测试文件、576 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
-- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（LOW 保留）；独立核验 PASS（`59221`/`59231`）；未 commit、未 push；
-- 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（LOW 保留）；独立核验 PASS（`59221`/`59231`）；提交 `f865287`；
+- 下一轮当时：播放条保持深色（约束）。登录、专辑空评论继续跳过。
 
 完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
 
-## 86. 主要官方资料
+## 86. 实施第 80 轮结果
+
+- 播放列表用 `/simi/song` 接相似歌曲；点播保持抽屉打开；
+- 108 个测试文件、585 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（MEDIUM：相似区被播放条挡住，第 84 轮已修）；独立核验 PASS（`59421`/`59431`/`59481`）；与第 81 轮同一次提交 `7a35da0`；
+- 下一轮当时：视频大厅分类 URL。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 87. 实施第 81 轮结果
+
+- 视频大厅 `#/video?groupId=` 深链并写回；
+- 108 个测试文件、593 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（MEDIUM 已补）；独立核验 PASS（`59621`/`59631`/`59681`）；提交 `7a35da0`；
+- 下一轮当时：歌手馆筛选 URL。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 88. 实施第 82 轮结果
+
+- 歌手馆筛选写入 `area` / `type` / `initial`；`area=0` 是「其他」；
+- 108 个测试文件、604 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（MEDIUM：空 `area=` 已修）；独立核验 PASS（`59821`/`59831`/`59881`）；提交 `d9550c4`；
+- 下一轮当时：搜索 suggest 视频。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 89. 实施第 83 轮结果
+
+- 搜索建议视频打开 `#/videoDetail`，不另开 `/cloudsearch`；
+- 108 个测试文件、607 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（LOW 保留）；独立核验 PASS（`60021`/`60031`/`60081`）；提交 `c6c94c2`；
+- 下一轮当时：播放列表相似歌曲被播放条挡住。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 90. 实施第 84 轮结果
+
+- 播放条发布 `--player-bar-height`，相似歌曲停在播放条上方；
+- 109 个测试文件、612 个测试通过；typecheck、build（367 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（MEDIUM 已补）；独立核验 PASS（`60221`/`60231`/`60281`）；提交 `9bb48d8`；
+- 下一轮当时：歌词面板同样让出播放条。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 91. 实施第 85 轮结果
+
+- 歌词面板同样让出播放条；
+- 109 个测试文件、612 个测试通过；typecheck、build（367 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- 已完成本地 mock API 浏览器 smoke；独立审查 PASS WITH FINDINGS（LOW 保留）；独立核验 PASS（`60421`/`60431`/`60481`）；提交 `6bd8971`；未 push；
+- 下一轮建议：队列删歌或音量记住。播放条保持 `#172033` 是约束。登录、专辑空评论继续跳过。
+
+完整证据见 [07-implementation-log.md](./07-implementation-log.md) 和 [08-progress.md](./08-progress.md)。
+
+## 92. 主要官方资料
 
 - [Bun：Install](https://bun.sh/docs/pm/cli/install)
 - [Bun：Lockfile](https://bun.sh/docs/pm/lockfile)

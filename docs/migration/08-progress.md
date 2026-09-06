@@ -1,19 +1,19 @@
 # 08. 当前开发进度
 
 > 更新日期：`2026-09-06`<br>
-> 文档版本：`0.83.0`<br>
-> 对照提交：`688c1cf`（实施第 78 轮已在当前 HEAD）<br>
-> 工作区：实施第 79 轮代码已写入，**尚未 commit / push**
+> 文档版本：`0.89.0`<br>
+> 对照提交：`6bd8971`（实施第 85 轮已在当前 HEAD）<br>
+> 工作区：与 HEAD 一致，**尚未 push**
 
 本文是后续轮次的入口。历史盘点见 [01-current-state-audit.md](./01-current-state-audit.md)，执行约束见 [03-migration-roadmap.md](./03-migration-roadmap.md)，逐轮证据见 [07-implementation-log.md](./07-implementation-log.md)。
 
 ## 1. 一句话状态
 
-根工程是 Bun + Vue 3.5 + TypeScript 6 + Vite 8。Discover、播放器（含封面进专辑、播放条歌手、队列歌手、队列专辑、播放条 MV）、歌单、MV、音乐馆、歌手馆、电台大厅（含付费标记）、搜索页（含 MV 和电台）、顶栏搜索弹出层（含单曲 MV、单曲歌手、单曲专辑、MV 和电台）、专辑介绍、应用壳、视频大厅、Banner 详情跳转、顶栏视频入口、Host 文案、深浅色主题、内容卡片主题、歌曲 MV 入口、歌曲行专辑、歌曲行歌手、新歌卡片专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类和电台页头分类已经能用。独立 P5 治理轮仍没有产品缺口可修。
+根工程是 Bun + Vue 3.5 + TypeScript 6 + Vite 8。Discover、播放器（含封面进专辑、播放条歌手、队列歌手、队列专辑、播放条 MV、相似歌曲、队列和歌词让出播放条）、歌单、MV、音乐馆、歌手馆（含筛选 URL）、电台大厅（含付费标记）、搜索页（含 MV、电台和视频）、顶栏搜索弹出层（含单曲 MV、单曲歌手、单曲专辑、MV、电台和视频）、专辑介绍、应用壳、视频大厅（含分类 URL）、Banner 详情跳转、顶栏视频入口、Host 文案、深浅色主题、内容卡片主题、歌曲 MV 入口、歌曲行专辑、歌曲行歌手、新歌卡片专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、专辑页头歌手、相关歌单、搜索 MV、搜索电台、搜索视频、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类和电台页头分类已经能用。独立 P5 治理轮仍没有产品缺口可修。播放条仍为 `#172033`。
 
 ## 2. 路线图对照
 
-原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-089](./06-decision-log.md)。
+原计划的 P0–P7 仍然有效，但实际切片顺序已经偏离 [03-migration-roadmap.md](./03-migration-roadmap.md) 的 P4 清单。见 [D-017](./06-decision-log.md) 至 [D-095](./06-decision-log.md)。
 
 | 路线图阶段 | 目标 | 状态 | 对应轮次 | 缺口 |
 | --- | --- | --- | --- | --- |
@@ -21,8 +21,8 @@
 | P1 legacy 归档 | 旧工程移入 `legacy/` | **完成** | 实施第 1 轮 | 无 |
 | P2 现代空壳 | Bun + Vue + TS + Vite | **完成** | 实施第 2 轮 | TypeScript 固定 6.0.3，待 `vue-tsc` 支持 TS 7 |
 | P3 基础设施 | Router、Pinia、API、主题、自动组件 | **部分完成** | 实施第 3、18、41、43–46 轮 | 顶栏含搜索弹出层、视频入口和深浅色切换；Host 文案已改；内容卡片已跟主题变量；无 Element Plus、无 Sass/Tailwind、无自动组件 |
-| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–79 轮 | Discover、播放器（含封面进专辑、播放条歌手、队列歌手、队列专辑、播放条 MV）、歌单（含页头分类）、MV、排行榜、分类、精选、歌手馆、电台（含付费标记、更多电台、更多节目、页头电台、页头分类）、搜索多类型（含 MV、电台）、顶栏搜索（含单曲 MV、单曲歌手、单曲专辑、MV 和电台）、专辑介绍、应用壳、`#/video`（含顶栏入口）、Banner 详情跳转、Host 文案、主题切换、内容卡片主题、歌曲 MV 入口、歌曲行专辑、歌曲行歌手、新歌卡片专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类和电台页头分类完成；专辑空评论未做 |
-| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–79 轮内嵌 | 类型检查已过；无产品 `any`；直接依赖已精简。独立治理轮仍无未解释错误可修 |
+| P4 功能切片 | 按垂直功能移植播放器级应用 | **进行中** | 实施第 4–85 轮 | Discover、播放器（含封面进专辑、播放条歌手、队列歌手、队列专辑、播放条 MV、相似歌曲、队列和歌词让出播放条）、歌单（含页头分类）、MV、排行榜、分类、精选、歌手馆（含筛选 URL）、电台（含付费标记、更多电台、更多节目、页头电台、页头分类）、搜索多类型（含 MV、电台、视频）、顶栏搜索（含单曲 MV、单曲歌手、单曲专辑、MV、电台和视频）、专辑介绍、应用壳、`#/video`（含顶栏入口和分类 URL）、Banner 详情跳转、Host 文案、主题切换、内容卡片主题、歌曲 MV 入口、歌曲行专辑、歌曲行歌手、新歌卡片专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、专辑页头歌手、相关歌单、搜索 MV、搜索电台、搜索视频、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类和电台页头分类完成；专辑空评论、队列删歌、音量记住未做 |
+| P5 类型与依赖 | 严格类型、去掉冗余依赖 | **随切片推进** | 第 3–85 轮内嵌 | 类型检查已过；无产品 `any`；直接依赖已精简。独立治理轮仍无未解释错误可修 |
 | P6 Tailwind 4 | 新样式入口和视觉收敛 | **未开始** | — | 当前页面继续使用 scoped CSS |
 | P7 发布闭环 | `dist/`、CI、学习总结 | **未开始** | — | 无 CI；GitHub Pages 未切到新产物 |
 
@@ -109,24 +109,30 @@
 | 实施第 76 轮 | 2026-09-06 | 更多节目 | 108 文件 / 567 测试 | `a647f16` |
 | 实施第 77 轮 | 2026-09-06 | 节目页头电台 | 108 文件 / 569 测试 | `3ce1853` |
 | 实施第 78 轮 | 2026-09-06 | 歌单页头分类 | 108 文件 / 573 测试 | `688c1cf` |
-| 实施第 79 轮 | 2026-09-06 | 电台页头分类 | 108 文件 / 576 测试 | **工作区未提交** |
+| 实施第 79 轮 | 2026-09-06 | 电台页头分类 | 108 文件 / 576 测试 | `f865287` |
+| 实施第 80 轮 | 2026-09-06 | 相似歌曲 | 108 文件 / 585 测试 | `7a35da0` |
+| 实施第 81 轮 | 2026-09-06 | 视频大厅分类 | 108 文件 / 593 测试 | `7a35da0` |
+| 实施第 82 轮 | 2026-09-06 | 歌手馆筛选 | 108 文件 / 604 测试 | `d9550c4` |
+| 实施第 83 轮 | 2026-09-06 | 搜索视频 | 108 文件 / 607 测试 | `c6c94c2` |
+| 实施第 84 轮 | 2026-09-06 | 相似歌曲露出 | 109 文件 / 612 测试 | `9bb48d8` |
+| 实施第 85 轮 | 2026-09-06 | 歌词露出 | 109 文件 / 612 测试 | `6bd8971` |
 
-第 79 轮文档对齐时的当前门禁输出：
+第 85 轮文档对齐时的当前门禁输出：
 
 ```text
-bun run test       108 files / 576 tests passed
+bun run test       109 files / 612 tests passed
 bun run typecheck  PASS
-bun run build      366 modules transformed, dist/ 输出
+bun run build      367 modules transformed, dist/ 输出
 bun install --frozen-lockfile  PASS
 bun audit          No vulnerabilities found (checked 185 packages)
 git diff --check   PASS
 ```
 
-第 79 轮已完成本地 mock API 浏览器 smoke，未打真实网易云。未 commit、未 push。独立审查 PASS WITH FINDINGS（LOW：查询落地未锁首次缓存、分类条写查询未点测）。独立核验 PASS，隔离 smoke `59221`/`59231`。作者 smoke 第一次独立 profile `59181` 通过；测完已停 `59121`/`59131`。
+第 85 轮已完成本地 mock API 浏览器 smoke，未打真实网易云。已 commit `6bd8971`，未 push。独立审查 PASS WITH FINDINGS（LOW：属性断言未锁 CSS）。独立核验 PASS，隔离 smoke `60421`/`60431`/`60481`。作者 smoke `60321`/`60331`/`60381`。
 
-电台页头分类：正整数 `categoryId` → `#/music/dj?cateId=`。播放条仍深色。
+歌词面板让出播放条。播放条仍深色 `#172033`。
 
-本地 smoke 使用 Vite `127.0.0.1:59121` 和 mock API `127.0.0.1:59131`：`#/djRadio?id=801` 分类打开大厅「音乐故事」，卡片「夜航电台」，未打开播放条。核验复跑隔离口 `59221`/`59231`。
+本地 smoke 使用 Vite `127.0.0.1:60321` 和 mock API `127.0.0.1:60331`：播「晚风来信」打开歌词，面板底边贴播放条顶边。核验复跑隔离口 `60421`/`60431`。
 
 ## 4. 当前根工程能力
 
@@ -148,11 +154,11 @@ PlaylistSongItem           MV → #/mvDetail?id=；专辑名 → #/album?id=；�
 AlbumHeader                正整数 artist.id → #/artistDetail
 usePlaylistStore           详情 + 歌曲 + relatedPlaylists；相关失败不挡住列表
 PlaylistView               /related/playlist 相关卡片
-PlayerQueueDrawer          MV / 歌手 / 专辑兄弟链接，点击关抽屉
+PlayerQueueDrawer          MV / 歌手 / 专辑兄弟链接，点击关抽屉；相似歌曲；bottom 让出播放条
 NewSongCard                MV / 专辑 / 歌手兄弟链接
-HeaderSearchPop            单曲 MV / 歌手 / 专辑兄弟链接；MV / 电台 SearchHitList，点击关弹出层
-useSearchStore             suggest 含 songs / playlists / artists / albums / mvs / radios
-PlayerBar                  封面 picUrl / album.picUrl；正整数 album.id → #/album；正整数 artist.id → #/artistDetail；正整数 mv → #/mvDetail
+HeaderSearchPop            单曲 MV / 歌手 / 专辑兄弟链接；MV / 电台 / 视频 SearchHitList，点击关弹出层
+useSearchStore             suggest 含 songs / playlists / artists / albums / mvs / radios / videos
+PlayerBar                  封面 picUrl / album.picUrl；正整数 album.id → #/album；正整数 artist.id → #/artistDetail；正整数 mv → #/mvDetail；发布 --player-bar-height
 MvCard                     歌手兄弟链接 → #/artistDetail
 MvView                     页头歌手链接 → #/artistDetail；/mv/detail 补标题和歌手；/simi/mv 相关卡片
 ArtistMv                   artistId + artists 来自 /artist/mv 的 artist.id
@@ -171,22 +177,25 @@ PlaylistHeader             非空 tags → #/music/category?cat=
 CategoryPage               读 query.cat 并 setCat
 DjRadioHeader              正整数 categoryId → #/music/dj?cateId=
 DjHallPage                 读 query.cateId 并 setCate
+VideoHallPage              读 query.groupId 并 setGroup
+ArtistHallPage             读 area / type / initial；applyHallFilters
+PlayerLyricPanel           bottom 让出播放条
 ```
 
 ### 4.3 已安装直接依赖
 
-第 79 轮未新增依赖。
+第 85 轮未新增依赖。
 
 ## 5. 与 legacy 的功能差距
 
 | 产品面 | legacy | 新工程 | 下一动作 |
 | --- | --- | --- | --- |
-| 搜索多类型 | suggest 歌单/歌手/专辑 | 单曲 + 歌单 + 歌手 + 专辑 + MV + 电台 | 完成 |
+| 搜索多类型 | suggest 歌单/歌手/专辑 | 单曲 + 歌单 + 歌手 + 专辑 + MV + 电台 + 视频 | 完成；完整 `/cloudsearch` 未做 |
 | 专辑 | 歌曲 + 空评论 + 介绍 tab | 歌曲 + 介绍 tab | 评论 tab 为空，跳过 |
 | 电台大厅 | 空页 | `#/music/dj` Banner + 分类电台 + 推荐节目；`#/djRadio`；付费标记 | 购买/登录未迁 |
 | 歌手详情 tab | 歌曲/专辑/视频/详情 | 热门歌曲 + 专辑 + MV + 介绍 | 精选 tab 未迁（legacy 为空） |
-| 视频大厅 | `#/video` 分类 + 网格 | `#/video` + 分页 + 全部分类 + `#/videoDetail` + 顶栏入口 | 完成 |
-| 播放器增强 | 进度/音量/上一首下一首/循环/静音/列表/歌词图标/封面 | 进度 + 音量 + 上一首/下一首 + 循环/随机 + 静音 + 队列 + 歌词翻译 + 歌词罗马音 + 歌词逐字 + 封面 | 完成 |
+| 视频大厅 | `#/video` 分类 + 网格 | `#/video` + 分页 + 全部分类 + 分类 URL + `#/videoDetail` + 顶栏入口 | 完成 |
+| 播放器增强 | 进度/音量/上一首下一首/循环/静音/列表/歌词图标/封面 | 进度 + 音量 + 上一首/下一首 + 循环/随机 + 静音 + 队列 + 歌词翻译 + 歌词罗马音 + 歌词逐字 + 封面 + 相似歌曲 + 队列/歌词让出播放条 | 队列删歌、音量记住未做 |
 | 歌曲 MV | 歌单行 MV 图标进 `#/mvDetail` | 歌单行 + 队列 + 新歌卡片 + 顶栏弹出层 + 播放条 | 完成 |
 | 歌曲行专辑 | 点专辑名进专辑页 | 歌单/专辑/歌手/搜索歌曲行 | 完成 |
 | 歌曲行歌手 | 有链接但无 testid、门槛弱于其它表面 | 正整数 artist.id 兄弟链接进 `#/artistDetail` | 完成 |
@@ -217,16 +226,22 @@ DjHallPage                 读 query.cateId 并 setCate
 | 节目页头电台 | 电台名纯文本 | 正整数 radioId 兄弟链接进 `#/djRadio` | 完成 |
 | 歌单页头分类 | 标签纯文本 | 非空标签兄弟链接进 `#/music/category?cat=` | 完成 |
 | 电台页头分类 | 分类名纯文本 | 正整数 categoryId 兄弟链接进 `#/music/dj?cateId=` | 完成 |
+| 相似歌曲 | 队列无相似区 | `/simi/song` + 抽屉列表 | 完成 |
+| 视频大厅分类 | 分类不进 URL | `#/video?groupId=` | 完成 |
+| 歌手馆筛选 | 筛选不进 URL | `#/music/artist?area=&type=&initial=` | 完成 |
+| 搜索视频 | suggest 丢掉 videos | `/search/suggest` `videos` → `#/videoDetail` | 完成 |
+| 相似歌曲露出 | 相似区被播放条挡住 | `--player-bar-height` + 抽屉 bottom | 完成 |
+| 歌词露出 | 歌词面板被播放条挡住 | 复用 `--player-bar-height` | 完成 |
 
 ## 6. 质量与文档缺口
 
-已通过第 79 轮当前门禁：108 个测试文件 / 576 个测试、两套 typecheck、366 modules build、frozen lock、audit 和 `git diff --check`。
+已通过第 85 轮当前门禁：109 个测试文件 / 612 个测试、两套 typecheck、367 modules build、frozen lock、audit 和 `git diff --check`。
 
-仍存在、但不阻塞第 79 轮的缺口：播放条仍用深色常量、无 lint/E2E/CI。专辑空评论、登录未迁。
+仍存在、但不阻塞第 85 轮的缺口：播放条仍用深色常量 `#172033`（约束，不是待办）、无 lint/E2E/CI。专辑空评论、登录、队列删歌、音量记住未迁。
 
 ## 7. 建议的下一轮
 
-**播放条保持深色。** 电台页头分类已接到 `#/music/dj?cateId=`。登录、专辑空评论、Tailwind 4、CI、Element Plus 继续跳过。独立 P5 治理轮仍无产品缺口可修。
+**队列删歌或音量记住。** 播放条保持 `#172033` 是约束，不是待办。登录、专辑空评论、Tailwind 4、CI、Element Plus、用户页继续跳过。独立 P5 治理轮仍无产品缺口可修。其他可做切片：用户落地页、歌单/MV/视频评论、私人 FM、`/cloudsearch` 分页。
 
 ## 8. 文档怎么读
 
@@ -242,4 +257,4 @@ DjHallPage                 读 query.cateId 并 setCate
 | [CHANGELOG](./CHANGELOG.md) | 追加日志 | 文档版本 |
 | **本文** | **活文档** | **先读这个，再开工** |
 
-> 状态更新（2026-09-06）：第 78 轮已在当前 HEAD `688c1cf` 完成。第 79 轮已写入工作区（独立审查 PASS WITH FINDINGS / 核验 PASS）；播放条仍深色，专辑空评论仍未迁。
+> 状态更新（2026-09-06）：第 85 轮已在当前 HEAD `6bd8971` 完成。播放条仍深色，专辑空评论、登录、队列删歌仍未迁。未 push。

@@ -1,5 +1,77 @@
 # 迁移文档变更记录
 
+## 0.89.0 - 2026-09-06
+
+### 实施第 85 轮：歌词露出
+
+- 歌词面板复用 `--player-bar-height`，`bottom` 对齐播放条顶边，带 `data-above-player`；歌词层仍 `z-index: 30`，播放条 `40`；
+- 播放条仍为 `#172033`；
+- 109 个测试文件、612 个测试通过；typecheck、build（367 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:60321` + mock `127.0.0.1:60331`：播「晚风来信」打开歌词，文案含「走过林间。」，面板底边贴播放条顶边（719/719），背景 `rgb(23, 32, 51)`；Discover 文案含「歌词露出」；
+- 独立审查 PASS WITH FINDINGS（LOW：属性断言未锁 CSS）；独立核验 PASS，隔离 smoke `60421`/`60431`/`60481`；
+- 提交 `6bd8971`；未 push；
+- 下一轮建议：队列删歌或音量记住。播放条保持 `#172033` 是约束不是待办。登录、专辑空评论继续跳过。
+
+## 0.88.0 - 2026-09-06
+
+### 实施第 84 轮：相似歌曲露出
+
+- 播放条把实测高度写到 `--player-bar-height`；条出现后才写，卸载后清掉；播放列表面板 `bottom` 用该变量，相似歌曲停在播放条上方；队列层仍 `z-index: 30`；
+- 播放条仍为 `#172033`；
+- 109 个测试文件、612 个测试通过；typecheck、build（367 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:60121` + mock `127.0.0.1:60131`：播「晚风来信」打开播放列表，「潮汐回声」底边贴播放条顶边（736/736）；Discover 文案含「相似歌曲露出」；
+- 独立审查 PASS WITH FINDINGS（MEDIUM：卸载清变量未点测，随后已补）；独立核验 PASS，隔离 smoke `60221`/`60231`/`60281`；
+- 提交 `9bb48d8`；未 push；
+- 下一轮：歌词面板同样让出播放条。
+
+## 0.87.0 - 2026-09-06
+
+### 实施第 83 轮：搜索视频
+
+- `/search/suggest` 解开 `result.videos`；非空字符串 `vid`，标题认 `title` 再 `name`，封面认 `coverUrl` / `cover` / `picUrl`；最多 10 条；搜索页和顶栏打开 `#/videoDetail?id=`；不另开 `/cloudsearch`；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、607 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:59921` + mock `127.0.0.1:59931`：`#/search?q=现场` 链接 `#/videoDetail?id=VID001`，点击后标题「夜航现场」，未打开播放条；Discover 文案含「搜索视频」；
+- 独立审查 PASS WITH FINDINGS（LOW：封面/name 回落、混合结果页、顶栏非视频-only）；独立核验 PASS，隔离 smoke `60021`/`60031`/`60081`；
+- 提交 `c6c94c2`；未 push；
+- 下一轮：播放列表相似歌曲被播放条挡住。
+
+## 0.86.0 - 2026-09-06
+
+### 实施第 82 轮：歌手馆筛选
+
+- 歌手馆读 `area` / `type` / `initial`；只认允许列表；`area=0` 是「其他」；默认值不写进 URL；改一项保留其它项；`applyHallFilters` 一次请求；watch 按路由名门控；空 `area=` 回落全部；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、604 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:59721` + mock `127.0.0.1:59731`：`#/music/artist?area=7` 标题「华语歌手」、卡片「夜航歌手」；点语种「全部」清查询；Discover 文案含「歌手馆筛选」；
+- 独立审查 PASS WITH FINDINGS（MEDIUM：空 `area=` 被当成其他，随后已修）；独立核验 PASS，隔离 smoke `59821`/`59831`/`59881`；
+- 提交 `d9550c4`；未 push；
+- 下一轮：搜索 suggest 视频。
+
+## 0.85.0 - 2026-09-06
+
+### 实施第 81 轮：视频大厅分类
+
+- 视频大厅读 `query.groupId`（正整数）；无效当全部视频；落地不先拉 `groupId=0`；选分类写查询，选「全部视频」清掉；watch 按路由名门控；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、593 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:59521` + mock `127.0.0.1:59531`：`#/video?groupId=101` 选中「现场」、卡片「夜航现场」；点「全部视频」出现「晚风现场」；Discover 文案含「视频大厅分类」；
+- 独立审查 PASS WITH FINDINGS（MEDIUM：无效 id / keepAlive 未点测，随后已补）；独立核验 PASS，隔离 smoke `59621`/`59631`/`59681`；
+- 与第 80 轮同一次提交 `7a35da0`；未 push；
+- 下一轮：歌手馆筛选 URL。
+
+## 0.84.0 - 2026-09-06
+
+### 实施第 80 轮：相似歌曲
+
+- 接入 `/simi/song?id=`；当前曲设定后异步拉相似歌曲，失败不挡住播放；去掉当前曲和无效 id；最多 10 条；`relatedSongs === null` 表示再试，`[]` 表示完成；提交只看 `current.id`；播放列表抽屉展示「相似歌曲」，点播保持抽屉打开；Host `clear()` 清掉列表；
+- 播放条仍为 `#172033`；
+- 108 个测试文件、585 个测试通过（随后第 81 轮一并写入同一提交）；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
+- smoke 使用 Vite `127.0.0.1:59321` + mock `127.0.0.1:59331`：播「晚风来信」打开播放列表，相似「潮汐回声」，点播后标题换成「潮汐回声」且抽屉仍开；Discover 文案含「相似歌曲」；
+- 独立审查 PASS WITH FINDINGS（MEDIUM：相似区被播放条挡住、pause 序号类比缺口；LOW：同 id 在途双请求）；独立核验 PASS，隔离 smoke `59421`/`59431`/`59481`；
+- 提交 `7a35da0`（含第 81 轮视频大厅分类）；未 push；
+- 下一轮：视频大厅分类 URL。布局挡住相似歌曲留到第 84 轮。
+
 ## 0.83.0 - 2026-09-06
 
 ### 实施第 79 轮：电台页头分类
@@ -9,7 +81,7 @@
 - 108 个测试文件、576 个测试通过；typecheck、build（366 modules）、frozen lock、audit 和 `git diff --check` 通过；
 - smoke 使用 Vite `127.0.0.1:59121` + mock `127.0.0.1:59131`：`#/djRadio?id=801` 分类链接 `href="#/music/dj?cateId=2"`，点击后选中「音乐故事」并看到「夜航电台」，未打开播放条；Discover 文案含「电台页头分类」；
 - 独立审查 PASS WITH FINDINGS（LOW：查询落地未锁首次缓存、分类条写查询未点测）；独立核验 PASS，隔离 smoke `59221`/`59231`；
-- 第 78 轮已提交 `688c1cf`；第 79 轮代码仍在工作区，未 commit、未 push；
+- 第 78 轮已提交 `688c1cf`；第 79 轮随后提交 `f865287`；未 push；
 - 下一轮：播放条保持深色。登录、专辑空评论继续跳过。
 
 ## 0.82.0 - 2026-09-06
