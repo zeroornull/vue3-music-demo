@@ -301,6 +301,14 @@ describe('App host gate', () => {
         rcmdText: '',
       },
     ]
+    djStore.relatedPrograms = [
+      {
+        copywriter: '',
+        id: 902,
+        name: '潮汐夜话',
+        picUrl: '',
+      },
+    ]
     djStore.radioPrograms = [
       {
         copywriter: '',
@@ -324,6 +332,7 @@ describe('App host gate', () => {
     expect(djStore.radio).toBeNull()
     expect(djStore.radioPrograms).toEqual([])
     expect(djStore.relatedRadios).toBeNull()
+    expect(djStore.relatedPrograms).toBeNull()
     expect(djStore.radioLoadedId).toBeNull()
   })
 

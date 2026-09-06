@@ -21,6 +21,7 @@ export interface DjProgramDetail {
   name: string
   description: string
   coverUrl: string
+  radioId: number
   radioName: string
   djName: string
   listenerCount: number

@@ -115,7 +115,11 @@ describe('DJ API', () => {
           name: '晚风来信',
         },
         name: '深夜民谣',
-        radio: { name: '林间电台', picUrl: 'https://images.example.com/radio.jpg' },
+        radio: {
+          id: 801,
+          name: '林间电台',
+          picUrl: 'https://images.example.com/radio.jpg',
+        },
       },
     })
 
@@ -128,6 +132,7 @@ describe('DJ API', () => {
       listenerCount: 1280,
       name: '深夜民谣',
       paid: false,
+      radioId: 801,
       radioName: '林间电台',
       song: {
         album: { id: 1, name: '专辑', picUrl: 'https://images.example.com/a.jpg' },
@@ -163,9 +168,25 @@ describe('DJ API', () => {
       listenerCount: 0,
       name: '清晨广播',
       paid: false,
+      radioId: 0,
       radioName: '海岸信号',
       song: null,
     })
+  })
+
+  it('drops a non-positive radio id from program detail', async () => {
+    await expect(
+      getDjProgramDetail(
+        903,
+        client({
+          program: {
+            id: 903,
+            name: '无效电台节目',
+            radio: { id: 0, name: '无效电台' },
+          },
+        }).client,
+      ),
+    ).resolves.toMatchObject({ id: 903, radioId: 0, radioName: '无效电台' })
   })
 
   it('rejects a missing program payload', async () => {

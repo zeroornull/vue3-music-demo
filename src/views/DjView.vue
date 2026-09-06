@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 
 import DjProgramHeader from '@/components/dj/DjProgramHeader.vue'
+import DjProgramCard from '@/components/music/DjProgramCard.vue'
 import { Pages } from '@/router/pages'
 import { useDjStore } from '@/stores/dj'
 import { usePlayerStore } from '@/stores/player'
@@ -12,7 +13,7 @@ const route = useRoute()
 const router = useRouter()
 const djStore = useDjStore()
 const playerStore = usePlayerStore()
-const { program, loading, error } = storeToRefs(djStore)
+const { program, relatedPrograms, loading, error } = storeToRefs(djStore)
 const notice = ref<string | null>(null)
 let playSerial = 0
 
@@ -107,6 +108,21 @@ watch(
         @play="playProgram"
       />
       <p v-if="notice" class="notice" role="status">{{ notice }}</p>
+      <section
+        v-if="relatedPrograms?.length"
+        class="related-programs"
+        data-testid="related-programs"
+        aria-labelledby="related-programs-title"
+      >
+        <h2 id="related-programs-title">更多节目</h2>
+        <div class="related-grid">
+          <DjProgramCard
+            v-for="item in relatedPrograms"
+            :key="item.id"
+            :program="item"
+          />
+        </div>
+      </section>
     </template>
   </main>
 </template>
@@ -166,6 +182,35 @@ watch(
 .notice {
   margin: 0;
   color: var(--color-accent-text);
+}
+
+.related-programs {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.related-programs h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 22px);
+}
+
+@media (max-width: 900px) {
+  .related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .related-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 560px) {

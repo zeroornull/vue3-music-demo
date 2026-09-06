@@ -13,6 +13,7 @@ const program = {
   id: 901,
   listenerCount: 1280,
   name: '深夜民谣',
+  radioId: 801,
   radioName: '林间电台',
   song: {
     artists: [{ id: 401, name: '林间电台' }],

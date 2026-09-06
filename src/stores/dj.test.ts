@@ -84,6 +84,7 @@ const detail = {
   id: 901,
   listenerCount: 1280,
   name: '深夜民谣',
+  radioId: 801,
   radioName: '林间电台',
   song: {
     artists: [{ id: 401, name: '林间电台' }],
@@ -91,6 +92,13 @@ const detail = {
     id: 301,
     name: '晚风来信',
   },
+}
+
+const relatedProgram = {
+  copywriter: '潮汐电台',
+  id: 902,
+  name: '潮汐夜话',
+  picUrl: 'https://images.example.com/ep2.jpg',
 }
 
 function deferred<T>() {
@@ -109,6 +117,7 @@ describe('dj store', () => {
     vi.mocked(getDjProgramDetail).mockReset()
     vi.mocked(getDjRadioDetail).mockReset()
     vi.mocked(getDjRadioPrograms).mockReset()
+    vi.mocked(getDjRadioPrograms).mockRejectedValue(new Error('no programs'))
     vi.mocked(getHotDjRadios).mockReset()
     vi.mocked(getHotDjRadios).mockRejectedValue(new Error('no radios'))
     vi.mocked(getPersonalizedDjPrograms).mockReset()
@@ -312,6 +321,7 @@ describe('dj store', () => {
     expect(store.radio).toBeNull()
     expect(store.radioPrograms).toEqual([])
     expect(store.relatedRadios).toBeNull()
+    expect(store.relatedPrograms).toBeNull()
     expect(store.categories).toEqual([])
     expect(store.radios).toEqual([])
     expect(store.cateId).toBe(0)
@@ -431,5 +441,125 @@ describe('dj store', () => {
 
     expect(store.relatedRadios).toEqual([relatedRadio])
     expect(store.radioPrograms.map((item) => item.id)).toEqual([901, 902])
+  })
+
+  it('loads more programs with the detail and ignores a related failure', async () => {
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({
+      more: false,
+      programs: [
+        { ...program, id: 901, name: '自己' },
+        { ...program, id: 0, name: '无效' },
+        relatedProgram,
+      ],
+    })
+    const store = useDjStore()
+
+    await store.load(901)
+    await settle()
+    await store.load(901)
+
+    expect(store.relatedPrograms).toEqual([relatedProgram])
+    expect(store.radioPrograms).toEqual([])
+    expect(store.programs).toEqual([])
+    expect(getDjProgramDetail).toHaveBeenCalledTimes(1)
+    expect(getDjRadioPrograms).toHaveBeenCalledTimes(1)
+    expect(getDjRadioPrograms).toHaveBeenCalledWith({ rid: 801 })
+  })
+
+  it('keeps the program when more programs fail', async () => {
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjRadioPrograms).mockRejectedValue(new Error('programs offline'))
+    const store = useDjStore()
+
+    await store.load(901)
+    await settle()
+
+    expect(store.program).toEqual(detail)
+    expect(store.relatedPrograms).toBeNull()
+    expect(store.error).toBeNull()
+  })
+
+  it('retries more programs on a cached program when the first related request failed', async () => {
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjRadioPrograms)
+      .mockRejectedValueOnce(new Error('programs offline'))
+      .mockResolvedValueOnce({ more: false, programs: [relatedProgram] })
+    const store = useDjStore()
+
+    await store.load(901)
+    await settle()
+    expect(store.relatedPrograms).toBeNull()
+
+    await store.load(901)
+    await settle()
+
+    expect(getDjProgramDetail).toHaveBeenCalledTimes(1)
+    expect(getDjRadioPrograms).toHaveBeenCalledTimes(2)
+    expect(store.relatedPrograms).toEqual([relatedProgram])
+  })
+
+  it('does not keep stale more programs after the program id changes', async () => {
+    const first = deferred<{ more: boolean; programs: typeof relatedProgram[] }>()
+    const nextDetail = { ...detail, id: 902, name: '潮汐夜话', radioId: 802 }
+    const nextRelated = { ...relatedProgram, id: 903, name: '下一期' }
+    vi.mocked(getDjProgramDetail)
+      .mockResolvedValueOnce(detail)
+      .mockResolvedValueOnce(nextDetail)
+    vi.mocked(getDjRadioPrograms)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({ more: false, programs: [nextRelated] })
+    const store = useDjStore()
+
+    await store.load(901)
+    await store.load(902)
+    await settle()
+    first.resolve({ more: false, programs: [relatedProgram] })
+    await settle()
+
+    expect(store.program?.id).toBe(902)
+    expect(store.relatedPrograms).toEqual([nextRelated])
+    expect(getDjRadioPrograms).toHaveBeenLastCalledWith({ rid: 802 })
+  })
+
+  it('skips more programs when the radio id is missing', async () => {
+    vi.mocked(getDjProgramDetail).mockResolvedValue({ ...detail, radioId: 0 })
+    const store = useDjStore()
+
+    await store.load(901)
+    await settle()
+
+    expect(getDjRadioPrograms).not.toHaveBeenCalled()
+    expect(store.relatedPrograms).toEqual([])
+  })
+
+  it('does not drop in-flight more programs when loading more radio programs', async () => {
+    const first = deferred<{ more: boolean; programs: typeof relatedProgram[] }>()
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms)
+      .mockResolvedValueOnce({ more: true, programs: [program] })
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({
+        more: false,
+        programs: [{ ...program, id: 903, name: '下一期' }],
+      })
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await store.load(901)
+    await store.loadMoreRadioPrograms()
+    first.resolve({
+      more: false,
+      programs: [
+        { ...program, id: 901, name: '自己' },
+        { ...program, id: 0, name: '无效' },
+        relatedProgram,
+      ],
+    })
+    await settle()
+
+    expect(store.relatedPrograms).toEqual([relatedProgram])
+    expect(store.radioPrograms.map((item) => item.id)).toEqual([901, 903])
   })
 })

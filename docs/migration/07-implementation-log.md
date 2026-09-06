@@ -6672,4 +6672,67 @@ mock API http://127.0.0.1:58331
 
 ### 77.4 本轮结果
 
-更多电台已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/558、typecheck、366 modules；隔离 smoke `58421`/`58431`。第 74 轮提交 `fa5aef0` 仍是当前 HEAD；第 75 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+更多电台已在工作区。独立审查 PASS WITH FINDINGS（LOW 保留）。独立核验 PASS：复跑 108/558、typecheck、366 modules；隔离 smoke `58421`/`58431`。第 74 轮提交 `fa5aef0` 仍是当时 HEAD；第 75 轮随后提交为 `30b7dea`。下一轮：播放条保持深色。登录、专辑空评论继续跳过。
+
+## 78. 实施第 76 轮：更多节目（工作区）
+
+> 执行日期：`2026-09-06`<br>
+> 状态：**测试、构建与本地 mock 浏览器已跑过**<br>
+> Git commit：**本轮未创建**<br>
+> Push：**本轮未执行**
+
+### 78.1 开始边界与范围
+
+第 76 轮开始时第 75 轮已经提交：
+
+```text
+HEAD 30b7dea
+master...origin/master
+```
+
+文档上的下一动作是「播放条保持深色」（跳过）。本轮改接未完成的生产者：`/dj/program` → 已有 `#/dj` 和 DjProgramCard。`/dj/program/detail` 解开 `radio.id`。不用 Tailwind 4。播放条底色本轮不改。测完停掉作者 smoke 端口。
+
+### 78.2 自动验证
+
+```text
+bun run test
+Test Files  108 passed (108)
+Tests       567 passed (567)
+
+bun run typecheck
+PASS
+
+bun run build
+366 modules transformed
+built dist/
+
+bun install --frozen-lockfile
+PASS
+
+bun audit
+No vulnerabilities found (checked 185 packages)
+
+git diff --check
+PASS
+```
+
+本轮未新增依赖。
+
+### 78.3 本地 mock API 浏览器 smoke
+
+```text
+Vite     http://127.0.0.1:58521
+mock API http://127.0.0.1:58531
+```
+
+验证步骤：
+
+1. `#/dj?id=901` 标题「深夜民谣」，更多节目 `href="#/dj?id=902"`，`aria-label="打开电台节目：潮汐夜话"`；
+2. 点卡片后 hash 为 `#/dj?id=902`，标题「潮汐夜话」，未打开播放条；
+3. Discover 摘要含「更多节目」。
+
+独立审查 PASS WITH FINDINGS：MEDIUM 缓存命中可能重叠在途相关请求（与第 74/75 轮相同，保留）；LOW 页面测试标题未再点播放。核验复跑隔离口 `58621`/`58631`。测完已停 `58521`/`58531`。未打真实网易云 API。
+
+### 78.4 本轮结果
+
+更多节目已在工作区。独立审查 PASS WITH FINDINGS（MEDIUM/LOW 保留）。独立核验 PASS：复跑 108/567、typecheck、366 modules；隔离 smoke `58621`/`58631`。第 75 轮提交 `30b7dea` 仍是当前 HEAD；第 76 轮尚未 commit / push。下一轮：播放条保持深色。登录、专辑空评论继续跳过。

@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getDjProgramDetail } from '@/api/dj'
+import { getDjProgramDetail, getDjRadioPrograms } from '@/api/dj'
 
 vi.mock('@/views/music/DjHallPage.vue', () => ({
   default: { name: 'DjHallPage', template: '<div data-testid="dj-hall-stub" />' },
@@ -21,6 +21,7 @@ vi.mock('@/api/dj', async (importOriginal) => {
   return {
     ...actual,
     getDjProgramDetail: vi.fn(),
+    getDjRadioPrograms: vi.fn(),
     getPersonalizedDjPrograms: vi.fn(),
   }
 })
@@ -42,6 +43,7 @@ const detail = {
   id: 901,
   listenerCount: 1280,
   name: '深夜民谣',
+  radioId: 801,
   radioName: '林间电台',
   song: {
     artists: [{ id: 401, name: '林间电台' }],
@@ -73,7 +75,10 @@ async function mountView(query: Record<string, string> = { id: '901' }) {
       plugins: [pinia, router],
       stubs: {
         DjProgramHeader: HeaderStub,
-        RouterLink: defineComponent({ template: '<a><slot /></a>' }),
+        RouterLink: defineComponent({
+          props: ['to'],
+          template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+        }),
       },
     },
   })
@@ -86,6 +91,8 @@ describe('DjView', () => {
     playSong.mockClear()
     vi.mocked(getDjProgramDetail).mockReset()
     vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjRadioPrograms).mockReset()
+    vi.mocked(getDjRadioPrograms).mockRejectedValue(new Error('no programs'))
   })
 
   it('redirects a missing program id to the radio hall', async () => {
@@ -126,7 +133,10 @@ describe('DjView', () => {
         plugins: [pinia, router],
         stubs: {
           DjProgramHeader: HeaderStub,
-          RouterLink: defineComponent({ template: '<a><slot /></a>' }),
+          RouterLink: defineComponent({
+            props: ['to'],
+            template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+          }),
         },
       },
     })
@@ -160,5 +170,36 @@ describe('DjView', () => {
     await wrapper.get('[data-testid="play-program"]').trigger('click')
     await flushPromises()
     expect(playSong).not.toHaveBeenCalled()
+  })
+
+  it('renders more program cards without blocking play', async () => {
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({
+      more: false,
+      programs: [
+        {
+          copywriter: '潮汐电台',
+          id: 902,
+          name: '潮汐夜话',
+          picUrl: 'https://images.example.com/ep2.jpg',
+        },
+      ],
+    })
+    const { wrapper } = await mountView()
+    await flushPromises()
+
+    expect(wrapper.get('h1').text()).toBe('深夜民谣')
+    const related = wrapper.get('[data-testid="related-programs"]')
+    expect(related.get('[data-testid="dj-card"]').text()).toContain('潮汐夜话')
+    expect(related.get('[aria-label="打开电台节目：潮汐夜话"]').attributes('data-to')).toBe(
+      JSON.stringify({ name: Pages.dj, query: { id: 902 } }),
+    )
+  })
+
+  it('hides more programs when the list is empty', async () => {
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [] })
+    const { wrapper } = await mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="related-programs"]').exists()).toBe(false)
   })
 })

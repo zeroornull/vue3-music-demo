@@ -192,6 +192,13 @@ export async function getDjProgramDetail(
     name: raw.name,
     description: typeof raw.description === 'string' ? raw.description : '',
     coverUrl: cover,
+    radioId:
+      radio &&
+      typeof radio.id === 'number' &&
+      Number.isInteger(radio.id) &&
+      radio.id > 0
+        ? radio.id
+        : 0,
     radioName: radio && typeof radio.name === 'string' ? radio.name : '',
     djName:
       dj && typeof dj.nickname === 'string' && dj.nickname
