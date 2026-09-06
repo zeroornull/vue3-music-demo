@@ -120,6 +120,86 @@ describe('PlayerQueueDrawer', () => {
     wrapper.unmount()
   })
 
+  it('removes a queued song without playing or closing the drawer', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.queue = [
+      player.current,
+      { id: 2, name: '下一首', artists: [] },
+    ]
+    player.hasPlayableSource = true
+    player.isPlaying = true
+    player.openQueue()
+    const play = vi.spyOn(player, 'play')
+    const wrapper = mountDrawer()
+
+    expect(
+      document.querySelector('button.queue-song [data-testid="player-queue-remove"]'),
+    ).toBeNull()
+    const remove = bodyEl(
+      '[data-testid="player-queue-remove"][aria-label="从播放列表移除：下一首"]',
+    )
+    remove.click()
+    await flushPromises()
+
+    expect(play).not.toHaveBeenCalled()
+    expect(player.queue.map((item) => item.id)).toEqual([1])
+    expect(player.current?.id).toBe(1)
+    expect(player.isPlaying).toBe(true)
+    expect(player.showQueue).toBe(true)
+    expect(bodyEl('[data-testid="player-queue"]').textContent).not.toContain('下一首')
+    wrapper.unmount()
+  })
+
+  it('removes the current song, plays the next, and keeps the drawer open', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.queue = [
+      player.current,
+      { id: 2, name: '下一首', artists: [] },
+    ]
+    player.openQueue()
+    const play = vi.spyOn(player, 'play').mockResolvedValue(true)
+    const wrapper = mountDrawer()
+
+    bodyEl('[data-testid="player-queue-remove"][aria-label="从播放列表移除：晚风"]').click()
+    await flushPromises()
+
+    expect(play).toHaveBeenCalledOnce()
+    expect(play.mock.calls[0]?.[0]).toMatchObject({ id: 2, name: '下一首' })
+    expect(player.queue.map((item) => item.id)).toEqual([2])
+    expect(player.showQueue).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('closes the drawer when the last queued song is removed', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.queue = [player.current]
+    player.hasPlayableSource = true
+    player.loading = true
+    player.error = 'stale'
+    player.relatedSongs = [{ id: 302, name: '潮汐回声', artists: [] }]
+    player.openQueue()
+    const play = vi.spyOn(player, 'play')
+    const wrapper = mountDrawer()
+
+    bodyEl('[data-testid="player-queue-remove"][aria-label="从播放列表移除：晚风"]').click()
+    await flushPromises()
+
+    expect(play).not.toHaveBeenCalled()
+    expect(player.queue).toHaveLength(0)
+    expect(player.current).toBeNull()
+    expect(player.showQueue).toBe(false)
+    expect(player.loading).toBe(false)
+    expect(player.error).toBeNull()
+    expect(player.relatedSongs).toBeNull()
+    expect(document.querySelector('[data-testid="player-queue"]')).toBeNull()
+    wrapper.unmount()
+  })
+
   it('plays a listed song without shrinking the queue', async () => {
     const player = usePlayerStore()
     player.current = { id: 1, name: '晚风', artists: [{ id: 2, name: '林间电台' }] }

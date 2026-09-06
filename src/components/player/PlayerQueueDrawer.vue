@@ -34,6 +34,12 @@ function playSong(song: Song) {
   })
 }
 
+function removeSong(song: Song) {
+  void player.removeFromQueue(song.id).catch(() => {
+    // The store records the play error for the bar when current is replaced.
+  })
+}
+
 function onKeydown(event: KeyboardEvent) {
   if (!showQueue.value || event.key !== 'Escape') return
   player.closeQueue()
@@ -162,6 +168,15 @@ onUnmounted(() => {
             >
               MV
             </RouterLink>
+            <button
+              type="button"
+              data-testid="player-queue-remove"
+              class="queue-remove"
+              :aria-label="`从播放列表移除：${song.name}`"
+              @click.stop="removeSong(song)"
+            >
+              移除
+            </button>
           </div>
         </li>
       </ul>
@@ -344,7 +359,8 @@ onUnmounted(() => {
 }
 
 .queue-album,
-.queue-mv {
+.queue-mv,
+.queue-remove {
   max-width: 8rem;
   overflow: hidden;
   padding: 4px 8px;
@@ -364,8 +380,15 @@ onUnmounted(() => {
   letter-spacing: 0;
 }
 
+.queue-remove {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
 .queue-album:focus-visible,
-.queue-mv:focus-visible {
+.queue-mv:focus-visible,
+.queue-remove:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }

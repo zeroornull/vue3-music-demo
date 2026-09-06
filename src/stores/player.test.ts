@@ -821,4 +821,131 @@ describe('Player store', () => {
     expect(player.current?.id).toBe(1)
     expect(player.isPlaying).toBe(false)
   })
+
+  it('removes a queued song that is not current without stopping playback', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.playAll([song(1), song(2), song(3)])
+    player.openQueue()
+    const play = vi.spyOn(player, 'play')
+
+    await expect(player.removeFromQueue(2)).resolves.toBe(true)
+
+    expect(play).not.toHaveBeenCalled()
+    expect(player.queue.map((item) => item.id)).toEqual([1, 3])
+    expect(player.current?.id).toBe(1)
+    expect(player.isPlaying).toBe(true)
+    expect(player.showQueue).toBe(true)
+  })
+
+  it('does not remove invalid or missing ids', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.playAll([song(1), song(2)])
+
+    await expect(player.removeFromQueue(0)).resolves.toBe(false)
+    await expect(player.removeFromQueue(1.5)).resolves.toBe(false)
+    await expect(player.removeFromQueue(99)).resolves.toBe(false)
+
+    expect(player.queue.map((item) => item.id)).toEqual([1, 2])
+    expect(player.current?.id).toBe(1)
+  })
+
+  it('plays the next remaining song when the current track is removed', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.playAll([song(1), song(2), song(3)])
+    player.openQueue()
+
+    await expect(player.removeFromQueue(1)).resolves.toBe(true)
+
+    expect(player.queue.map((item) => item.id)).toEqual([2, 3])
+    expect(player.current?.id).toBe(2)
+    expect(player.isPlaying).toBe(true)
+    expect(player.showQueue).toBe(true)
+  })
+
+  it('plays the first remaining song when the last queued current track is removed', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.playAll([song(1), song(2), song(3)])
+    await player.next()
+    await player.next()
+    expect(player.current?.id).toBe(3)
+
+    await expect(player.removeFromQueue(3)).resolves.toBe(true)
+
+    expect(player.queue.map((item) => item.id)).toEqual([1, 2])
+    expect(player.current?.id).toBe(1)
+  })
+
+  it('stops playback without resetting volume when the last queued song is removed', async () => {
+    const adapter = mockAdapter()
+    setAudioAdapter(adapter)
+    const player = usePlayerStore()
+    await player.play(song(1))
+    player.relatedSongs = [song(302)]
+    player.setVolume(0.4)
+    player.toggleMuted()
+    player.toggleLoop()
+    player.openQueue()
+
+    await expect(player.removeFromQueue(1)).resolves.toBe(true)
+
+    expect(player.queue).toHaveLength(0)
+    expect(player.current).toBeNull()
+    expect(player.isPlaying).toBe(false)
+    expect(player.hasPlayableSource).toBe(false)
+    expect(player.loading).toBe(false)
+    expect(player.error).toBeNull()
+    expect(player.relatedSongs).toBeNull()
+    expect(player.showQueue).toBe(false)
+    expect(player.volume).toBe(0.4)
+    expect(player.muted).toBe(true)
+    expect(player.loopMode).toBe('list')
+    expect(adapter.pause).toHaveBeenCalled()
+    expect(adapter.src).toBe('')
+  })
+
+  it('picks another remaining song when removing current in shuffle mode', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.playAll([song(1), song(2), song(3)])
+    await player.next()
+    expect(player.current?.id).toBe(2)
+    player.toggleLoop()
+    player.toggleLoop()
+    expect(player.loopMode).toBe('shuffle')
+
+    await expect(player.removeFromQueue(2)).resolves.toBe(true)
+
+    expect(player.queue.map((item) => item.id)).toEqual([1, 3])
+    expect(player.current?.id).toBe(1)
+  })
+
+  it('discards an in-flight play when the last remaining current song is removed', async () => {
+    const nextUrl = deferred<{ id: number; url: string }>()
+    vi.mocked(getSongUrl).mockReturnValueOnce(nextUrl.promise)
+    const play = vi.fn(async () => {})
+    const adapter = mockAdapter({ play })
+    setAudioAdapter(adapter)
+    const player = usePlayerStore()
+    const pending = player.play(song(1))
+    await Promise.resolve()
+    player.openQueue()
+
+    await expect(player.removeFromQueue(1)).resolves.toBe(true)
+    nextUrl.resolve({ id: 1, url: 'late' })
+    await expect(pending).resolves.toBe(false)
+
+    expect(player.current).toBeNull()
+    expect(player.queue).toHaveLength(0)
+    expect(player.isPlaying).toBe(false)
+    expect(player.loading).toBe(false)
+    expect(player.error).toBeNull()
+    expect(player.showQueue).toBe(false)
+    expect(play).not.toHaveBeenCalled()
+    expect(adapter.src).toBe('')
+  })
 })

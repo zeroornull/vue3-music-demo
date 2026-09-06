@@ -341,6 +341,38 @@ export const usePlayerStore = defineStore('player', {
         })
         .catch(() => undefined)
     },
+    async removeFromQueue(id: number): Promise<boolean> {
+      if (!Number.isInteger(id) || id <= 0) return false
+      const index = this.queue.findIndex((item) => item.id === id)
+      if (index < 0) return false
+      const wasCurrent = this.current?.id === id
+      this.queue = this.queue.filter((item) => item.id !== id)
+      if (!wasCurrent) return true
+      if (!this.queue.length) {
+        requestSerial++
+        pauseGeneration++
+        injectedAdapter?.pause()
+        unbindAudio?.()
+        unbindAudio = undefined
+        if (injectedAdapter) injectedAdapter.src = ''
+        this.current = null
+        this.loading = false
+        this.isPlaying = false
+        this.hasPlayableSource = false
+        this.error = null
+        this.currentTime = 0
+        this.duration = 0
+        this.relatedSongs = null
+        this.showQueue = false
+        return true
+      }
+      const remaining = this.queue
+      const nextSong =
+        this.loopMode === 'shuffle'
+          ? pickOther(remaining, undefined) ?? remaining[0]
+          : remaining[index] ?? remaining[0]
+      return this.play(nextSong!)
+    },
     openQueue() {
       this.showQueue = true
     },
