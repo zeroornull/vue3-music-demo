@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DjProgramDetail } from '@/models/dj'
+import { Pages } from '@/router/pages'
 
 withDefaults(
   defineProps<{
@@ -30,7 +31,18 @@ defineEmits<{
       <p class="eyebrow">Radio</p>
       <h1>{{ program.name }}</h1>
       <p v-if="program.radioName || program.djName" class="meta">
-        <span v-if="program.radioName">{{ program.radioName }}</span>
+        <span v-if="program.radioName">
+          <RouterLink
+            v-if="typeof program.radioId === 'number' && Number.isInteger(program.radioId) && program.radioId > 0"
+            data-testid="dj-radio"
+            :to="{ name: Pages.djRadio, query: { id: program.radioId } }"
+            :aria-label="`打开电台：${program.radioName}`"
+            @click.stop
+          >
+            {{ program.radioName }}
+          </RouterLink>
+          <template v-else>{{ program.radioName }}</template>
+        </span>
         <span v-if="program.djName">{{ program.djName }}</span>
       </p>
       <p v-if="program.description" class="bio">{{ program.description }}</p>
@@ -105,6 +117,17 @@ h1 {
   flex-wrap: wrap;
   gap: 8px 16px;
   margin-top: 10px;
+}
+
+.meta a {
+  color: var(--color-accent);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.meta a:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .bio {

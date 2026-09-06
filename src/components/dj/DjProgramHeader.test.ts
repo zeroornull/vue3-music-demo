@@ -1,9 +1,17 @@
 // @vitest-environment happy-dom
 
+import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import DjProgramHeader from '@/components/dj/DjProgramHeader.vue'
+import { Pages } from '@/router/pages'
+
+const RouterLinkStub = defineComponent({
+  name: 'RouterLink',
+  props: ['to'],
+  template: '<a><slot /></a>',
+})
 
 const program = {
   coverUrl: 'https://images.example.com/dj-cover.jpg',
@@ -27,6 +35,7 @@ describe('DjProgramHeader', () => {
   it('renders cover, copy and play, and disables play when empty', async () => {
     const wrapper = mount(DjProgramHeader, {
       props: { program, playable: true },
+      global: { stubs: { RouterLink: RouterLinkStub } },
     })
 
     expect(wrapper.get('h1').text()).toBe('深夜民谣')
@@ -41,6 +50,7 @@ describe('DjProgramHeader', () => {
         playable: false,
         program: { ...program, song: null },
       },
+      global: { stubs: { RouterLink: RouterLinkStub } },
     })
     expect(empty.get('[data-testid="dj-play"]').attributes('disabled')).toBeDefined()
     expect(empty.text()).toContain('这个节目没有可播放的歌曲')
@@ -52,10 +62,47 @@ describe('DjProgramHeader', () => {
         playable: false,
         program: { ...program, paid: true },
       },
+      global: { stubs: { RouterLink: RouterLinkStub } },
     })
     expect(wrapper.get('[data-testid="dj-play"]').attributes('disabled')).toBeDefined()
     expect(wrapper.get('[data-testid="dj-program-paid"]').text()).toContain(
       '付费节目，本应用不支持购买',
     )
+  })
+
+  it('links a positive radio id without playing', async () => {
+    const wrapper = mount(DjProgramHeader, {
+      props: { program, playable: true },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+
+    const radio = wrapper.get('[data-testid="dj-radio"]')
+    expect(radio.text()).toBe('林间电台')
+    expect(radio.attributes('aria-label')).toBe('打开电台：林间电台')
+    expect(wrapper.get('[data-testid="dj-play"]').find('[data-testid="dj-radio"]').exists()).toBe(
+      false,
+    )
+    const radioLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.attributes('data-testid') === 'dj-radio')
+    expect(radioLink?.props('to')).toEqual({
+      name: Pages.djRadio,
+      query: { id: 801 },
+    })
+
+    await radio.trigger('click')
+    expect(wrapper.emitted('play')).toBeUndefined()
+  })
+
+  it('shows the radio name as text when radio id is missing', () => {
+    const wrapper = mount(DjProgramHeader, {
+      props: {
+        playable: true,
+        program: { ...program, radioId: 0 },
+      },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.find('[data-testid="dj-radio"]').exists()).toBe(false)
+    expect(wrapper.get('.meta').text()).toContain('林间电台')
   })
 })
