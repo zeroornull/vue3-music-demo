@@ -286,6 +286,9 @@ describe('PlayerQueueDrawer', () => {
     expect(play).toHaveBeenCalledOnce()
     expect(play.mock.calls[0]?.[0]).toMatchObject({ id: 302, name: '潮汐回声' })
     expect(player.showQueue).toBe(true)
+    expect(bodyEl('[data-testid="player-queue"]').hasAttribute('data-above-player')).toBe(
+      true,
+    )
     wrapper.unmount()
   })
 

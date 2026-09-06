@@ -70,6 +70,7 @@ onUnmounted(() => {
       aria-modal="true"
       aria-labelledby="player-queue-title"
       data-testid="player-queue"
+      data-above-player
     >
       <header class="queue-header">
         <div>
@@ -208,7 +209,7 @@ onUnmounted(() => {
   position: absolute;
   top: 0;
   right: 0;
-  bottom: 0;
+  bottom: var(--player-bar-height, 84px);
   display: flex;
   width: min(320px, 100%);
   min-width: 0;

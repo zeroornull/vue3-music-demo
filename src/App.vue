@@ -85,6 +85,7 @@ watch(isConfigured, (configured) => {
   --color-danger-border: #e3b7b7;
   --color-well: #f8fafc;
   --color-on-accent: #ffffff;
+  --player-bar-height: 84px;
   color: var(--color-text);
   background: var(--color-bg);
   font-family:

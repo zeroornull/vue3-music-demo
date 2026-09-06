@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import PlayerLyricPanel from '@/components/player/PlayerLyricPanel.vue'
 import PlayerQueueDrawer from '@/components/player/PlayerQueueDrawer.vue'
@@ -8,6 +8,7 @@ import { isPositiveMvId } from '@/models/song'
 import { Pages } from '@/router/pages'
 import { LOOP_MODE_LABEL, usePlayerStore } from '@/stores/player'
 import { formatClock } from '@/utils/number'
+import { setPlayerBarHeight } from '@/components/player/playerBarHeight'
 
 const player = usePlayerStore()
 const lyrics = useLyricStore()
@@ -27,6 +28,12 @@ const {
   showQueue,
 } = storeToRefs(player)
 const { showLyric } = storeToRefs(lyrics)
+const bar = ref<HTMLElement | null>(null)
+let heightObserver: ResizeObserver | null = null
+
+function publishHeight() {
+  setPlayerBarHeight(bar.value?.offsetHeight ?? 0)
+}
 
 const loopLabel = computed(() => LOOP_MODE_LABEL[loopMode.value])
 const coverUrl = computed(() => {
@@ -111,10 +118,34 @@ watch(
     else lyrics.reset()
   },
 )
+
+watch(
+  bar,
+  (el) => {
+    heightObserver?.disconnect()
+    heightObserver = null
+    if (!el) {
+      setPlayerBarHeight(0)
+      return
+    }
+    publishHeight()
+    if (typeof ResizeObserver !== 'function') return
+    heightObserver = new ResizeObserver(() => publishHeight())
+    heightObserver.observe(el)
+  },
+  { flush: 'post' },
+)
+
+onUnmounted(() => {
+  heightObserver?.disconnect()
+  heightObserver = null
+  setPlayerBarHeight(0)
+})
 </script>
 <template>
   <aside
     v-if="current || loading || error"
+    ref="bar"
     class="player-bar"
     aria-label="播放器"
     data-testid="player-bar"

@@ -75,6 +75,71 @@ describe('PlayerBar', () => {
     expect(wrapper.find('[data-testid="player-cover-fallback"]').exists()).toBe(true)
   })
 
+  it('publishes measured height as --player-bar-height', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.hasPlayableSource = true
+    const getter = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+    getter.mockImplementation(function (this: HTMLElement) {
+      return this.getAttribute('data-testid') === 'player-bar' ? 88 : 0
+    })
+    let wrapper: ReturnType<typeof mountBar> | undefined
+    try {
+      wrapper = mountBar({ attachTo: document.body })
+      await wrapper.vm.$nextTick()
+      expect(
+        document.documentElement.style.getPropertyValue('--player-bar-height'),
+      ).toBe('88px')
+    } finally {
+      wrapper?.unmount()
+      getter.mockRestore()
+      document.documentElement.style.removeProperty('--player-bar-height')
+    }
+  })
+
+  it('publishes height after the bar appears', async () => {
+    const player = usePlayerStore()
+    player.hasPlayableSource = true
+    const getter = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+    getter.mockImplementation(function (this: HTMLElement) {
+      return this.getAttribute('data-testid') === 'player-bar' ? 88 : 0
+    })
+    let wrapper: ReturnType<typeof mountBar> | undefined
+    try {
+      wrapper = mountBar({ attachTo: document.body })
+      expect(wrapper.find('[data-testid="player-bar"]').exists()).toBe(false)
+      player.current = { id: 1, name: '晚风', artists: [] }
+      await wrapper.vm.$nextTick()
+      expect(
+        document.documentElement.style.getPropertyValue('--player-bar-height'),
+      ).toBe('88px')
+    } finally {
+      wrapper?.unmount()
+      getter.mockRestore()
+      document.documentElement.style.removeProperty('--player-bar-height')
+    }
+  })
+
+  it('clears --player-bar-height when unmounted', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.hasPlayableSource = true
+    const getter = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+    getter.mockImplementation(function (this: HTMLElement) {
+      return this.getAttribute('data-testid') === 'player-bar' ? 88 : 0
+    })
+    const wrapper = mountBar({ attachTo: document.body })
+    await wrapper.vm.$nextTick()
+    expect(document.documentElement.style.getPropertyValue('--player-bar-height')).toBe(
+      '88px',
+    )
+    wrapper.unmount()
+    getter.mockRestore()
+    expect(document.documentElement.style.getPropertyValue('--player-bar-height')).toBe(
+      '',
+    )
+  })
+
   it('shows the current song cover from picUrl', () => {
     const player = usePlayerStore()
     player.current = {
