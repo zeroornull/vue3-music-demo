@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
 import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
@@ -10,6 +10,28 @@ import {
 } from '@/stores/player'
 
 vi.mock('@/api/song')
+
+class MemoryStorage implements Storage {
+  readonly values = new Map<string, string>()
+  get length() {
+    return this.values.size
+  }
+  clear() {
+    this.values.clear()
+  }
+  getItem(key: string) {
+    return this.values.get(key) ?? null
+  }
+  key(index: number) {
+    return [...this.values.keys()][index] ?? null
+  }
+  removeItem(key: string) {
+    this.values.delete(key)
+  }
+  setItem(key: string, value: string) {
+    this.values.set(key, value)
+  }
+}
 
 const song = (id: number) => ({
   id,
@@ -50,11 +72,16 @@ function mockAdapter(overrides: Partial<AudioAdapter> = {}) {
 describe('Player store', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    vi.stubGlobal('localStorage', new MemoryStorage())
     setActivePinia(createPinia())
     resetAudioAdapter()
     vi.mocked(getSongDetail).mockImplementation(async (id) => song(id))
     vi.mocked(getSongUrl).mockResolvedValue({ id: 1, url: 'x' })
     vi.mocked(getSimiSongs).mockRejectedValue(new Error('no similar'))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('loads a song, starts playback and deduplicates the queue', async () => {
@@ -191,6 +218,41 @@ describe('Player store', () => {
     expect(adapter.volume).toBe(1)
     expect(player.muted).toBe(false)
     expect(adapter.muted).toBe(false)
+  })
+
+  it('persists volume and restores it on a new store', async () => {
+    const adapter = mockAdapter()
+    setAudioAdapter(adapter)
+    const player = usePlayerStore()
+    player.setVolume(0.4)
+    player.toggleMuted()
+    expect(globalThis.localStorage.getItem('PLAYER-VOLUME')).toBe('40')
+
+    setActivePinia(createPinia())
+    resetAudioAdapter()
+    const restored = usePlayerStore()
+    expect(restored.volume).toBe(0.4)
+    expect(restored.muted).toBe(false)
+    expect(globalThis.localStorage.getItem('PLAYER-VOLUME')).toBe('40')
+    const nextAdapter = mockAdapter({ volume: 1 })
+    setAudioAdapter(nextAdapter)
+    await restored.play(song(1))
+    expect(nextAdapter.volume).toBe(0.4)
+    expect(nextAdapter.muted).toBe(false)
+  })
+
+  it('keeps the remembered volume when playback is cleared', async () => {
+    const adapter = mockAdapter()
+    setAudioAdapter(adapter)
+    const player = usePlayerStore()
+    player.setVolume(0.3)
+    player.toggleMuted()
+    player.clear()
+    expect(player.volume).toBe(0.3)
+    expect(adapter.volume).toBe(0.3)
+    expect(player.muted).toBe(false)
+    expect(adapter.muted).toBe(false)
+    expect(globalThis.localStorage.getItem('PLAYER-VOLUME')).toBe('30')
   })
 
   it('lets the last concurrent selection win and resolves stale work false', async () => {
@@ -439,8 +501,12 @@ describe('Player store', () => {
     expect(player.volume).toBe(1)
     player.setVolume(-1)
     expect(player.volume).toBe(0)
+    expect(globalThis.localStorage.getItem('PLAYER-VOLUME')).toBe('0')
     await player.play(song(1))
     expect(adapter.volume).toBe(0)
+
+    setActivePinia(createPinia())
+    expect(usePlayerStore().volume).toBe(0)
   })
 
   it('toggles mute without changing volume and reapplies it on play', async () => {
@@ -522,8 +588,8 @@ describe('Player store', () => {
     player.clear()
     expect(player.currentTime).toBe(0)
     expect(player.duration).toBe(0)
-    expect(player.volume).toBe(1)
-    expect(adapter.volume).toBe(1)
+    expect(player.volume).toBe(0.3)
+    expect(adapter.volume).toBe(0.3)
     expect(player.muted).toBe(false)
     expect(adapter.muted).toBe(false)
   })

@@ -22,8 +22,11 @@ describe('CategoryTagBar', () => {
     ])
     expect(wrapper.get('[aria-pressed="true"]').text()).toBe('华语')
 
-    await buttons[0]?.trigger('click')
-    expect(wrapper.emitted('select')?.[0]).toEqual(['全部'])
+    const all = wrapper.get('button')
+    expect(all.text()).toBe('全部')
+    await all.trigger('click')
+    expect(wrapper.emitted('select')).toEqual([['全部']])
+    wrapper.unmount()
   })
 
   it('drops duplicate tag names', () => {
@@ -42,5 +45,6 @@ describe('CategoryTagBar', () => {
       '全部',
       '华语',
     ])
+    wrapper.unmount()
   })
 })

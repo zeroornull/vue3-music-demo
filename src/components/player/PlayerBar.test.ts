@@ -48,6 +48,7 @@ function mockAdapter(overrides: Partial<AudioAdapter> = {}) {
 
 describe('PlayerBar', () => {
   beforeEach(() => {
+    localStorage.removeItem('PLAYER-VOLUME')
     setActivePinia(createPinia())
     resetAudioAdapter()
     vi.mocked(getLyric).mockReset()
@@ -461,6 +462,20 @@ describe('PlayerBar', () => {
     await wrapper.get('input[aria-label="音量"]').setValue('25')
     expect(player.volume).toBe(0.25)
     expect(adapter.volume).toBe(0.25)
+    expect(localStorage.getItem('PLAYER-VOLUME')).toBe('25')
+  })
+
+  it('restores the volume slider from storage', async () => {
+    localStorage.setItem('PLAYER-VOLUME', '40')
+    setActivePinia(createPinia())
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.hasPlayableSource = true
+    const wrapper = mountBar()
+    expect(player.volume).toBe(0.4)
+    expect((wrapper.get('input[aria-label="音量"]').element as HTMLInputElement).value).toBe(
+      '40',
+    )
   })
 
   it('toggles mute from the bar and disables volume while muted', async () => {

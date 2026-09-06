@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
 import { createAudioAdapter, type AudioAdapter } from '@/audio/audioAdapter'
+import { readPlayerVolume, savePlayerVolume } from '@/config/playerVolume'
 import type { Song } from '@/models/song'
 
 export type LoopMode = 'one' | 'list' | 'shuffle'
@@ -104,7 +105,7 @@ export const usePlayerStore = defineStore('player', {
     error: null as string | null,
     currentTime: 0,
     duration: 0,
-    volume: 1,
+    volume: readPlayerVolume(),
     muted: false,
     loopMode: 'one' as LoopMode,
     showQueue: false,
@@ -315,8 +316,7 @@ export const usePlayerStore = defineStore('player', {
       this.currentTime = next
     },
     setVolume(value: number) {
-      const raw = Number(value)
-      const next = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0
+      const next = savePlayerVolume(value)
       this.volume = next
       if (injectedAdapter) injectedAdapter.volume = next
     },
@@ -391,9 +391,10 @@ export const usePlayerStore = defineStore('player', {
       injectedAdapter?.pause()
       unbindAudio?.()
       unbindAudio = undefined
+      const volume = readPlayerVolume()
       if (injectedAdapter) {
         injectedAdapter.src = ''
-        injectedAdapter.volume = 1
+        injectedAdapter.volume = volume
         injectedAdapter.muted = false
       }
       this.queue = []
@@ -404,7 +405,7 @@ export const usePlayerStore = defineStore('player', {
       this.error = null
       this.currentTime = 0
       this.duration = 0
-      this.volume = 1
+      this.volume = volume
       this.muted = false
       this.loopMode = 'one'
       this.showQueue = false

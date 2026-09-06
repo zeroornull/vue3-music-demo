@@ -9,6 +9,8 @@ import type { PersonalizedNewSong } from '@/models/newSong'
 import type { PersonalizedPlaylist } from '@/models/personalized'
 import type { TopList } from '@/models/toplist'
 
+let personalizedSerial = 0
+let newSongSerial = 0
 let topListSerial = 0
 
 export const useMusicStore = defineStore('music', () => {
@@ -23,17 +25,21 @@ export const useMusicStore = defineStore('music', () => {
   const topListsLoading = ref(false)
 
   async function loadPersonalized(force = false) {
-    if (personalizedLoading.value || (personalized.value.length && !force)) return
+    if (personalized.value.length && !force && !personalizedError.value) return
 
+    const serial = ++personalizedSerial
     personalizedLoading.value = true
     personalizedError.value = null
     try {
-      personalized.value = await getPersonalizedPlaylists()
+      const next = await getPersonalizedPlaylists()
+      if (serial !== personalizedSerial) return
+      personalized.value = next
     } catch (requestError) {
+      if (serial !== personalizedSerial) return
       personalizedError.value = getErrorMessage(requestError)
       throw requestError
     } finally {
-      personalizedLoading.value = false
+      if (serial === personalizedSerial) personalizedLoading.value = false
     }
   }
 
@@ -62,6 +68,8 @@ export const useMusicStore = defineStore('music', () => {
   }
 
   function reset() {
+    personalizedSerial++
+    newSongSerial++
     topListSerial++
     personalized.value = []
     personalizedError.value = null
@@ -75,17 +83,21 @@ export const useMusicStore = defineStore('music', () => {
   }
 
   async function loadNewSongs(force = false) {
-    if (newSongsLoading.value || (newSongs.value.length && !force)) return
+    if (newSongs.value.length && !force && !newSongsError.value) return
 
+    const serial = ++newSongSerial
     newSongsLoading.value = true
     newSongsError.value = null
     try {
-      newSongs.value = await getPersonalizedNewSongs()
+      const next = await getPersonalizedNewSongs()
+      if (serial !== newSongSerial) return
+      newSongs.value = next
     } catch (requestError) {
+      if (serial !== newSongSerial) return
       newSongsError.value = getErrorMessage(requestError)
       throw requestError
     } finally {
-      newSongsLoading.value = false
+      if (serial === newSongSerial) newSongsLoading.value = false
     }
   }
 

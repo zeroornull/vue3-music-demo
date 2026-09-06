@@ -200,4 +200,26 @@ describe('music store', () => {
     expect(store.newSongsError).toBe('new-song offline')
     expect(store.newSongsLoading).toBe(false)
   })
+
+  it('does not drop a forced new-song refresh while a request is in flight', async () => {
+    let resolveFirst!: (value: typeof newSong[]) => void
+    vi.mocked(getPersonalizedNewSongs)
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveFirst = resolve
+        }),
+      )
+      .mockResolvedValueOnce([newSong])
+    const store = useMusicStore()
+    const pending = store.loadNewSongs()
+
+    await store.loadNewSongs(true)
+    resolveFirst([])
+    await pending
+
+    expect(getPersonalizedNewSongs).toHaveBeenCalledTimes(2)
+    expect(store.newSongs).toEqual([newSong])
+    expect(store.newSongsError).toBeNull()
+    expect(store.newSongsLoading).toBe(false)
+  })
 })

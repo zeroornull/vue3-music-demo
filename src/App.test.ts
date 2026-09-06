@@ -519,7 +519,7 @@ describe('App host gate', () => {
     player.isPlaying = true
     player.currentTime = 12
     player.duration = 180
-    player.volume = 0.4
+    player.setVolume(0.4)
     player.muted = true
     player.showQueue = true
     player.relatedSongs = [{ id: 302, name: '潮汐回声', artists: [] }]
@@ -540,8 +540,9 @@ describe('App host gate', () => {
     expect(player.isPlaying).toBe(false)
     expect(player.currentTime).toBe(0)
     expect(player.duration).toBe(0)
-    expect(player.volume).toBe(1)
-    expect(adapter.volume).toBe(1)
+    expect(player.volume).toBe(0.4)
+    expect(adapter.volume).toBe(0.4)
+    expect(localStorage.getItem('PLAYER-VOLUME')).toBe('40')
     expect(player.muted).toBe(false)
     expect(adapter.muted).toBe(false)
     expect(player.showQueue).toBe(false)
