@@ -264,6 +264,33 @@ describe('artist store', () => {
     expect(getArtistList).toHaveBeenCalledTimes(calls)
   })
 
+  it('applies hall filters in one request', async () => {
+    const next = {
+      id: 405,
+      img1v1Url: 'https://images.example.com/a.jpg',
+      name: 'A 组',
+    }
+    vi.mocked(getArtistList).mockResolvedValue({ more: false, artists: [next] })
+    const store = useArtistStore()
+    await store.applyHallFilters({ area: 7, type: 1, initial: 'a' })
+
+    expect(store.area).toBe(7)
+    expect(store.type).toBe(1)
+    expect(store.initial).toBe('a')
+    expect(store.artists).toEqual([next])
+    expect(getArtistList).toHaveBeenCalledTimes(1)
+    expect(getArtistList).toHaveBeenCalledWith({
+      area: 7,
+      initial: 'a',
+      limit: ARTIST_LIST_PAGE_SIZE,
+      offset: 0,
+      type: 1,
+    })
+
+    await store.applyHallFilters({ area: 7, type: 1, initial: 'a' })
+    expect(getArtistList).toHaveBeenCalledTimes(1)
+  })
+
   it('drops an in-flight hall page when the type changes', async () => {
     const pendingList = deferred<{
       more: boolean

@@ -402,6 +402,26 @@ export const useArtistStore = defineStore('artist', () => {
     return replaceHallFilter()
   }
 
+  async function applyHallFilters(next: {
+    area: number
+    type: number
+    initial: string
+  }) {
+    if (
+      next.area === area.value &&
+      next.type === type.value &&
+      next.initial === initial.value &&
+      artists.value.length &&
+      !artistsError.value
+    ) {
+      return
+    }
+    area.value = next.area
+    type.value = next.type
+    initial.value = next.initial
+    return replaceHallFilter()
+  }
+
   return {
     load,
     loadMore,
@@ -415,6 +435,7 @@ export const useArtistStore = defineStore('artist', () => {
     setArea,
     setType,
     setInitial,
+    applyHallFilters,
     resetDetail,
     reset,
     artist,
