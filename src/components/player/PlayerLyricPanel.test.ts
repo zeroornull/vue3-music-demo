@@ -141,6 +141,9 @@ describe('PlayerLyricPanel', () => {
     const wrapper = mountPanel()
     await wrapper.vm.$nextTick()
     expect(bodyEl('[data-testid="player-lyric-empty"]').textContent).toContain('暂无歌词')
+    expect(bodyEl('[data-testid="player-lyric"]').hasAttribute('data-above-player')).toBe(
+      true,
+    )
     wrapper.unmount()
   })
 })

@@ -72,6 +72,7 @@ onUnmounted(() => {
         aria-modal="true"
         aria-labelledby="player-lyric-title"
         data-testid="player-lyric"
+        data-above-player
       >
         <header class="lyric-header">
           <h2 id="player-lyric-title">歌词</h2>
@@ -172,7 +173,7 @@ onUnmounted(() => {
 .lyric-panel {
   position: absolute;
   top: 0;
-  bottom: 0;
+  bottom: var(--player-bar-height, 84px);
   left: 0;
   display: flex;
   width: min(320px, 100%);
