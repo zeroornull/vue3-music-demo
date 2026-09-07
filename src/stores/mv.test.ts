@@ -1,9 +1,13 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getMvComments } from '@/api/comment'
 import { getMvDetail, getMvUrl, getSimiMvs } from '@/api/mv'
 import { useMvStore } from '@/stores/mv'
 
+vi.mock('@/api/comment', () => ({
+  getMvComments: vi.fn(),
+}))
 vi.mock('@/api/mv', () => ({
   getMvDetail: vi.fn(),
   getMvUrl: vi.fn(),
@@ -35,6 +39,12 @@ const playback = {
   url: 'https://media.example.com/mv.mp4',
 }
 
+const comment = {
+  commentId: 1,
+  content: '走过林间。',
+  nickname: '林间电台',
+}
+
 async function settle() {
   await Promise.resolve()
   await Promise.resolve()
@@ -56,6 +66,8 @@ describe('mv store', () => {
     vi.mocked(getMvDetail).mockRejectedValue(new Error('no detail'))
     vi.mocked(getSimiMvs).mockReset()
     vi.mocked(getSimiMvs).mockRejectedValue(new Error('no simi'))
+    vi.mocked(getMvComments).mockReset()
+    vi.mocked(getMvComments).mockRejectedValue(new Error('no comments'))
   })
 
   it('loads an MV URL and caches the same id', async () => {
@@ -281,13 +293,17 @@ describe('mv store', () => {
   it('reset drops cached playback', async () => {
     vi.mocked(getMvUrl).mockResolvedValue(playback)
     vi.mocked(getMvDetail).mockResolvedValue(detail)
+    vi.mocked(getMvComments).mockResolvedValue([comment])
     const store = useMvStore()
     await store.load(701)
+    await settle()
+    expect(store.comments).toEqual([comment])
     store.reset()
 
     expect(store.playback).toBeNull()
     expect(store.detail).toBeNull()
     expect(store.relatedMvs).toBeNull()
+    expect(store.comments).toBeNull()
     expect(store.loadedId).toBeNull()
     expect(store.error).toBeNull()
   })
@@ -297,6 +313,90 @@ describe('mv store', () => {
 
     await expect(store.load(0)).rejects.toThrow('缺少有效的 MV ID')
     expect(getMvUrl).not.toHaveBeenCalled()
+    expect(getMvComments).not.toHaveBeenCalled()
     expect(store.error).toBe('缺少有效的 MV ID')
+  })
+
+  it('loads comments with the URL and does not refetch on cache', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvComments).mockResolvedValue([comment])
+    const store = useMvStore()
+
+    await store.load(701)
+    await settle()
+    await store.load(701)
+
+    expect(store.comments).toEqual([comment])
+    expect(getMvUrl).toHaveBeenCalledTimes(1)
+    expect(getMvComments).toHaveBeenCalledTimes(1)
+    expect(getMvComments).toHaveBeenCalledWith(701)
+  })
+
+  it('treats an empty comment list as loaded and does not retry', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvComments).mockResolvedValue([])
+    const store = useMvStore()
+
+    await store.load(701)
+    await settle()
+    await store.load(701)
+    await settle()
+
+    expect(store.comments).toEqual([])
+    expect(getMvComments).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps playback when comments fail', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvComments).mockRejectedValue(new Error('comments offline'))
+    const store = useMvStore()
+
+    await store.load(701)
+    await settle()
+
+    expect(store.playback).toEqual(playback)
+    expect(store.comments).toBeNull()
+    expect(store.error).toBeNull()
+  })
+
+  it('retries comments on a cached URL when the first comment request failed', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvComments)
+      .mockRejectedValueOnce(new Error('comments offline'))
+      .mockResolvedValueOnce([comment])
+    const store = useMvStore()
+
+    await store.load(701)
+    await settle()
+    expect(store.comments).toBeNull()
+
+    await store.load(701)
+    await settle()
+
+    expect(getMvUrl).toHaveBeenCalledTimes(1)
+    expect(getMvComments).toHaveBeenCalledTimes(2)
+    expect(store.comments).toEqual([comment])
+  })
+
+  it('does not keep stale comments after the MV id changes', async () => {
+    const first = deferred<typeof comment[]>()
+    const nextPlayback = { id: 702, url: 'https://media.example.com/next.mp4' }
+    const nextComment = { ...comment, commentId: 9, content: '下一支留言' }
+    vi.mocked(getMvUrl)
+      .mockResolvedValueOnce(playback)
+      .mockResolvedValueOnce(nextPlayback)
+    vi.mocked(getMvComments)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce([nextComment])
+    const store = useMvStore()
+
+    await store.load(701)
+    await store.load(702)
+    await settle()
+    first.resolve([comment])
+    await settle()
+
+    expect(store.playback?.id).toBe(702)
+    expect(store.comments).toEqual([nextComment])
   })
 })

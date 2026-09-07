@@ -6,6 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getMvComments } from '@/api/comment'
 import { getMvDetail, getMvUrl, getSimiMvs } from '@/api/mv'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -13,6 +14,9 @@ import { useMvStore } from '@/stores/mv'
 import { useVideoStore } from '@/stores/video'
 import MvView from '@/views/MvView.vue'
 
+vi.mock('@/api/comment', () => ({
+  getMvComments: vi.fn(),
+}))
 vi.mock('@/api/mv', () => ({
   getMvDetail: vi.fn(),
   getMvUrl: vi.fn(),
@@ -92,6 +96,8 @@ describe('MvView', () => {
     vi.mocked(getMvDetail).mockRejectedValue(new Error('no detail'))
     vi.mocked(getSimiMvs).mockReset()
     vi.mocked(getSimiMvs).mockRejectedValue(new Error('no simi'))
+    vi.mocked(getMvComments).mockReset()
+    vi.mocked(getMvComments).mockRejectedValue(new Error('no comments'))
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -350,6 +356,38 @@ describe('MvView', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="related-mvs"]').exists()).toBe(false)
+  })
+
+  it('renders comments without blocking playback or linking the author', async () => {
+    vi.mocked(getMvComments).mockResolvedValue([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ])
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="mv-player"]').attributes('src')).toBe(
+      playback.url,
+    )
+    const comments = wrapper.get('[data-testid="mv-comments"]')
+    expect(comments.text()).toContain('走过林间。')
+    expect(comments.text()).toContain('林间电台')
+    expect(comments.find('a').exists()).toBe(false)
+  })
+
+  it('shows an empty comments state when the list is empty', async () => {
+    vi.mocked(getMvComments).mockResolvedValue([])
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="mv-comments"]').text()).toContain('暂无评论')
+  })
+
+  it('hides comments when the request fails', async () => {
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="mv-comments"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="mv-player"]').exists()).toBe(true)
   })
 
   it('resets cached playback when the route id is removed', async () => {

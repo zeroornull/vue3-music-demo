@@ -14,7 +14,7 @@ const route = useRoute()
 const mvStore = useMvStore()
 const playerStore = usePlayerStore()
 const videoStore = useVideoStore()
-const { playback, detail, relatedMvs, loading, error } = storeToRefs(mvStore)
+const { playback, detail, relatedMvs, comments, loading, error } = storeToRefs(mvStore)
 const { mvs, privateContents } = storeToRefs(videoStore)
 
 const mvId = computed(() => {
@@ -146,6 +146,21 @@ watch(
       <p v-if="error" class="notice error-notice" role="alert">{{ error }}</p>
       <MvPlayer :src="playback.url" :poster="related?.picUrl" :title="title" />
       <section
+        v-if="comments !== null"
+        class="mv-comments"
+        data-testid="mv-comments"
+        aria-labelledby="mv-comments-title"
+      >
+        <h2 id="mv-comments-title">评论</h2>
+        <p v-if="!comments.length" class="comments-empty">暂无评论</p>
+        <ul v-else class="comment-list">
+          <li v-for="item in comments" :key="item.commentId">
+            <strong>{{ item.nickname }}</strong>
+            <p>{{ item.content }}</p>
+          </li>
+        </ul>
+      </section>
+      <section
         v-if="relatedMvs?.length"
         class="related-mvs"
         data-testid="related-mvs"
@@ -223,13 +238,45 @@ h1 {
   outline-offset: 2px;
 }
 
+.mv-comments,
 .related-mvs {
   margin-top: 36px;
 }
 
+.mv-comments h2,
 .related-mvs h2 {
   margin: 0 0 16px;
   font-size: 1.05rem;
+}
+
+.comments-empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.comment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment-list li {
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.comment-list li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.comment-list strong {
+  display: block;
+  font-size: 0.88rem;
+}
+
+.comment-list p {
+  margin: 6px 0 0;
 }
 
 .related-grid {

@@ -2,7 +2,9 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
+import { getMvComments } from '@/api/comment'
 import { getMvDetail, getMvUrl, getSimiMvs } from '@/api/mv'
+import type { MediaComment } from '@/models/comment'
 import type { MvDetail, MvUrl, SimiMv } from '@/models/mv'
 
 let requestSerial = 0
@@ -11,6 +13,7 @@ export const useMvStore = defineStore('mv', () => {
   const playback = ref<MvUrl | null>(null)
   const detail = ref<MvDetail | null>(null)
   const relatedMvs = ref<SimiMv[] | null>(null)
+  const comments = ref<MediaComment[] | null>(null)
   const error = ref<string | null>(null)
   const loading = ref(false)
   const loadedId = ref<number | null>(null)
@@ -20,6 +23,7 @@ export const useMvStore = defineStore('mv', () => {
     playback.value = null
     detail.value = null
     relatedMvs.value = null
+    comments.value = null
     loadedId.value = null
     error.value = null
     loading.value = false
@@ -35,6 +39,7 @@ export const useMvStore = defineStore('mv', () => {
     if (!force && loadedId.value === id && playback.value && !error.value) {
       if (!detail.value) requestDetail(id, requestSerial)
       if (relatedMvs.value === null) requestRelated(id, requestSerial)
+      if (comments.value === null) requestComments(id, requestSerial)
       return true
     }
 
@@ -43,6 +48,7 @@ export const useMvStore = defineStore('mv', () => {
       playback.value = null
       detail.value = null
       relatedMvs.value = null
+      comments.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -54,6 +60,7 @@ export const useMvStore = defineStore('mv', () => {
       loadedId.value = id
       requestDetail(id, serial)
       requestRelated(id, serial)
+      requestComments(id, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -76,6 +83,16 @@ export const useMvStore = defineStore('mv', () => {
       })
   }
 
+  function requestComments(id: number, serial: number) {
+    void Promise.resolve(getMvComments(id))
+      .then((list) => {
+        if (serial !== requestSerial) return
+        if (loadedId.value !== id) return
+        comments.value = list
+      })
+      .catch(() => undefined)
+  }
+
   function requestRelated(id: number, serial: number) {
     void getSimiMvs(id)
       .then((list) => {
@@ -88,5 +105,5 @@ export const useMvStore = defineStore('mv', () => {
       })
   }
 
-  return { load, reset, playback, detail, relatedMvs, error, loading, loadedId }
+  return { load, reset, playback, detail, relatedMvs, comments, error, loading, loadedId }
 })

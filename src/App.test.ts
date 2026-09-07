@@ -445,6 +445,7 @@ describe('App host gate', () => {
     const mvStore = useMvStore()
     mvStore.playback = { id: 701, url: 'https://media.example.com/mv.mp4' }
     mvStore.loadedId = 701
+    mvStore.comments = [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }]
     mountApp()
 
     useHostStore().clearHost()
@@ -452,6 +453,7 @@ describe('App host gate', () => {
 
     expect(mvStore.playback).toBeNull()
     expect(mvStore.loadedId).toBeNull()
+    expect(mvStore.comments).toBeNull()
   })
 
   it('clears video playback cache when the host gate closes', async () => {

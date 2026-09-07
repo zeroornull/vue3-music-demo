@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { COMMENT_LIMIT, getPlaylistComments } from '@/api/comment'
+import { COMMENT_LIMIT, getMvComments, getPlaylistComments } from '@/api/comment'
 
 const client = (response: unknown) => {
   const get = vi.fn(async <T>(_path: string, _params?: unknown) => response as T)
@@ -91,5 +91,41 @@ describe('Playlist comment API', () => {
         }).client,
       ),
     ).resolves.toEqual([{ commentId: 8, content: '无名留言', nickname: '匿名' }])
+  })
+})
+
+describe('MV comment API', () => {
+  it('unwraps /comment/mv and keeps hot comments first', async () => {
+    const request = client({
+      comments: [
+        {
+          commentId: 2,
+          content: '现场很好',
+          user: { nickname: '海岸信号' },
+        },
+      ],
+      hotComments: [
+        {
+          commentId: 1,
+          content: '走过林间。',
+          user: { nickname: '林间电台' },
+        },
+      ],
+    })
+
+    await expect(getMvComments(701, request.client)).resolves.toEqual([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+      { commentId: 2, content: '现场很好', nickname: '海岸信号' },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/comment/mv', {
+      id: 701,
+      limit: COMMENT_LIMIT,
+    })
+  })
+
+  it('rejects a missing comments array', async () => {
+    await expect(
+      getMvComments(701, client({ comments: null }).client),
+    ).rejects.toThrow('MV 评论响应格式不正确')
   })
 })

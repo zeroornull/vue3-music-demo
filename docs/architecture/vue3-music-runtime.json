@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Vue3 Music 运行时架构",
+    "locale": "zh-CN",
+    "output": "vue3-music-runtime.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/zeroornull/vue3-music-demo.git",
+      "revision": "926dd94deeff5975d2c83783e1350ce9a84347a3"
+    },
+    "views": [
+      {
+        "id": "play-path",
+        "label": "点播主路径",
+        "focus": [
+          "browser",
+          "host-gate",
+          "app-shell",
+          "router-views",
+          "pinia-stores",
+          "http-client",
+          "ncm-api"
+        ],
+        "note": "从打开应用到 Player.play()，再经 GET /song/url 拿到可播放地址。"
+      },
+      {
+        "id": "trust-boundary",
+        "label": "信任边界",
+        "focus": ["host-gate", "http-client", "ncm-api", "media-cdn"],
+        "note": "Cookie 发往用户填写的 API Host；媒体 URL 来自该 API 的 JSON 响应。"
+      }
+    ]
+  },
+  "layout": {
+    "mode": "grid",
+    "origin": [28, 52],
+    "cols": 6,
+    "gapX": 108,
+    "gapY": 92,
+    "cellW": 128,
+    "cellH": 62
+  },
+  "components": [
+    {
+      "id": "browser",
+      "type": "external",
+      "label": "浏览器用户",
+      "sublabel": "本机标签页",
+      "row": 0,
+      "col": 0
+    },
+    {
+      "id": "host-gate",
+      "type": "security",
+      "label": "Host 门禁",
+      "sublabel": "BASE_URL",
+      "tag": "探测 /banner",
+      "row": 0,
+      "col": 1,
+      "sources": [
+        { "path": "src/App.vue", "line": 41, "label": "isConfigured" },
+        { "path": "src/config/apiHost.ts", "line": 11, "label": "normalizeApiHost" },
+        { "path": "src/api/host.ts", "line": 8, "label": "probeApiHost" }
+      ]
+    },
+    {
+      "id": "app-shell",
+      "type": "frontend",
+      "label": "Vue 应用壳",
+      "sublabel": "App · AppShell",
+      "brand": "vue",
+      "row": 0,
+      "col": 2,
+      "sources": [
+        { "path": "src/main.ts", "line": 7, "label": "createApp" },
+        { "path": "src/App.vue", "line": 61, "label": "AppShell" },
+        { "path": "src/components/layout/AppShell.vue", "line": 27, "label": "导航壳" }
+      ]
+    },
+    {
+      "id": "router-views",
+      "type": "frontend",
+      "label": "推荐页",
+      "sublabel": "#/discover",
+      "tag": "主路径",
+      "row": 0,
+      "col": 3,
+      "sources": [
+        { "path": "src/router/index.ts", "line": 21, "label": "discover" },
+        { "path": "src/views/DiscoverView.vue", "line": 75, "label": "selectNewSong" }
+      ]
+    },
+    {
+      "id": "pinia-stores",
+      "type": "frontend",
+      "label": "Pinia 状态",
+      "sublabel": "player + 内容",
+      "row": 0,
+      "col": 4,
+      "sources": [
+        { "path": "src/stores/player.ts", "line": 125, "label": "play()" },
+        { "path": "src/stores/host.ts", "line": 7, "label": "host store" }
+      ]
+    },
+    {
+      "id": "http-client",
+      "type": "frontend",
+      "label": "Axios 客户端",
+      "sublabel": "withCredentials",
+      "tag": "出站",
+      "row": 0,
+      "col": 5,
+      "sources": [
+        { "path": "src/api/http.ts", "line": 30, "label": "createHttpClient" },
+        { "path": "src/api/song.ts", "line": 17, "label": "getSongUrl" }
+      ]
+    },
+    {
+      "id": "ncm-api",
+      "type": "external",
+      "label": "云音乐 API",
+      "sublabel": "NeteaseCloudMusicApi",
+      "tag": "外部 API",
+      "row": 1,
+      "col": 5
+    },
+    {
+      "id": "audio-adapter",
+      "type": "frontend",
+      "label": "AudioAdapter",
+      "sublabel": "HTMLAudioElement",
+      "row": 1,
+      "col": 4,
+      "sources": [
+        { "path": "src/audio/audioAdapter.ts", "line": 28, "label": "createAudioAdapter" },
+        { "path": "src/stores/player.ts", "line": 163, "label": "audio.src" }
+      ]
+    },
+    {
+      "id": "media-cdn",
+      "type": "cloud",
+      "label": "媒体 CDN",
+      "sublabel": "歌曲 / 视频 URL",
+      "tag": "外部源",
+      "row": 2,
+      "col": 4
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "浏览器同源 SPA",
+      "wraps": ["host-gate", "app-shell", "router-views", "pinia-stores", "audio-adapter"],
+      "pad": 18
+    },
+    {
+      "kind": "region",
+      "label": "用户配置的 API Host",
+      "wraps": ["ncm-api"],
+      "pad": 16
+    },
+    {
+      "kind": "region",
+      "label": "第三方媒体源",
+      "wraps": ["media-cdn"],
+      "pad": 16
+    }
+  ],
+  "connections": [
+    {
+      "id": "browser-to-host",
+      "from": "browser",
+      "to": "host-gate",
+      "label": "打开应用",
+      "variant": "emphasis"
+    },
+    {
+      "id": "host-to-shell",
+      "from": "host-gate",
+      "to": "app-shell",
+      "label": "已配置",
+      "variant": "emphasis"
+    },
+    {
+      "id": "shell-to-views",
+      "from": "app-shell",
+      "to": "router-views",
+      "label": "hash 路由",
+      "variant": "emphasis"
+    },
+    {
+      "id": "views-to-pinia",
+      "from": "router-views",
+      "to": "pinia-stores",
+      "label": "play()",
+      "variant": "emphasis"
+    },
+    {
+      "id": "pinia-to-http",
+      "from": "pinia-stores",
+      "to": "http-client",
+      "label": "/song/url",
+      "variant": "emphasis"
+    },
+    {
+      "id": "http-to-api",
+      "from": "http-client",
+      "to": "ncm-api",
+      "label": "Cookie XHR",
+      "variant": "security",
+      "labelDy": 24
+    },
+    {
+      "id": "pinia-to-audio",
+      "from": "pinia-stores",
+      "to": "audio-adapter",
+      "label": "audio.src",
+      "variant": "dashed",
+      "labelDy": 24
+    },
+    {
+      "id": "audio-to-media",
+      "from": "audio-adapter",
+      "to": "media-cdn",
+      "label": "GET 媒体",
+      "variant": "dashed",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "主路径",
+      "items": [
+        "根路由重定向到 #/discover；推荐歌曲调用 player.play()",
+        "Player store 请求 GET /song/url，把返回的 url 赋给 AudioAdapter",
+        "HTMLAudioElement 再向媒体 CDN 拉流；Axios 是浏览器内出站客户端，故放在同源框外"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "信任边界",
+      "items": [
+        "Host 只接受无用户名的 HTTP/HTTPS 根地址，保存前用 5s 超时探测 GET /banner",
+        "Axios withCredentials: true，Cookie 会发到用户填写的 Host",
+        "媒体地址来自 API JSON，由 audio/video 跨域加载，不另走 Axios"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "图外说明",
+      "items": [
+        "歌单、MV、视频、搜索等同走 Pinia → Axios → API，不另画连线",
+        "MV/视频用原生 <video>；歌词与 PlayerBar 属于播放器 UI",
+        "localStorage 保存 BASE_URL、THEME、PLAYER-VOLUME；legacy/ 不在运行时路径上"
+      ]
+    }
+  ]
+}

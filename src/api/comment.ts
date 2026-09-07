@@ -28,16 +28,12 @@ function readComment(value: unknown): MediaComment | null {
   }
 }
 
-export async function getPlaylistComments(
-  id: number,
-  client: Pick<HttpClient, 'get'> = http,
-): Promise<MediaComment[]> {
-  const response = await client.get<{
-    comments?: unknown
-    hotComments?: unknown
-  }>('/comment/playlist', { id, limit: COMMENT_LIMIT })
+function mergeComments(
+  response: { comments?: unknown; hotComments?: unknown },
+  errorMessage: string,
+): MediaComment[] {
   if (!Array.isArray(response.comments)) {
-    throw new Error('歌单评论响应格式不正确')
+    throw new Error(errorMessage)
   }
   const hot = Array.isArray(response.hotComments) ? response.hotComments : []
   const seen = new Set<number>()
@@ -50,4 +46,26 @@ export async function getPlaylistComments(
     if (list.length >= COMMENT_LIMIT) break
   }
   return list
+}
+
+export async function getPlaylistComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  const response = await client.get<{
+    comments?: unknown
+    hotComments?: unknown
+  }>('/comment/playlist', { id, limit: COMMENT_LIMIT })
+  return mergeComments(response, '歌单评论响应格式不正确')
+}
+
+export async function getMvComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  const response = await client.get<{
+    comments?: unknown
+    hotComments?: unknown
+  }>('/comment/mv', { id, limit: COMMENT_LIMIT })
+  return mergeComments(response, 'MV 评论响应格式不正确')
 }
