@@ -8,6 +8,7 @@ import {
   getCloudSearchPlaylists,
   getCloudSearchRadios,
   getCloudSearchSongs,
+  getCloudSearchVideos,
   getSearchHotDetail,
   getSearchSuggest,
 } from '@/api/search'
@@ -23,6 +24,7 @@ vi.mock('@/api/search', async (importOriginal) => {
     getCloudSearchPlaylists: vi.fn(),
     getCloudSearchRadios: vi.fn(),
     getCloudSearchSongs: vi.fn(),
+    getCloudSearchVideos: vi.fn(),
     getSearchHotDetail: vi.fn(),
     getSearchSuggest: vi.fn(),
   }
@@ -71,6 +73,12 @@ const radio = {
   picUrl: 'https://images.example.com/radio.jpg',
 }
 
+const video = {
+  cover: 'https://images.example.com/clip.jpg',
+  name: '夜航现场',
+  vid: 'VID001',
+}
+
 const suggest = {
   albums: [album],
   artists: [artist],
@@ -78,13 +86,7 @@ const suggest = {
   playlists: [playlist],
   radios: [radio],
   songs: [song],
-  videos: [
-    {
-      cover: 'https://images.example.com/clip.jpg',
-      name: '夜航现场',
-      vid: 'VID001',
-    },
-  ],
+  videos: [video],
 }
 
 function deferred<T>() {
@@ -127,6 +129,11 @@ describe('search store', () => {
       more: false,
       radios: [radio],
     })
+    vi.mocked(getCloudSearchVideos).mockReset()
+    vi.mocked(getCloudSearchVideos).mockResolvedValue({
+      more: false,
+      videos: [video],
+    })
   })
 
   it('loads hot search once and treats a failed page as a cache miss', async () => {
@@ -144,7 +151,7 @@ describe('search store', () => {
     expect(getSearchHotDetail).toHaveBeenCalledTimes(2)
   })
 
-  it('searches songs, playlists, artists, albums, mvs and radios once per keyword', async () => {
+  it('searches songs, playlists, artists, albums, mvs, radios and videos once per keyword', async () => {
     vi.mocked(getSearchHotDetail).mockResolvedValue([hot])
     vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: true, songs: [song] })
@@ -168,6 +175,10 @@ describe('search store', () => {
       more: true,
       radios: [{ ...radio, id: 899, name: '云搜电台' }],
     })
+    vi.mocked(getCloudSearchVideos).mockResolvedValue({
+      more: true,
+      videos: [{ ...video, vid: 'VID099', name: '云搜视频' }],
+    })
     const store = useSearchStore()
     await store.loadHots()
 
@@ -182,7 +193,7 @@ describe('search store', () => {
     expect(store.albums).toEqual([{ ...album, id: 599, name: '云搜专辑' }])
     expect(store.mvs).toEqual([{ ...mv, id: 799, name: '云搜 MV' }])
     expect(store.radios).toEqual([{ ...radio, id: 899, name: '云搜电台' }])
-    expect(store.videos).toEqual(suggest.videos)
+    expect(store.videos).toEqual([{ ...video, vid: 'VID099', name: '云搜视频' }])
     expect(store.hots).toEqual([hot])
     expect(getSearchSuggest).toHaveBeenCalledTimes(1)
     expect(getCloudSearchSongs).toHaveBeenCalledTimes(1)
@@ -202,6 +213,9 @@ describe('search store', () => {
     expect(getCloudSearchRadios).toHaveBeenCalledTimes(1)
     expect(getCloudSearchRadios).toHaveBeenCalledWith('深夜', { offset: 0 })
     expect(store.radiosMore).toBe(true)
+    expect(getCloudSearchVideos).toHaveBeenCalledTimes(1)
+    expect(getCloudSearchVideos).toHaveBeenCalledWith('深夜', { offset: 0 })
+    expect(store.videosMore).toBe(true)
   })
 
   it('clears previous hits when a new keyword fails', async () => {
@@ -242,6 +256,7 @@ describe('search store', () => {
     expect(getCloudSearchAlbums).toHaveBeenCalledTimes(1)
     expect(getCloudSearchMvs).toHaveBeenCalledTimes(1)
     expect(getCloudSearchRadios).toHaveBeenCalledTimes(1)
+    expect(getCloudSearchVideos).toHaveBeenCalledTimes(1)
     expect(store.songs).toEqual([])
     expect(store.playlists).toEqual([])
     expect(store.artists).toEqual([])
@@ -285,6 +300,9 @@ describe('search store', () => {
     vi.mocked(getCloudSearchRadios)
       .mockResolvedValueOnce({ more: false, radios: suggest.radios })
       .mockResolvedValueOnce({ more: false, radios: second.radios })
+    vi.mocked(getCloudSearchVideos)
+      .mockResolvedValueOnce({ more: false, videos: suggest.videos })
+      .mockResolvedValueOnce({ more: false, videos: second.videos })
     const store = useSearchStore()
     const first = store.search('深夜')
     const later = store.search('秋日')
@@ -854,5 +872,89 @@ describe('search store', () => {
     expect(getSearchSuggest).toHaveBeenCalledTimes(2)
     expect(store.radios).toEqual([radio])
     expect(store.radiosError).toBeNull()
+  })
+
+  it('appends the next cloudsearch video page and keeps songs', async () => {
+    const nextVideo = { ...video, vid: 'VID002', name: '潮汐现场' }
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getCloudSearchVideos)
+      .mockResolvedValueOnce({ more: true, videos: [video] })
+      .mockResolvedValueOnce({ more: false, videos: [nextVideo] })
+    const store = useSearchStore()
+
+    await store.search('深夜')
+    await store.loadMoreVideos()
+
+    expect(store.videos).toEqual([video, nextVideo])
+    expect(store.videosMore).toBe(false)
+    expect(store.songs).toEqual([song])
+    expect(getCloudSearchVideos).toHaveBeenNthCalledWith(1, '深夜', { offset: 0 })
+    expect(getCloudSearchVideos).toHaveBeenNthCalledWith(2, '深夜', { offset: 1 })
+  })
+
+  it('does not request another video page when more is false', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    const store = useSearchStore()
+    await store.search('深夜')
+    await store.loadMoreVideos()
+    expect(getCloudSearchVideos).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps loaded videos when video load more fails', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getCloudSearchVideos)
+      .mockResolvedValueOnce({ more: true, videos: [video] })
+      .mockRejectedValueOnce(new Error('video more failed'))
+    const store = useSearchStore()
+    await store.search('深夜')
+    await expect(store.loadMoreVideos()).rejects.toThrow('video more failed')
+    expect(store.videos).toEqual([video])
+    expect(store.videosMore).toBe(true)
+    expect(store.videosError).toBe('video more failed')
+    expect(store.songs).toEqual([song])
+    expect(store.songsError).toBeNull()
+  })
+
+  it('does not drop an in-flight radio page when loading more videos', async () => {
+    const nextRadio = { ...radio, id: 802, name: '潮汐电台' }
+    const nextVideo = { ...video, vid: 'VID002', name: '潮汐现场' }
+    const pendingRadios = deferred<{ more: boolean; radios: typeof radio[] }>()
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getCloudSearchRadios)
+      .mockResolvedValueOnce({ more: true, radios: [radio] })
+      .mockReturnValueOnce(pendingRadios.promise)
+    vi.mocked(getCloudSearchVideos)
+      .mockResolvedValueOnce({ more: true, videos: [video] })
+      .mockResolvedValueOnce({ more: false, videos: [nextVideo] })
+    const store = useSearchStore()
+    await store.search('深夜')
+    const radioMore = store.loadMoreRadios()
+    await store.loadMoreVideos()
+    pendingRadios.resolve({ more: false, radios: [nextRadio] })
+    await radioMore
+
+    expect(store.radios).toEqual([radio, nextRadio])
+    expect(store.videos).toEqual([video, nextVideo])
+  })
+
+  it('treats a video load-more error as a cache miss for the same keyword', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getCloudSearchVideos)
+      .mockResolvedValueOnce({ more: true, videos: [video] })
+      .mockRejectedValueOnce(new Error('video more failed'))
+      .mockResolvedValueOnce({ more: false, videos: [video] })
+    const store = useSearchStore()
+    await store.search('深夜')
+    await expect(store.loadMoreVideos()).rejects.toThrow('video more failed')
+    await store.search('深夜')
+    expect(getCloudSearchVideos).toHaveBeenLastCalledWith('深夜', { offset: 0 })
+    expect(getSearchSuggest).toHaveBeenCalledTimes(2)
+    expect(store.videos).toEqual([video])
+    expect(store.videosError).toBeNull()
   })
 })

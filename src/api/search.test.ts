@@ -13,6 +13,8 @@ import {
   SEARCH_CLOUD_RADIO_LIMIT,
   SEARCH_CLOUD_RADIO_TYPE,
   SEARCH_CLOUD_PLAYLIST_LIMIT,
+  SEARCH_CLOUD_VIDEO_LIMIT,
+  SEARCH_CLOUD_VIDEO_TYPE,
   SEARCH_CLOUD_PLAYLIST_TYPE,
   SEARCH_CLOUD_SONG_LIMIT,
   SEARCH_CLOUD_SONG_TYPE,
@@ -27,6 +29,7 @@ import {
   getCloudSearchPlaylists,
   getCloudSearchRadios,
   getCloudSearchSongs,
+  getCloudSearchVideos,
   getSearchHotDetail,
   getSearchSuggest,
 } from '@/api/search'
@@ -929,5 +932,111 @@ describe('Search API', () => {
         client({ result: { djRadios: null } }).client,
       ),
     ).rejects.toThrow('搜索电台响应格式不正确')
+  })
+
+  it('unwraps /cloudsearch videos and uses videoCount for more', async () => {
+    const request = client({
+      result: {
+        videoCount: 40,
+        videos: [
+          {
+            extra: true,
+            vid: 'VID001',
+            title: '夜航现场',
+            coverUrl: 'https://images.example.com/clip.jpg',
+          },
+        ],
+      },
+    })
+
+    await expect(
+      getCloudSearchVideos('深夜', { offset: 0 }, request.client),
+    ).resolves.toEqual({
+      more: true,
+      videos: [
+        {
+          cover: 'https://images.example.com/clip.jpg',
+          name: '夜航现场',
+          vid: 'VID001',
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '深夜',
+      limit: SEARCH_CLOUD_VIDEO_LIMIT,
+      offset: 0,
+      type: SEARCH_CLOUD_VIDEO_TYPE,
+    })
+  })
+
+  it('passes video offset and treats a complete videoCount as done', async () => {
+    const request = client({
+      result: {
+        videoCount: 21,
+        videos: [
+          {
+            vid: 'VID021',
+            name: '最后一条',
+            cover: 'https://images.example.com/v2.jpg',
+          },
+        ],
+      },
+    })
+
+    await expect(
+      getCloudSearchVideos('深夜', { offset: 20 }, request.client),
+    ).resolves.toEqual({
+      more: false,
+      videos: [
+        {
+          cover: 'https://images.example.com/v2.jpg',
+          name: '最后一条',
+          vid: 'VID021',
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '深夜',
+      limit: SEARCH_CLOUD_VIDEO_LIMIT,
+      offset: 20,
+      type: SEARCH_CLOUD_VIDEO_TYPE,
+    })
+  })
+
+  it('falls back to video page size when videoCount is missing', async () => {
+    const videos = Array.from({ length: SEARCH_CLOUD_VIDEO_LIMIT }, (_, index) => ({
+      vid: `VID${String(index + 1).padStart(3, '0')}`,
+      title: `视频 ${index + 1}`,
+      coverUrl: 'x',
+    }))
+    await expect(
+      getCloudSearchVideos(
+        '很多',
+        { offset: 0 },
+        client({ result: { videos } }).client,
+      ),
+    ).resolves.toMatchObject({ more: true, videos: { length: SEARCH_CLOUD_VIDEO_LIMIT } })
+
+    await expect(
+      getCloudSearchVideos(
+        '很少',
+        { offset: 0 },
+        client({
+          result: {
+            videos: [{ vid: 'VID001', title: '一条' }],
+          },
+        }).client,
+      ),
+    ).resolves.toMatchObject({ more: false })
+  })
+
+  it('rejects a missing cloudsearch videos array', async () => {
+    await expect(
+      getCloudSearchVideos(
+        '深夜',
+        { offset: 0 },
+        client({ result: { videos: null } }).client,
+      ),
+    ).rejects.toThrow('搜索视频响应格式不正确')
   })
 })

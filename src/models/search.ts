@@ -81,3 +81,8 @@ export interface SearchRadioPage {
   more: boolean
   radios: SearchRadio[]
 }
+
+export interface SearchVideoPage {
+  more: boolean
+  videos: SearchVideo[]
+}

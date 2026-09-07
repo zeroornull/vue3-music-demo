@@ -45,6 +45,9 @@ const {
   radiosError,
   radiosLoading,
   radiosMore,
+  videosError,
+  videosLoading,
+  videosMore,
 } = storeToRefs(searchStore)
 const { current } = storeToRefs(playerStore)
 const draft = ref('')
@@ -152,6 +155,10 @@ function requestMoreMvs() {
 
 function requestMoreRadios() {
   void searchStore.loadMoreRadios().catch(() => undefined)
+}
+
+function requestMoreVideos() {
+  void searchStore.loadMoreVideos().catch(() => undefined)
 }
 
 function goSearch(word: string) {
@@ -468,6 +475,34 @@ onMounted(() => {
         :hits="videoHits"
         :to-name="Pages.videoDetail"
       />
+      <div
+        v-if="videosError && videos.length"
+        class="state-card error-state"
+        role="alert"
+      >
+        <div>
+          <strong>加载更多失败</strong>
+          <p>{{ videosError }}</p>
+        </div>
+        <button
+          type="button"
+          data-testid="search-videos-more-retry"
+          @click="requestMoreVideos"
+        >
+          重新加载
+        </button>
+      </div>
+      <button
+        v-if="videosMore && videos.length"
+        type="button"
+        data-testid="search-videos-more"
+        aria-label="加载更多视频"
+        :disabled="videosLoading"
+        :aria-busy="videosLoading ? 'true' : undefined"
+        @click="requestMoreVideos"
+      >
+        加载更多
+      </button>
     </div>
 
     <div

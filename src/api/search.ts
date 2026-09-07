@@ -14,6 +14,7 @@ import type {
   SearchSongPage,
   SearchSuggestPage,
   SearchVideo,
+  SearchVideoPage,
 } from '@/models/search'
 import { normalizeSong, type NetworkSong } from '@/models/song'
 
@@ -30,6 +31,8 @@ export const SEARCH_CLOUD_MV_LIMIT = 20
 export const SEARCH_CLOUD_MV_TYPE = 1004
 export const SEARCH_CLOUD_RADIO_LIMIT = 20
 export const SEARCH_CLOUD_RADIO_TYPE = 1009
+export const SEARCH_CLOUD_VIDEO_LIMIT = 20
+export const SEARCH_CLOUD_VIDEO_TYPE = 1014
 export const SEARCH_PLAYLIST_LIMIT = 10
 export const SEARCH_ARTIST_LIMIT = 10
 export const SEARCH_ALBUM_LIMIT = 10
@@ -389,4 +392,31 @@ export async function getCloudSearchRadios(
       ? offset + result.djRadios.length < djRadiosCount
       : result.djRadios.length >= SEARCH_CLOUD_RADIO_LIMIT
   return { more, radios }
+}
+
+export async function getCloudSearchVideos(
+  keywords: string,
+  query: { offset?: number } = {},
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SearchVideoPage> {
+  const offset = query.offset ?? 0
+  const response = await client.get<{ result?: unknown }>('/cloudsearch', {
+    keywords,
+    limit: SEARCH_CLOUD_VIDEO_LIMIT,
+    offset,
+    type: SEARCH_CLOUD_VIDEO_TYPE,
+  })
+  const result = isRecord(response.result) ? response.result : null
+  if (!result || !Array.isArray(result.videos)) {
+    throw new Error('搜索视频响应格式不正确')
+  }
+  const videos = result.videos
+    .map(readVideo)
+    .filter((item): item is SearchVideo => item !== null)
+  const videoCount = result.videoCount
+  const more =
+    typeof videoCount === 'number'
+      ? offset + result.videos.length < videoCount
+      : result.videos.length >= SEARCH_CLOUD_VIDEO_LIMIT
+  return { more, videos }
 }
