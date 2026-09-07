@@ -42,6 +42,9 @@ const {
   mvsError,
   mvsLoading,
   mvsMore,
+  radiosError,
+  radiosLoading,
+  radiosMore,
 } = storeToRefs(searchStore)
 const { current } = storeToRefs(playerStore)
 const draft = ref('')
@@ -145,6 +148,10 @@ function requestMoreAlbums() {
 
 function requestMoreMvs() {
   void searchStore.loadMoreMvs().catch(() => undefined)
+}
+
+function requestMoreRadios() {
+  void searchStore.loadMoreRadios().catch(() => undefined)
 }
 
 function goSearch(word: string) {
@@ -425,6 +432,34 @@ onMounted(() => {
         :hits="radioHits"
         :to-name="Pages.djRadio"
       />
+      <div
+        v-if="radiosError && radios.length"
+        class="state-card error-state"
+        role="alert"
+      >
+        <div>
+          <strong>加载更多失败</strong>
+          <p>{{ radiosError }}</p>
+        </div>
+        <button
+          type="button"
+          data-testid="search-radios-more-retry"
+          @click="requestMoreRadios"
+        >
+          重新加载
+        </button>
+      </div>
+      <button
+        v-if="radiosMore && radios.length"
+        type="button"
+        data-testid="search-radios-more"
+        aria-label="加载更多电台"
+        :disabled="radiosLoading"
+        :aria-busy="radiosLoading ? 'true' : undefined"
+        @click="requestMoreRadios"
+      >
+        加载更多
+      </button>
       <SearchHitList
         v-if="videos.length"
         data-testid="search-videos"

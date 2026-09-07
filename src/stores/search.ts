@@ -7,6 +7,7 @@ import {
   getCloudSearchArtists,
   getCloudSearchMvs,
   getCloudSearchPlaylists,
+  getCloudSearchRadios,
   getCloudSearchSongs,
   getSearchHotDetail,
   getSearchSuggest,
@@ -29,6 +30,7 @@ let playlistMoreSerial = 0
 let artistMoreSerial = 0
 let albumMoreSerial = 0
 let mvMoreSerial = 0
+let radioMoreSerial = 0
 
 export const useSearchStore = defineStore('search', () => {
   const keyword = ref('')
@@ -57,6 +59,9 @@ export const useSearchStore = defineStore('search', () => {
   const mvsError = ref<string | null>(null)
   const mvsLoading = ref(false)
   const mvsMore = ref(false)
+  const radiosError = ref<string | null>(null)
+  const radiosLoading = ref(false)
+  const radiosMore = ref(false)
 
   function clearHits() {
     songs.value = []
@@ -81,6 +86,9 @@ export const useSearchStore = defineStore('search', () => {
     mvsError.value = null
     mvsLoading.value = false
     mvsMore.value = false
+    radiosError.value = null
+    radiosLoading.value = false
+    radiosMore.value = false
   }
 
   function reset() {
@@ -91,6 +99,7 @@ export const useSearchStore = defineStore('search', () => {
     artistMoreSerial++
     albumMoreSerial++
     mvMoreSerial++
+    radioMoreSerial++
     keyword.value = ''
     hots.value = []
     hotsError.value = null
@@ -128,6 +137,7 @@ export const useSearchStore = defineStore('search', () => {
       artistMoreSerial++
       albumMoreSerial++
       mvMoreSerial++
+      radioMoreSerial++
       keyword.value = ''
       clearHits()
       return
@@ -140,7 +150,8 @@ export const useSearchStore = defineStore('search', () => {
       playlistsError.value === null &&
       artistsError.value === null &&
       albumsError.value === null &&
-      mvsError.value === null
+      mvsError.value === null &&
+      radiosError.value === null
     ) {
       return
     }
@@ -151,6 +162,7 @@ export const useSearchStore = defineStore('search', () => {
     ++artistMoreSerial
     ++albumMoreSerial
     ++mvMoreSerial
+    ++radioMoreSerial
     keyword.value = next
     songs.value = []
     playlists.value = []
@@ -172,17 +184,22 @@ export const useSearchStore = defineStore('search', () => {
     mvsMore.value = false
     mvsError.value = null
     mvsLoading.value = false
+    radiosMore.value = false
+    radiosError.value = null
+    radiosLoading.value = false
     songsLoading.value = true
     songsError.value = null
     try {
-      const [page, songPage, playlistPage, artistPage, albumPage, mvPage] = await Promise.all([
-        getSearchSuggest(next),
-        getCloudSearchSongs(next, { offset: 0 }),
-        getCloudSearchPlaylists(next, { offset: 0 }),
-        getCloudSearchArtists(next, { offset: 0 }),
-        getCloudSearchAlbums(next, { offset: 0 }),
-        getCloudSearchMvs(next, { offset: 0 }),
-      ])
+      const [page, songPage, playlistPage, artistPage, albumPage, mvPage, radioPage] =
+        await Promise.all([
+          getSearchSuggest(next),
+          getCloudSearchSongs(next, { offset: 0 }),
+          getCloudSearchPlaylists(next, { offset: 0 }),
+          getCloudSearchArtists(next, { offset: 0 }),
+          getCloudSearchAlbums(next, { offset: 0 }),
+          getCloudSearchMvs(next, { offset: 0 }),
+          getCloudSearchRadios(next, { offset: 0 }),
+        ])
       if (serial !== searchSerial) return
       songs.value = songPage.songs
       songsMore.value = songPage.more
@@ -194,7 +211,8 @@ export const useSearchStore = defineStore('search', () => {
       albumsMore.value = albumPage.more
       mvs.value = mvPage.mvs
       mvsMore.value = mvPage.more
-      radios.value = page.radios
+      radios.value = radioPage.radios
+      radiosMore.value = radioPage.more
       videos.value = page.videos
     } catch (requestError) {
       if (serial !== searchSerial) return
@@ -350,6 +368,37 @@ export const useSearchStore = defineStore('search', () => {
     }
   }
 
+  async function loadMoreRadios() {
+    if (
+      !radiosMore.value ||
+      radiosLoading.value ||
+      !keyword.value ||
+      !radios.value.length
+    ) {
+      return
+    }
+    const serial = ++radioMoreSerial
+    const generation = searchSerial
+    const next = keyword.value
+    const offset = radios.value.length
+    radiosLoading.value = true
+    radiosError.value = null
+    try {
+      const page = await getCloudSearchRadios(next, { offset })
+      if (serial !== radioMoreSerial || generation !== searchSerial) return
+      radios.value = [...radios.value, ...page.radios]
+      radiosMore.value = page.more
+    } catch (requestError) {
+      if (serial !== radioMoreSerial || generation !== searchSerial) return
+      radiosError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === radioMoreSerial && generation === searchSerial) {
+        radiosLoading.value = false
+      }
+    }
+  }
+
   return {
     loadHots,
     search,
@@ -358,6 +407,7 @@ export const useSearchStore = defineStore('search', () => {
     loadMoreArtists,
     loadMoreAlbums,
     loadMoreMvs,
+    loadMoreRadios,
     reset,
     keyword,
     hots,
@@ -385,5 +435,8 @@ export const useSearchStore = defineStore('search', () => {
     mvsError,
     mvsLoading,
     mvsMore,
+    radiosError,
+    radiosLoading,
+    radiosMore,
   }
 })

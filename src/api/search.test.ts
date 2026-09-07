@@ -10,6 +10,8 @@ import {
   SEARCH_CLOUD_ARTIST_TYPE,
   SEARCH_CLOUD_MV_LIMIT,
   SEARCH_CLOUD_MV_TYPE,
+  SEARCH_CLOUD_RADIO_LIMIT,
+  SEARCH_CLOUD_RADIO_TYPE,
   SEARCH_CLOUD_PLAYLIST_LIMIT,
   SEARCH_CLOUD_PLAYLIST_TYPE,
   SEARCH_CLOUD_SONG_LIMIT,
@@ -23,6 +25,7 @@ import {
   getCloudSearchArtists,
   getCloudSearchMvs,
   getCloudSearchPlaylists,
+  getCloudSearchRadios,
   getCloudSearchSongs,
   getSearchHotDetail,
   getSearchSuggest,
@@ -820,5 +823,111 @@ describe('Search API', () => {
         client({ result: { mvs: null } }).client,
       ),
     ).rejects.toThrow('搜索 MV 响应格式不正确')
+  })
+
+  it('unwraps /cloudsearch radios and uses djRadiosCount for more', async () => {
+    const request = client({
+      result: {
+        djRadiosCount: 40,
+        djRadios: [
+          {
+            extra: true,
+            id: 801,
+            name: '夜航电台',
+            picUrl: 'https://images.example.com/radio.jpg',
+          },
+        ],
+      },
+    })
+
+    await expect(
+      getCloudSearchRadios('深夜', { offset: 0 }, request.client),
+    ).resolves.toEqual({
+      more: true,
+      radios: [
+        {
+          id: 801,
+          name: '夜航电台',
+          picUrl: 'https://images.example.com/radio.jpg',
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '深夜',
+      limit: SEARCH_CLOUD_RADIO_LIMIT,
+      offset: 0,
+      type: SEARCH_CLOUD_RADIO_TYPE,
+    })
+  })
+
+  it('passes radio offset and treats a complete djRadiosCount as done', async () => {
+    const request = client({
+      result: {
+        djRadiosCount: 21,
+        djRadios: [
+          {
+            id: 821,
+            name: '最后一台',
+            picUrl: 'https://images.example.com/r2.jpg',
+          },
+        ],
+      },
+    })
+
+    await expect(
+      getCloudSearchRadios('深夜', { offset: 20 }, request.client),
+    ).resolves.toEqual({
+      more: false,
+      radios: [
+        {
+          id: 821,
+          name: '最后一台',
+          picUrl: 'https://images.example.com/r2.jpg',
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '深夜',
+      limit: SEARCH_CLOUD_RADIO_LIMIT,
+      offset: 20,
+      type: SEARCH_CLOUD_RADIO_TYPE,
+    })
+  })
+
+  it('falls back to radio page size when djRadiosCount is missing', async () => {
+    const djRadios = Array.from({ length: SEARCH_CLOUD_RADIO_LIMIT }, (_, index) => ({
+      id: 800 + index,
+      name: `电台 ${index + 1}`,
+      picUrl: 'x',
+    }))
+    await expect(
+      getCloudSearchRadios(
+        '很多',
+        { offset: 0 },
+        client({ result: { djRadios } }).client,
+      ),
+    ).resolves.toMatchObject({ more: true, radios: { length: SEARCH_CLOUD_RADIO_LIMIT } })
+
+    await expect(
+      getCloudSearchRadios(
+        '很少',
+        { offset: 0 },
+        client({
+          result: {
+            djRadios: [{ id: 801, name: '一台' }],
+          },
+        }).client,
+      ),
+    ).resolves.toMatchObject({ more: false })
+  })
+
+  it('rejects a missing cloudsearch djRadios array', async () => {
+    await expect(
+      getCloudSearchRadios(
+        '深夜',
+        { offset: 0 },
+        client({ result: { djRadios: null } }).client,
+      ),
+    ).rejects.toThrow('搜索电台响应格式不正确')
   })
 })

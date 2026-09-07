@@ -11,6 +11,7 @@ import {
   getCloudSearchArtists,
   getCloudSearchMvs,
   getCloudSearchPlaylists,
+  getCloudSearchRadios,
   getCloudSearchSongs,
   getSearchHotDetail,
   getSearchSuggest,
@@ -27,6 +28,7 @@ vi.mock('@/api/search', async (importOriginal) => {
     getCloudSearchArtists: vi.fn(),
     getCloudSearchMvs: vi.fn(),
     getCloudSearchPlaylists: vi.fn(),
+    getCloudSearchRadios: vi.fn(),
     getCloudSearchSongs: vi.fn(),
     getSearchHotDetail: vi.fn(),
     getSearchSuggest: vi.fn(),
@@ -171,6 +173,11 @@ describe('SearchView', () => {
       more: false,
       mvs: suggest.mvs,
     })
+    vi.mocked(getCloudSearchRadios).mockReset()
+    vi.mocked(getCloudSearchRadios).mockResolvedValue({
+      more: false,
+      radios: suggest.radios,
+    })
   })
 
   it('loads hot search and searches from a hot word or the form', async () => {
@@ -249,6 +256,7 @@ describe('SearchView', () => {
     vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
     vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
     vi.mocked(getCloudSearchMvs).mockResolvedValue({ more: false, mvs: [] })
+    vi.mocked(getCloudSearchRadios).mockResolvedValue({ more: false, radios: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -274,6 +282,7 @@ describe('SearchView', () => {
       albums: [{ id: 501, name: '夜航', picUrl: '' }],
     })
     vi.mocked(getCloudSearchMvs).mockResolvedValue({ more: false, mvs: [] })
+    vi.mocked(getCloudSearchRadios).mockResolvedValue({ more: false, radios: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [{ id: 999, name: '建议专辑', picUrl: '' }],
       artists: [],
@@ -298,6 +307,7 @@ describe('SearchView', () => {
     vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
     vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
     vi.mocked(getCloudSearchMvs).mockResolvedValue({ more: false, mvs: [] })
+    vi.mocked(getCloudSearchRadios).mockResolvedValue({ more: false, radios: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [{ id: 501, name: '夜航', picUrl: '' }],
       artists: [],
@@ -322,6 +332,7 @@ describe('SearchView', () => {
       more: false,
       mvs: [{ cover: '', id: 701, name: '晚风来信 · Live' }],
     })
+    vi.mocked(getCloudSearchRadios).mockResolvedValue({ more: false, radios: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -346,6 +357,7 @@ describe('SearchView', () => {
     vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
     vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
     vi.mocked(getCloudSearchMvs).mockResolvedValue({ more: false, mvs: [] })
+    vi.mocked(getCloudSearchRadios).mockResolvedValue({ more: false, radios: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -373,6 +385,35 @@ describe('SearchView', () => {
     vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
     vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
     vi.mocked(getCloudSearchMvs).mockResolvedValue({ more: false, mvs: [] })
+    vi.mocked(getCloudSearchRadios).mockResolvedValue({
+      more: false,
+      radios: [{ id: 801, name: '夜航电台', picUrl: '' }],
+    })
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      albums: [],
+      artists: [],
+      mvs: [],
+      playlists: [],
+      radios: [{ id: 999, name: '建议电台', picUrl: '' }],
+      songs: [],
+      videos: [],
+    })
+    const { wrapper } = await mountView({ q: '夜航' })
+    await flushPromises()
+    expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
+    expect(
+      wrapper.get('[aria-label="打开电台：夜航电台"]').attributes('href'),
+    ).toContain('djRadio?id=801')
+    expect(wrapper.find('[aria-label="打开电台：建议电台"]').exists()).toBe(false)
+  })
+
+  it('shows an empty card when only suggest has radios', async () => {
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
+    vi.mocked(getCloudSearchPlaylists).mockResolvedValue({ more: false, playlists: [] })
+    vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
+    vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
+    vi.mocked(getCloudSearchMvs).mockResolvedValue({ more: false, mvs: [] })
+    vi.mocked(getCloudSearchRadios).mockResolvedValue({ more: false, radios: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -390,10 +431,8 @@ describe('SearchView', () => {
     })
     const { wrapper } = await mountView({ q: '夜航' })
     await flushPromises()
-    expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
-    expect(
-      wrapper.get('[aria-label="打开电台：夜航电台"]').attributes('href'),
-    ).toContain('djRadio?id=801')
+    expect(wrapper.get('[data-testid="search-empty"]').text()).toContain('没有找到结果')
+    expect(wrapper.find('[aria-label="打开电台：夜航电台"]').exists()).toBe(false)
   })
 
   it('keeps video-only hits out of the empty card', async () => {
@@ -402,6 +441,7 @@ describe('SearchView', () => {
     vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
     vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
     vi.mocked(getCloudSearchMvs).mockResolvedValue({ more: false, mvs: [] })
+    vi.mocked(getCloudSearchRadios).mockResolvedValue({ more: false, radios: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -646,6 +686,54 @@ describe('SearchView', () => {
     await wrapper.get('[data-testid="search-mvs-more-retry"]').trigger('click')
     await flushPromises()
     expect(wrapper.find('[aria-label="打开MV：潮汐现场"]').exists()).toBe(true)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
+  it('loads more cloudsearch radios without dropping songs', async () => {
+    vi.mocked(getCloudSearchRadios)
+      .mockResolvedValueOnce({ more: true, radios: suggest.radios })
+      .mockResolvedValueOnce({
+        more: false,
+        radios: [{ id: 802, name: '潮汐电台', picUrl: '' }],
+      })
+    const { wrapper } = await mountView({ q: '深夜' })
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="search-radios"]').text()).toContain('夜航电台')
+    expect(wrapper.find('[aria-label="打开电台：潮汐电台"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="search-radios-more"]').attributes('aria-label')).toBe(
+      '加载更多电台',
+    )
+    await wrapper.get('[data-testid="search-radios-more"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="打开电台：潮汐电台"]').attributes('href')).toContain(
+      'djRadio?id=802',
+    )
+    expect(wrapper.get('[data-testid="search-song-301"]').text()).toBe('晚风来信')
+    expect(wrapper.find('[data-testid="search-radios-more"]').exists()).toBe(false)
+    expect(getCloudSearchRadios).toHaveBeenNthCalledWith(2, '深夜', { offset: 1 })
+  })
+
+  it('keeps radios and songs when radio load more fails', async () => {
+    vi.mocked(getCloudSearchRadios)
+      .mockResolvedValueOnce({ more: true, radios: suggest.radios })
+      .mockRejectedValueOnce(new Error('radio more failed'))
+      .mockResolvedValueOnce({
+        more: false,
+        radios: [{ id: 802, name: '潮汐电台', picUrl: '' }],
+      })
+    const { wrapper } = await mountView({ q: '深夜' })
+    await flushPromises()
+    await wrapper.get('[data-testid="search-radios-more"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('radio more failed')
+    expect(wrapper.get('[data-testid="search-radios"]').text()).toContain('夜航电台')
+    expect(wrapper.get('[data-testid="search-song-301"]').text()).toBe('晚风来信')
+    await wrapper.get('[data-testid="search-radios-more-retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[aria-label="打开电台：潮汐电台"]').exists()).toBe(true)
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 })

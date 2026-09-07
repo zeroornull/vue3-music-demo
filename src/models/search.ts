@@ -76,3 +76,8 @@ export interface SearchMvPage {
   more: boolean
   mvs: SearchMv[]
 }
+
+export interface SearchRadioPage {
+  more: boolean
+  radios: SearchRadio[]
+}

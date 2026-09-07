@@ -10,6 +10,7 @@ import type {
   SearchPlaylist,
   SearchPlaylistPage,
   SearchRadio,
+  SearchRadioPage,
   SearchSongPage,
   SearchSuggestPage,
   SearchVideo,
@@ -27,6 +28,8 @@ export const SEARCH_CLOUD_ALBUM_LIMIT = 20
 export const SEARCH_CLOUD_ALBUM_TYPE = 10
 export const SEARCH_CLOUD_MV_LIMIT = 20
 export const SEARCH_CLOUD_MV_TYPE = 1004
+export const SEARCH_CLOUD_RADIO_LIMIT = 20
+export const SEARCH_CLOUD_RADIO_TYPE = 1009
 export const SEARCH_PLAYLIST_LIMIT = 10
 export const SEARCH_ARTIST_LIMIT = 10
 export const SEARCH_ALBUM_LIMIT = 10
@@ -359,4 +362,31 @@ export async function getCloudSearchMvs(
       ? offset + result.mvs.length < mvCount
       : result.mvs.length >= SEARCH_CLOUD_MV_LIMIT
   return { more, mvs }
+}
+
+export async function getCloudSearchRadios(
+  keywords: string,
+  query: { offset?: number } = {},
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SearchRadioPage> {
+  const offset = query.offset ?? 0
+  const response = await client.get<{ result?: unknown }>('/cloudsearch', {
+    keywords,
+    limit: SEARCH_CLOUD_RADIO_LIMIT,
+    offset,
+    type: SEARCH_CLOUD_RADIO_TYPE,
+  })
+  const result = isRecord(response.result) ? response.result : null
+  if (!result || !Array.isArray(result.djRadios)) {
+    throw new Error('搜索电台响应格式不正确')
+  }
+  const radios = result.djRadios
+    .map(readRadio)
+    .filter((item): item is SearchRadio => item !== null)
+  const djRadiosCount = result.djRadiosCount
+  const more =
+    typeof djRadiosCount === 'number'
+      ? offset + result.djRadios.length < djRadiosCount
+      : result.djRadios.length >= SEARCH_CLOUD_RADIO_LIMIT
+  return { more, radios }
 }
