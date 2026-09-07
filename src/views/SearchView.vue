@@ -33,6 +33,9 @@ const {
   playlistsError,
   playlistsLoading,
   playlistsMore,
+  artistsError,
+  artistsLoading,
+  artistsMore,
 } = storeToRefs(searchStore)
 const { current } = storeToRefs(playerStore)
 const draft = ref('')
@@ -124,6 +127,10 @@ function requestMoreSongs() {
 
 function requestMorePlaylists() {
   void searchStore.loadMorePlaylists().catch(() => undefined)
+}
+
+function requestMoreArtists() {
+  void searchStore.loadMoreArtists().catch(() => undefined)
 }
 
 function goSearch(word: string) {
@@ -296,6 +303,34 @@ onMounted(() => {
         :hits="artistHits"
         :to-name="Pages.artistDetail"
       />
+      <div
+        v-if="artistsError && artists.length"
+        class="state-card error-state"
+        role="alert"
+      >
+        <div>
+          <strong>加载更多失败</strong>
+          <p>{{ artistsError }}</p>
+        </div>
+        <button
+          type="button"
+          data-testid="search-artists-more-retry"
+          @click="requestMoreArtists"
+        >
+          重新加载
+        </button>
+      </div>
+      <button
+        v-if="artistsMore && artists.length"
+        type="button"
+        data-testid="search-artists-more"
+        aria-label="加载更多歌手"
+        :disabled="artistsLoading"
+        :aria-busy="artistsLoading ? 'true' : undefined"
+        @click="requestMoreArtists"
+      >
+        加载更多
+      </button>
       <SearchHitList
         v-if="albums.length"
         data-testid="search-albums"

@@ -2,6 +2,7 @@ import { http, type HttpClient } from '@/api/http'
 import type {
   SearchAlbum,
   SearchArtist,
+  SearchArtistPage,
   SearchHot,
   SearchMv,
   SearchPlaylist,
@@ -18,6 +19,8 @@ export const SEARCH_CLOUD_SONG_LIMIT = 20
 export const SEARCH_CLOUD_SONG_TYPE = 1
 export const SEARCH_CLOUD_PLAYLIST_LIMIT = 20
 export const SEARCH_CLOUD_PLAYLIST_TYPE = 1000
+export const SEARCH_CLOUD_ARTIST_LIMIT = 20
+export const SEARCH_CLOUD_ARTIST_TYPE = 100
 export const SEARCH_PLAYLIST_LIMIT = 10
 export const SEARCH_ARTIST_LIMIT = 10
 export const SEARCH_ALBUM_LIMIT = 10
@@ -269,4 +272,31 @@ export async function getCloudSearchPlaylists(
       ? offset + result.playlists.length < playlistCount
       : result.playlists.length >= SEARCH_CLOUD_PLAYLIST_LIMIT
   return { more, playlists }
+}
+
+export async function getCloudSearchArtists(
+  keywords: string,
+  query: { offset?: number } = {},
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SearchArtistPage> {
+  const offset = query.offset ?? 0
+  const response = await client.get<{ result?: unknown }>('/cloudsearch', {
+    keywords,
+    limit: SEARCH_CLOUD_ARTIST_LIMIT,
+    offset,
+    type: SEARCH_CLOUD_ARTIST_TYPE,
+  })
+  const result = isRecord(response.result) ? response.result : null
+  if (!result || !Array.isArray(result.artists)) {
+    throw new Error('搜索歌手响应格式不正确')
+  }
+  const artists = result.artists
+    .map(readArtist)
+    .filter((item): item is SearchArtist => item !== null)
+  const artistCount = result.artistCount
+  const more =
+    typeof artistCount === 'number'
+      ? offset + result.artists.length < artistCount
+      : result.artists.length >= SEARCH_CLOUD_ARTIST_LIMIT
+  return { more, artists }
 }

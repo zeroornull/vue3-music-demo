@@ -61,3 +61,8 @@ export interface SearchPlaylistPage {
   more: boolean
   playlists: SearchPlaylist[]
 }
+
+export interface SearchArtistPage {
+  more: boolean
+  artists: SearchArtist[]
+}

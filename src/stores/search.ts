@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
 import {
+  getCloudSearchArtists,
   getCloudSearchPlaylists,
   getCloudSearchSongs,
   getSearchHotDetail,
@@ -23,6 +24,7 @@ let hotSerial = 0
 let searchSerial = 0
 let songMoreSerial = 0
 let playlistMoreSerial = 0
+let artistMoreSerial = 0
 
 export const useSearchStore = defineStore('search', () => {
   const keyword = ref('')
@@ -42,6 +44,9 @@ export const useSearchStore = defineStore('search', () => {
   const playlistsError = ref<string | null>(null)
   const playlistsLoading = ref(false)
   const playlistsMore = ref(false)
+  const artistsError = ref<string | null>(null)
+  const artistsLoading = ref(false)
+  const artistsMore = ref(false)
 
   function clearHits() {
     songs.value = []
@@ -57,6 +62,9 @@ export const useSearchStore = defineStore('search', () => {
     playlistsError.value = null
     playlistsLoading.value = false
     playlistsMore.value = false
+    artistsError.value = null
+    artistsLoading.value = false
+    artistsMore.value = false
   }
 
   function reset() {
@@ -64,6 +72,7 @@ export const useSearchStore = defineStore('search', () => {
     searchSerial++
     songMoreSerial++
     playlistMoreSerial++
+    artistMoreSerial++
     keyword.value = ''
     hots.value = []
     hotsError.value = null
@@ -98,6 +107,7 @@ export const useSearchStore = defineStore('search', () => {
       searchSerial++
       songMoreSerial++
       playlistMoreSerial++
+      artistMoreSerial++
       keyword.value = ''
       clearHits()
       return
@@ -107,7 +117,8 @@ export const useSearchStore = defineStore('search', () => {
       !force &&
       keyword.value === next &&
       songsError.value === null &&
-      playlistsError.value === null
+      playlistsError.value === null &&
+      artistsError.value === null
     ) {
       return
     }
@@ -115,6 +126,7 @@ export const useSearchStore = defineStore('search', () => {
     const serial = ++searchSerial
     ++songMoreSerial
     ++playlistMoreSerial
+    ++artistMoreSerial
     keyword.value = next
     songs.value = []
     playlists.value = []
@@ -127,20 +139,25 @@ export const useSearchStore = defineStore('search', () => {
     playlistsMore.value = false
     playlistsError.value = null
     playlistsLoading.value = false
+    artistsMore.value = false
+    artistsError.value = null
+    artistsLoading.value = false
     songsLoading.value = true
     songsError.value = null
     try {
-      const [page, songPage, playlistPage] = await Promise.all([
+      const [page, songPage, playlistPage, artistPage] = await Promise.all([
         getSearchSuggest(next),
         getCloudSearchSongs(next, { offset: 0 }),
         getCloudSearchPlaylists(next, { offset: 0 }),
+        getCloudSearchArtists(next, { offset: 0 }),
       ])
       if (serial !== searchSerial) return
       songs.value = songPage.songs
       songsMore.value = songPage.more
       playlists.value = playlistPage.playlists
       playlistsMore.value = playlistPage.more
-      artists.value = page.artists
+      artists.value = artistPage.artists
+      artistsMore.value = artistPage.more
       albums.value = page.albums
       mvs.value = page.mvs
       radios.value = page.radios
@@ -211,11 +228,43 @@ export const useSearchStore = defineStore('search', () => {
     }
   }
 
+  async function loadMoreArtists() {
+    if (
+      !artistsMore.value ||
+      artistsLoading.value ||
+      !keyword.value ||
+      !artists.value.length
+    ) {
+      return
+    }
+    const serial = ++artistMoreSerial
+    const generation = searchSerial
+    const next = keyword.value
+    const offset = artists.value.length
+    artistsLoading.value = true
+    artistsError.value = null
+    try {
+      const page = await getCloudSearchArtists(next, { offset })
+      if (serial !== artistMoreSerial || generation !== searchSerial) return
+      artists.value = [...artists.value, ...page.artists]
+      artistsMore.value = page.more
+    } catch (requestError) {
+      if (serial !== artistMoreSerial || generation !== searchSerial) return
+      artistsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === artistMoreSerial && generation === searchSerial) {
+        artistsLoading.value = false
+      }
+    }
+  }
+
   return {
     loadHots,
     search,
     loadMoreSongs,
     loadMorePlaylists,
+    loadMoreArtists,
     reset,
     keyword,
     hots,
@@ -234,5 +283,8 @@ export const useSearchStore = defineStore('search', () => {
     playlistsError,
     playlistsLoading,
     playlistsMore,
+    artistsError,
+    artistsLoading,
+    artistsMore,
   }
 })
