@@ -69,3 +69,14 @@ export async function getMvComments(
   }>('/comment/mv', { id, limit: COMMENT_LIMIT })
   return mergeComments(response, 'MV 评论响应格式不正确')
 }
+
+export async function getVideoComments(
+  id: string,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  const response = await client.get<{
+    comments?: unknown
+    hotComments?: unknown
+  }>('/comment/video', { id, limit: COMMENT_LIMIT })
+  return mergeComments(response, '视频评论响应格式不正确')
+}

@@ -1,9 +1,13 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getVideoComments } from '@/api/comment'
 import { getRelatedVideos, getVideoDetail, getVideoUrl } from '@/api/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
 
+vi.mock('@/api/comment', () => ({
+  getVideoComments: vi.fn(),
+}))
 vi.mock('@/api/video', () => ({
   getRelatedVideos: vi.fn(),
   getVideoDetail: vi.fn(),
@@ -44,6 +48,12 @@ const playback = {
   url: 'https://media.example.com/clip.mp4',
 }
 
+const comment = {
+  commentId: 1,
+  content: '走过林间。',
+  nickname: '林间电台',
+}
+
 describe('video detail store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -53,6 +63,8 @@ describe('video detail store', () => {
     vi.mocked(getVideoDetail).mockRejectedValue(new Error('no detail'))
     vi.mocked(getRelatedVideos).mockReset()
     vi.mocked(getRelatedVideos).mockRejectedValue(new Error('no related'))
+    vi.mocked(getVideoComments).mockReset()
+    vi.mocked(getVideoComments).mockRejectedValue(new Error('no comments'))
   })
 
   it('loads and caches a video url', async () => {
@@ -75,6 +87,7 @@ describe('video detail store', () => {
     expect(store.playback).toBeNull()
     expect(store.detail).toBeNull()
     expect(store.relatedVideos).toBeNull()
+    expect(store.comments).toBeNull()
   })
 
   it('loads video detail with the URL and ignores a detail failure', async () => {
@@ -189,5 +202,132 @@ describe('video detail store', () => {
 
     expect(store.playback?.id).toBe('VID002')
     expect(store.relatedVideos).toEqual([nextRelated])
+  })
+
+  it('loads comments with the URL and does not refetch on cache', async () => {
+    vi.mocked(getVideoComments).mockResolvedValue([comment])
+    const store = useVideoDetailStore()
+
+    await store.load('VID001')
+    await settle()
+    await store.load('VID001')
+
+    expect(store.comments).toEqual([comment])
+    expect(getVideoUrl).toHaveBeenCalledTimes(1)
+    expect(getVideoComments).toHaveBeenCalledTimes(1)
+    expect(getVideoComments).toHaveBeenCalledWith('VID001')
+  })
+
+  it('treats an empty comment list as loaded and does not retry', async () => {
+    vi.mocked(getVideoComments).mockResolvedValue([])
+    const store = useVideoDetailStore()
+
+    await store.load('VID001')
+    await settle()
+    await store.load('VID001')
+    await settle()
+
+    expect(store.comments).toEqual([])
+    expect(getVideoComments).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps playback when comments fail', async () => {
+    vi.mocked(getVideoComments).mockRejectedValue(new Error('comments offline'))
+    const store = useVideoDetailStore()
+
+    await store.load('VID001')
+    await settle()
+
+    expect(store.playback).toEqual(playback)
+    expect(store.comments).toBeNull()
+    expect(store.error).toBeNull()
+  })
+
+  it('retries comments on a cached URL when the first comment request failed', async () => {
+    vi.mocked(getVideoComments)
+      .mockRejectedValueOnce(new Error('comments offline'))
+      .mockResolvedValueOnce([comment])
+    const store = useVideoDetailStore()
+
+    await store.load('VID001')
+    await settle()
+    expect(store.comments).toBeNull()
+
+    await store.load('VID001')
+    await settle()
+
+    expect(getVideoUrl).toHaveBeenCalledTimes(1)
+    expect(getVideoComments).toHaveBeenCalledTimes(2)
+    expect(store.comments).toEqual([comment])
+  })
+
+  it('does not keep stale comments after the video id changes', async () => {
+    const first = deferred<typeof comment[]>()
+    const nextPlayback = { id: 'VID002', url: 'https://media.example.com/next.mp4' }
+    const nextComment = { ...comment, commentId: 9, content: '下一支留言' }
+    vi.mocked(getVideoUrl)
+      .mockResolvedValueOnce(playback)
+      .mockResolvedValueOnce(nextPlayback)
+    vi.mocked(getVideoComments)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce([nextComment])
+    const store = useVideoDetailStore()
+
+    await store.load('VID001')
+    await store.load('VID002')
+    await settle()
+    first.resolve([comment])
+    await settle()
+
+    expect(store.playback?.id).toBe('VID002')
+    expect(store.comments).toEqual([nextComment])
+  })
+
+  it('clears comments immediately when the video id changes', async () => {
+    const nextPlayback = { id: 'VID002', url: 'https://media.example.com/next.mp4' }
+    const nextComment = { ...comment, commentId: 9, content: '下一支留言' }
+    const nextUrl = deferred<typeof nextPlayback>()
+    vi.mocked(getVideoComments).mockResolvedValueOnce([comment])
+    const store = useVideoDetailStore()
+
+    await store.load('VID001')
+    await settle()
+    expect(store.comments).toEqual([comment])
+
+    vi.mocked(getVideoUrl).mockReturnValueOnce(nextUrl.promise)
+    vi.mocked(getVideoComments).mockResolvedValueOnce([nextComment])
+    const inflight = store.load('VID002')
+    expect(store.comments).toBeNull()
+    nextUrl.resolve(nextPlayback)
+    await inflight
+    await settle()
+    expect(store.comments).toEqual([nextComment])
+  })
+
+  it('refetches comments on a forced reload even when a list is cached', async () => {
+    vi.mocked(getVideoComments).mockResolvedValue([comment])
+    const store = useVideoDetailStore()
+
+    await store.load('VID001')
+    await settle()
+    expect(getVideoComments).toHaveBeenCalledTimes(1)
+
+    await store.load('VID001', true)
+    await settle()
+
+    expect(getVideoUrl).toHaveBeenCalledTimes(2)
+    expect(getVideoComments).toHaveBeenCalledTimes(2)
+    expect(store.comments).toEqual([comment])
+  })
+
+  it('reset drops cached comments', async () => {
+    vi.mocked(getVideoComments).mockResolvedValue([comment])
+    const store = useVideoDetailStore()
+    await store.load('VID001')
+    await settle()
+    expect(store.comments).toEqual([comment])
+    store.reset()
+    expect(store.comments).toBeNull()
+    expect(store.playback).toBeNull()
   })
 })

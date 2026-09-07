@@ -464,6 +464,9 @@ describe('App host gate', () => {
       url: 'https://media.example.com/clip.mp4',
     }
     videoDetailStore.loadedId = 'VID001'
+    videoDetailStore.comments = [
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ]
     mountApp()
 
     useHostStore().clearHost()
@@ -471,6 +474,7 @@ describe('App host gate', () => {
 
     expect(videoDetailStore.playback).toBeNull()
     expect(videoDetailStore.loadedId).toBeNull()
+    expect(videoDetailStore.comments).toBeNull()
   })
 
   it('clears playlist cache when the host gate closes', async () => {

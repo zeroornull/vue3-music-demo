@@ -1,8 +1,10 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
+import { getVideoComments } from '@/api/comment'
 import { getErrorMessage } from '@/api/http'
 import { getRelatedVideos, getVideoDetail, getVideoUrl } from '@/api/video'
+import type { MediaComment } from '@/models/comment'
 import type { HallVideo, VideoDetail, VideoUrl } from '@/models/video'
 
 let requestSerial = 0
@@ -11,6 +13,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
   const playback = ref<VideoUrl | null>(null)
   const detail = ref<VideoDetail | null>(null)
   const relatedVideos = ref<HallVideo[] | null>(null)
+  const comments = ref<MediaComment[] | null>(null)
   const error = ref<string | null>(null)
   const loading = ref(false)
   const loadedId = ref<string | null>(null)
@@ -20,6 +23,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
     playback.value = null
     detail.value = null
     relatedVideos.value = null
+    comments.value = null
     loadedId.value = null
     error.value = null
     loading.value = false
@@ -36,6 +40,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
     if (!force && loadedId.value === vid && playback.value && !error.value) {
       if (!detail.value) requestDetail(vid, requestSerial)
       if (relatedVideos.value === null) requestRelated(vid, requestSerial)
+      if (comments.value === null) requestComments(vid, requestSerial)
       return true
     }
 
@@ -44,6 +49,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
       playback.value = null
       detail.value = null
       relatedVideos.value = null
+      comments.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -55,6 +61,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
       loadedId.value = vid
       requestDetail(vid, serial)
       requestRelated(vid, serial)
+      requestComments(vid, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -89,12 +96,23 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
       })
   }
 
+  function requestComments(id: string, serial: number) {
+    void Promise.resolve(getVideoComments(id))
+      .then((list) => {
+        if (serial !== requestSerial) return
+        if (loadedId.value !== id) return
+        comments.value = list
+      })
+      .catch(() => undefined)
+  }
+
   return {
     load,
     reset,
     playback,
     detail,
     relatedVideos,
+    comments,
     error,
     loading,
     loadedId,

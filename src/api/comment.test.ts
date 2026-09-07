@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { COMMENT_LIMIT, getMvComments, getPlaylistComments } from '@/api/comment'
+import {
+  COMMENT_LIMIT,
+  getMvComments,
+  getPlaylistComments,
+  getVideoComments,
+} from '@/api/comment'
 
 const client = (response: unknown) => {
   const get = vi.fn(async <T>(_path: string, _params?: unknown) => response as T)
@@ -127,5 +132,41 @@ describe('MV comment API', () => {
     await expect(
       getMvComments(701, client({ comments: null }).client),
     ).rejects.toThrow('MV 评论响应格式不正确')
+  })
+})
+
+describe('Video comment API', () => {
+  it('unwraps /comment/video and keeps hot comments first', async () => {
+    const request = client({
+      comments: [
+        {
+          commentId: 2,
+          content: '现场很好',
+          user: { nickname: '海岸信号' },
+        },
+      ],
+      hotComments: [
+        {
+          commentId: 1,
+          content: '走过林间。',
+          user: { nickname: '林间电台' },
+        },
+      ],
+    })
+
+    await expect(getVideoComments('VID001', request.client)).resolves.toEqual([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+      { commentId: 2, content: '现场很好', nickname: '海岸信号' },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/comment/video', {
+      id: 'VID001',
+      limit: COMMENT_LIMIT,
+    })
+  })
+
+  it('rejects a missing comments array', async () => {
+    await expect(
+      getVideoComments('VID001', client({ comments: null }).client),
+    ).rejects.toThrow('视频评论响应格式不正确')
   })
 })
