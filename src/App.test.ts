@@ -372,6 +372,7 @@ describe('App host gate', () => {
     searchStore.songsMore = true
     searchStore.playlistsMore = true
     searchStore.artistsMore = true
+    searchStore.albumsMore = true
     mountApp()
 
     useHostStore().clearHost()
@@ -388,6 +389,7 @@ describe('App host gate', () => {
     expect(searchStore.songsMore).toBe(false)
     expect(searchStore.playlistsMore).toBe(false)
     expect(searchStore.artistsMore).toBe(false)
+    expect(searchStore.albumsMore).toBe(false)
     expect(searchStore.keyword).toBe('')
   })
 

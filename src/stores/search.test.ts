@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  getCloudSearchAlbums,
   getCloudSearchArtists,
   getCloudSearchPlaylists,
   getCloudSearchSongs,
@@ -14,6 +15,7 @@ vi.mock('@/api/search', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/search')>()
   return {
     ...actual,
+    getCloudSearchAlbums: vi.fn(),
     getCloudSearchArtists: vi.fn(),
     getCloudSearchPlaylists: vi.fn(),
     getCloudSearchSongs: vi.fn(),
@@ -106,6 +108,11 @@ describe('search store', () => {
       more: false,
       artists: [artist],
     })
+    vi.mocked(getCloudSearchAlbums).mockReset()
+    vi.mocked(getCloudSearchAlbums).mockResolvedValue({
+      more: false,
+      albums: [album],
+    })
   })
 
   it('loads hot search once and treats a failed page as a cache miss', async () => {
@@ -135,6 +142,10 @@ describe('search store', () => {
       more: true,
       artists: [{ ...artist, id: 499, name: '云搜歌手' }],
     })
+    vi.mocked(getCloudSearchAlbums).mockResolvedValue({
+      more: true,
+      albums: [{ ...album, id: 599, name: '云搜专辑' }],
+    })
     const store = useSearchStore()
     await store.loadHots()
 
@@ -146,7 +157,7 @@ describe('search store', () => {
     expect(store.songsMore).toBe(true)
     expect(store.playlists).toEqual([{ ...playlist, id: 199, name: '云搜歌单' }])
     expect(store.artists).toEqual([{ ...artist, id: 499, name: '云搜歌手' }])
-    expect(store.albums).toEqual([album])
+    expect(store.albums).toEqual([{ ...album, id: 599, name: '云搜专辑' }])
     expect(store.mvs).toEqual([mv])
     expect(store.radios).toEqual([radio])
     expect(store.videos).toEqual(suggest.videos)
@@ -160,6 +171,9 @@ describe('search store', () => {
     expect(getCloudSearchArtists).toHaveBeenCalledTimes(1)
     expect(getCloudSearchArtists).toHaveBeenCalledWith('深夜', { offset: 0 })
     expect(store.artistsMore).toBe(true)
+    expect(getCloudSearchAlbums).toHaveBeenCalledTimes(1)
+    expect(getCloudSearchAlbums).toHaveBeenCalledWith('深夜', { offset: 0 })
+    expect(store.albumsMore).toBe(true)
   })
 
   it('clears previous hits when a new keyword fails', async () => {
@@ -197,6 +211,7 @@ describe('search store', () => {
     expect(getCloudSearchSongs).toHaveBeenCalledTimes(1)
     expect(getCloudSearchPlaylists).toHaveBeenCalledTimes(1)
     expect(getCloudSearchArtists).toHaveBeenCalledTimes(1)
+    expect(getCloudSearchAlbums).toHaveBeenCalledTimes(1)
     expect(store.songs).toEqual([])
     expect(store.playlists).toEqual([])
     expect(store.artists).toEqual([])
@@ -231,6 +246,9 @@ describe('search store', () => {
     vi.mocked(getCloudSearchArtists)
       .mockResolvedValueOnce({ more: false, artists: suggest.artists })
       .mockResolvedValueOnce({ more: false, artists: second.artists })
+    vi.mocked(getCloudSearchAlbums)
+      .mockResolvedValueOnce({ more: false, albums: suggest.albums })
+      .mockResolvedValueOnce({ more: false, albums: second.albums })
     const store = useSearchStore()
     const first = store.search('深夜')
     const later = store.search('秋日')
@@ -548,5 +566,89 @@ describe('search store', () => {
     expect(getSearchSuggest).toHaveBeenCalledTimes(2)
     expect(store.artists).toEqual([artist])
     expect(store.artistsError).toBeNull()
+  })
+
+  it('appends the next cloudsearch album page and keeps songs', async () => {
+    const nextAlbum = { ...album, id: 502, name: '潮汐' }
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getCloudSearchAlbums)
+      .mockResolvedValueOnce({ more: true, albums: [album] })
+      .mockResolvedValueOnce({ more: false, albums: [nextAlbum] })
+    const store = useSearchStore()
+
+    await store.search('深夜')
+    await store.loadMoreAlbums()
+
+    expect(store.albums).toEqual([album, nextAlbum])
+    expect(store.albumsMore).toBe(false)
+    expect(store.songs).toEqual([song])
+    expect(getCloudSearchAlbums).toHaveBeenNthCalledWith(1, '深夜', { offset: 0 })
+    expect(getCloudSearchAlbums).toHaveBeenNthCalledWith(2, '深夜', { offset: 1 })
+  })
+
+  it('does not request another album page when more is false', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    const store = useSearchStore()
+    await store.search('深夜')
+    await store.loadMoreAlbums()
+    expect(getCloudSearchAlbums).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps loaded albums when album load more fails', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getCloudSearchAlbums)
+      .mockResolvedValueOnce({ more: true, albums: [album] })
+      .mockRejectedValueOnce(new Error('album more failed'))
+    const store = useSearchStore()
+    await store.search('深夜')
+    await expect(store.loadMoreAlbums()).rejects.toThrow('album more failed')
+    expect(store.albums).toEqual([album])
+    expect(store.albumsMore).toBe(true)
+    expect(store.albumsError).toBe('album more failed')
+    expect(store.songs).toEqual([song])
+    expect(store.songsError).toBeNull()
+  })
+
+  it('does not drop an in-flight artist page when loading more albums', async () => {
+    const nextArtist = { ...artist, id: 402, name: '海岸信号' }
+    const nextAlbum = { ...album, id: 502, name: '潮汐' }
+    const pendingArtists = deferred<{ more: boolean; artists: typeof artist[] }>()
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getCloudSearchArtists)
+      .mockResolvedValueOnce({ more: true, artists: [artist] })
+      .mockReturnValueOnce(pendingArtists.promise)
+    vi.mocked(getCloudSearchAlbums)
+      .mockResolvedValueOnce({ more: true, albums: [album] })
+      .mockResolvedValueOnce({ more: false, albums: [nextAlbum] })
+    const store = useSearchStore()
+    await store.search('深夜')
+    const artistMore = store.loadMoreArtists()
+    await store.loadMoreAlbums()
+    pendingArtists.resolve({ more: false, artists: [nextArtist] })
+    await artistMore
+
+    expect(store.artists).toEqual([artist, nextArtist])
+    expect(store.albums).toEqual([album, nextAlbum])
+  })
+
+  it('treats an album load-more error as a cache miss for the same keyword', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getCloudSearchAlbums)
+      .mockResolvedValueOnce({ more: true, albums: [album] })
+      .mockRejectedValueOnce(new Error('album more failed'))
+      .mockResolvedValueOnce({ more: false, albums: [album] })
+    const store = useSearchStore()
+    await store.search('深夜')
+    await expect(store.loadMoreAlbums()).rejects.toThrow('album more failed')
+    await store.search('深夜')
+    expect(getCloudSearchAlbums).toHaveBeenLastCalledWith('深夜', { offset: 0 })
+    expect(getSearchSuggest).toHaveBeenCalledTimes(2)
+    expect(store.albums).toEqual([album])
+    expect(store.albumsError).toBeNull()
   })
 })

@@ -7,6 +7,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  getCloudSearchAlbums,
   getCloudSearchArtists,
   getCloudSearchPlaylists,
   getCloudSearchSongs,
@@ -21,6 +22,7 @@ vi.mock('@/api/search', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/search')>()
   return {
     ...actual,
+    getCloudSearchAlbums: vi.fn(),
     getCloudSearchArtists: vi.fn(),
     getCloudSearchPlaylists: vi.fn(),
     getCloudSearchSongs: vi.fn(),
@@ -157,6 +159,11 @@ describe('SearchView', () => {
       more: false,
       artists: suggest.artists,
     })
+    vi.mocked(getCloudSearchAlbums).mockReset()
+    vi.mocked(getCloudSearchAlbums).mockResolvedValue({
+      more: false,
+      albums: suggest.albums,
+    })
   })
 
   it('loads hot search and searches from a hot word or the form', async () => {
@@ -233,6 +240,7 @@ describe('SearchView', () => {
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getCloudSearchPlaylists).mockResolvedValue({ more: false, playlists: [] })
     vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
+    vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -253,8 +261,12 @@ describe('SearchView', () => {
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getCloudSearchPlaylists).mockResolvedValue({ more: false, playlists: [] })
     vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
-    vi.mocked(getSearchSuggest).mockResolvedValue({
+    vi.mocked(getCloudSearchAlbums).mockResolvedValue({
+      more: false,
       albums: [{ id: 501, name: '夜航', picUrl: '' }],
+    })
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      albums: [{ id: 999, name: '建议专辑', picUrl: '' }],
       artists: [],
       mvs: [],
       playlists: [],
@@ -268,12 +280,34 @@ describe('SearchView', () => {
     expect(wrapper.get('[aria-label="打开专辑：夜航"]').attributes('href')).toContain(
       'album?id=501',
     )
+    expect(wrapper.find('[aria-label="打开专辑：建议专辑"]').exists()).toBe(false)
+  })
+
+  it('shows an empty card when only suggest has albums', async () => {
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
+    vi.mocked(getCloudSearchPlaylists).mockResolvedValue({ more: false, playlists: [] })
+    vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
+    vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
+    vi.mocked(getSearchSuggest).mockResolvedValue({
+      albums: [{ id: 501, name: '夜航', picUrl: '' }],
+      artists: [],
+      mvs: [],
+      playlists: [],
+      radios: [],
+      songs: [],
+      videos: [],
+    })
+    const { wrapper } = await mountView({ q: '夜航' })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="search-empty"]').text()).toContain('没有找到结果')
+    expect(wrapper.find('[aria-label="打开专辑：夜航"]').exists()).toBe(false)
   })
 
   it('keeps MV-only hits out of the empty card', async () => {
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getCloudSearchPlaylists).mockResolvedValue({ more: false, playlists: [] })
     vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
+    vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -301,6 +335,7 @@ describe('SearchView', () => {
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getCloudSearchPlaylists).mockResolvedValue({ more: false, playlists: [] })
     vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
+    vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -328,6 +363,7 @@ describe('SearchView', () => {
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getCloudSearchPlaylists).mockResolvedValue({ more: false, playlists: [] })
     vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
+    vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -476,6 +512,54 @@ describe('SearchView', () => {
     await wrapper.get('[data-testid="search-artists-more-retry"]').trigger('click')
     await flushPromises()
     expect(wrapper.find('[aria-label="打开歌手：海岸信号"]').exists()).toBe(true)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
+  it('loads more cloudsearch albums without dropping songs', async () => {
+    vi.mocked(getCloudSearchAlbums)
+      .mockResolvedValueOnce({ more: true, albums: suggest.albums })
+      .mockResolvedValueOnce({
+        more: false,
+        albums: [{ id: 502, name: '潮汐', picUrl: '' }],
+      })
+    const { wrapper } = await mountView({ q: '深夜' })
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="search-albums"]').text()).toContain('夜航')
+    expect(wrapper.find('[aria-label="打开专辑：潮汐"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="search-albums-more"]').attributes('aria-label')).toBe(
+      '加载更多专辑',
+    )
+    await wrapper.get('[data-testid="search-albums-more"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="打开专辑：潮汐"]').attributes('href')).toContain(
+      'album?id=502',
+    )
+    expect(wrapper.get('[data-testid="search-song-301"]').text()).toBe('晚风来信')
+    expect(wrapper.find('[data-testid="search-albums-more"]').exists()).toBe(false)
+    expect(getCloudSearchAlbums).toHaveBeenNthCalledWith(2, '深夜', { offset: 1 })
+  })
+
+  it('keeps albums and songs when album load more fails', async () => {
+    vi.mocked(getCloudSearchAlbums)
+      .mockResolvedValueOnce({ more: true, albums: suggest.albums })
+      .mockRejectedValueOnce(new Error('album more failed'))
+      .mockResolvedValueOnce({
+        more: false,
+        albums: [{ id: 502, name: '潮汐', picUrl: '' }],
+      })
+    const { wrapper } = await mountView({ q: '深夜' })
+    await flushPromises()
+    await wrapper.get('[data-testid="search-albums-more"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('album more failed')
+    expect(wrapper.get('[data-testid="search-albums"]').text()).toContain('夜航')
+    expect(wrapper.get('[data-testid="search-song-301"]').text()).toBe('晚风来信')
+    await wrapper.get('[data-testid="search-albums-more-retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[aria-label="打开专辑：潮汐"]').exists()).toBe(true)
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 })

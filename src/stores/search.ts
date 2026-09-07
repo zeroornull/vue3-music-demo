@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
 import {
+  getCloudSearchAlbums,
   getCloudSearchArtists,
   getCloudSearchPlaylists,
   getCloudSearchSongs,
@@ -25,6 +26,7 @@ let searchSerial = 0
 let songMoreSerial = 0
 let playlistMoreSerial = 0
 let artistMoreSerial = 0
+let albumMoreSerial = 0
 
 export const useSearchStore = defineStore('search', () => {
   const keyword = ref('')
@@ -47,6 +49,9 @@ export const useSearchStore = defineStore('search', () => {
   const artistsError = ref<string | null>(null)
   const artistsLoading = ref(false)
   const artistsMore = ref(false)
+  const albumsError = ref<string | null>(null)
+  const albumsLoading = ref(false)
+  const albumsMore = ref(false)
 
   function clearHits() {
     songs.value = []
@@ -65,6 +70,9 @@ export const useSearchStore = defineStore('search', () => {
     artistsError.value = null
     artistsLoading.value = false
     artistsMore.value = false
+    albumsError.value = null
+    albumsLoading.value = false
+    albumsMore.value = false
   }
 
   function reset() {
@@ -73,6 +81,7 @@ export const useSearchStore = defineStore('search', () => {
     songMoreSerial++
     playlistMoreSerial++
     artistMoreSerial++
+    albumMoreSerial++
     keyword.value = ''
     hots.value = []
     hotsError.value = null
@@ -108,6 +117,7 @@ export const useSearchStore = defineStore('search', () => {
       songMoreSerial++
       playlistMoreSerial++
       artistMoreSerial++
+      albumMoreSerial++
       keyword.value = ''
       clearHits()
       return
@@ -118,7 +128,8 @@ export const useSearchStore = defineStore('search', () => {
       keyword.value === next &&
       songsError.value === null &&
       playlistsError.value === null &&
-      artistsError.value === null
+      artistsError.value === null &&
+      albumsError.value === null
     ) {
       return
     }
@@ -127,6 +138,7 @@ export const useSearchStore = defineStore('search', () => {
     ++songMoreSerial
     ++playlistMoreSerial
     ++artistMoreSerial
+    ++albumMoreSerial
     keyword.value = next
     songs.value = []
     playlists.value = []
@@ -142,14 +154,18 @@ export const useSearchStore = defineStore('search', () => {
     artistsMore.value = false
     artistsError.value = null
     artistsLoading.value = false
+    albumsMore.value = false
+    albumsError.value = null
+    albumsLoading.value = false
     songsLoading.value = true
     songsError.value = null
     try {
-      const [page, songPage, playlistPage, artistPage] = await Promise.all([
+      const [page, songPage, playlistPage, artistPage, albumPage] = await Promise.all([
         getSearchSuggest(next),
         getCloudSearchSongs(next, { offset: 0 }),
         getCloudSearchPlaylists(next, { offset: 0 }),
         getCloudSearchArtists(next, { offset: 0 }),
+        getCloudSearchAlbums(next, { offset: 0 }),
       ])
       if (serial !== searchSerial) return
       songs.value = songPage.songs
@@ -158,7 +174,8 @@ export const useSearchStore = defineStore('search', () => {
       playlistsMore.value = playlistPage.more
       artists.value = artistPage.artists
       artistsMore.value = artistPage.more
-      albums.value = page.albums
+      albums.value = albumPage.albums
+      albumsMore.value = albumPage.more
       mvs.value = page.mvs
       radios.value = page.radios
       videos.value = page.videos
@@ -259,12 +276,44 @@ export const useSearchStore = defineStore('search', () => {
     }
   }
 
+  async function loadMoreAlbums() {
+    if (
+      !albumsMore.value ||
+      albumsLoading.value ||
+      !keyword.value ||
+      !albums.value.length
+    ) {
+      return
+    }
+    const serial = ++albumMoreSerial
+    const generation = searchSerial
+    const next = keyword.value
+    const offset = albums.value.length
+    albumsLoading.value = true
+    albumsError.value = null
+    try {
+      const page = await getCloudSearchAlbums(next, { offset })
+      if (serial !== albumMoreSerial || generation !== searchSerial) return
+      albums.value = [...albums.value, ...page.albums]
+      albumsMore.value = page.more
+    } catch (requestError) {
+      if (serial !== albumMoreSerial || generation !== searchSerial) return
+      albumsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === albumMoreSerial && generation === searchSerial) {
+        albumsLoading.value = false
+      }
+    }
+  }
+
   return {
     loadHots,
     search,
     loadMoreSongs,
     loadMorePlaylists,
     loadMoreArtists,
+    loadMoreAlbums,
     reset,
     keyword,
     hots,
@@ -286,5 +335,8 @@ export const useSearchStore = defineStore('search', () => {
     artistsError,
     artistsLoading,
     artistsMore,
+    albumsError,
+    albumsLoading,
+    albumsMore,
   }
 })

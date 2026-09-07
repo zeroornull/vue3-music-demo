@@ -4,6 +4,8 @@ import type { HttpClient } from '@/api/http'
 import {
   SEARCH_ALBUM_LIMIT,
   SEARCH_ARTIST_LIMIT,
+  SEARCH_CLOUD_ALBUM_LIMIT,
+  SEARCH_CLOUD_ALBUM_TYPE,
   SEARCH_CLOUD_ARTIST_LIMIT,
   SEARCH_CLOUD_ARTIST_TYPE,
   SEARCH_CLOUD_PLAYLIST_LIMIT,
@@ -15,6 +17,7 @@ import {
   SEARCH_RADIO_LIMIT,
   SEARCH_SONG_LIMIT,
   SEARCH_VIDEO_LIMIT,
+  getCloudSearchAlbums,
   getCloudSearchArtists,
   getCloudSearchPlaylists,
   getCloudSearchSongs,
@@ -602,5 +605,111 @@ describe('Search API', () => {
         client({ result: { artists: null } }).client,
       ),
     ).rejects.toThrow('搜索歌手响应格式不正确')
+  })
+
+  it('unwraps /cloudsearch albums and uses albumCount for more', async () => {
+    const request = client({
+      result: {
+        albumCount: 40,
+        albums: [
+          {
+            extra: true,
+            id: 501,
+            name: '夜航',
+            blurPicUrl: 'https://images.example.com/album.jpg',
+          },
+        ],
+      },
+    })
+
+    await expect(
+      getCloudSearchAlbums('深夜', { offset: 0 }, request.client),
+    ).resolves.toEqual({
+      more: true,
+      albums: [
+        {
+          id: 501,
+          name: '夜航',
+          picUrl: 'https://images.example.com/album.jpg',
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '深夜',
+      limit: SEARCH_CLOUD_ALBUM_LIMIT,
+      offset: 0,
+      type: SEARCH_CLOUD_ALBUM_TYPE,
+    })
+  })
+
+  it('passes album offset and treats a complete albumCount as done', async () => {
+    const request = client({
+      result: {
+        albumCount: 21,
+        albums: [
+          {
+            id: 521,
+            name: '最后一张',
+            picUrl: 'https://images.example.com/a2.jpg',
+          },
+        ],
+      },
+    })
+
+    await expect(
+      getCloudSearchAlbums('深夜', { offset: 20 }, request.client),
+    ).resolves.toEqual({
+      more: false,
+      albums: [
+        {
+          id: 521,
+          name: '最后一张',
+          picUrl: 'https://images.example.com/a2.jpg',
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '深夜',
+      limit: SEARCH_CLOUD_ALBUM_LIMIT,
+      offset: 20,
+      type: SEARCH_CLOUD_ALBUM_TYPE,
+    })
+  })
+
+  it('falls back to album page size when albumCount is missing', async () => {
+    const albums = Array.from({ length: SEARCH_CLOUD_ALBUM_LIMIT }, (_, index) => ({
+      id: 500 + index,
+      name: `专 ${index + 1}`,
+      picUrl: 'x',
+    }))
+    await expect(
+      getCloudSearchAlbums(
+        '很多',
+        { offset: 0 },
+        client({ result: { albums } }).client,
+      ),
+    ).resolves.toMatchObject({ more: true, albums: { length: SEARCH_CLOUD_ALBUM_LIMIT } })
+
+    await expect(
+      getCloudSearchAlbums(
+        '很少',
+        { offset: 0 },
+        client({
+          result: {
+            albums: [{ id: 501, name: '一张' }],
+          },
+        }).client,
+      ),
+    ).resolves.toMatchObject({ more: false })
+  })
+
+  it('rejects a missing cloudsearch albums array', async () => {
+    await expect(
+      getCloudSearchAlbums(
+        '深夜',
+        { offset: 0 },
+        client({ result: { albums: null } }).client,
+      ),
+    ).rejects.toThrow('搜索专辑响应格式不正确')
   })
 })
