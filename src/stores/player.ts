@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { getPersonalFm } from '@/api/fm'
 import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
 import { createAudioAdapter, type AudioAdapter } from '@/audio/audioAdapter'
 import { readPlayerVolume, savePlayerVolume } from '@/config/playerVolume'
@@ -20,6 +21,7 @@ const LOOP_MODE_NEXT: Record<LoopMode, LoopMode> = {
 
 let injectedAdapter: AudioAdapter | undefined
 let requestSerial = 0
+let fmSerial = 0
 let pauseGeneration = 0
 let unbindAudio: (() => void) | undefined
 
@@ -110,6 +112,7 @@ export const usePlayerStore = defineStore('player', {
     loopMode: 'one' as LoopMode,
     showQueue: false,
     relatedSongs: null as Song[] | null,
+    isFm: false,
   }),
   getters: {
     hasSong: (state) => state.current !== null,
@@ -121,9 +124,19 @@ export const usePlayerStore = defineStore('player', {
       state.queue.length > 1 &&
       Boolean(state.current) &&
       state.queue.some((item) => item.id === state.current?.id),
+    canSkipNext(): boolean {
+      return this.isFm ? this.current !== null : this.canSkip
+    },
+    canSkipPrev(): boolean {
+      return this.isFm ? this.currentIndex > 0 : this.canSkip
+    },
   },
   actions: {
-    async play(songOrId: Song | number) {
+    async play(songOrId: Song | number, options: { fm?: boolean } = {}) {
+      if (!options.fm) {
+        this.isFm = false
+        fmSerial++
+      }
       const serial = ++requestSerial
       let startedAt = pauseGeneration
       unbindAudio?.()
@@ -180,6 +193,7 @@ export const usePlayerStore = defineStore('player', {
       }
     },
     async next(): Promise<boolean> {
+      if (this.isFm) return this.nextFm()
       if (this.loopMode === 'shuffle') {
         if (!this.canSkip) return false
         const song = pickOther(this.queue, this.current?.id)
@@ -194,6 +208,12 @@ export const usePlayerStore = defineStore('player', {
       return this.play(song)
     },
     async prev(): Promise<boolean> {
+      if (this.isFm) {
+        if (this.currentIndex <= 0) return false
+        const song = this.queue[this.currentIndex - 1]
+        if (!song) return false
+        return this.play(song, { fm: true })
+      }
       if (!this.canSkip) return false
       const index = this.currentIndex
       if (index < 0) return false
@@ -202,6 +222,8 @@ export const usePlayerStore = defineStore('player', {
       return this.play(song)
     },
     async playAll(songs: Song[]) {
+      this.isFm = false
+      fmSerial++
       const unique: Song[] = []
       const seen = new Set<number>()
       for (const item of songs) {
@@ -213,6 +235,56 @@ export const usePlayerStore = defineStore('player', {
       if (!first) return false
       this.queue = unique
       return this.play(first)
+    },
+    async startFm(): Promise<boolean> {
+      const serial = ++fmSerial
+      try {
+        const songs = await getPersonalFm()
+        if (serial !== fmSerial) return false
+        const unique: Song[] = []
+        const seen = new Set<number>()
+        for (const item of songs) {
+          if (seen.has(item.id)) continue
+          seen.add(item.id)
+          unique.push(item)
+        }
+        if (!unique.length) throw new Error('暂时没有私人 FM 歌曲')
+        this.queue = unique
+        this.isFm = true
+        return this.play(unique[0]!, { fm: true })
+      } catch (error) {
+        if (serial !== fmSerial) return false
+        this.error =
+          error instanceof Error ? error.message : '私人 FM 暂时不可用，请稍后重试'
+        throw error
+      }
+    },
+    async nextFm(): Promise<boolean> {
+      const index = this.currentIndex
+      const queued = index >= 0 ? this.queue[index + 1] : undefined
+      if (queued) return this.play(queued, { fm: true })
+      const waitingId = this.current?.id
+      const serial = ++fmSerial
+      try {
+        const more = await getPersonalFm()
+        if (serial !== fmSerial) return false
+        const seen = new Set(this.queue.map((item) => item.id))
+        const extra: Song[] = []
+        for (const item of more) {
+          if (seen.has(item.id)) continue
+          seen.add(item.id)
+          extra.push(item)
+        }
+        if (!extra.length) return false
+        this.queue = [...this.queue, ...extra]
+        if (this.current?.id !== waitingId) return true
+        return this.play(extra[0]!, { fm: true })
+      } catch (error) {
+        if (serial !== fmSerial) return false
+        this.error =
+          error instanceof Error ? error.message : '私人 FM 暂时不可用，请稍后重试'
+        throw error
+      }
     },
     toggleLoop() {
       this.loopMode = LOOP_MODE_NEXT[this.loopMode]
@@ -250,6 +322,7 @@ export const usePlayerStore = defineStore('player', {
       }
     },
     async onTrackEnded(): Promise<boolean> {
+      if (this.isFm) return this.nextFm()
       if (this.loopMode === 'one') return this.replay()
       if (this.loopMode === 'shuffle') {
         const song = pickOther(this.queue, this.current?.id)
@@ -364,6 +437,8 @@ export const usePlayerStore = defineStore('player', {
         this.duration = 0
         this.relatedSongs = null
         this.showQueue = false
+        this.isFm = false
+        fmSerial++
         return true
       }
       const remaining = this.queue
@@ -371,7 +446,7 @@ export const usePlayerStore = defineStore('player', {
         this.loopMode === 'shuffle'
           ? pickOther(remaining, undefined) ?? remaining[0]
           : remaining[index] ?? remaining[0]
-      return this.play(nextSong!)
+      return this.play(nextSong!, { fm: this.isFm })
     },
     openQueue() {
       this.showQueue = true
@@ -410,6 +485,8 @@ export const usePlayerStore = defineStore('player', {
       this.loopMode = 'one'
       this.showQueue = false
       this.relatedSongs = null
+      this.isFm = false
+      fmSerial++
     },
   },
 })

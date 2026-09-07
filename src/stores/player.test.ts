@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
+import { getPersonalFm } from '@/api/fm'
 import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
 import type { AudioAdapter } from '@/audio/audioAdapter'
 import {
@@ -9,6 +10,9 @@ import {
   usePlayerStore,
 } from '@/stores/player'
 
+vi.mock('@/api/fm', () => ({
+  getPersonalFm: vi.fn(),
+}))
 vi.mock('@/api/song')
 
 class MemoryStorage implements Storage {
@@ -78,6 +82,8 @@ describe('Player store', () => {
     vi.mocked(getSongDetail).mockImplementation(async (id) => song(id))
     vi.mocked(getSongUrl).mockResolvedValue({ id: 1, url: 'x' })
     vi.mocked(getSimiSongs).mockRejectedValue(new Error('no similar'))
+    vi.mocked(getPersonalFm).mockReset()
+    vi.mocked(getPersonalFm).mockRejectedValue(new Error('no fm'))
   })
 
   afterEach(() => {
@@ -1014,4 +1020,134 @@ describe('Player store', () => {
     expect(play).not.toHaveBeenCalled()
     expect(adapter.src).toBe('')
   })
+
+  it('starts personal FM without wrapping the queue', async () => {
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm).mockResolvedValue([song(301), song(302)])
+    const player = usePlayerStore()
+    await player.play(song(1))
+
+    await expect(player.startFm()).resolves.toBe(true)
+
+    expect(player.isFm).toBe(true)
+    expect(player.queue.map((item) => item.id)).toEqual([301, 302])
+    expect(player.current?.id).toBe(301)
+    expect(getPersonalFm).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps current playback when personal FM fails to load', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    vi.mocked(getPersonalFm).mockRejectedValueOnce(new Error('fm offline'))
+
+    await expect(player.startFm()).rejects.toThrow('fm offline')
+    expect(player.isFm).toBe(false)
+    expect(player.current?.id).toBe(1)
+    expect(player.queue.map((item) => item.id)).toEqual([1])
+    expect(player.error).toBe('fm offline')
+  })
+
+  it('rejects an empty personal FM list without replacing the queue', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    vi.mocked(getPersonalFm).mockResolvedValueOnce([])
+
+    await expect(player.startFm()).rejects.toThrow('暂时没有私人 FM 歌曲')
+    expect(player.isFm).toBe(false)
+    expect(player.current?.id).toBe(1)
+  })
+
+  it('fetches the next FM page when skipping the last song', async () => {
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm)
+      .mockResolvedValueOnce([song(301)])
+      .mockResolvedValueOnce([song(301), song(302)])
+    const player = usePlayerStore()
+    await player.startFm()
+    expect(player.canSkipNext).toBe(true)
+    expect(player.canSkipPrev).toBe(false)
+
+    await expect(player.next()).resolves.toBe(true)
+    expect(player.current?.id).toBe(302)
+    expect(player.queue.map((item) => item.id)).toEqual([301, 302])
+    expect(player.isFm).toBe(true)
+    expect(getPersonalFm).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not wrap or replay when an FM track ends', async () => {
+    const adapter = mockAdapter()
+    setAudioAdapter(adapter)
+    vi.mocked(getPersonalFm)
+      .mockResolvedValueOnce([song(301), song(302)])
+      .mockResolvedValueOnce([song(303)])
+    const player = usePlayerStore()
+    await player.startFm()
+    expect(player.loopMode).toBe('one')
+    adapter.listeners.get('ended')!()
+    await flushPromises()
+
+    expect(player.current?.id).toBe(302)
+    expect(player.isFm).toBe(true)
+
+    adapter.listeners.get('ended')!()
+    await flushPromises()
+    expect(player.current?.id).toBe(303)
+  })
+
+  it('does not steal playback when prev happens during an FM next-page fetch', async () => {
+    const pending = deferred<ReturnType<typeof song>[]>()
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm)
+      .mockResolvedValueOnce([song(301), song(302)])
+      .mockReturnValueOnce(pending.promise)
+    const player = usePlayerStore()
+    await player.startFm()
+    await player.next()
+    expect(player.current?.id).toBe(302)
+    const more = player.next()
+    await player.prev()
+    expect(player.current?.id).toBe(301)
+    pending.resolve([song(303)])
+    await expect(more).resolves.toBe(true)
+    expect(player.current?.id).toBe(301)
+    expect(player.queue.map((item) => item.id)).toEqual([301, 302, 303])
+    expect(player.isFm).toBe(true)
+  })
+
+  it('leaves FM when playing a song that is not in the FM queue', async () => {
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm).mockResolvedValue([song(301)])
+    const player = usePlayerStore()
+    await player.startFm()
+    await player.play(song(9))
+    expect(player.isFm).toBe(false)
+    expect(player.current?.id).toBe(9)
+  })
+
+  it('drops a stale FM fetch after another song starts', async () => {
+    const pending = deferred<ReturnType<typeof song>[]>()
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm).mockReturnValueOnce(pending.promise)
+    const player = usePlayerStore()
+    const inflight = player.startFm()
+    await player.play(song(9))
+    pending.resolve([song(301)])
+    await expect(inflight).resolves.toBe(false)
+    expect(player.isFm).toBe(false)
+    expect(player.current?.id).toBe(9)
+    expect(player.queue.map((item) => item.id)).toEqual([9])
+  })
+
+  it('clears FM mode on reset', async () => {
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm).mockResolvedValue([song(301)])
+    const player = usePlayerStore()
+    await player.startFm()
+    expect(player.isFm).toBe(true)
+    player.clear()
+    expect(player.isFm).toBe(false)
+  })
 })
+

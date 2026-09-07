@@ -531,6 +531,7 @@ describe('App host gate', () => {
     player.muted = true
     player.showQueue = true
     player.relatedSongs = [{ id: 302, name: '潮汐回声', artists: [] }]
+    player.isFm = true
     const lyricStore = useLyricStore()
     lyricStore.showLyric = true
     lyricStore.lines = [{ text: '走过林间。', time: 12 }]
@@ -554,6 +555,7 @@ describe('App host gate', () => {
     expect(player.muted).toBe(false)
     expect(adapter.muted).toBe(false)
     expect(player.showQueue).toBe(false)
+    expect(player.isFm).toBe(false)
     expect(lyricStore.showLyric).toBe(false)
     expect(lyricStore.lines).toEqual([])
     expect(lyricStore.loadedId).toBeNull()

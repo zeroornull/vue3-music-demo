@@ -22,7 +22,8 @@ const {
   duration,
   volume,
   muted,
-  canSkip,
+  canSkipNext,
+  canSkipPrev,
   loopMode,
   queue,
   showQueue,
@@ -238,7 +239,7 @@ onUnmounted(() => {
         <button
           type="button"
           class="skip"
-          :disabled="!canSkip"
+          :disabled="!canSkipPrev"
           aria-label="上一首"
           @click="skipPrev"
         >
@@ -255,7 +256,7 @@ onUnmounted(() => {
         <button
           type="button"
           class="skip"
-          :disabled="!canSkip"
+          :disabled="!canSkipNext"
           aria-label="下一首"
           @click="skipNext"
         >

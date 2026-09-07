@@ -410,6 +410,17 @@ describe('PlayerBar', () => {
     expect(wrapper.get('button[aria-label="下一首"]').attributes('disabled')).toBeDefined()
   })
 
+  it('keeps next enabled on a single-song FM queue', () => {
+    const player = usePlayerStore()
+    player.current = { id: 301, name: '晚风来信', artists: [] }
+    player.queue = [player.current]
+    player.hasPlayableSource = true
+    player.isFm = true
+    const wrapper = mountBar()
+    expect(wrapper.get('button[aria-label="下一首"]').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('button[aria-label="上一首"]').attributes('disabled')).toBeDefined()
+  })
+
   it('skips from the bar when the queue has more than one song', async () => {
     const player = usePlayerStore()
     player.current = { id: 1, name: '晚风', artists: [] }

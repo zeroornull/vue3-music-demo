@@ -39,8 +39,9 @@ vi.mock('@/api/mv', () => ({
 }))
 
 const playSong = vi.fn().mockResolvedValue(true)
+const startFm = vi.fn().mockResolvedValue(true)
 vi.mock('@/stores/player', () => ({
-  usePlayerStore: () => ({ play: playSong, error: null }),
+  usePlayerStore: () => ({ play: playSong, startFm, error: null }),
 }))
 
 const banner: Banner = {
@@ -160,6 +161,8 @@ describe('DiscoverView', () => {
   beforeEach(() => {
     playSong.mockReset()
     playSong.mockResolvedValue(true)
+    startFm.mockReset()
+    startFm.mockResolvedValue(true)
     vi.mocked(getBanners).mockReset()
     vi.mocked(getPersonalizedPlaylists).mockReset()
     vi.mocked(getPersonalizedPlaylists).mockResolvedValue([])
@@ -177,7 +180,7 @@ describe('DiscoverView', () => {
 
     expect(wrapper.get('h1').text()).toBe('推荐')
     expect(wrapper.get('.summary').text()).toBe(
-      '四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转、顶栏视频入口、Host 文案、主题已接入、内容卡片主题、歌曲 MV、队列和新歌 MV、顶栏搜索 MV、歌曲行专辑、播放条封面、新歌卡片专辑、播放条封面进专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、歌曲行歌手、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类、电台页头分类、相似歌曲、视频大厅分类、歌手馆筛选、搜索视频、相似歌曲露出、歌词露出、队列删歌、音量记住、歌单评论、MV 评论、视频评论、搜索分页。',
+      '四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转、顶栏视频入口、Host 文案、主题已接入、内容卡片主题、歌曲 MV、队列和新歌 MV、顶栏搜索 MV、歌曲行专辑、播放条封面、新歌卡片专辑、播放条封面进专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、歌曲行歌手、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类、电台页头分类、相似歌曲、视频大厅分类、歌手馆筛选、搜索视频、相似歌曲露出、歌词露出、队列删歌、音量记住、歌单评论、MV 评论、视频评论、搜索分页、私人 FM。',
     )
     expect(wrapper.find('.next-slices').exists()).toBe(false)
     expect(wrapper.text()).toContain('打开视频大厅')
@@ -399,5 +402,30 @@ describe('DiscoverView', () => {
 
     expect(getPersonalizedMvs).toHaveBeenCalledTimes(2)
     expect(wrapper.get('[data-testid="mv-count"]').text()).toBe('1')
+  })
+
+  it('starts personal FM from the discover page', async () => {
+    vi.mocked(getBanners).mockResolvedValue([])
+    const { wrapper } = await mountView()
+    await flushPromises()
+
+    await wrapper.get('[data-testid="start-fm"]').trigger('click')
+    await flushPromises()
+
+    expect(startFm).toHaveBeenCalledTimes(1)
+    expect(wrapper.get('[role="status"]').text()).toContain('正在收听私人 FM')
+  })
+
+  it('keeps discover content when personal FM fails', async () => {
+    startFm.mockRejectedValueOnce(new Error('fm offline'))
+    vi.mocked(getBanners).mockResolvedValue([banner])
+    const { wrapper } = await mountView()
+    await flushPromises()
+
+    await wrapper.get('[data-testid="start-fm"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="status"]').text()).toContain('fm offline')
+    expect(wrapper.get('[data-testid="banner-count"]').text()).toBe('1')
   })
 })

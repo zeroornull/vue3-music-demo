@@ -100,6 +100,23 @@ function requestMvs(force = false) {
   void videoStore.loadMvs(force).catch(() => undefined)
 }
 
+function startFm() {
+  const serial = ++playSerial
+  notice.value = '正在准备私人 FM。'
+  void playerStore
+    .startFm()
+    .then((started) => {
+      if (serial !== playSerial) return
+      if (started) notice.value = '正在收听私人 FM。'
+    })
+    .catch((error: unknown) => {
+      if (serial !== playSerial) return
+      notice.value =
+        playerStore.error ||
+        (error instanceof Error ? error.message : '私人 FM 暂时不可用，请稍后重试。')
+    })
+}
+
 onMounted(() => {
   requestBanners()
   requestPersonalized()
@@ -114,9 +131,12 @@ onMounted(() => {
       <div>
         <p class="eyebrow">Discover</p>
         <h1>推荐</h1>
-        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转、顶栏视频入口、Host 文案、主题已接入、内容卡片主题、歌曲 MV、队列和新歌 MV、顶栏搜索 MV、歌曲行专辑、播放条封面、新歌卡片专辑、播放条封面进专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、歌曲行歌手、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类、电台页头分类、相似歌曲、视频大厅分类、歌手馆筛选、搜索视频、相似歌曲露出、歌词露出、队列删歌、音量记住、歌单评论、MV 评论、视频评论、搜索分页。</p>
+        <p class="summary">四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转、顶栏视频入口、Host 文案、主题已接入、内容卡片主题、歌曲 MV、队列和新歌 MV、顶栏搜索 MV、歌曲行专辑、播放条封面、新歌卡片专辑、播放条封面进专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、歌曲行歌手、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类、电台页头分类、相似歌曲、视频大厅分类、歌手馆筛选、搜索视频、相似歌曲露出、歌词露出、队列删歌、音量记住、歌单评论、MV 评论、视频评论、搜索分页、私人 FM。</p>
         <p class="hall-link">
           <RouterLink :to="{ name: Pages.video }">打开视频大厅</RouterLink>
+          <button type="button" data-testid="start-fm" @click="startFm">
+            开始私人 FM
+          </button>
         </p>
       </div>
     </header>
@@ -206,16 +226,30 @@ onMounted(() => {
 }
 
 .hall-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
   margin: 12px 0 0;
 }
 
-.hall-link a {
+.hall-link a,
+.hall-link button {
   color: var(--color-accent);
   font-weight: 720;
   text-decoration: none;
 }
 
-.hall-link a:focus-visible {
+.hall-link button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.hall-link a:focus-visible,
+.hall-link button:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
