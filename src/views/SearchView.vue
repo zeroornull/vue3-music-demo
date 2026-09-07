@@ -29,6 +29,7 @@ const {
   songs,
   songsError,
   songsLoading,
+  songsMore,
 } = storeToRefs(searchStore)
 const { current } = storeToRefs(playerStore)
 const draft = ref('')
@@ -112,6 +113,10 @@ function requestSearch(force = false) {
     return
   }
   void searchStore.search(next, force).catch(() => undefined)
+}
+
+function requestMoreSongs() {
+  void searchStore.loadMoreSongs().catch(() => undefined)
 }
 
 function goSearch(word: string) {
@@ -216,6 +221,29 @@ onMounted(() => {
         :paginate="false"
         @play="playSong"
       />
+      <div
+        v-if="songsError && songs.length"
+        class="state-card error-state"
+        role="alert"
+      >
+        <div>
+          <strong>加载更多失败</strong>
+          <p>{{ songsError }}</p>
+        </div>
+        <button type="button" data-testid="search-songs-more-retry" @click="requestMoreSongs">
+          重新加载
+        </button>
+      </div>
+      <button
+        v-if="songsMore && songs.length"
+        type="button"
+        data-testid="search-songs-more"
+        :disabled="songsLoading"
+        :aria-busy="songsLoading ? 'true' : undefined"
+        @click="requestMoreSongs"
+      >
+        加载更多
+      </button>
       <SearchHitList
         v-if="playlists.length"
         data-testid="search-playlists"

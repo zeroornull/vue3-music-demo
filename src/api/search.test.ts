@@ -4,11 +4,14 @@ import type { HttpClient } from '@/api/http'
 import {
   SEARCH_ALBUM_LIMIT,
   SEARCH_ARTIST_LIMIT,
+  SEARCH_CLOUD_SONG_LIMIT,
+  SEARCH_CLOUD_SONG_TYPE,
   SEARCH_MV_LIMIT,
   SEARCH_PLAYLIST_LIMIT,
   SEARCH_RADIO_LIMIT,
   SEARCH_SONG_LIMIT,
   SEARCH_VIDEO_LIMIT,
+  getCloudSearchSongs,
   getSearchHotDetail,
   getSearchSuggest,
 } from '@/api/search'
@@ -271,5 +274,115 @@ describe('Search API', () => {
     await expect(
       getSearchSuggest('深夜', client({ result: null }).client),
     ).rejects.toThrow('搜索建议响应格式不正确')
+  })
+
+  it('unwraps /cloudsearch songs and uses songCount for more', async () => {
+    const request = client({
+      result: {
+        songCount: 40,
+        songs: [
+          {
+            al: { id: 1, name: '专辑', picUrl: 'https://images.example.com/a.jpg' },
+            ar: [{ id: 401, name: '林间电台' }],
+            dt: 180_000,
+            extra: true,
+            id: 301,
+            mv: 701,
+            name: '晚风来信',
+          },
+        ],
+      },
+    })
+
+    await expect(getCloudSearchSongs('深夜', { offset: 0 }, request.client)).resolves.toEqual({
+      more: true,
+      songs: [
+        {
+          album: { id: 1, name: '专辑', picUrl: 'https://images.example.com/a.jpg' },
+          artists: [{ id: 401, name: '林间电台' }],
+          duration: 180_000,
+          id: 301,
+          mv: 701,
+          name: '晚风来信',
+          picUrl: 'https://images.example.com/a.jpg',
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '深夜',
+      limit: SEARCH_CLOUD_SONG_LIMIT,
+      offset: 0,
+      type: SEARCH_CLOUD_SONG_TYPE,
+    })
+  })
+
+  it('passes offset and treats a complete songCount as done', async () => {
+    const request = client({
+      result: {
+        songCount: 21,
+        songs: [
+          {
+            artists: [{ id: 401, name: '林间电台' }],
+            duration: 1,
+            id: 321,
+            name: '最后一首',
+          },
+        ],
+      },
+    })
+
+    await expect(
+      getCloudSearchSongs('深夜', { offset: 20 }, request.client),
+    ).resolves.toEqual({
+      more: false,
+      songs: [
+        {
+          artists: [{ id: 401, name: '林间电台' }],
+          duration: 1,
+          id: 321,
+          name: '最后一首',
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '深夜',
+      limit: SEARCH_CLOUD_SONG_LIMIT,
+      offset: 20,
+      type: SEARCH_CLOUD_SONG_TYPE,
+    })
+  })
+
+  it('falls back to page size when songCount is missing', async () => {
+    const songs = Array.from({ length: SEARCH_CLOUD_SONG_LIMIT }, (_, index) => ({
+      artists: [{ id: 401, name: '林间电台' }],
+      duration: 1,
+      id: 300 + index,
+      name: `歌 ${index + 1}`,
+    }))
+    await expect(
+      getCloudSearchSongs(
+        '很多',
+        { offset: 0 },
+        client({ result: { songs } }).client,
+      ),
+    ).resolves.toMatchObject({ more: true, songs: { length: SEARCH_CLOUD_SONG_LIMIT } })
+
+    await expect(
+      getCloudSearchSongs(
+        '很少',
+        { offset: 0 },
+        client({
+          result: {
+            songs: [{ artists: [], duration: 1, id: 1, name: '一首' }],
+          },
+        }).client,
+      ),
+    ).resolves.toMatchObject({ more: false })
+  })
+
+  it('rejects a missing cloudsearch songs array', async () => {
+    await expect(
+      getCloudSearchSongs('深夜', { offset: 0 }, client({ result: { songs: null } }).client),
+    ).rejects.toThrow('搜索歌曲响应格式不正确')
   })
 })

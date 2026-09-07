@@ -6,12 +6,15 @@ import type {
   SearchMv,
   SearchPlaylist,
   SearchRadio,
+  SearchSongPage,
   SearchSuggestPage,
   SearchVideo,
 } from '@/models/search'
 import { normalizeSong, type NetworkSong } from '@/models/song'
 
 export const SEARCH_SONG_LIMIT = 10
+export const SEARCH_CLOUD_SONG_LIMIT = 20
+export const SEARCH_CLOUD_SONG_TYPE = 1
 export const SEARCH_PLAYLIST_LIMIT = 10
 export const SEARCH_ARTIST_LIMIT = 10
 export const SEARCH_ALBUM_LIMIT = 10
@@ -203,4 +206,31 @@ export async function getSearchSuggest(
       .filter((item): item is SearchVideo => item !== null)
       .slice(0, SEARCH_VIDEO_LIMIT),
   }
+}
+
+export async function getCloudSearchSongs(
+  keywords: string,
+  query: { offset?: number } = {},
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SearchSongPage> {
+  const offset = query.offset ?? 0
+  const response = await client.get<{ result?: unknown }>('/cloudsearch', {
+    keywords,
+    limit: SEARCH_CLOUD_SONG_LIMIT,
+    offset,
+    type: SEARCH_CLOUD_SONG_TYPE,
+  })
+  const result = isRecord(response.result) ? response.result : null
+  if (!result || !Array.isArray(result.songs)) {
+    throw new Error('搜索歌曲响应格式不正确')
+  }
+  const songs = result.songs
+    .filter(isNetworkSong)
+    .map(normalizeSong)
+  const songCount = result.songCount
+  const more =
+    typeof songCount === 'number'
+      ? offset + result.songs.length < songCount
+      : result.songs.length >= SEARCH_CLOUD_SONG_LIMIT
+  return { more, songs }
 }

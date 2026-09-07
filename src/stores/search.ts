@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
-import { getSearchHotDetail, getSearchSuggest } from '@/api/search'
+import { getCloudSearchSongs, getSearchHotDetail, getSearchSuggest } from '@/api/search'
 import type {
   SearchAlbum,
   SearchArtist,
@@ -31,6 +31,7 @@ export const useSearchStore = defineStore('search', () => {
   const videos = ref<SearchVideo[]>([])
   const songsError = ref<string | null>(null)
   const songsLoading = ref(false)
+  const songsMore = ref(false)
 
   function clearHits() {
     songs.value = []
@@ -42,6 +43,7 @@ export const useSearchStore = defineStore('search', () => {
     videos.value = []
     songsError.value = null
     songsLoading.value = false
+    songsMore.value = false
   }
 
   function reset() {
@@ -84,12 +86,7 @@ export const useSearchStore = defineStore('search', () => {
       return
     }
 
-    if (
-      !force &&
-      keyword.value === next &&
-      songsError.value === null &&
-      !songsLoading.value
-    ) {
+    if (!force && keyword.value === next && songsError.value === null) {
       return
     }
 
@@ -102,12 +99,17 @@ export const useSearchStore = defineStore('search', () => {
     mvs.value = []
     radios.value = []
     videos.value = []
+    songsMore.value = false
     songsLoading.value = true
     songsError.value = null
     try {
-      const page = await getSearchSuggest(next)
+      const [page, songPage] = await Promise.all([
+        getSearchSuggest(next),
+        getCloudSearchSongs(next, { offset: 0 }),
+      ])
       if (serial !== searchSerial) return
-      songs.value = page.songs
+      songs.value = songPage.songs
+      songsMore.value = songPage.more
       playlists.value = page.playlists
       artists.value = page.artists
       albums.value = page.albums
@@ -123,9 +125,33 @@ export const useSearchStore = defineStore('search', () => {
     }
   }
 
+  async function loadMoreSongs() {
+    if (!songsMore.value || songsLoading.value || !keyword.value || !songs.value.length) {
+      return
+    }
+    const serial = ++searchSerial
+    const next = keyword.value
+    const offset = songs.value.length
+    songsLoading.value = true
+    songsError.value = null
+    try {
+      const page = await getCloudSearchSongs(next, { offset })
+      if (serial !== searchSerial) return
+      songs.value = [...songs.value, ...page.songs]
+      songsMore.value = page.more
+    } catch (requestError) {
+      if (serial !== searchSerial) return
+      songsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === searchSerial) songsLoading.value = false
+    }
+  }
+
   return {
     loadHots,
     search,
+    loadMoreSongs,
     reset,
     keyword,
     hots,
@@ -140,5 +166,6 @@ export const useSearchStore = defineStore('search', () => {
     videos,
     songsError,
     songsLoading,
+    songsMore,
   }
 })

@@ -51,3 +51,8 @@ export interface SearchSuggestPage {
   radios: SearchRadio[]
   videos: SearchVideo[]
 }
+
+export interface SearchSongPage {
+  more: boolean
+  songs: Song[]
+}

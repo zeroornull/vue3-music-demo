@@ -1,13 +1,14 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getSearchHotDetail, getSearchSuggest } from '@/api/search'
+import { getCloudSearchSongs, getSearchHotDetail, getSearchSuggest } from '@/api/search'
 import { useSearchStore } from '@/stores/search'
 
 vi.mock('@/api/search', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/search')>()
   return {
     ...actual,
+    getCloudSearchSongs: vi.fn(),
     getSearchHotDetail: vi.fn(),
     getSearchSuggest: vi.fn(),
   }
@@ -85,6 +86,8 @@ describe('search store', () => {
     setActivePinia(createPinia())
     vi.mocked(getSearchHotDetail).mockReset()
     vi.mocked(getSearchSuggest).mockReset()
+    vi.mocked(getCloudSearchSongs).mockReset()
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
   })
 
   it('loads hot search once and treats a failed page as a cache miss', async () => {
@@ -105,6 +108,7 @@ describe('search store', () => {
   it('searches songs, playlists, artists and albums once per keyword', async () => {
     vi.mocked(getSearchHotDetail).mockResolvedValue([hot])
     vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: true, songs: [song] })
     const store = useSearchStore()
     await store.loadHots()
 
@@ -113,6 +117,7 @@ describe('search store', () => {
 
     expect(store.keyword).toBe('深夜')
     expect(store.songs).toEqual([song])
+    expect(store.songsMore).toBe(true)
     expect(store.playlists).toEqual([playlist])
     expect(store.artists).toEqual([artist])
     expect(store.albums).toEqual([album])
@@ -121,14 +126,18 @@ describe('search store', () => {
     expect(store.videos).toEqual(suggest.videos)
     expect(store.hots).toEqual([hot])
     expect(getSearchSuggest).toHaveBeenCalledTimes(1)
+    expect(getCloudSearchSongs).toHaveBeenCalledTimes(1)
+    expect(getCloudSearchSongs).toHaveBeenCalledWith('深夜', { offset: 0 })
   })
 
   it('clears previous hits when a new keyword fails', async () => {
     vi.mocked(getSearchSuggest)
       .mockResolvedValueOnce(suggest)
       .mockRejectedValueOnce(new Error('search offline'))
+    vi.mocked(getCloudSearchSongs).mockResolvedValueOnce({ more: true, songs: [song] })
     const store = useSearchStore()
     await store.search('深夜')
+    expect(store.songs).toEqual([song])
 
     await expect(store.search('秋日')).rejects.toThrow('search offline')
     expect(store.keyword).toBe('秋日')
@@ -139,6 +148,7 @@ describe('search store', () => {
     expect(store.mvs).toEqual([])
     expect(store.radios).toEqual([])
     expect(store.videos).toEqual([])
+    expect(store.songsMore).toBe(false)
     expect(store.songsError).toBe('search offline')
   })
 
@@ -152,6 +162,7 @@ describe('search store', () => {
     await store.search('   ')
 
     expect(getSearchSuggest).toHaveBeenCalledTimes(1)
+    expect(getCloudSearchSongs).toHaveBeenCalledTimes(1)
     expect(store.songs).toEqual([])
     expect(store.playlists).toEqual([])
     expect(store.artists).toEqual([])
@@ -177,6 +188,9 @@ describe('search store', () => {
     vi.mocked(getSearchSuggest)
       .mockReturnValueOnce(pendingFirst.promise)
       .mockResolvedValueOnce(second)
+    vi.mocked(getCloudSearchSongs)
+      .mockResolvedValueOnce({ more: false, songs: suggest.songs })
+      .mockResolvedValueOnce({ more: false, songs: second.songs })
     const store = useSearchStore()
     const first = store.search('深夜')
     const later = store.search('秋日')
@@ -224,6 +238,107 @@ describe('search store', () => {
     expect(store.radios).toEqual([])
     expect(store.videos).toEqual([])
     expect(store.songsLoading).toBe(false)
+    expect(store.songsMore).toBe(false)
     expect(store.hots).toEqual([])
+  })
+
+  it('appends the next cloudsearch page and keeps suggest hits', async () => {
+    const nextSong = { ...song, id: 302, name: '下一首' }
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs)
+      .mockResolvedValueOnce({ more: true, songs: [song] })
+      .mockResolvedValueOnce({ more: false, songs: [nextSong] })
+    const store = useSearchStore()
+
+    await store.search('深夜')
+    await store.loadMoreSongs()
+
+    expect(store.songs).toEqual([song, nextSong])
+    expect(store.songsMore).toBe(false)
+    expect(store.playlists).toEqual([playlist])
+    expect(getCloudSearchSongs).toHaveBeenNthCalledWith(1, '深夜', { offset: 0 })
+    expect(getCloudSearchSongs).toHaveBeenNthCalledWith(2, '深夜', { offset: 1 })
+    expect(getSearchSuggest).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not request another song page when more is false', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    const store = useSearchStore()
+    await store.search('深夜')
+    await store.loadMoreSongs()
+    expect(getCloudSearchSongs).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps loaded songs when load more fails', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs)
+      .mockResolvedValueOnce({ more: true, songs: [song] })
+      .mockRejectedValueOnce(new Error('more failed'))
+    const store = useSearchStore()
+    await store.search('深夜')
+    await expect(store.loadMoreSongs()).rejects.toThrow('more failed')
+    expect(store.songs).toEqual([song])
+    expect(store.songsMore).toBe(true)
+    expect(store.songsError).toBe('more failed')
+    expect(store.playlists).toEqual([playlist])
+  })
+
+  it('does not restart a cached keyword while load more is in flight', async () => {
+    const nextSong = { ...song, id: 302, name: '下一首' }
+    const pending = deferred<{ more: boolean; songs: typeof song[] }>()
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs)
+      .mockResolvedValueOnce({ more: true, songs: [song] })
+      .mockReturnValueOnce(pending.promise)
+    const store = useSearchStore()
+    await store.search('深夜')
+    const more = store.loadMoreSongs()
+    await store.search('深夜')
+    expect(getSearchSuggest).toHaveBeenCalledTimes(1)
+    expect(getCloudSearchSongs).toHaveBeenCalledTimes(2)
+    pending.resolve({ more: false, songs: [nextSong] })
+    await more
+    expect(store.songs).toEqual([song, nextSong])
+    expect(store.songsMore).toBe(false)
+  })
+
+  it('treats a load-more error as a cache miss for the same keyword', async () => {
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs)
+      .mockResolvedValueOnce({ more: true, songs: [song] })
+      .mockRejectedValueOnce(new Error('more failed'))
+      .mockResolvedValueOnce({ more: false, songs: [song] })
+    const store = useSearchStore()
+    await store.search('深夜')
+    await expect(store.loadMoreSongs()).rejects.toThrow('more failed')
+    await store.search('深夜')
+    expect(getCloudSearchSongs).toHaveBeenLastCalledWith('深夜', { offset: 0 })
+    expect(getSearchSuggest).toHaveBeenCalledTimes(2)
+    expect(store.songs).toEqual([song])
+    expect(store.songsError).toBeNull()
+  })
+
+  it('drops a stale load-more after a new keyword search', async () => {
+    const nextSong = { ...song, id: 302, name: '下一首' }
+    const pending = deferred<{ more: boolean; songs: typeof song[] }>()
+    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs)
+      .mockResolvedValueOnce({ more: true, songs: [song] })
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce({ more: false, songs: [{ ...song, id: 303, name: '秋日' }] })
+    const store = useSearchStore()
+    await store.search('深夜')
+    const more = store.loadMoreSongs()
+    const later = store.search('秋日')
+    pending.resolve({ more: false, songs: [nextSong] })
+    await more
+    await later
+
+    expect(store.keyword).toBe('秋日')
+    expect(store.songs).toEqual([{ ...song, id: 303, name: '秋日' }])
+    expect(store.songsMore).toBe(false)
+    expect(getCloudSearchSongs).toHaveBeenNthCalledWith(2, '深夜', { offset: 1 })
+    expect(getCloudSearchSongs).toHaveBeenNthCalledWith(3, '秋日', { offset: 0 })
   })
 })

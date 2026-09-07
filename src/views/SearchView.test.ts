@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getSearchHotDetail, getSearchSuggest } from '@/api/search'
+import { getCloudSearchSongs, getSearchHotDetail, getSearchSuggest } from '@/api/search'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import SearchView from '@/views/SearchView.vue'
@@ -15,6 +15,7 @@ vi.mock('@/api/search', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/search')>()
   return {
     ...actual,
+    getCloudSearchSongs: vi.fn(),
     getSearchHotDetail: vi.fn(),
     getSearchSuggest: vi.fn(),
   }
@@ -94,6 +95,13 @@ const SongListStub = defineComponent({
   emits: ['play'],
   template: `
     <section>
+      <p
+        v-for="item in songs"
+        :key="item.id"
+        :data-testid="'search-song-' + item.id"
+      >
+        {{ item.name }}
+      </p>
       <button
         v-if="songs[0]"
         data-testid="play-song"
@@ -127,8 +135,10 @@ describe('SearchView', () => {
     playSong.mockClear()
     vi.mocked(getSearchHotDetail).mockReset()
     vi.mocked(getSearchSuggest).mockReset()
+    vi.mocked(getCloudSearchSongs).mockReset()
     vi.mocked(getSearchHotDetail).mockResolvedValue([hot])
     vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
   })
 
   it('loads hot search and searches from a hot word or the form', async () => {
@@ -202,6 +212,7 @@ describe('SearchView', () => {
   })
 
   it('shows an empty card when suggest has no songs, playlists, artists, albums, MVs, radios or videos', async () => {
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -219,6 +230,7 @@ describe('SearchView', () => {
   })
 
   it('keeps album-only hits out of the empty card', async () => {
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [{ id: 501, name: '夜航', picUrl: '' }],
       artists: [],
@@ -237,6 +249,7 @@ describe('SearchView', () => {
   })
 
   it('keeps MV-only hits out of the empty card', async () => {
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -261,6 +274,7 @@ describe('SearchView', () => {
   })
 
   it('keeps radio-only hits out of the empty card', async () => {
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -285,6 +299,7 @@ describe('SearchView', () => {
   })
 
   it('keeps video-only hits out of the empty card', async () => {
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getSearchSuggest).mockResolvedValue({
       albums: [],
       artists: [],
@@ -306,5 +321,43 @@ describe('SearchView', () => {
     expect(wrapper.get('[aria-label="打开视频：夜航现场"]').attributes('href')).toContain(
       'videoDetail?id=VID001',
     )
+  })
+
+  it('loads more cloudsearch songs without dropping other hits', async () => {
+    const nextSong = { ...song, id: 302, name: '下一首' }
+    vi.mocked(getCloudSearchSongs)
+      .mockResolvedValueOnce({ more: true, songs: [song] })
+      .mockResolvedValueOnce({ more: false, songs: [nextSong] })
+    const { wrapper } = await mountView({ q: '深夜' })
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="search-song-301"]').text()).toBe('晚风来信')
+    expect(wrapper.find('[data-testid="search-song-302"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="search-songs-more"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="search-song-302"]').text()).toBe('下一首')
+    expect(wrapper.get('[data-testid="search-playlists"]').text()).toContain('深夜民谣')
+    expect(wrapper.find('[data-testid="search-songs-more"]').exists()).toBe(false)
+    expect(getCloudSearchSongs).toHaveBeenNthCalledWith(2, '深夜', { offset: 1 })
+  })
+
+  it('keeps songs and other hits when load more fails', async () => {
+    vi.mocked(getCloudSearchSongs)
+      .mockResolvedValueOnce({ more: true, songs: [song] })
+      .mockRejectedValueOnce(new Error('more failed'))
+      .mockResolvedValueOnce({ more: false, songs: [{ ...song, id: 302, name: '下一首' }] })
+    const { wrapper } = await mountView({ q: '深夜' })
+    await flushPromises()
+    await wrapper.get('[data-testid="search-songs-more"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('more failed')
+    expect(wrapper.get('[data-testid="search-song-301"]').text()).toBe('晚风来信')
+    expect(wrapper.get('[data-testid="search-playlists"]').text()).toContain('深夜民谣')
+    await wrapper.get('[data-testid="search-songs-more-retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="search-song-302"]').text()).toBe('下一首')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 })
