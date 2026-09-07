@@ -8,6 +8,8 @@ import {
   SEARCH_CLOUD_ALBUM_TYPE,
   SEARCH_CLOUD_ARTIST_LIMIT,
   SEARCH_CLOUD_ARTIST_TYPE,
+  SEARCH_CLOUD_MV_LIMIT,
+  SEARCH_CLOUD_MV_TYPE,
   SEARCH_CLOUD_PLAYLIST_LIMIT,
   SEARCH_CLOUD_PLAYLIST_TYPE,
   SEARCH_CLOUD_SONG_LIMIT,
@@ -19,6 +21,7 @@ import {
   SEARCH_VIDEO_LIMIT,
   getCloudSearchAlbums,
   getCloudSearchArtists,
+  getCloudSearchMvs,
   getCloudSearchPlaylists,
   getCloudSearchSongs,
   getSearchHotDetail,
@@ -711,5 +714,111 @@ describe('Search API', () => {
         client({ result: { albums: null } }).client,
       ),
     ).rejects.toThrow('搜索专辑响应格式不正确')
+  })
+
+  it('unwraps /cloudsearch mvs and uses mvCount for more', async () => {
+    const request = client({
+      result: {
+        mvCount: 40,
+        mvs: [
+          {
+            extra: true,
+            id: 701,
+            name: '晚风来信 · Live',
+            picUrl: 'https://images.example.com/mv.jpg',
+          },
+        ],
+      },
+    })
+
+    await expect(
+      getCloudSearchMvs('深夜', { offset: 0 }, request.client),
+    ).resolves.toEqual({
+      more: true,
+      mvs: [
+        {
+          cover: 'https://images.example.com/mv.jpg',
+          id: 701,
+          name: '晚风来信 · Live',
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '深夜',
+      limit: SEARCH_CLOUD_MV_LIMIT,
+      offset: 0,
+      type: SEARCH_CLOUD_MV_TYPE,
+    })
+  })
+
+  it('passes mv offset and treats a complete mvCount as done', async () => {
+    const request = client({
+      result: {
+        mvCount: 21,
+        mvs: [
+          {
+            id: 721,
+            name: '最后一支',
+            cover: 'https://images.example.com/m2.jpg',
+          },
+        ],
+      },
+    })
+
+    await expect(
+      getCloudSearchMvs('深夜', { offset: 20 }, request.client),
+    ).resolves.toEqual({
+      more: false,
+      mvs: [
+        {
+          cover: 'https://images.example.com/m2.jpg',
+          id: 721,
+          name: '最后一支',
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '深夜',
+      limit: SEARCH_CLOUD_MV_LIMIT,
+      offset: 20,
+      type: SEARCH_CLOUD_MV_TYPE,
+    })
+  })
+
+  it('falls back to mv page size when mvCount is missing', async () => {
+    const mvs = Array.from({ length: SEARCH_CLOUD_MV_LIMIT }, (_, index) => ({
+      id: 700 + index,
+      name: `MV ${index + 1}`,
+      cover: 'x',
+    }))
+    await expect(
+      getCloudSearchMvs(
+        '很多',
+        { offset: 0 },
+        client({ result: { mvs } }).client,
+      ),
+    ).resolves.toMatchObject({ more: true, mvs: { length: SEARCH_CLOUD_MV_LIMIT } })
+
+    await expect(
+      getCloudSearchMvs(
+        '很少',
+        { offset: 0 },
+        client({
+          result: {
+            mvs: [{ id: 701, name: '一支' }],
+          },
+        }).client,
+      ),
+    ).resolves.toMatchObject({ more: false })
+  })
+
+  it('rejects a missing cloudsearch mvs array', async () => {
+    await expect(
+      getCloudSearchMvs(
+        '深夜',
+        { offset: 0 },
+        client({ result: { mvs: null } }).client,
+      ),
+    ).rejects.toThrow('搜索 MV 响应格式不正确')
   })
 })

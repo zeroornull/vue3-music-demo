@@ -39,6 +39,9 @@ const {
   albumsError,
   albumsLoading,
   albumsMore,
+  mvsError,
+  mvsLoading,
+  mvsMore,
 } = storeToRefs(searchStore)
 const { current } = storeToRefs(playerStore)
 const draft = ref('')
@@ -138,6 +141,10 @@ function requestMoreArtists() {
 
 function requestMoreAlbums() {
   void searchStore.loadMoreAlbums().catch(() => undefined)
+}
+
+function requestMoreMvs() {
+  void searchStore.loadMoreMvs().catch(() => undefined)
 }
 
 function goSearch(word: string) {
@@ -382,6 +389,34 @@ onMounted(() => {
         :hits="mvHits"
         :to-name="Pages.mvDetail"
       />
+      <div
+        v-if="mvsError && mvs.length"
+        class="state-card error-state"
+        role="alert"
+      >
+        <div>
+          <strong>加载更多失败</strong>
+          <p>{{ mvsError }}</p>
+        </div>
+        <button
+          type="button"
+          data-testid="search-mvs-more-retry"
+          @click="requestMoreMvs"
+        >
+          重新加载
+        </button>
+      </div>
+      <button
+        v-if="mvsMore && mvs.length"
+        type="button"
+        data-testid="search-mvs-more"
+        aria-label="加载更多 MV"
+        :disabled="mvsLoading"
+        :aria-busy="mvsLoading ? 'true' : undefined"
+        @click="requestMoreMvs"
+      >
+        加载更多
+      </button>
       <SearchHitList
         v-if="radios.length"
         data-testid="search-radios"

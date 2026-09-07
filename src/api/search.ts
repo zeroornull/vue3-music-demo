@@ -6,6 +6,7 @@ import type {
   SearchArtistPage,
   SearchHot,
   SearchMv,
+  SearchMvPage,
   SearchPlaylist,
   SearchPlaylistPage,
   SearchRadio,
@@ -24,6 +25,8 @@ export const SEARCH_CLOUD_ARTIST_LIMIT = 20
 export const SEARCH_CLOUD_ARTIST_TYPE = 100
 export const SEARCH_CLOUD_ALBUM_LIMIT = 20
 export const SEARCH_CLOUD_ALBUM_TYPE = 10
+export const SEARCH_CLOUD_MV_LIMIT = 20
+export const SEARCH_CLOUD_MV_TYPE = 1004
 export const SEARCH_PLAYLIST_LIMIT = 10
 export const SEARCH_ARTIST_LIMIT = 10
 export const SEARCH_ALBUM_LIMIT = 10
@@ -329,4 +332,31 @@ export async function getCloudSearchAlbums(
       ? offset + result.albums.length < albumCount
       : result.albums.length >= SEARCH_CLOUD_ALBUM_LIMIT
   return { more, albums }
+}
+
+export async function getCloudSearchMvs(
+  keywords: string,
+  query: { offset?: number } = {},
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SearchMvPage> {
+  const offset = query.offset ?? 0
+  const response = await client.get<{ result?: unknown }>('/cloudsearch', {
+    keywords,
+    limit: SEARCH_CLOUD_MV_LIMIT,
+    offset,
+    type: SEARCH_CLOUD_MV_TYPE,
+  })
+  const result = isRecord(response.result) ? response.result : null
+  if (!result || !Array.isArray(result.mvs)) {
+    throw new Error('搜索 MV 响应格式不正确')
+  }
+  const mvs = result.mvs
+    .map(readMv)
+    .filter((item): item is SearchMv => item !== null)
+  const mvCount = result.mvCount
+  const more =
+    typeof mvCount === 'number'
+      ? offset + result.mvs.length < mvCount
+      : result.mvs.length >= SEARCH_CLOUD_MV_LIMIT
+  return { more, mvs }
 }

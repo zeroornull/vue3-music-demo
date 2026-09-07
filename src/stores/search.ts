@@ -5,6 +5,7 @@ import { getErrorMessage } from '@/api/http'
 import {
   getCloudSearchAlbums,
   getCloudSearchArtists,
+  getCloudSearchMvs,
   getCloudSearchPlaylists,
   getCloudSearchSongs,
   getSearchHotDetail,
@@ -27,6 +28,7 @@ let songMoreSerial = 0
 let playlistMoreSerial = 0
 let artistMoreSerial = 0
 let albumMoreSerial = 0
+let mvMoreSerial = 0
 
 export const useSearchStore = defineStore('search', () => {
   const keyword = ref('')
@@ -52,6 +54,9 @@ export const useSearchStore = defineStore('search', () => {
   const albumsError = ref<string | null>(null)
   const albumsLoading = ref(false)
   const albumsMore = ref(false)
+  const mvsError = ref<string | null>(null)
+  const mvsLoading = ref(false)
+  const mvsMore = ref(false)
 
   function clearHits() {
     songs.value = []
@@ -73,6 +78,9 @@ export const useSearchStore = defineStore('search', () => {
     albumsError.value = null
     albumsLoading.value = false
     albumsMore.value = false
+    mvsError.value = null
+    mvsLoading.value = false
+    mvsMore.value = false
   }
 
   function reset() {
@@ -82,6 +90,7 @@ export const useSearchStore = defineStore('search', () => {
     playlistMoreSerial++
     artistMoreSerial++
     albumMoreSerial++
+    mvMoreSerial++
     keyword.value = ''
     hots.value = []
     hotsError.value = null
@@ -118,6 +127,7 @@ export const useSearchStore = defineStore('search', () => {
       playlistMoreSerial++
       artistMoreSerial++
       albumMoreSerial++
+      mvMoreSerial++
       keyword.value = ''
       clearHits()
       return
@@ -129,7 +139,8 @@ export const useSearchStore = defineStore('search', () => {
       songsError.value === null &&
       playlistsError.value === null &&
       artistsError.value === null &&
-      albumsError.value === null
+      albumsError.value === null &&
+      mvsError.value === null
     ) {
       return
     }
@@ -139,6 +150,7 @@ export const useSearchStore = defineStore('search', () => {
     ++playlistMoreSerial
     ++artistMoreSerial
     ++albumMoreSerial
+    ++mvMoreSerial
     keyword.value = next
     songs.value = []
     playlists.value = []
@@ -157,15 +169,19 @@ export const useSearchStore = defineStore('search', () => {
     albumsMore.value = false
     albumsError.value = null
     albumsLoading.value = false
+    mvsMore.value = false
+    mvsError.value = null
+    mvsLoading.value = false
     songsLoading.value = true
     songsError.value = null
     try {
-      const [page, songPage, playlistPage, artistPage, albumPage] = await Promise.all([
+      const [page, songPage, playlistPage, artistPage, albumPage, mvPage] = await Promise.all([
         getSearchSuggest(next),
         getCloudSearchSongs(next, { offset: 0 }),
         getCloudSearchPlaylists(next, { offset: 0 }),
         getCloudSearchArtists(next, { offset: 0 }),
         getCloudSearchAlbums(next, { offset: 0 }),
+        getCloudSearchMvs(next, { offset: 0 }),
       ])
       if (serial !== searchSerial) return
       songs.value = songPage.songs
@@ -176,7 +192,8 @@ export const useSearchStore = defineStore('search', () => {
       artistsMore.value = artistPage.more
       albums.value = albumPage.albums
       albumsMore.value = albumPage.more
-      mvs.value = page.mvs
+      mvs.value = mvPage.mvs
+      mvsMore.value = mvPage.more
       radios.value = page.radios
       videos.value = page.videos
     } catch (requestError) {
@@ -307,6 +324,32 @@ export const useSearchStore = defineStore('search', () => {
     }
   }
 
+  async function loadMoreMvs() {
+    if (!mvsMore.value || mvsLoading.value || !keyword.value || !mvs.value.length) {
+      return
+    }
+    const serial = ++mvMoreSerial
+    const generation = searchSerial
+    const next = keyword.value
+    const offset = mvs.value.length
+    mvsLoading.value = true
+    mvsError.value = null
+    try {
+      const page = await getCloudSearchMvs(next, { offset })
+      if (serial !== mvMoreSerial || generation !== searchSerial) return
+      mvs.value = [...mvs.value, ...page.mvs]
+      mvsMore.value = page.more
+    } catch (requestError) {
+      if (serial !== mvMoreSerial || generation !== searchSerial) return
+      mvsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === mvMoreSerial && generation === searchSerial) {
+        mvsLoading.value = false
+      }
+    }
+  }
+
   return {
     loadHots,
     search,
@@ -314,6 +357,7 @@ export const useSearchStore = defineStore('search', () => {
     loadMorePlaylists,
     loadMoreArtists,
     loadMoreAlbums,
+    loadMoreMvs,
     reset,
     keyword,
     hots,
@@ -338,5 +382,8 @@ export const useSearchStore = defineStore('search', () => {
     albumsError,
     albumsLoading,
     albumsMore,
+    mvsError,
+    mvsLoading,
+    mvsMore,
   }
 })

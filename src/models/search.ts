@@ -71,3 +71,8 @@ export interface SearchAlbumPage {
   more: boolean
   albums: SearchAlbum[]
 }
+
+export interface SearchMvPage {
+  more: boolean
+  mvs: SearchMv[]
+}
