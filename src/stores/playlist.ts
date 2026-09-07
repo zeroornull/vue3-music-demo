@@ -2,7 +2,9 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
+import { getPlaylistComments } from '@/api/comment'
 import { getPlaylistDetail, getPlaylistTracks, getRelatedPlaylists } from '@/api/playlist'
+import type { MediaComment } from '@/models/comment'
 import type { PlaylistDetail, RelatedPlaylist } from '@/models/playlist'
 import type { Song } from '@/models/song'
 
@@ -12,6 +14,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
   const playlist = ref<PlaylistDetail | null>(null)
   const songs = ref<Song[]>([])
   const relatedPlaylists = ref<RelatedPlaylist[] | null>(null)
+  const comments = ref<MediaComment[] | null>(null)
   const error = ref<string | null>(null)
   const loading = ref(false)
   const loadedId = ref<number | null>(null)
@@ -21,6 +24,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     playlist.value = null
     songs.value = []
     relatedPlaylists.value = null
+    comments.value = null
     loadedId.value = null
     error.value = null
     loading.value = false
@@ -35,6 +39,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
 
     if (!force && loadedId.value === id && playlist.value && !error.value) {
       if (relatedPlaylists.value === null) requestRelated(id, requestSerial)
+      if (comments.value === null) requestComments(id, requestSerial)
       return true
     }
 
@@ -43,6 +48,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
       playlist.value = null
       songs.value = []
       relatedPlaylists.value = null
+      comments.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -57,6 +63,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
       songs.value = tracks
       loadedId.value = id
       requestRelated(id, serial)
+      requestComments(id, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -65,6 +72,16 @@ export const usePlaylistStore = defineStore('playlist', () => {
     } finally {
       if (serial === requestSerial) loading.value = false
     }
+  }
+
+  function requestComments(id: number, serial: number) {
+    void Promise.resolve(getPlaylistComments(id))
+      .then((list) => {
+        if (serial !== requestSerial) return
+        if (loadedId.value !== id) return
+        comments.value = list
+      })
+      .catch(() => undefined)
   }
 
   function requestRelated(id: number, serial: number) {
@@ -85,6 +102,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     playlist,
     songs,
     relatedPlaylists,
+    comments,
     error,
     loading,
     loadedId,

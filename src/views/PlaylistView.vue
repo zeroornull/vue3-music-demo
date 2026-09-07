@@ -14,7 +14,7 @@ import { usePlaylistStore } from '@/stores/playlist'
 const route = useRoute()
 const playlistStore = usePlaylistStore()
 const playerStore = usePlayerStore()
-const { playlist, songs, relatedPlaylists, loading, error } = storeToRefs(playlistStore)
+const { playlist, songs, relatedPlaylists, comments, loading, error } = storeToRefs(playlistStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
 let playSerial = 0
@@ -132,6 +132,21 @@ watch(
         @play="playSong"
       />
       <section
+        v-if="comments !== null"
+        class="playlist-comments"
+        data-testid="playlist-comments"
+        aria-labelledby="playlist-comments-title"
+      >
+        <h2 id="playlist-comments-title">评论</h2>
+        <p v-if="!comments.length" class="comments-empty">暂无评论</p>
+        <ul v-else class="comment-list">
+          <li v-for="item in comments" :key="item.commentId">
+            <strong>{{ item.nickname }}</strong>
+            <p>{{ item.content }}</p>
+          </li>
+        </ul>
+      </section>
+      <section
         v-if="relatedPlaylists?.length"
         class="related-playlists"
         data-testid="related-playlists"
@@ -169,13 +184,45 @@ watch(
   text-decoration: none;
 }
 
+.playlist-comments,
 .related-playlists {
   margin-top: 36px;
 }
 
+.playlist-comments h2,
 .related-playlists h2 {
   margin: 0 0 16px;
   font-size: 1.05rem;
+}
+
+.comments-empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.comment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment-list li {
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.comment-list li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.comment-list strong {
+  display: block;
+  font-size: 0.88rem;
+}
+
+.comment-list p {
+  margin: 6px 0 0;
 }
 
 .related-grid {

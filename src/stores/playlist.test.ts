@@ -1,9 +1,13 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getPlaylistComments } from '@/api/comment'
 import { getPlaylistDetail, getPlaylistTracks, getRelatedPlaylists } from '@/api/playlist'
 import { usePlaylistStore } from '@/stores/playlist'
 
+vi.mock('@/api/comment', () => ({
+  getPlaylistComments: vi.fn(),
+}))
 vi.mock('@/api/playlist', () => ({
   getPlaylistDetail: vi.fn(),
   getPlaylistTracks: vi.fn(),
@@ -28,6 +32,12 @@ const related = {
   id: 202,
   name: '潮汐歌单',
   playCount: 12_000,
+}
+
+const comment = {
+  commentId: 1,
+  content: '走过林间。',
+  nickname: '林间电台',
 }
 
 async function settle() {
@@ -67,6 +77,8 @@ describe('playlist store', () => {
     vi.mocked(getPlaylistTracks).mockReset()
     vi.mocked(getRelatedPlaylists).mockReset()
     vi.mocked(getRelatedPlaylists).mockRejectedValue(new Error('no related'))
+    vi.mocked(getPlaylistComments).mockReset()
+    vi.mocked(getPlaylistComments).mockRejectedValue(new Error('no comments'))
   })
 
   it('loads detail and tracks together and caches the same id', async () => {
@@ -192,6 +204,7 @@ describe('playlist store', () => {
     expect(store.playlist).toBeNull()
     expect(store.songs).toHaveLength(0)
     expect(store.relatedPlaylists).toBeNull()
+    expect(store.comments).toBeNull()
     expect(store.loadedId).toBeNull()
     expect(store.error).toBeNull()
   })
@@ -202,6 +215,7 @@ describe('playlist store', () => {
     await expect(store.load(0)).rejects.toThrow('缺少有效的歌单 ID')
     expect(getPlaylistDetail).not.toHaveBeenCalled()
     expect(getRelatedPlaylists).not.toHaveBeenCalled()
+    expect(getPlaylistComments).not.toHaveBeenCalled()
     expect(store.error).toBe('缺少有效的歌单 ID')
     expect(store.playlist).toBeNull()
   })
@@ -281,5 +295,79 @@ describe('playlist store', () => {
 
     expect(store.playlist?.id).toBe(202)
     expect(store.relatedPlaylists).toEqual([nextRelated])
+  })
+
+  it('loads comments with the detail and ignores a comment failure', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistComments).mockResolvedValue([comment])
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+    await store.load(101)
+
+    expect(store.comments).toEqual([comment])
+    expect(getPlaylistDetail).toHaveBeenCalledTimes(1)
+    expect(getPlaylistComments).toHaveBeenCalledTimes(1)
+    expect(getPlaylistComments).toHaveBeenCalledWith(101)
+  })
+
+  it('keeps the playlist when comments fail', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistComments).mockRejectedValue(new Error('comments offline'))
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+
+    expect(store.playlist).toEqual(playlist)
+    expect(store.songs).toEqual(songs)
+    expect(store.comments).toBeNull()
+    expect(store.error).toBeNull()
+  })
+
+  it('retries comments on a cached playlist when the first comment request failed', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistComments)
+      .mockRejectedValueOnce(new Error('comments offline'))
+      .mockResolvedValueOnce([comment])
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+    expect(store.comments).toBeNull()
+
+    await store.load(101)
+    await settle()
+
+    expect(getPlaylistDetail).toHaveBeenCalledTimes(1)
+    expect(getPlaylistComments).toHaveBeenCalledTimes(2)
+    expect(store.comments).toEqual([comment])
+  })
+
+  it('does not keep stale comments after the playlist id changes', async () => {
+    const first = deferred<typeof comment[]>()
+    const nextPlaylist = { ...playlist, id: 202, name: '下一张歌单' }
+    const nextComment = { ...comment, commentId: 9, content: '下一张留言' }
+    vi.mocked(getPlaylistDetail)
+      .mockResolvedValueOnce(playlist)
+      .mockResolvedValueOnce(nextPlaylist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistComments)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce([nextComment])
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await store.load(202)
+    await settle()
+    first.resolve([comment])
+    await settle()
+
+    expect(store.playlist?.id).toBe(202)
+    expect(store.comments).toEqual([nextComment])
   })
 })

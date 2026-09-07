@@ -6,12 +6,16 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getPlaylistComments } from '@/api/comment'
 import { getPlaylistDetail, getPlaylistTracks, getRelatedPlaylists } from '@/api/playlist'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { usePlaylistStore } from '@/stores/playlist'
 import PlaylistView from '@/views/PlaylistView.vue'
 
+vi.mock('@/api/comment', () => ({
+  getPlaylistComments: vi.fn(),
+}))
 vi.mock('@/api/playlist', () => ({
   getPlaylistDetail: vi.fn(),
   getPlaylistTracks: vi.fn(),
@@ -131,6 +135,8 @@ describe('PlaylistView', () => {
     vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
     vi.mocked(getRelatedPlaylists).mockReset()
     vi.mocked(getRelatedPlaylists).mockRejectedValue(new Error('no related'))
+    vi.mocked(getPlaylistComments).mockReset()
+    vi.mocked(getPlaylistComments).mockRejectedValue(new Error('no comments'))
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -251,5 +257,35 @@ describe('PlaylistView', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="related-playlists"]').exists()).toBe(false)
+  })
+
+  it('renders comments without blocking the song list or linking the author', async () => {
+    vi.mocked(getPlaylistComments).mockResolvedValue([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ])
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="playlist-songs"]').exists()).toBe(true)
+    const comments = wrapper.get('[data-testid="playlist-comments"]')
+    expect(comments.text()).toContain('走过林间。')
+    expect(comments.text()).toContain('林间电台')
+    expect(comments.find('a').exists()).toBe(false)
+  })
+
+  it('shows an empty comments state when the list is empty', async () => {
+    vi.mocked(getPlaylistComments).mockResolvedValue([])
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="playlist-comments"]').text()).toContain('暂无评论')
+  })
+
+  it('hides comments when the request fails', async () => {
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="playlist-comments"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="playlist-songs"]').exists()).toBe(true)
   })
 })
