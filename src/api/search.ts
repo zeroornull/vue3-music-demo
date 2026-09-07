@@ -5,6 +5,7 @@ import type {
   SearchHot,
   SearchMv,
   SearchPlaylist,
+  SearchPlaylistPage,
   SearchRadio,
   SearchSongPage,
   SearchSuggestPage,
@@ -15,6 +16,8 @@ import { normalizeSong, type NetworkSong } from '@/models/song'
 export const SEARCH_SONG_LIMIT = 10
 export const SEARCH_CLOUD_SONG_LIMIT = 20
 export const SEARCH_CLOUD_SONG_TYPE = 1
+export const SEARCH_CLOUD_PLAYLIST_LIMIT = 20
+export const SEARCH_CLOUD_PLAYLIST_TYPE = 1000
 export const SEARCH_PLAYLIST_LIMIT = 10
 export const SEARCH_ARTIST_LIMIT = 10
 export const SEARCH_ALBUM_LIMIT = 10
@@ -50,10 +53,16 @@ function readPlaylist(value: unknown): SearchPlaylist | null {
   if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
     return null
   }
+  const cover =
+    typeof value.coverImgUrl === 'string' && value.coverImgUrl
+      ? value.coverImgUrl
+      : typeof value.picUrl === 'string'
+        ? value.picUrl
+        : ''
   return {
     id: value.id,
     name: value.name,
-    coverImgUrl: typeof value.coverImgUrl === 'string' ? value.coverImgUrl : '',
+    coverImgUrl: cover,
   }
 }
 
@@ -233,4 +242,31 @@ export async function getCloudSearchSongs(
       ? offset + result.songs.length < songCount
       : result.songs.length >= SEARCH_CLOUD_SONG_LIMIT
   return { more, songs }
+}
+
+export async function getCloudSearchPlaylists(
+  keywords: string,
+  query: { offset?: number } = {},
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SearchPlaylistPage> {
+  const offset = query.offset ?? 0
+  const response = await client.get<{ result?: unknown }>('/cloudsearch', {
+    keywords,
+    limit: SEARCH_CLOUD_PLAYLIST_LIMIT,
+    offset,
+    type: SEARCH_CLOUD_PLAYLIST_TYPE,
+  })
+  const result = isRecord(response.result) ? response.result : null
+  if (!result || !Array.isArray(result.playlists)) {
+    throw new Error('搜索歌单响应格式不正确')
+  }
+  const playlists = result.playlists
+    .map(readPlaylist)
+    .filter((item): item is SearchPlaylist => item !== null)
+  const playlistCount = result.playlistCount
+  const more =
+    typeof playlistCount === 'number'
+      ? offset + result.playlists.length < playlistCount
+      : result.playlists.length >= SEARCH_CLOUD_PLAYLIST_LIMIT
+  return { more, playlists }
 }

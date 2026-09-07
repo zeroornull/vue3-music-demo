@@ -370,6 +370,7 @@ describe('App host gate', () => {
       { cover: '', name: '夜航现场', vid: 'VID001' },
     ]
     searchStore.songsMore = true
+    searchStore.playlistsMore = true
     mountApp()
 
     useHostStore().clearHost()
@@ -384,6 +385,7 @@ describe('App host gate', () => {
     expect(searchStore.radios).toEqual([])
     expect(searchStore.videos).toEqual([])
     expect(searchStore.songsMore).toBe(false)
+    expect(searchStore.playlistsMore).toBe(false)
     expect(searchStore.keyword).toBe('')
   })
 
