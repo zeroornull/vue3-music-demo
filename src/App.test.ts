@@ -8,6 +8,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App from '@/App.vue'
+import { getSongComments } from '@/api/comment'
 import { getSongUrl } from '@/api/song'
 import { setAudioAdapter, usePlayerStore } from '@/stores/player'
 import { useAlbumStore } from '@/stores/album'
@@ -25,6 +26,9 @@ import { useLyricStore } from '@/stores/lyric'
 import { THEME_STORAGE_KEY } from '@/config/theme'
 import { useHostStore } from '@/stores/host'
 
+vi.mock('@/api/comment', () => ({
+  getSongComments: vi.fn(),
+}))
 vi.mock('@/api/song', () => ({
   getSongDetail: vi.fn(),
   getSongUrl: vi.fn(),
@@ -57,6 +61,8 @@ describe('App host gate', () => {
     document.documentElement.removeAttribute('data-theme')
     setActivePinia(createPinia())
     vi.mocked(getSongUrl).mockReset()
+    vi.mocked(getSongComments).mockReset()
+    vi.mocked(getSongComments).mockRejectedValue(new Error('no comments'))
   })
 
   it('applies a stored dark theme on the host form', () => {
@@ -313,6 +319,9 @@ describe('App host gate', () => {
     djStore.comments = [
       { commentId: 1, content: '走过林间。', nickname: '林间电台' },
     ]
+    djStore.radioComments = [
+      { commentId: 2, content: '夜色刚好', nickname: '海岸信号' },
+    ]
     djStore.radioPrograms = [
       {
         copywriter: '',
@@ -338,6 +347,7 @@ describe('App host gate', () => {
     expect(djStore.relatedRadios).toBeNull()
     expect(djStore.relatedPrograms).toBeNull()
     expect(djStore.comments).toBeNull()
+    expect(djStore.radioComments).toBeNull()
     expect(djStore.radioLoadedId).toBeNull()
   })
 
@@ -547,6 +557,9 @@ describe('App host gate', () => {
     player.muted = true
     player.showQueue = true
     player.relatedSongs = [{ id: 302, name: '潮汐回声', artists: [] }]
+    player.comments = [
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ]
     player.isFm = true
     const lyricStore = useLyricStore()
     lyricStore.showLyric = true
@@ -559,6 +572,7 @@ describe('App host gate', () => {
 
     expect(pause).toHaveBeenCalledOnce()
     expect(player.relatedSongs).toBeNull()
+    expect(player.comments).toBeNull()
     expect(adapter.src).toBe('')
     expect(player.current).toBeNull()
     expect(player.queue).toHaveLength(0)
@@ -607,5 +621,6 @@ describe('App host gate', () => {
     expect(play).not.toHaveBeenCalled()
     expect(player.current).toBeNull()
     expect(player.hasPlayableSource).toBe(false)
+    expect(player.comments).toBeNull()
   })
 })

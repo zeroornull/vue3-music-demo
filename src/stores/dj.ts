@@ -12,7 +12,7 @@ import {
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
-import { getDjComments } from '@/api/comment'
+import { getDjComments, getDjRadioComments } from '@/api/comment'
 import { getErrorMessage } from '@/api/http'
 import type { MediaComment } from '@/models/comment'
 import type {
@@ -62,6 +62,7 @@ export const useDjStore = defineStore('dj', () => {
   const relatedRadios = ref<HallRadio[] | null>(null)
   const relatedPrograms = ref<DjProgram[] | null>(null)
   const comments = ref<MediaComment[] | null>(null)
+  const radioComments = ref<MediaComment[] | null>(null)
 
   function resetDetail() {
     requestSerial++
@@ -85,6 +86,7 @@ export const useDjStore = defineStore('dj', () => {
     radioProgramsLoading.value = false
     radioProgramsMore.value = false
     relatedRadios.value = null
+    radioComments.value = null
   }
 
   function reset() {
@@ -303,6 +305,7 @@ export const useDjStore = defineStore('dj', () => {
       !radioProgramsError.value
     ) {
       if (relatedRadios.value === null) requestRelated(id, radio.value)
+      if (radioComments.value === null) requestRadioComments(id, radioDetailSerial)
       return
     }
 
@@ -314,6 +317,7 @@ export const useDjStore = defineStore('dj', () => {
       radioPrograms.value = []
       radioProgramsMore.value = false
       relatedRadios.value = null
+      radioComments.value = null
     }
     radioLoading.value = true
     radioProgramsLoading.value = true
@@ -332,6 +336,7 @@ export const useDjStore = defineStore('dj', () => {
         radio.value = next
         radioLoadedId.value = id
         requestRelated(id, next)
+        requestRadioComments(id, detailSerial)
       }
       if (programSerial === radioProgramSerial) {
         radioPrograms.value = page.programs
@@ -366,6 +371,16 @@ export const useDjStore = defineStore('dj', () => {
             Number.isInteger(item.id) &&
             item.id > 0,
         )
+      })
+      .catch(() => undefined)
+  }
+
+  function requestRadioComments(id: number, serial: number) {
+    void Promise.resolve(getDjRadioComments(id))
+      .then((list) => {
+        if (serial !== radioDetailSerial) return
+        if (radioLoadedId.value !== id) return
+        radioComments.value = list
       })
       .catch(() => undefined)
   }
@@ -456,5 +471,6 @@ export const useDjStore = defineStore('dj', () => {
     relatedRadios,
     relatedPrograms,
     comments,
+    radioComments,
   }
 })

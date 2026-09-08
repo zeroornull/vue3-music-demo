@@ -6,10 +6,15 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getDjRadioComments } from '@/api/comment'
 import { getDjRadioDetail, getDjRadioPrograms, getHotDjRadios } from '@/api/dj'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import DjRadioView from '@/views/DjRadioView.vue'
+
+vi.mock('@/api/comment', () => ({
+  getDjRadioComments: vi.fn(),
+}))
 
 vi.mock('@/api/dj', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/dj')>()
@@ -67,6 +72,8 @@ describe('DjRadioView', () => {
     vi.mocked(getDjRadioDetail).mockResolvedValue(radio)
     vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs })
     vi.mocked(getHotDjRadios).mockRejectedValue(new Error('no radios'))
+    vi.mocked(getDjRadioComments).mockReset()
+    vi.mocked(getDjRadioComments).mockRejectedValue(new Error('no comments'))
   })
 
   it('shows a missing-id empty state', async () => {
@@ -123,5 +130,36 @@ describe('DjRadioView', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="related-radios"]').exists()).toBe(false)
+  })
+
+  it('renders radio comments without blocking programs or linking the author', async () => {
+    vi.mocked(getDjRadioComments).mockResolvedValue([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ])
+    const wrapper = await mountView({ id: '801' })
+    await flushPromises()
+
+    expect(wrapper.get('h1').text()).toBe('夜航电台')
+    expect(wrapper.text()).toContain('深夜民谣')
+    const comments = wrapper.get('[data-testid="dj-radio-comments"]')
+    expect(comments.text()).toContain('走过林间。')
+    expect(comments.get('strong').text()).toBe('林间电台')
+    expect(comments.find('a').exists()).toBe(false)
+  })
+
+  it('shows an empty radio comments state when the list is empty', async () => {
+    vi.mocked(getDjRadioComments).mockResolvedValue([])
+    const wrapper = await mountView({ id: '801' })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="dj-radio-comments"]').text()).toContain(
+      '暂无评论',
+    )
+  })
+
+  it('hides radio comments when the request fails', async () => {
+    const wrapper = await mountView({ id: '801' })
+    await flushPromises()
+    expect(wrapper.get('h1').text()).toBe('夜航电台')
+    expect(wrapper.find('[data-testid="dj-radio-comments"]').exists()).toBe(false)
   })
 })

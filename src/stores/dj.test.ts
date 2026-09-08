@@ -12,11 +12,12 @@ import {
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
-import { getDjComments } from '@/api/comment'
+import { getDjComments, getDjRadioComments } from '@/api/comment'
 import { useDjStore } from '@/stores/dj'
 
 vi.mock('@/api/comment', () => ({
   getDjComments: vi.fn(),
+  getDjRadioComments: vi.fn(),
 }))
 
 vi.mock('@/api/dj', async (importOriginal) => {
@@ -128,6 +129,8 @@ describe('dj store', () => {
     vi.mocked(getPersonalizedDjPrograms).mockReset()
     vi.mocked(getDjComments).mockReset()
     vi.mocked(getDjComments).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getDjRadioComments).mockReset()
+    vi.mocked(getDjRadioComments).mockRejectedValue(new Error('no radio comments'))
   })
 
   it('loads hall banners once and treats a failed page as a cache miss', async () => {
@@ -328,6 +331,7 @@ describe('dj store', () => {
     expect(store.radio).toBeNull()
     expect(store.radioPrograms).toEqual([])
     expect(store.relatedRadios).toBeNull()
+    expect(store.radioComments).toBeNull()
     expect(store.relatedPrograms).toBeNull()
     expect(store.categories).toEqual([])
     expect(store.radios).toEqual([])
@@ -699,5 +703,171 @@ describe('dj store', () => {
 
     expect(store.comments).toEqual([])
     expect(getDjComments).toHaveBeenCalledTimes(1)
+  })
+
+  it('loads radio comments with the detail and ignores a comment failure', async () => {
+    const comment = {
+      commentId: 1,
+      content: '走过林间。',
+      nickname: '林间电台',
+    }
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getDjRadioComments).mockResolvedValue([comment])
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await settle()
+    await store.loadRadio(801)
+
+    expect(store.radioComments).toEqual([comment])
+    expect(getDjRadioDetail).toHaveBeenCalledTimes(1)
+    expect(getDjRadioComments).toHaveBeenCalledTimes(1)
+    expect(getDjRadioComments).toHaveBeenCalledWith(801)
+  })
+
+  it('keeps the radio and programs when radio comments fail', async () => {
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getDjRadioComments).mockRejectedValue(new Error('comments offline'))
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await settle()
+
+    expect(store.radio).toEqual(radioDetail)
+    expect(store.radioPrograms).toEqual([program])
+    expect(store.radioComments).toBeNull()
+    expect(store.radioError).toBeNull()
+  })
+
+  it('retries radio comments on a cached radio when the first comment request failed', async () => {
+    const comment = {
+      commentId: 1,
+      content: '走过林间。',
+      nickname: '林间电台',
+    }
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getDjRadioComments)
+      .mockRejectedValueOnce(new Error('comments offline'))
+      .mockResolvedValueOnce([comment])
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await settle()
+    expect(store.radioComments).toBeNull()
+
+    await store.loadRadio(801)
+    await settle()
+
+    expect(getDjRadioDetail).toHaveBeenCalledTimes(1)
+    expect(getDjRadioComments).toHaveBeenCalledTimes(2)
+    expect(store.radioComments).toEqual([comment])
+  })
+
+  it('does not keep stale radio comments after the radio id changes', async () => {
+    const first = deferred<
+      { commentId: number; content: string; nickname: string }[]
+    >()
+    const nextRadio = { ...radioDetail, id: 802, name: '潮汐电台' }
+    const nextComment = {
+      commentId: 9,
+      content: '下一台留言',
+      nickname: '海岸信号',
+    }
+    vi.mocked(getDjRadioDetail)
+      .mockResolvedValueOnce(radioDetail)
+      .mockResolvedValueOnce(nextRadio)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getDjRadioComments)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce([nextComment])
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await store.loadRadio(802)
+    await settle()
+    first.resolve([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ])
+    await settle()
+
+    expect(store.radio?.id).toBe(802)
+    expect(store.radioComments).toEqual([nextComment])
+    expect(getDjRadioComments).toHaveBeenLastCalledWith(802)
+  })
+
+  it('clears radio comments immediately when the radio id changes', async () => {
+    const comment = {
+      commentId: 1,
+      content: '走过林间。',
+      nickname: '林间电台',
+    }
+    const nextComment = {
+      commentId: 9,
+      content: '下一台留言',
+      nickname: '海岸信号',
+    }
+    vi.mocked(getDjRadioDetail)
+      .mockResolvedValueOnce(radioDetail)
+      .mockResolvedValueOnce({ ...radioDetail, id: 802, name: '潮汐电台' })
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getDjRadioComments)
+      .mockResolvedValueOnce([comment])
+      .mockResolvedValueOnce([nextComment])
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await settle()
+    expect(store.radioComments).toEqual([comment])
+
+    const pending = store.loadRadio(802)
+    expect(store.radioComments).toBeNull()
+    await pending
+    await settle()
+    expect(store.radioComments).toEqual([nextComment])
+  })
+
+  it('treats an empty radio comment list as loaded and does not retry', async () => {
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getDjRadioComments).mockResolvedValue([])
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await settle()
+    await store.loadRadio(801)
+
+    expect(store.radioComments).toEqual([])
+    expect(getDjRadioComments).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not drop in-flight radio comments when loading more programs', async () => {
+    const first = deferred<
+      { commentId: number; content: string; nickname: string }[]
+    >()
+    const comment = {
+      commentId: 1,
+      content: '走过林间。',
+      nickname: '林间电台',
+    }
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms)
+      .mockResolvedValueOnce({ more: true, programs: [program] })
+      .mockResolvedValueOnce({
+        more: false,
+        programs: [{ ...program, id: 902, name: '下一期' }],
+      })
+    vi.mocked(getDjRadioComments).mockReturnValueOnce(first.promise)
+    const store = useDjStore()
+
+    await store.loadRadio(801)
+    await store.loadMoreRadioPrograms()
+    first.resolve([comment])
+    await settle()
+
+    expect(store.radioComments).toEqual([comment])
+    expect(store.radioPrograms.map((item) => item.id)).toEqual([901, 902])
   })
 })

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
+import { getSongComments } from '@/api/comment'
 import { getPersonalFm, trashPersonalFm } from '@/api/fm'
 import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
 import type { AudioAdapter } from '@/audio/audioAdapter'
@@ -10,6 +11,9 @@ import {
   usePlayerStore,
 } from '@/stores/player'
 
+vi.mock('@/api/comment', () => ({
+  getSongComments: vi.fn(),
+}))
 vi.mock('@/api/fm', () => ({
   getPersonalFm: vi.fn(),
   trashPersonalFm: vi.fn(),
@@ -83,6 +87,8 @@ describe('Player store', () => {
     vi.mocked(getSongDetail).mockImplementation(async (id) => song(id))
     vi.mocked(getSongUrl).mockResolvedValue({ id: 1, url: 'x' })
     vi.mocked(getSimiSongs).mockRejectedValue(new Error('no similar'))
+    vi.mocked(getSongComments).mockReset()
+    vi.mocked(getSongComments).mockRejectedValue(new Error('no comments'))
     vi.mocked(getPersonalFm).mockReset()
     vi.mocked(getPersonalFm).mockRejectedValue(new Error('no fm'))
     vi.mocked(trashPersonalFm).mockReset()
@@ -801,6 +807,7 @@ describe('Player store', () => {
     expect(player.showQueue).toBe(false)
     expect(player.queue).toHaveLength(0)
     expect(player.relatedSongs).toBeNull()
+    expect(player.comments).toBeNull()
   })
 
   it('loads similar songs with playback and filters the current id', async () => {
@@ -897,6 +904,112 @@ describe('Player store', () => {
     expect(player.isPlaying).toBe(false)
   })
 
+  const comment = {
+    commentId: 1,
+    content: '走过林间。',
+    nickname: '林间电台',
+  }
+
+  it('loads comments with playback and does not refetch on cache', async () => {
+    vi.mocked(getSongComments).mockResolvedValue([comment])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await flushPromises()
+    await player.play(song(1))
+    await flushPromises()
+
+    expect(player.comments).toEqual([comment])
+    expect(player.current).toEqual(song(1))
+    expect(player.isPlaying).toBe(true)
+    expect(getSongComments).toHaveBeenCalledTimes(1)
+    expect(getSongComments).toHaveBeenCalledWith(1)
+  })
+
+  it('keeps playback when comments fail', async () => {
+    vi.mocked(getSongComments).mockRejectedValue(new Error('comments offline'))
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await flushPromises()
+
+    expect(player.current).toEqual(song(1))
+    expect(player.comments).toBeNull()
+    expect(player.error).toBeNull()
+    expect(player.isPlaying).toBe(true)
+  })
+
+  it('retries comments on a cached current when the first comment request failed', async () => {
+    vi.mocked(getSongComments)
+      .mockRejectedValueOnce(new Error('comments offline'))
+      .mockResolvedValueOnce([comment])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await flushPromises()
+    expect(player.comments).toBeNull()
+
+    await player.play(song(1))
+    await flushPromises()
+
+    expect(getSongUrl).toHaveBeenCalledTimes(2)
+    expect(getSongComments).toHaveBeenCalledTimes(2)
+    expect(player.comments).toEqual([comment])
+  })
+
+  it('does not keep stale comments after the current song changes', async () => {
+    const first = deferred<typeof comment[]>()
+    const nextComment = { ...comment, commentId: 9, content: '下一首留言' }
+    vi.mocked(getSongComments)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce([nextComment])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await player.play(song(2))
+    await flushPromises()
+    first.resolve([comment])
+    await flushPromises()
+
+    expect(player.current?.id).toBe(2)
+    expect(player.comments).toEqual([nextComment])
+    expect(getSongComments).toHaveBeenLastCalledWith(2)
+  })
+
+  it('does not drop in-flight comments when pausing', async () => {
+    const first = deferred<typeof comment[]>()
+    vi.mocked(getSongComments).mockReturnValueOnce(first.promise)
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    player.pause()
+    first.resolve([comment])
+    await flushPromises()
+
+    expect(player.comments).toEqual([comment])
+    expect(player.current?.id).toBe(1)
+    expect(player.isPlaying).toBe(false)
+  })
+
+  it('treats an empty comment list as loaded and does not retry', async () => {
+    vi.mocked(getSongComments).mockResolvedValue([])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await flushPromises()
+    await player.play(song(1))
+    await flushPromises()
+
+    expect(player.comments).toEqual([])
+    expect(getSongComments).toHaveBeenCalledTimes(1)
+  })
+
   it('removes a queued song that is not current without stopping playback', async () => {
     setAudioAdapter(mockAdapter())
     const player = usePlayerStore()
@@ -960,6 +1073,9 @@ describe('Player store', () => {
     const player = usePlayerStore()
     await player.play(song(1))
     player.relatedSongs = [song(302)]
+    player.comments = [
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ]
     player.setVolume(0.4)
     player.toggleMuted()
     player.toggleLoop()
@@ -974,6 +1090,7 @@ describe('Player store', () => {
     expect(player.loading).toBe(false)
     expect(player.error).toBeNull()
     expect(player.relatedSongs).toBeNull()
+    expect(player.comments).toBeNull()
     expect(player.showQueue).toBe(false)
     expect(player.volume).toBe(0.4)
     expect(player.muted).toBe(true)
@@ -1214,6 +1331,9 @@ describe('Player store', () => {
       .mockResolvedValueOnce([song(301)])
     const player = usePlayerStore()
     await player.startFm()
+    player.comments = [
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ]
     player.openQueue()
 
     await expect(player.trashFm()).resolves.toBe(true)
@@ -1223,6 +1343,7 @@ describe('Player store', () => {
     expect(player.isFm).toBe(false)
     expect(player.isPlaying).toBe(false)
     expect(player.showQueue).toBe(false)
+    expect(player.comments).toBeNull()
   })
 
   it('does not steal playback when prev happens during trash', async () => {

@@ -5,6 +5,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getSongComments } from '@/api/comment'
 import { getPersonalFm } from '@/api/fm'
 import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
 import type { AudioAdapter } from '@/audio/audioAdapter'
@@ -17,6 +18,9 @@ import {
 } from '@/stores/player'
 import FmView from '@/views/FmView.vue'
 
+vi.mock('@/api/comment', () => ({
+  getSongComments: vi.fn(),
+}))
 vi.mock('@/api/fm', () => ({
   getPersonalFm: vi.fn(),
   trashPersonalFm: vi.fn(),
@@ -86,6 +90,7 @@ describe('FmView', () => {
     vi.mocked(getSongDetail).mockImplementation(async (id) => song(id))
     vi.mocked(getSongUrl).mockResolvedValue({ id: 301, url: 'x' })
     vi.mocked(getSimiSongs).mockRejectedValue(new Error('no similar'))
+    vi.mocked(getSongComments).mockRejectedValue(new Error('no comments'))
     vi.mocked(getPersonalFm).mockReset()
     vi.mocked(getPersonalFm).mockResolvedValue([song(301, '晚风来信')])
   })

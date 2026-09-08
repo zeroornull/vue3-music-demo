@@ -12,7 +12,7 @@ const emit = defineEmits<{
 const lyrics = useLyricStore()
 const player = usePlayerStore()
 const { error, lines, loading, showLyric } = storeToRefs(lyrics)
-const { currentTime } = storeToRefs(player)
+const { comments, currentTime } = storeToRefs(player)
 
 const activeIndex = computed(() => {
   const time = currentTime.value
@@ -85,71 +85,89 @@ onUnmounted(() => {
           </button>
         </header>
 
-        <div
-          v-if="loading && !lines.length"
-          class="lyric-state"
-          data-testid="player-lyric-loading"
-          aria-busy="true"
-        >
-          <strong>正在加载歌词</strong>
-          <p>正在读取当前歌曲的歌词。</p>
-        </div>
-
-        <div
-          v-else-if="error && !lines.length"
-          class="lyric-state error-state"
-          role="alert"
-        >
-          <div>
-            <strong>歌词加载失败</strong>
-            <p>{{ error }}</p>
+        <div class="lyric-body">
+          <div
+            v-if="loading && !lines.length"
+            class="lyric-state"
+            data-testid="player-lyric-loading"
+            aria-busy="true"
+          >
+            <strong>正在加载歌词</strong>
+            <p>正在读取当前歌曲的歌词。</p>
           </div>
-          <button
-            type="button"
-            data-testid="player-lyric-retry"
-            @click="emit('retry')"
+
+          <div
+            v-else-if="error && !lines.length"
+            class="lyric-state error-state"
+            role="alert"
           >
-            重新加载
-          </button>
+            <div>
+              <strong>歌词加载失败</strong>
+              <p>{{ error }}</p>
+            </div>
+            <button
+              type="button"
+              data-testid="player-lyric-retry"
+              @click="emit('retry')"
+            >
+              重新加载
+            </button>
+          </div>
+
+          <p
+            v-else-if="!lines.length"
+            class="lyric-empty"
+            data-testid="player-lyric-empty"
+          >
+            暂无歌词
+          </p>
+
+          <ol v-else class="lyric-list">
+            <li
+              v-for="(line, index) in lines"
+              :key="`${line.time ?? 'x'}-${index}`"
+              :data-testid="`player-lyric-line-${index}`"
+              :class="{ 'is-current': index === activeIndex }"
+              :aria-current="index === activeIndex ? 'true' : undefined"
+            >
+              <span v-if="line.words?.length" class="lyric-words">
+                <span
+                  v-for="(word, wordIndex) in line.words"
+                  :key="`${word.time}-${wordIndex}`"
+                  :class="{ 'is-word-current': index === activeIndex && wordIndex === activeWordIndex }"
+                  :data-testid="`player-lyric-line-${index}-word-${wordIndex}`"
+                >{{ word.text }}</span>
+              </span>
+              <span v-else>{{ line.text }}</span>
+              <small
+                v-if="line.translation"
+                class="lyric-trans"
+                :data-testid="`player-lyric-line-${index}-trans`"
+              >{{ line.translation }}</small>
+              <small
+                v-if="line.romanization"
+                class="lyric-roma"
+                :data-testid="`player-lyric-line-${index}-roma`"
+              >{{ line.romanization }}</small>
+            </li>
+          </ol>
+
+          <section
+            v-if="comments !== null"
+            class="song-comments"
+            data-testid="song-comments"
+            aria-labelledby="song-comments-title"
+          >
+            <h3 id="song-comments-title">评论</h3>
+            <p v-if="!comments.length" class="comments-empty">暂无评论</p>
+            <ul v-else class="comment-list">
+              <li v-for="item in comments" :key="item.commentId">
+                <strong>{{ item.nickname }}</strong>
+                <p>{{ item.content }}</p>
+              </li>
+            </ul>
+          </section>
         </div>
-
-        <p
-          v-else-if="!lines.length"
-          class="lyric-empty"
-          data-testid="player-lyric-empty"
-        >
-          暂无歌词
-        </p>
-
-        <ol v-else class="lyric-list">
-          <li
-            v-for="(line, index) in lines"
-            :key="`${line.time ?? 'x'}-${index}`"
-            :data-testid="`player-lyric-line-${index}`"
-            :class="{ 'is-current': index === activeIndex }"
-            :aria-current="index === activeIndex ? 'true' : undefined"
-          >
-            <span v-if="line.words?.length" class="lyric-words">
-              <span
-                v-for="(word, wordIndex) in line.words"
-                :key="`${word.time}-${wordIndex}`"
-                :class="{ 'is-word-current': index === activeIndex && wordIndex === activeWordIndex }"
-                :data-testid="`player-lyric-line-${index}-word-${wordIndex}`"
-              >{{ word.text }}</span>
-            </span>
-            <span v-else>{{ line.text }}</span>
-            <small
-              v-if="line.translation"
-              class="lyric-trans"
-              :data-testid="`player-lyric-line-${index}-trans`"
-            >{{ line.translation }}</small>
-            <small
-              v-if="line.romanization"
-              class="lyric-roma"
-              :data-testid="`player-lyric-line-${index}-roma`"
-            >{{ line.romanization }}</small>
-          </li>
-        </ol>
       </aside>
     </div>
   </Teleport>
@@ -217,6 +235,14 @@ onUnmounted(() => {
   outline-offset: 2px;
 }
 
+.lyric-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: auto;
+}
+
 .lyric-state,
 .lyric-empty {
   margin: 0;
@@ -236,12 +262,53 @@ onUnmounted(() => {
 }
 
 .lyric-list {
-  flex: 1;
-  min-height: 0;
   margin: 0;
-  padding: 0 16px 24px;
-  overflow: auto;
+  padding: 0 16px 16px;
   list-style: none;
+}
+
+.song-comments {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 16px 24px;
+  border-top: 1px solid var(--color-border);
+}
+
+.song-comments h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.comments-empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.comment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment-list li {
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.comment-list li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.comment-list strong {
+  display: block;
+  font-size: 0.82rem;
+}
+
+.comment-list p {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
 }
 
 .lyric-list li {

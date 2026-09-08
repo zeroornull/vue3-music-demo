@@ -144,6 +144,40 @@ describe('PlayerLyricPanel', () => {
     expect(bodyEl('[data-testid="player-lyric"]').hasAttribute('data-above-player')).toBe(
       true,
     )
+    expect(document.querySelector('[data-testid="song-comments"]')).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('renders song comments without linking the author', async () => {
+    const lyrics = useLyricStore()
+    const player = usePlayerStore()
+    lyrics.lines = [{ text: '走过林间。', time: 12 }]
+    player.comments = [
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+      { commentId: 2, content: '夜色刚好', nickname: '海岸信号' },
+    ]
+    lyrics.open()
+    const wrapper = mountPanel()
+    await wrapper.vm.$nextTick()
+    const comments = bodyEl('[data-testid="song-comments"]')
+    expect(comments.textContent).toContain('走过林间。')
+    expect(comments.textContent).toContain('夜色刚好')
+    expect(comments.querySelector('strong')?.textContent).toBe('林间电台')
+    expect(comments.querySelector('a')).toBeNull()
+    expect(bodyEl('[data-testid="player-lyric-line-0"]').textContent).toContain(
+      '走过林间。',
+    )
+    wrapper.unmount()
+  })
+
+  it('shows an empty song comments state when the list is empty', async () => {
+    const lyrics = useLyricStore()
+    const player = usePlayerStore()
+    lyrics.open()
+    player.comments = []
+    const wrapper = mountPanel()
+    await wrapper.vm.$nextTick()
+    expect(bodyEl('[data-testid="song-comments"]').textContent).toContain('暂无评论')
     wrapper.unmount()
   })
 })

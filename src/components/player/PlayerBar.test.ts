@@ -621,4 +621,21 @@ describe('PlayerBar', () => {
     expect(player.showQueue).toBe(true)
     wrapper.unmount()
   })
+
+  it('shows song comments in the lyric panel without linking the author', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 301, name: '晚风', artists: [] }
+    player.hasPlayableSource = true
+    player.comments = [
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ]
+    const wrapper = mountBar({ attachTo: document.body })
+    await wrapper.get('button[aria-label="歌词"]').trigger('click')
+    await flushPromises()
+    const comments = document.querySelector('[data-testid="song-comments"]')
+    expect(comments?.textContent).toContain('走过林间。')
+    expect(comments?.querySelector('strong')?.textContent).toBe('林间电台')
+    expect(comments?.querySelector('a')).toBeNull()
+    wrapper.unmount()
+  })
 })

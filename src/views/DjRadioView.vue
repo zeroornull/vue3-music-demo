@@ -20,6 +20,7 @@ const {
   radioProgramsLoading,
   radioProgramsMore,
   relatedRadios,
+  radioComments,
 } = storeToRefs(djStore)
 
 const radioId = computed(() => {
@@ -145,6 +146,21 @@ watch(
         </button>
       </section>
       <section
+        v-if="radioComments !== null"
+        class="dj-radio-comments"
+        data-testid="dj-radio-comments"
+        aria-labelledby="dj-radio-comments-title"
+      >
+        <h2 id="dj-radio-comments-title">评论</h2>
+        <p v-if="!radioComments.length" class="comments-empty">暂无评论</p>
+        <ul v-else class="comment-list">
+          <li v-for="item in radioComments" :key="item.commentId">
+            <strong>{{ item.nickname }}</strong>
+            <p>{{ item.content }}</p>
+          </li>
+        </ul>
+      </section>
+      <section
         v-if="relatedRadios?.length"
         class="related-radios"
         data-testid="related-radios"
@@ -181,15 +197,47 @@ watch(
   text-decoration: none;
 }
 
+.dj-radio-comments,
 .related-radios {
   display: grid;
   gap: 16px;
   min-width: 0;
 }
 
+.dj-radio-comments h2,
 .related-radios h2 {
   margin: 0;
   font-size: 1.2rem;
+}
+
+.comments-empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.comment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment-list li {
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.comment-list li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.comment-list strong {
+  display: block;
+  font-size: 0.88rem;
+}
+
+.comment-list p {
+  margin: 6px 0 0;
 }
 
 .related-grid {

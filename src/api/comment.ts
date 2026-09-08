@@ -91,3 +91,25 @@ export async function getDjComments(
   }>('/comment/dj', { id, limit: COMMENT_LIMIT })
   return mergeComments(response, '电台节目评论响应格式不正确')
 }
+
+export async function getDjRadioComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  const response = await client.get<{
+    comments?: unknown
+    hotComments?: unknown
+  }>('/comment/djradio', { id, limit: COMMENT_LIMIT })
+  return mergeComments(response, '电台评论响应格式不正确')
+}
+
+export async function getSongComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  const response = await client.get<{
+    comments?: unknown
+    hotComments?: unknown
+  }>('/comment/music', { id, limit: COMMENT_LIMIT })
+  return mergeComments(response, '歌曲评论响应格式不正确')
+}
