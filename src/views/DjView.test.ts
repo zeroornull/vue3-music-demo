@@ -6,6 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getDjComments } from '@/api/comment'
 import { getDjProgramDetail, getDjRadioPrograms } from '@/api/dj'
 
 vi.mock('@/views/music/DjHallPage.vue', () => ({
@@ -15,6 +16,10 @@ import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useDjStore } from '@/stores/dj'
 import DjView from '@/views/DjView.vue'
+
+vi.mock('@/api/comment', () => ({
+  getDjComments: vi.fn(),
+}))
 
 vi.mock('@/api/dj', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/dj')>()
@@ -93,6 +98,8 @@ describe('DjView', () => {
     vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
     vi.mocked(getDjRadioPrograms).mockReset()
     vi.mocked(getDjRadioPrograms).mockRejectedValue(new Error('no programs'))
+    vi.mocked(getDjComments).mockReset()
+    vi.mocked(getDjComments).mockRejectedValue(new Error('no comments'))
   })
 
   it('redirects a missing program id to the radio hall', async () => {
@@ -201,5 +208,32 @@ describe('DjView', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="related-programs"]').exists()).toBe(false)
+  })
+
+  it('renders comments without blocking play or linking the author', async () => {
+    vi.mocked(getDjComments).mockResolvedValue([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ])
+    const { wrapper } = await mountView()
+    await flushPromises()
+
+    expect(wrapper.get('h1').text()).toBe('深夜民谣')
+    const comments = wrapper.get('[data-testid="dj-comments"]')
+    expect(comments.text()).toContain('走过林间。')
+    expect(comments.get('strong').text()).toBe('林间电台')
+    expect(comments.find('a').exists()).toBe(false)
+  })
+
+  it('shows an empty comments state when the list is empty', async () => {
+    vi.mocked(getDjComments).mockResolvedValue([])
+    const { wrapper } = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="dj-comments"]').text()).toContain('暂无评论')
+  })
+
+  it('hides comments when the request fails', async () => {
+    const { wrapper } = await mountView()
+    await flushPromises()
+    expect(wrapper.find('[data-testid="dj-comments"]').exists()).toBe(false)
   })
 })

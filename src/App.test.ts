@@ -310,6 +310,9 @@ describe('App host gate', () => {
         picUrl: '',
       },
     ]
+    djStore.comments = [
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ]
     djStore.radioPrograms = [
       {
         copywriter: '',
@@ -334,6 +337,7 @@ describe('App host gate', () => {
     expect(djStore.radioPrograms).toEqual([])
     expect(djStore.relatedRadios).toBeNull()
     expect(djStore.relatedPrograms).toBeNull()
+    expect(djStore.comments).toBeNull()
     expect(djStore.radioLoadedId).toBeNull()
   })
 

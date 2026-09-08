@@ -80,3 +80,14 @@ export async function getVideoComments(
   }>('/comment/video', { id, limit: COMMENT_LIMIT })
   return mergeComments(response, '视频评论响应格式不正确')
 }
+
+export async function getDjComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  const response = await client.get<{
+    comments?: unknown
+    hotComments?: unknown
+  }>('/comment/dj', { id, limit: COMMENT_LIMIT })
+  return mergeComments(response, '电台节目评论响应格式不正确')
+}

@@ -13,7 +13,7 @@ const route = useRoute()
 const router = useRouter()
 const djStore = useDjStore()
 const playerStore = usePlayerStore()
-const { program, relatedPrograms, loading, error } = storeToRefs(djStore)
+const { program, relatedPrograms, comments, loading, error } = storeToRefs(djStore)
 const notice = ref<string | null>(null)
 let playSerial = 0
 
@@ -109,6 +109,21 @@ watch(
       />
       <p v-if="notice" class="notice" role="status">{{ notice }}</p>
       <section
+        v-if="comments !== null"
+        class="dj-comments"
+        data-testid="dj-comments"
+        aria-labelledby="dj-comments-title"
+      >
+        <h2 id="dj-comments-title">评论</h2>
+        <p v-if="!comments.length" class="comments-empty">暂无评论</p>
+        <ul v-else class="comment-list">
+          <li v-for="item in comments" :key="item.commentId">
+            <strong>{{ item.nickname }}</strong>
+            <p>{{ item.content }}</p>
+          </li>
+        </ul>
+      </section>
+      <section
         v-if="relatedPrograms?.length"
         class="related-programs"
         data-testid="related-programs"
@@ -184,15 +199,47 @@ watch(
   color: var(--color-accent-text);
 }
 
+.dj-comments,
 .related-programs {
   display: grid;
   gap: 16px;
   min-width: 0;
 }
 
+.dj-comments h2,
 .related-programs h2 {
   margin: 0;
   font-size: 1.2rem;
+}
+
+.comments-empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.comment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment-list li {
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.comment-list li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.comment-list strong {
+  display: block;
+  font-size: 0.88rem;
+}
+
+.comment-list p {
+  margin: 6px 0 0;
 }
 
 .related-grid {

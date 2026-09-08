@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { HttpClient } from '@/api/http'
 import {
   COMMENT_LIMIT,
+  getDjComments,
   getMvComments,
   getPlaylistComments,
   getVideoComments,
@@ -168,5 +169,41 @@ describe('Video comment API', () => {
     await expect(
       getVideoComments('VID001', client({ comments: null }).client),
     ).rejects.toThrow('视频评论响应格式不正确')
+  })
+})
+
+describe('DJ program comment API', () => {
+  it('unwraps /comment/dj and keeps hot comments first', async () => {
+    const request = client({
+      comments: [
+        {
+          commentId: 2,
+          content: '夜色刚好',
+          user: { nickname: '海岸信号' },
+        },
+      ],
+      hotComments: [
+        {
+          commentId: 1,
+          content: '走过林间。',
+          user: { nickname: '林间电台' },
+        },
+      ],
+    })
+
+    await expect(getDjComments(901, request.client)).resolves.toEqual([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+      { commentId: 2, content: '夜色刚好', nickname: '海岸信号' },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/comment/dj', {
+      id: 901,
+      limit: COMMENT_LIMIT,
+    })
+  })
+
+  it('rejects a missing comments array', async () => {
+    await expect(
+      getDjComments(901, client({ comments: null }).client),
+    ).rejects.toThrow('电台节目评论响应格式不正确')
   })
 })

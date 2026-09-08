@@ -12,7 +12,9 @@ import {
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
+import { getDjComments } from '@/api/comment'
 import { getErrorMessage } from '@/api/http'
+import type { MediaComment } from '@/models/comment'
 import type {
   DjBanner,
   DjCategory,
@@ -59,11 +61,13 @@ export const useDjStore = defineStore('dj', () => {
   const radioProgramsMore = ref(false)
   const relatedRadios = ref<HallRadio[] | null>(null)
   const relatedPrograms = ref<DjProgram[] | null>(null)
+  const comments = ref<MediaComment[] | null>(null)
 
   function resetDetail() {
     requestSerial++
     program.value = null
     relatedPrograms.value = null
+    comments.value = null
     error.value = null
     loading.value = false
     loadedId.value = null
@@ -157,6 +161,7 @@ export const useDjStore = defineStore('dj', () => {
 
     if (!force && loadedId.value === id && program.value && !error.value) {
       if (relatedPrograms.value === null) requestRelatedPrograms(id, program.value)
+      if (comments.value === null) requestComments(id, requestSerial)
       return true
     }
 
@@ -164,6 +169,7 @@ export const useDjStore = defineStore('dj', () => {
     if (loadedId.value !== id) {
       program.value = null
       relatedPrograms.value = null
+      comments.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -174,6 +180,7 @@ export const useDjStore = defineStore('dj', () => {
       program.value = next
       loadedId.value = id
       requestRelatedPrograms(id, next)
+      requestComments(id, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -182,6 +189,16 @@ export const useDjStore = defineStore('dj', () => {
     } finally {
       if (serial === requestSerial) loading.value = false
     }
+  }
+
+  function requestComments(id: number, serial: number) {
+    void Promise.resolve(getDjComments(id))
+      .then((list) => {
+        if (serial !== requestSerial) return
+        if (loadedId.value !== id) return
+        comments.value = list
+      })
+      .catch(() => undefined)
   }
 
   async function loadCategories(force = false) {
@@ -438,5 +455,6 @@ export const useDjStore = defineStore('dj', () => {
     radioProgramsMore,
     relatedRadios,
     relatedPrograms,
+    comments,
   }
 })

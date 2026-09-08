@@ -12,7 +12,12 @@ import {
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
+import { getDjComments } from '@/api/comment'
 import { useDjStore } from '@/stores/dj'
+
+vi.mock('@/api/comment', () => ({
+  getDjComments: vi.fn(),
+}))
 
 vi.mock('@/api/dj', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/dj')>()
@@ -121,6 +126,8 @@ describe('dj store', () => {
     vi.mocked(getHotDjRadios).mockReset()
     vi.mocked(getHotDjRadios).mockRejectedValue(new Error('no radios'))
     vi.mocked(getPersonalizedDjPrograms).mockReset()
+    vi.mocked(getDjComments).mockReset()
+    vi.mocked(getDjComments).mockRejectedValue(new Error('no comments'))
   })
 
   it('loads hall banners once and treats a failed page as a cache miss', async () => {
@@ -561,5 +568,136 @@ describe('dj store', () => {
 
     expect(store.relatedPrograms).toEqual([relatedProgram])
     expect(store.radioPrograms.map((item) => item.id)).toEqual([901, 903])
+  })
+
+  it('loads comments with the program and ignores a comment failure', async () => {
+    const comment = {
+      commentId: 1,
+      content: '走过林间。',
+      nickname: '林间电台',
+    }
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjComments).mockResolvedValue([comment])
+    const store = useDjStore()
+
+    await store.load(901)
+    await settle()
+    await store.load(901)
+
+    expect(store.comments).toEqual([comment])
+    expect(getDjProgramDetail).toHaveBeenCalledTimes(1)
+    expect(getDjComments).toHaveBeenCalledTimes(1)
+    expect(getDjComments).toHaveBeenCalledWith(901)
+  })
+
+  it('keeps the program when comments fail', async () => {
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjComments).mockRejectedValue(new Error('comments offline'))
+    const store = useDjStore()
+
+    await store.load(901)
+    await settle()
+
+    expect(store.program).toEqual(detail)
+    expect(store.comments).toBeNull()
+    expect(store.error).toBeNull()
+  })
+
+  it('retries comments on a cached program when the first comment request failed', async () => {
+    const comment = {
+      commentId: 1,
+      content: '走过林间。',
+      nickname: '林间电台',
+    }
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjComments)
+      .mockRejectedValueOnce(new Error('comments offline'))
+      .mockResolvedValueOnce([comment])
+    const store = useDjStore()
+
+    await store.load(901)
+    await settle()
+    expect(store.comments).toBeNull()
+
+    await store.load(901)
+    await settle()
+
+    expect(getDjProgramDetail).toHaveBeenCalledTimes(1)
+    expect(getDjComments).toHaveBeenCalledTimes(2)
+    expect(store.comments).toEqual([comment])
+  })
+
+  it('does not keep stale comments after the program id changes', async () => {
+    const first = deferred<
+      { commentId: number; content: string; nickname: string }[]
+    >()
+    const nextDetail = { ...detail, id: 902, name: '潮汐夜话', radioId: 802 }
+    const nextComment = {
+      commentId: 9,
+      content: '下一期留言',
+      nickname: '海岸信号',
+    }
+    vi.mocked(getDjProgramDetail)
+      .mockResolvedValueOnce(detail)
+      .mockResolvedValueOnce(nextDetail)
+    vi.mocked(getDjComments)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce([nextComment])
+    const store = useDjStore()
+
+    await store.load(901)
+    await store.load(902)
+    await settle()
+    first.resolve([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ])
+    await settle()
+
+    expect(store.program?.id).toBe(902)
+    expect(store.comments).toEqual([nextComment])
+    expect(getDjComments).toHaveBeenLastCalledWith(902)
+  })
+
+  it('clears comments immediately when the program id changes', async () => {
+    const comment = {
+      commentId: 1,
+      content: '走过林间。',
+      nickname: '林间电台',
+    }
+    const nextComment = {
+      commentId: 9,
+      content: '下一期留言',
+      nickname: '海岸信号',
+    }
+    vi.mocked(getDjProgramDetail)
+      .mockResolvedValueOnce(detail)
+      .mockResolvedValueOnce({ ...detail, id: 902, name: '潮汐夜话' })
+    vi.mocked(getDjComments)
+      .mockResolvedValueOnce([comment])
+      .mockResolvedValueOnce([nextComment])
+    const store = useDjStore()
+
+    await store.load(901)
+    await settle()
+    expect(store.comments).toEqual([comment])
+
+    const pending = store.load(902)
+    expect(store.comments).toBeNull()
+    await pending
+    await settle()
+    expect(store.comments).toEqual([nextComment])
+  })
+
+  it('treats an empty comment list as loaded and does not retry', async () => {
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjComments).mockResolvedValue([])
+    const store = useDjStore()
+
+    await store.load(901)
+    await settle()
+    await store.load(901)
+
+    expect(store.comments).toEqual([])
+    expect(getDjComments).toHaveBeenCalledTimes(1)
   })
 })
