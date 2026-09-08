@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getPersonalFm } from '@/api/fm'
+import { getPersonalFm, trashPersonalFm } from '@/api/fm'
 import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
 import { createAudioAdapter, type AudioAdapter } from '@/audio/audioAdapter'
 import { readPlayerVolume, savePlayerVolume } from '@/config/playerVolume'
@@ -267,7 +267,7 @@ export const usePlayerStore = defineStore('player', {
       const serial = ++fmSerial
       try {
         const more = await getPersonalFm()
-        if (serial !== fmSerial) return false
+        if (serial !== fmSerial || !this.isFm) return false
         const seen = new Set(this.queue.map((item) => item.id))
         const extra: Song[] = []
         for (const item of more) {
@@ -281,6 +281,79 @@ export const usePlayerStore = defineStore('player', {
         return this.play(extra[0]!, { fm: true })
       } catch (error) {
         if (serial !== fmSerial) return false
+        this.error =
+          error instanceof Error ? error.message : '私人 FM 暂时不可用，请稍后重试'
+        throw error
+      }
+    },
+    async playAfterFmTrash(trashedId: number, preferred?: Song): Promise<boolean> {
+      if (this.current?.id !== trashedId) return true
+      const preferredStillQueued =
+        preferred && this.queue.some((item) => item.id === preferred.id)
+          ? preferred
+          : undefined
+      const next = preferredStillQueued ?? this.queue[0]
+      if (!next) {
+        requestSerial++
+        pauseGeneration++
+        fmSerial++
+        injectedAdapter?.pause()
+        unbindAudio?.()
+        unbindAudio = undefined
+        if (injectedAdapter) injectedAdapter.src = ''
+        this.queue = []
+        this.current = null
+        this.loading = false
+        this.isPlaying = false
+        this.hasPlayableSource = false
+        this.error = null
+        this.currentTime = 0
+        this.duration = 0
+        this.relatedSongs = null
+        this.showQueue = false
+        this.isFm = false
+        return true
+      }
+      return this.play(next, { fm: true })
+    },
+    async trashFm(): Promise<boolean> {
+      if (!this.isFm || !this.current) return false
+      const trashedId = this.current.id
+      const index = this.queue.findIndex((item) => item.id === trashedId)
+      const nextQueued = index >= 0 ? this.queue[index + 1] : undefined
+      const serial = ++fmSerial
+      try {
+        await trashPersonalFm(trashedId)
+      } catch (error) {
+        if (serial !== fmSerial) return false
+        this.error =
+          error instanceof Error ? error.message : '移入垃圾桶失败，请稍后重试'
+        throw error
+      }
+      this.queue = this.queue.filter((item) => item.id !== trashedId)
+      if (serial !== fmSerial) return this.playAfterFmTrash(trashedId, nextQueued)
+      if (nextQueued) {
+        if (this.current?.id !== trashedId) return true
+        return this.play(nextQueued, { fm: true })
+      }
+      try {
+        const more = await getPersonalFm()
+        if (serial !== fmSerial) return this.playAfterFmTrash(trashedId)
+        const seen = new Set(this.queue.map((item) => item.id))
+        seen.add(trashedId)
+        const extra: Song[] = []
+        for (const item of more) {
+          if (seen.has(item.id)) continue
+          seen.add(item.id)
+          extra.push(item)
+        }
+        if (!extra.length) return this.playAfterFmTrash(trashedId)
+        this.queue = [...this.queue, ...extra]
+        if (this.current?.id !== trashedId) return true
+        return this.play(extra[0]!, { fm: true })
+      } catch (error) {
+        if (serial !== fmSerial) return this.playAfterFmTrash(trashedId)
+        await this.playAfterFmTrash(trashedId)
         this.error =
           error instanceof Error ? error.message : '私人 FM 暂时不可用，请稍后重试'
         throw error

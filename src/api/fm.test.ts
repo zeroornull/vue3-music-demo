@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { getPersonalFm } from '@/api/fm'
+import { getPersonalFm, trashPersonalFm } from '@/api/fm'
 
 const client = (response: unknown) => {
   const get = vi.fn(
@@ -50,5 +50,38 @@ describe('Personal FM API', () => {
     await expect(getPersonalFm(client({ data: null }).client)).rejects.toThrow(
       '私人 FM 响应格式不正确',
     )
+  })
+
+  it('calls /fm_trash with the song id', async () => {
+    const request = client({ code: 200 })
+    await expect(trashPersonalFm(301, request.client)).resolves.toBeUndefined()
+    expect(request.get).toHaveBeenCalledWith('/fm_trash', { id: 301 })
+  })
+
+  it('treats a missing code as success', async () => {
+    await expect(trashPersonalFm(301, client({}).client)).resolves.toBeUndefined()
+  })
+
+  it('rejects a non-200 trash code', async () => {
+    await expect(
+      trashPersonalFm(301, client({ code: 301 }).client),
+    ).rejects.toThrow('移入垃圾桶失败')
+  })
+
+  it('rejects a non-object trash payload', async () => {
+    await expect(trashPersonalFm(301, client(null).client)).rejects.toThrow(
+      '垃圾桶响应格式不正确',
+    )
+  })
+
+  it('rejects an invalid song id without calling the client', async () => {
+    const request = client({ code: 200 })
+    await expect(trashPersonalFm(0, request.client)).rejects.toThrow(
+      '缺少有效的歌曲 ID',
+    )
+    await expect(trashPersonalFm(1.5, request.client)).rejects.toThrow(
+      '缺少有效的歌曲 ID',
+    )
+    expect(request.get).not.toHaveBeenCalled()
   })
 })

@@ -419,6 +419,30 @@ describe('PlayerBar', () => {
     const wrapper = mountBar()
     expect(wrapper.get('button[aria-label="下一首"]').attributes('disabled')).toBeUndefined()
     expect(wrapper.get('button[aria-label="上一首"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-testid="fm-trash"]').attributes('aria-label')).toBe(
+      '不喜欢',
+    )
+  })
+
+  it('hides the FM trash button outside personal FM', () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.queue = [player.current]
+    player.hasPlayableSource = true
+    const wrapper = mountBar()
+    expect(wrapper.find('[data-testid="fm-trash"]').exists()).toBe(false)
+  })
+
+  it('trashes the current FM song from the bar', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 301, name: '晚风来信', artists: [] }
+    player.queue = [player.current]
+    player.hasPlayableSource = true
+    player.isFm = true
+    const trash = vi.spyOn(player, 'trashFm').mockResolvedValue(true)
+    const wrapper = mountBar()
+    await wrapper.get('[data-testid="fm-trash"]').trigger('click')
+    expect(trash).toHaveBeenCalledOnce()
   })
 
   it('skips from the bar when the queue has more than one song', async () => {

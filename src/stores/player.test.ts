@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
-import { getPersonalFm } from '@/api/fm'
+import { getPersonalFm, trashPersonalFm } from '@/api/fm'
 import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
 import type { AudioAdapter } from '@/audio/audioAdapter'
 import {
@@ -12,6 +12,7 @@ import {
 
 vi.mock('@/api/fm', () => ({
   getPersonalFm: vi.fn(),
+  trashPersonalFm: vi.fn(),
 }))
 vi.mock('@/api/song')
 
@@ -84,6 +85,8 @@ describe('Player store', () => {
     vi.mocked(getSimiSongs).mockRejectedValue(new Error('no similar'))
     vi.mocked(getPersonalFm).mockReset()
     vi.mocked(getPersonalFm).mockRejectedValue(new Error('no fm'))
+    vi.mocked(trashPersonalFm).mockReset()
+    vi.mocked(trashPersonalFm).mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -1148,6 +1151,171 @@ describe('Player store', () => {
     expect(player.isFm).toBe(true)
     player.clear()
     expect(player.isFm).toBe(false)
+  })
+
+  it('trashes the current FM song and plays the next queued song', async () => {
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm).mockResolvedValue([song(301), song(302)])
+    const player = usePlayerStore()
+    await player.startFm()
+
+    await expect(player.trashFm()).resolves.toBe(true)
+
+    expect(trashPersonalFm).toHaveBeenCalledWith(301)
+    expect(player.current?.id).toBe(302)
+    expect(player.queue.map((item) => item.id)).toEqual([302])
+    expect(player.isFm).toBe(true)
+    expect(getPersonalFm).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not trash when not in FM', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    await expect(player.trashFm()).resolves.toBe(false)
+    expect(trashPersonalFm).not.toHaveBeenCalled()
+    expect(player.current?.id).toBe(1)
+  })
+
+  it('keeps the current FM song when trash fails', async () => {
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm).mockResolvedValue([song(301), song(302)])
+    vi.mocked(trashPersonalFm).mockRejectedValueOnce(new Error('trash offline'))
+    const player = usePlayerStore()
+    await player.startFm()
+    await expect(player.trashFm()).rejects.toThrow('trash offline')
+    expect(player.current?.id).toBe(301)
+    expect(player.queue.map((item) => item.id)).toEqual([301, 302])
+    expect(player.isFm).toBe(true)
+    expect(player.error).toBe('trash offline')
+  })
+
+  it('fetches the next FM page after trashing the last song', async () => {
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm)
+      .mockResolvedValueOnce([song(301)])
+      .mockResolvedValueOnce([song(301), song(302)])
+    const player = usePlayerStore()
+    await player.startFm()
+
+    await expect(player.trashFm()).resolves.toBe(true)
+
+    expect(trashPersonalFm).toHaveBeenCalledWith(301)
+    expect(player.current?.id).toBe(302)
+    expect(player.queue.map((item) => item.id)).toEqual([302])
+    expect(player.isFm).toBe(true)
+    expect(getPersonalFm).toHaveBeenCalledTimes(2)
+  })
+
+  it('stops FM when trash empties the queue and the next page has no unique songs', async () => {
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm)
+      .mockResolvedValueOnce([song(301)])
+      .mockResolvedValueOnce([song(301)])
+    const player = usePlayerStore()
+    await player.startFm()
+    player.openQueue()
+
+    await expect(player.trashFm()).resolves.toBe(true)
+
+    expect(player.current).toBeNull()
+    expect(player.queue).toEqual([])
+    expect(player.isFm).toBe(false)
+    expect(player.isPlaying).toBe(false)
+    expect(player.showQueue).toBe(false)
+  })
+
+  it('does not steal playback when prev happens during trash', async () => {
+    const pendingTrash = deferred<void>()
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm)
+      .mockResolvedValueOnce([song(301), song(302)])
+      .mockResolvedValueOnce([song(303)])
+    vi.mocked(trashPersonalFm).mockReturnValueOnce(pendingTrash.promise)
+    const player = usePlayerStore()
+    await player.startFm()
+    await player.next()
+    expect(player.current?.id).toBe(302)
+    const trash = player.trashFm()
+    await player.prev()
+    expect(player.current?.id).toBe(301)
+    pendingTrash.resolve()
+    await expect(trash).resolves.toBe(true)
+    expect(player.current?.id).toBe(301)
+    expect(player.queue.map((item) => item.id)).toEqual([301, 303])
+    expect(player.isFm).toBe(true)
+  })
+
+  it('plays remaining FM history when trash of the last song gets no unique next page', async () => {
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm)
+      .mockResolvedValueOnce([song(301), song(302)])
+      .mockResolvedValueOnce([song(301), song(302)])
+    const player = usePlayerStore()
+    await player.startFm()
+    await player.next()
+    expect(player.current?.id).toBe(302)
+
+    await expect(player.trashFm()).resolves.toBe(true)
+
+    expect(player.current?.id).toBe(301)
+    expect(player.queue.map((item) => item.id)).toEqual([301])
+    expect(player.isFm).toBe(true)
+  })
+
+  it('still leaves a trashed last song after the next FM page fails', async () => {
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm)
+      .mockResolvedValueOnce([song(301), song(302)])
+      .mockRejectedValueOnce(new Error('fm offline'))
+    const player = usePlayerStore()
+    await player.startFm()
+    await player.next()
+
+    await expect(player.trashFm()).rejects.toThrow('fm offline')
+    expect(player.current?.id).toBe(301)
+    expect(player.queue.map((item) => item.id)).toEqual([301])
+    expect(player.isFm).toBe(true)
+    expect(player.error).toBe('fm offline')
+  })
+
+  it('does not resurrect FM after last-song trash races with ended', async () => {
+    const pendingTrashPage = deferred<ReturnType<typeof song>[]>()
+    const adapter = mockAdapter()
+    setAudioAdapter(adapter)
+    vi.mocked(getPersonalFm)
+      .mockResolvedValueOnce([song(301)])
+      .mockReturnValueOnce(pendingTrashPage.promise)
+      .mockResolvedValueOnce([song(303)])
+    const player = usePlayerStore()
+    await player.startFm()
+    const trash = player.trashFm()
+    adapter.listeners.get('ended')!()
+    await flushPromises()
+    pendingTrashPage.resolve([song(301)])
+    await expect(trash).resolves.toBe(true)
+    expect(player.current).toBeNull()
+    expect(player.isFm).toBe(false)
+    expect(player.queue).toEqual([])
+  })
+
+  it('cancels an in-flight FM next-page fetch when trashing', async () => {
+    const pending = deferred<ReturnType<typeof song>[]>()
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getPersonalFm)
+      .mockResolvedValueOnce([song(301)])
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce([song(303)])
+    const player = usePlayerStore()
+    await player.startFm()
+    const more = player.next()
+    const trash = player.trashFm()
+    pending.resolve([song(302)])
+    await expect(more).resolves.toBe(false)
+    await expect(trash).resolves.toBe(true)
+    expect(player.current?.id).toBe(303)
+    expect(player.queue.map((item) => item.id)).toEqual([303])
+    expect(player.isFm).toBe(true)
   })
 })
 

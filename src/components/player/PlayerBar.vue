@@ -24,6 +24,7 @@ const {
   muted,
   canSkipNext,
   canSkipPrev,
+  isFm,
   loopMode,
   queue,
   showQueue,
@@ -79,6 +80,14 @@ async function skipPrev() {
     await player.prev()
   } catch {
     // The store records the skip error for the bar.
+  }
+}
+
+async function trashCurrent() {
+  try {
+    await player.trashFm()
+  } catch {
+    // The store records the trash error for the bar.
   }
 }
 
@@ -261,6 +270,17 @@ onUnmounted(() => {
           @click="skipNext"
         >
           下一首
+        </button>
+        <button
+          v-if="isFm"
+          type="button"
+          class="skip"
+          data-testid="fm-trash"
+          aria-label="不喜欢"
+          :disabled="loading"
+          @click="trashCurrent"
+        >
+          不喜欢
         </button>
       </div>
       <div class="player-progress">
