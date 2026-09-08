@@ -61,6 +61,9 @@ describe('AppShell', () => {
     const mv = await mountShell(Pages.mvDetail)
     expect(mv.get('[aria-current="page"]').text()).toBe('推荐')
 
+    const fm = await mountShell(Pages.fm)
+    expect(fm.get('[aria-current="page"]').text()).toBe('推荐')
+
     const search = await mountShell(Pages.search)
     expect(search.get('[aria-current="page"]').text()).toBe('搜索')
   })

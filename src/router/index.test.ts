@@ -132,6 +132,14 @@ describe('router contract', () => {
     expect(route.meta.title).toBe('API 状态')
   })
 
+  it('defines the personal FM hash route', () => {
+    const router = createAppRouter(createMemoryHistory())
+    const route = router.resolve({ name: Pages.fm })
+    expect(route.path).toBe('/fm')
+    expect(route.meta.title).toBe('私人 FM')
+    expect(route.meta.menu).toBe('discover')
+  })
+
   it('defines the search route and keyword query', () => {
     const router = createAppRouter(createMemoryHistory())
     const route = router.resolve({ name: Pages.search, query: { q: '深夜' } })

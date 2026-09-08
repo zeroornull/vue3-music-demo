@@ -189,6 +189,16 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/fm',
+    name: Pages.fm,
+    component: () => import('@/views/FmView.vue'),
+    meta: {
+      menu: 'discover',
+      requiresApiHost: true,
+      title: '私人 FM',
+    },
+  },
+  {
     path: '/mvDetail',
     name: Pages.mvDetail,
     component: () => import('@/views/MvView.vue'),

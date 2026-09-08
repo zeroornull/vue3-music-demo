@@ -4,6 +4,7 @@ export const Pages = {
   artistDetail: 'artistDetail',
   category: 'category',
   discover: 'discover',
+  fm: 'fm',
   dj: 'dj',
   djHall: 'djHall',
   djRadio: 'djRadio',
