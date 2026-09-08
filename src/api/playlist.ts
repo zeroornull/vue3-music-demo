@@ -119,3 +119,21 @@ export async function getRelatedPlaylists(
     .map(readRelatedPlaylist)
     .filter((item): item is RelatedPlaylist => item !== null)
 }
+
+export const SIMI_PLAYLIST_LIMIT = 10
+
+export async function getSimiPlaylists(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<RelatedPlaylist[]> {
+  const response = await client.get<{ playlists?: unknown }>('/simi/playlist', {
+    id,
+  })
+  if (!Array.isArray(response.playlists)) {
+    throw new Error('相似歌单响应格式不正确')
+  }
+  return response.playlists
+    .map(readRelatedPlaylist)
+    .filter((item): item is RelatedPlaylist => item !== null)
+    .slice(0, SIMI_PLAYLIST_LIMIT)
+}

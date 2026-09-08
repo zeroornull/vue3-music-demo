@@ -382,4 +382,52 @@ describe('PlayerQueueDrawer', () => {
     expect(document.querySelector('[data-testid="related-songs"]')).toBeNull()
     wrapper.unmount()
   })
+
+  it('renders similar playlists without blocking the queue', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [{ id: 401, name: '林间电台' }] }
+    player.queue = [player.current]
+    player.relatedPlaylists = [
+      {
+        coverImgUrl: 'https://images.example.com/simi.jpg',
+        creator: { nickname: '海岸信号' },
+        id: 202,
+        name: '潮汐歌单',
+        playCount: 12_000,
+      },
+    ]
+    player.openQueue()
+    const play = vi.spyOn(player, 'play').mockResolvedValue(true)
+    const wrapper = mountDrawer()
+
+    expect(bodyEl('[data-testid="player-queue"]').textContent).toContain('晚风')
+    const related = bodyEl('[data-testid="related-playlists"]')
+    expect(related.textContent).toContain('潮汐歌单')
+    const link = wrapper
+      .findAllComponents({ name: 'RouterLink' })
+      .find((item) => item.attributes('data-testid') === 'related-playlist')
+    expect(link?.props('to')).toEqual({
+      name: Pages.playlist,
+      query: { id: 202 },
+    })
+    expect(link?.attributes('aria-label')).toBe('打开歌单：潮汐歌单')
+    document.querySelector('[data-testid="related-playlist"]')?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    )
+    await flushPromises()
+    expect(play).not.toHaveBeenCalled()
+    expect(player.showQueue).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('hides similar playlists when the list is empty', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.queue = [player.current]
+    player.relatedPlaylists = []
+    player.openQueue()
+    const wrapper = mountDrawer()
+    expect(document.querySelector('[data-testid="related-playlists"]')).toBeNull()
+    wrapper.unmount()
+  })
 })

@@ -8,7 +8,8 @@ import { usePlayerStore } from '@/stores/player'
 import { formatDuration } from '@/utils/number'
 
 const player = usePlayerStore()
-const { current, queue, relatedSongs, showQueue } = storeToRefs(player)
+const { current, queue, relatedPlaylists, relatedSongs, showQueue } =
+  storeToRefs(player)
 
 function namedArtists(song: Song) {
   return song.artists.filter((artist) => artist.name.trim())
@@ -200,6 +201,26 @@ onUnmounted(() => {
           </li>
         </ul>
       </section>
+      <section
+        v-if="relatedPlaylists?.length"
+        class="related-playlists"
+        data-testid="related-playlists"
+        aria-labelledby="related-playlists-title"
+      >
+        <h3 id="related-playlists-title">相似歌单</h3>
+        <ul class="related-list">
+          <li v-for="item in relatedPlaylists" :key="item.id">
+            <RouterLink
+              data-testid="related-playlist"
+              :to="{ name: Pages.playlist, query: { id: item.id } }"
+              :aria-label="`打开歌单：${item.name}`"
+              @click="player.closeQueue()"
+            >
+              {{ item.name }}
+            </RouterLink>
+          </li>
+        </ul>
+      </section>
     </aside>
     </div>
   </Teleport>
@@ -292,14 +313,16 @@ onUnmounted(() => {
   list-style: none;
 }
 
-.related-songs {
+.related-songs,
+.related-playlists {
   flex-shrink: 0;
   min-width: 0;
   padding: 12px 16px 20px;
   border-top: 1px solid var(--color-border);
 }
 
-.related-songs h3 {
+.related-songs h3,
+.related-playlists h3 {
   margin: 0 0 8px;
   font-size: 0.92rem;
 }
@@ -310,6 +333,7 @@ onUnmounted(() => {
   list-style: none;
 }
 
+.related-list a,
 .related-list button {
   display: block;
   width: 100%;
@@ -322,10 +346,12 @@ onUnmounted(() => {
   cursor: pointer;
   font-weight: 650;
   text-align: left;
+  text-decoration: none;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.related-list a:focus-visible,
 .related-list button:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;

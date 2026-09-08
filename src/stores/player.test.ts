@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
 import { getSongComments } from '@/api/comment'
 import { getPersonalFm, trashPersonalFm } from '@/api/fm'
+import { getSimiPlaylists } from '@/api/playlist'
 import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
 import type { AudioAdapter } from '@/audio/audioAdapter'
 import {
@@ -17,6 +18,9 @@ vi.mock('@/api/comment', () => ({
 vi.mock('@/api/fm', () => ({
   getPersonalFm: vi.fn(),
   trashPersonalFm: vi.fn(),
+}))
+vi.mock('@/api/playlist', () => ({
+  getSimiPlaylists: vi.fn(),
 }))
 vi.mock('@/api/song')
 
@@ -87,6 +91,8 @@ describe('Player store', () => {
     vi.mocked(getSongDetail).mockImplementation(async (id) => song(id))
     vi.mocked(getSongUrl).mockResolvedValue({ id: 1, url: 'x' })
     vi.mocked(getSimiSongs).mockRejectedValue(new Error('no similar'))
+    vi.mocked(getSimiPlaylists).mockReset()
+    vi.mocked(getSimiPlaylists).mockRejectedValue(new Error('no playlists'))
     vi.mocked(getSongComments).mockReset()
     vi.mocked(getSongComments).mockRejectedValue(new Error('no comments'))
     vi.mocked(getPersonalFm).mockReset()
@@ -807,6 +813,7 @@ describe('Player store', () => {
     expect(player.showQueue).toBe(false)
     expect(player.queue).toHaveLength(0)
     expect(player.relatedSongs).toBeNull()
+    expect(player.relatedPlaylists).toBeNull()
     expect(player.comments).toBeNull()
   })
 
@@ -902,6 +909,114 @@ describe('Player store', () => {
     expect(player.relatedSongs).toEqual([similar])
     expect(player.current?.id).toBe(1)
     expect(player.isPlaying).toBe(false)
+  })
+
+  const similarPlaylist = {
+    coverImgUrl: 'https://images.example.com/simi.jpg',
+    creator: { nickname: '海岸信号' },
+    id: 202,
+    name: '潮汐歌单',
+    playCount: 12_000,
+  }
+
+  it('loads similar playlists with playback and does not refetch on cache', async () => {
+    vi.mocked(getSimiPlaylists).mockResolvedValue([similarPlaylist])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await flushPromises()
+    await player.play(song(1))
+    await flushPromises()
+
+    expect(player.relatedPlaylists).toEqual([similarPlaylist])
+    expect(player.current).toEqual(song(1))
+    expect(player.isPlaying).toBe(true)
+    expect(getSimiPlaylists).toHaveBeenCalledTimes(1)
+    expect(getSimiPlaylists).toHaveBeenCalledWith(1)
+  })
+
+  it('keeps playback when similar playlists fail', async () => {
+    vi.mocked(getSimiPlaylists).mockRejectedValue(new Error('playlists offline'))
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await flushPromises()
+
+    expect(player.current).toEqual(song(1))
+    expect(player.relatedPlaylists).toBeNull()
+    expect(player.error).toBeNull()
+    expect(player.isPlaying).toBe(true)
+  })
+
+  it('retries similar playlists on a cached current when the first request failed', async () => {
+    vi.mocked(getSimiPlaylists)
+      .mockRejectedValueOnce(new Error('playlists offline'))
+      .mockResolvedValueOnce([similarPlaylist])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await flushPromises()
+    expect(player.relatedPlaylists).toBeNull()
+
+    await player.play(song(1))
+    await flushPromises()
+
+    expect(getSongUrl).toHaveBeenCalledTimes(2)
+    expect(getSimiPlaylists).toHaveBeenCalledTimes(2)
+    expect(player.relatedPlaylists).toEqual([similarPlaylist])
+  })
+
+  it('does not keep stale similar playlists after the current song changes', async () => {
+    const first = deferred<typeof similarPlaylist[]>()
+    const nextPlaylist = { ...similarPlaylist, id: 203, name: '下一张歌单' }
+    vi.mocked(getSimiPlaylists)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce([nextPlaylist])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await player.play(song(2))
+    await flushPromises()
+    first.resolve([similarPlaylist])
+    await flushPromises()
+
+    expect(player.current?.id).toBe(2)
+    expect(player.relatedPlaylists).toEqual([nextPlaylist])
+    expect(getSimiPlaylists).toHaveBeenLastCalledWith(2)
+  })
+
+  it('does not drop in-flight similar playlists when pausing', async () => {
+    const first = deferred<typeof similarPlaylist[]>()
+    vi.mocked(getSimiPlaylists).mockReturnValueOnce(first.promise)
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    player.pause()
+    first.resolve([similarPlaylist])
+    await flushPromises()
+
+    expect(player.relatedPlaylists).toEqual([similarPlaylist])
+    expect(player.current?.id).toBe(1)
+    expect(player.isPlaying).toBe(false)
+  })
+
+  it('treats an empty similar playlist list as loaded and does not retry', async () => {
+    vi.mocked(getSimiPlaylists).mockResolvedValue([])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+
+    await player.play(song(1))
+    await flushPromises()
+    await player.play(song(1))
+    await flushPromises()
+
+    expect(player.relatedPlaylists).toEqual([])
+    expect(getSimiPlaylists).toHaveBeenCalledTimes(1)
   })
 
   const comment = {
@@ -1073,6 +1188,15 @@ describe('Player store', () => {
     const player = usePlayerStore()
     await player.play(song(1))
     player.relatedSongs = [song(302)]
+    player.relatedPlaylists = [
+      {
+        coverImgUrl: 'https://images.example.com/simi.jpg',
+        creator: { nickname: '海岸信号' },
+        id: 202,
+        name: '潮汐歌单',
+        playCount: 12_000,
+      },
+    ]
     player.comments = [
       { commentId: 1, content: '走过林间。', nickname: '林间电台' },
     ]
@@ -1090,6 +1214,7 @@ describe('Player store', () => {
     expect(player.loading).toBe(false)
     expect(player.error).toBeNull()
     expect(player.relatedSongs).toBeNull()
+    expect(player.relatedPlaylists).toBeNull()
     expect(player.comments).toBeNull()
     expect(player.showQueue).toBe(false)
     expect(player.volume).toBe(0.4)
@@ -1334,6 +1459,15 @@ describe('Player store', () => {
     player.comments = [
       { commentId: 1, content: '走过林间。', nickname: '林间电台' },
     ]
+    player.relatedPlaylists = [
+      {
+        coverImgUrl: 'https://images.example.com/simi.jpg',
+        creator: { nickname: '海岸信号' },
+        id: 202,
+        name: '潮汐歌单',
+        playCount: 12_000,
+      },
+    ]
     player.openQueue()
 
     await expect(player.trashFm()).resolves.toBe(true)
@@ -1344,6 +1478,7 @@ describe('Player store', () => {
     expect(player.isPlaying).toBe(false)
     expect(player.showQueue).toBe(false)
     expect(player.comments).toBeNull()
+    expect(player.relatedPlaylists).toBeNull()
   })
 
   it('does not steal playback when prev happens during trash', async () => {

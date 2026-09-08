@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { getPlaylistDetail, getPlaylistTracks, getRelatedPlaylists } from '@/api/playlist'
+import {
+  getPlaylistDetail,
+  getPlaylistTracks,
+  getRelatedPlaylists,
+  getSimiPlaylists,
+  SIMI_PLAYLIST_LIMIT,
+} from '@/api/playlist'
 
 const client = (response: unknown) => {
   const get = vi.fn(
@@ -163,5 +169,63 @@ describe('Related playlist API', () => {
     await expect(
       getRelatedPlaylists(101, client({ playlists: null }).client),
     ).rejects.toThrow('相关歌单响应格式不正确')
+  })
+})
+
+describe('Similar playlist API', () => {
+  it('unwraps /simi/playlist covers and creators', async () => {
+    const request = client({
+      playlists: [
+        {
+          coverImgUrl: 'https://images.example.com/simi.jpg',
+          creator: { extra: true, nickname: '海岸信号', userId: 402 },
+          extra: true,
+          id: 202,
+          name: '潮汐歌单',
+          playCount: 12_000,
+        },
+        {
+          id: 0,
+          name: '无效',
+        },
+        {
+          picUrl: 'https://images.example.com/pic.jpg',
+          creator: { nickname: '  林间电台  ' },
+          id: 203,
+          name: '  夜航精选  ',
+        },
+      ],
+    })
+
+    await expect(getSimiPlaylists(301, request.client)).resolves.toEqual([
+      {
+        coverImgUrl: 'https://images.example.com/simi.jpg',
+        creator: { nickname: '海岸信号' },
+        id: 202,
+        name: '潮汐歌单',
+        playCount: 12_000,
+      },
+      {
+        coverImgUrl: 'https://images.example.com/pic.jpg',
+        creator: { nickname: '林间电台' },
+        id: 203,
+        name: '夜航精选',
+        playCount: 0,
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/simi/playlist', { id: 301 })
+  })
+
+  it('rejects a missing playlists array and slices the list', async () => {
+    await expect(
+      getSimiPlaylists(301, client({ playlists: null }).client),
+    ).rejects.toThrow('相似歌单响应格式不正确')
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `相似歌单 ${index + 1}`,
+    }))
+    await expect(
+      getSimiPlaylists(301, client({ playlists: many }).client),
+    ).resolves.toHaveLength(SIMI_PLAYLIST_LIMIT)
   })
 })

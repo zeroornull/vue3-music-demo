@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
 import { getSongComments } from '@/api/comment'
 import { getPersonalFm, trashPersonalFm } from '@/api/fm'
+import { getSimiPlaylists } from '@/api/playlist'
 import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
 import { createAudioAdapter, type AudioAdapter } from '@/audio/audioAdapter'
 import { readPlayerVolume, savePlayerVolume } from '@/config/playerVolume'
 import type { MediaComment } from '@/models/comment'
+import type { RelatedPlaylist } from '@/models/playlist'
 import type { Song } from '@/models/song'
 
 export type LoopMode = 'one' | 'list' | 'shuffle'
@@ -114,6 +116,7 @@ export const usePlayerStore = defineStore('player', {
     loopMode: 'one' as LoopMode,
     showQueue: false,
     relatedSongs: null as Song[] | null,
+    relatedPlaylists: null as RelatedPlaylist[] | null,
     comments: null as MediaComment[] | null,
     isFm: false,
   }),
@@ -164,10 +167,12 @@ export const usePlayerStore = defineStore('player', {
           this.queue.push(song)
         if (this.current?.id !== song.id) {
           this.relatedSongs = null
+          this.relatedPlaylists = null
           this.comments = null
         }
         this.current = song
         if (this.relatedSongs === null) this.requestRelated(song.id)
+        if (this.relatedPlaylists === null) this.requestSimiPlaylists(song.id)
         if (this.comments === null) this.requestComments(song.id)
         const url = await getSongUrl(song.id)
         if (serial !== requestSerial) return false
@@ -317,6 +322,7 @@ export const usePlayerStore = defineStore('player', {
         this.currentTime = 0
         this.duration = 0
         this.relatedSongs = null
+        this.relatedPlaylists = null
         this.comments = null
         this.showQueue = false
         this.isFm = false
@@ -495,6 +501,20 @@ export const usePlayerStore = defineStore('player', {
         })
         .catch(() => undefined)
     },
+    requestSimiPlaylists(songId: number) {
+      if (!Number.isInteger(songId) || songId <= 0) {
+        this.relatedPlaylists = []
+        return
+      }
+      void Promise.resolve(getSimiPlaylists(songId))
+        .then((list) => {
+          if (this.current?.id !== songId) return
+          this.relatedPlaylists = list.filter(
+            (item) => Number.isInteger(item.id) && item.id > 0,
+          )
+        })
+        .catch(() => undefined)
+    },
     requestComments(songId: number) {
       if (!Number.isInteger(songId) || songId <= 0) {
         this.comments = []
@@ -529,6 +549,7 @@ export const usePlayerStore = defineStore('player', {
         this.currentTime = 0
         this.duration = 0
         this.relatedSongs = null
+        this.relatedPlaylists = null
         this.comments = null
         this.showQueue = false
         this.isFm = false
@@ -579,6 +600,7 @@ export const usePlayerStore = defineStore('player', {
       this.loopMode = 'one'
       this.showQueue = false
       this.relatedSongs = null
+      this.relatedPlaylists = null
       this.comments = null
       this.isFm = false
       fmSerial++

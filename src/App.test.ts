@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App from '@/App.vue'
 import { getSongComments } from '@/api/comment'
+import { getSimiPlaylists } from '@/api/playlist'
 import { getSongUrl } from '@/api/song'
 import { setAudioAdapter, usePlayerStore } from '@/stores/player'
 import { useAlbumStore } from '@/stores/album'
@@ -28,6 +29,9 @@ import { useHostStore } from '@/stores/host'
 
 vi.mock('@/api/comment', () => ({
   getSongComments: vi.fn(),
+}))
+vi.mock('@/api/playlist', () => ({
+  getSimiPlaylists: vi.fn(),
 }))
 vi.mock('@/api/song', () => ({
   getSongDetail: vi.fn(),
@@ -63,6 +67,8 @@ describe('App host gate', () => {
     vi.mocked(getSongUrl).mockReset()
     vi.mocked(getSongComments).mockReset()
     vi.mocked(getSongComments).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getSimiPlaylists).mockReset()
+    vi.mocked(getSimiPlaylists).mockRejectedValue(new Error('no playlists'))
   })
 
   it('applies a stored dark theme on the host form', () => {
@@ -557,6 +563,15 @@ describe('App host gate', () => {
     player.muted = true
     player.showQueue = true
     player.relatedSongs = [{ id: 302, name: '潮汐回声', artists: [] }]
+    player.relatedPlaylists = [
+      {
+        coverImgUrl: 'https://images.example.com/simi.jpg',
+        creator: { nickname: '海岸信号' },
+        id: 202,
+        name: '潮汐歌单',
+        playCount: 12_000,
+      },
+    ]
     player.comments = [
       { commentId: 1, content: '走过林间。', nickname: '林间电台' },
     ]
@@ -572,6 +587,7 @@ describe('App host gate', () => {
 
     expect(pause).toHaveBeenCalledOnce()
     expect(player.relatedSongs).toBeNull()
+    expect(player.relatedPlaylists).toBeNull()
     expect(player.comments).toBeNull()
     expect(adapter.src).toBe('')
     expect(player.current).toBeNull()
