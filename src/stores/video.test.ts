@@ -1,13 +1,14 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getPersonalizedMvs } from '@/api/mv'
+import { getPersonalizedMvs, getTopMvs } from '@/api/mv'
 import { getPrivateContents } from '@/api/privateContent'
 import { getHallVideos, getVideoGroups } from '@/api/video'
 import { useVideoStore } from '@/stores/video'
 
 vi.mock('@/api/mv', () => ({
   getPersonalizedMvs: vi.fn(),
+  getTopMvs: vi.fn(),
 }))
 
 vi.mock('@/api/privateContent', () => ({
@@ -62,6 +63,7 @@ describe('video store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.mocked(getPersonalizedMvs).mockReset()
+    vi.mocked(getTopMvs).mockReset()
     vi.mocked(getPrivateContents).mockReset()
     vi.mocked(getVideoGroups).mockReset()
     vi.mocked(getHallVideos).mockReset()
@@ -136,6 +138,74 @@ describe('video store', () => {
 
     expect(store.mvs).toEqual([])
     expect(store.mvsLoading).toBe(false)
+  })
+
+  const ranked = {
+    artistId: 402,
+    artistName: '海岸信号',
+    artists: [{ id: 402, name: '海岸信号' }],
+    duration: 180_000,
+    id: 702,
+    name: '潮汐回声',
+    picUrl: 'https://images.example.com/top.jpg',
+    playCount: 12_000,
+  }
+
+  it('loads MV ranking independently of recommended MVs', async () => {
+    vi.mocked(getTopMvs).mockResolvedValue([ranked])
+    vi.mocked(getPersonalizedMvs).mockResolvedValue([mv])
+    const store = useVideoStore()
+
+    await store.loadTopMvs()
+    await store.loadTopMvs()
+    await store.loadMvs()
+
+    expect(store.topMvs).toEqual([ranked])
+    expect(getTopMvs).toHaveBeenCalledTimes(1)
+    expect(store.topMvsError).toBeNull()
+    expect(store.mvs).toEqual([mv])
+  })
+
+  it('keeps recommended MVs when ranking fails', async () => {
+    vi.mocked(getPersonalizedMvs).mockResolvedValue([mv])
+    vi.mocked(getTopMvs).mockRejectedValue(new Error('toplist offline'))
+    const store = useVideoStore()
+
+    await store.loadMvs()
+    await expect(store.loadTopMvs()).rejects.toThrow('toplist offline')
+
+    expect(store.mvs).toEqual([mv])
+    expect(store.topMvs).toEqual([])
+    expect(store.topMvsError).toBe('toplist offline')
+    expect(store.topMvsLoading).toBe(false)
+  })
+
+  it('does not drop in-flight ranking when recommended MVs load', async () => {
+    const pendingRanked = deferred<typeof ranked[]>()
+    vi.mocked(getTopMvs).mockReturnValueOnce(pendingRanked.promise)
+    vi.mocked(getPersonalizedMvs).mockResolvedValue([mv])
+    const store = useVideoStore()
+    const pending = store.loadTopMvs()
+    await store.loadMvs()
+    pendingRanked.resolve([ranked])
+    await pending
+
+    expect(store.mvs).toEqual([mv])
+    expect(store.topMvs).toEqual([ranked])
+    expect(store.topMvsError).toBeNull()
+  })
+
+  it('drops in-flight MV ranking after reset', async () => {
+    const pendingRanked = deferred<typeof ranked[]>()
+    vi.mocked(getTopMvs).mockReturnValueOnce(pendingRanked.promise)
+    const store = useVideoStore()
+    const pending = store.loadTopMvs()
+    store.reset()
+    pendingRanked.resolve([ranked])
+    await pending
+
+    expect(store.topMvs).toEqual([])
+    expect(store.topMvsLoading).toBe(false)
   })
 
   it('drops in-flight exclusive videos after reset', async () => {

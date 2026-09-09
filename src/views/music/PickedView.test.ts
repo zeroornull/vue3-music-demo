@@ -32,10 +32,21 @@ const DjStub = defineComponent({
 
 const MvStub = defineComponent({
   name: 'MvSection',
-  props: ['error', 'loading', 'mvs'],
+  props: ['emptyTitle', 'error', 'errorTitle', 'limit', 'loading', 'mvs', 'testid', 'title'],
   emits: ['retry'],
-  template:
-    '<section data-testid="picked-mvs"><span>{{ mvs.length }}</span><button data-testid="mv-retry" @click="$emit(\'retry\')" /></section>',
+  template: `
+    <section :data-testid="testid === 'mv-toplist' ? 'picked-top-mvs' : 'picked-mvs'">
+      <h2>{{ title || '推荐 MV' }}</h2>
+      <span>{{ mvs.length }}</span>
+      <span v-if="limit != null" data-testid="mv-limit">{{ limit }}</span>
+      <span v-if="emptyTitle" data-testid="mv-empty-title">{{ emptyTitle }}</span>
+      <span v-if="errorTitle" data-testid="mv-error-title">{{ errorTitle }}</span>
+      <button
+        :data-testid="testid === 'mv-toplist' ? 'mv-toplist-retry' : 'mv-retry'"
+        @click="$emit('retry')"
+      />
+    </section>
+  `,
 })
 
 const mv = {
@@ -98,14 +109,26 @@ describe('PickedView', () => {
     expect(wrapper.get('[data-testid="picked-private"]').text()).toContain('1')
     expect(wrapper.get('[data-testid="picked-dj"]').text()).toContain('推荐电台')
     expect(wrapper.get('[data-testid="picked-mvs"]').text()).toContain('1')
+    expect(wrapper.get('[data-testid="picked-top-mvs"] h2').text()).toBe('MV 排行')
+    expect(wrapper.get('[data-testid="picked-top-mvs"] [data-testid="mv-limit"]').text()).toBe(
+      '10',
+    )
+    expect(wrapper.get('[data-testid="picked-top-mvs"] [data-testid="mv-empty-title"]').text()).toBe(
+      '暂无 MV 排行',
+    )
+    expect(wrapper.get('[data-testid="picked-top-mvs"] [data-testid="mv-error-title"]').text()).toBe(
+      'MV 排行加载失败',
+    )
 
     await wrapper.get('[data-testid="banner-retry"]').trigger('click')
     await wrapper.get('[data-testid="private-retry"]').trigger('click')
     await wrapper.get('[data-testid="dj-retry"]').trigger('click')
     await wrapper.get('[data-testid="mv-retry"]').trigger('click')
+    await wrapper.get('[data-testid="mv-toplist-retry"]').trigger('click')
     expect(wrapper.emitted('retry-banners')).toHaveLength(1)
     expect(wrapper.emitted('retry-private')).toHaveLength(1)
     expect(wrapper.emitted('retry-dj')).toHaveLength(1)
     expect(wrapper.emitted('retry-mvs')).toHaveLength(1)
+    expect(wrapper.emitted('retry-top-mvs')).toHaveLength(1)
   })
 })

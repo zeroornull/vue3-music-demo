@@ -5,7 +5,7 @@ import DjProgramSection from '@/components/music/DjProgramSection.vue'
 import PrivateContentSection from '@/components/music/PrivateContentSection.vue'
 import type { Banner } from '@/models/banner'
 import type { DjProgram } from '@/models/dj'
-import type { PersonalizedMv } from '@/models/mv'
+import type { PersonalizedMv, SimiMv } from '@/models/mv'
 import type { PrivateContent } from '@/models/privateContent'
 
 withDefaults(
@@ -19,6 +19,9 @@ withDefaults(
     mvs: PersonalizedMv[]
     mvsError?: string | null
     mvsLoading?: boolean
+    topMvs?: SimiMv[]
+    topMvsError?: string | null
+    topMvsLoading?: boolean
     privateContents: PrivateContent[]
     privateError?: string | null
     privateLoading?: boolean
@@ -30,6 +33,9 @@ withDefaults(
     djLoading: false,
     mvsError: null,
     mvsLoading: false,
+    topMvs: () => [],
+    topMvsError: null,
+    topMvsLoading: false,
     privateError: null,
     privateLoading: false,
   },
@@ -39,6 +45,7 @@ defineEmits<{
   'retry-banners': []
   'retry-dj': []
   'retry-mvs': []
+  'retry-top-mvs': []
   'retry-private': []
   'select-banner': [banner: Banner]
 }>()
@@ -70,6 +77,17 @@ defineEmits<{
       :loading="mvsLoading"
       :mvs="mvs"
       @retry="$emit('retry-mvs')"
+    />
+    <MvSection
+      empty-title="暂无 MV 排行"
+      error-title="MV 排行加载失败"
+      :limit="10"
+      testid="mv-toplist"
+      title="MV 排行"
+      :error="topMvsError"
+      :loading="topMvsLoading"
+      :mvs="topMvs"
+      @retry="$emit('retry-top-mvs')"
     />
   </div>
 </template>

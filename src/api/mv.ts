@@ -137,3 +137,20 @@ export async function getSimiMvs(
     .map(readSimiMv)
     .filter((item): item is SimiMv => item !== null)
 }
+
+export const TOP_MV_LIMIT = 10
+
+export async function getTopMvs(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SimiMv[]> {
+  const response = await client.get<{ data?: unknown }>('/top/mv', {
+    limit: TOP_MV_LIMIT,
+  })
+  if (!Array.isArray(response.data)) {
+    throw new Error('MV 排行响应格式不正确')
+  }
+  return response.data
+    .map(readSimiMv)
+    .filter((item): item is SimiMv => item !== null)
+    .slice(0, TOP_MV_LIMIT)
+}

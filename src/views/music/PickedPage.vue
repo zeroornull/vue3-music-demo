@@ -21,6 +21,9 @@ const {
   mvs,
   mvsError,
   mvsLoading,
+  topMvs,
+  topMvsError,
+  topMvsLoading,
   privateContents,
   privateContentsError,
   privateContentsLoading,
@@ -39,6 +42,10 @@ function requestPrivateContents(force = false) {
 
 function requestMvs(force = false) {
   void videoStore.loadMvs(force).catch(() => undefined)
+}
+
+function requestTopMvs(force = false) {
+  void videoStore.loadTopMvs(force).catch(() => undefined)
 }
 
 function requestDjPrograms(force = false) {
@@ -75,6 +82,7 @@ onMounted(() => {
   requestPrivateContents()
   requestDjPrograms()
   requestMvs()
+  requestTopMvs()
 })
 </script>
 
@@ -91,12 +99,16 @@ onMounted(() => {
       :mvs="mvs"
       :mvs-error="mvsError"
       :mvs-loading="mvsLoading"
+      :top-mvs="topMvs"
+      :top-mvs-error="topMvsError"
+      :top-mvs-loading="topMvsLoading"
       :private-contents="privateContents"
       :private-error="privateContentsError"
       :private-loading="privateContentsLoading"
       @retry-banners="requestBanners(true)"
       @retry-dj="requestDjPrograms(true)"
       @retry-mvs="requestMvs(true)"
+      @retry-top-mvs="requestTopMvs(true)"
       @retry-private="requestPrivateContents(true)"
       @select-banner="selectBanner"
     />

@@ -226,6 +226,18 @@ describe('App host gate', () => {
         type: 1,
       },
     ]
+    videoStore.topMvs = [
+      {
+        artistId: 402,
+        artistName: '海岸信号',
+        artists: [{ id: 402, name: '海岸信号' }],
+        duration: 180_000,
+        id: 702,
+        name: '潮汐回声',
+        picUrl: 'https://images.example.com/top.jpg',
+        playCount: 12_000,
+      },
+    ]
     mountApp()
 
     useHostStore().clearHost()
@@ -233,6 +245,7 @@ describe('App host gate', () => {
 
     expect(videoStore.privateContents).toEqual([])
     expect(videoStore.mvs).toEqual([])
+    expect(videoStore.topMvs).toEqual([])
   })
 
   it('clears video hall cache when the host gate closes', async () => {

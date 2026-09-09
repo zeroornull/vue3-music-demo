@@ -2,44 +2,68 @@
 import { computed } from 'vue'
 
 import MvCard from '@/components/discover/MvCard.vue'
-import type { PersonalizedMv } from '@/models/mv'
+import type { SimiMv } from '@/models/mv'
 
 const props = withDefaults(
   defineProps<{
+    emptyTitle?: string
     error?: string | null
+    errorTitle?: string
+    limit?: number
     loading?: boolean
-    mvs: PersonalizedMv[]
+    mvs: SimiMv[]
+    testid?: string
+    title?: string
   }>(),
-  { error: null, loading: false },
+  {
+    emptyTitle: '暂无推荐 MV',
+    error: null,
+    errorTitle: '推荐 MV 加载失败',
+    limit: 8,
+    loading: false,
+    testid: 'mv',
+    title: '推荐 MV',
+  },
 )
 
 const emit = defineEmits<{ retry: [] }>()
-const visibleMvs = computed(() => props.mvs.slice(0, 8))
+const visibleMvs = computed(() => props.mvs.slice(0, props.limit))
 </script>
 
 <template>
-  <section class="mv-section" aria-labelledby="mv-title">
+  <section class="mv-section" :aria-labelledby="`${testid}-title`">
     <div class="section-heading">
       <div>
         <p class="eyebrow">Music videos</p>
-        <h2 id="mv-title">推荐 MV</h2>
+        <h2 :id="`${testid}-title`">{{ title }}</h2>
       </div>
       <p>点击封面即可打开 MV 并播放</p>
     </div>
 
-    <div v-if="loading" class="mv-grid" data-testid="mv-loading" aria-busy="true" aria-label="正在加载推荐 MV">
-      <div v-for="index in 4" :key="index" class="mv-skeleton" data-testid="mv-skeleton">
+    <div
+      v-if="loading"
+      class="mv-grid"
+      :data-testid="`${testid}-loading`"
+      aria-busy="true"
+      :aria-label="`正在加载${title}`"
+    >
+      <div
+        v-for="index in 4"
+        :key="index"
+        class="mv-skeleton"
+        :data-testid="`${testid}-skeleton`"
+      >
         <div /><span /><span />
       </div>
     </div>
 
     <div v-else-if="error" class="state-card error-state" role="alert">
-      <div><strong>推荐 MV 加载失败</strong><p>{{ error }}</p></div>
-      <button type="button" data-testid="mv-retry" @click="emit('retry')">重新加载</button>
+      <div><strong>{{ errorTitle }}</strong><p>{{ error }}</p></div>
+      <button type="button" :data-testid="`${testid}-retry`" @click="emit('retry')">重新加载</button>
     </div>
 
-    <div v-else-if="!visibleMvs.length" class="state-card" data-testid="mv-empty">
-      <div><strong>暂无推荐 MV</strong><p>API 已连接，但本次没有返回 MV 推荐。</p></div>
+    <div v-else-if="!visibleMvs.length" class="state-card" :data-testid="`${testid}-empty`">
+      <div><strong>{{ emptyTitle }}</strong><p>API 已连接，但本次没有返回 MV 推荐。</p></div>
     </div>
 
     <div v-else class="mv-grid">

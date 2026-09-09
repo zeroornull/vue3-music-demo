@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { getMvDetail, getMvUrl, getPersonalizedMvs, getSimiMvs } from '@/api/mv'
+import {
+  getMvDetail,
+  getMvUrl,
+  getPersonalizedMvs,
+  getSimiMvs,
+  getTopMvs,
+  TOP_MV_LIMIT,
+} from '@/api/mv'
 
 const mv = {
   alg: 'featured',
@@ -200,5 +207,81 @@ describe('Similar MV API', () => {
     await expect(getSimiMvs(701, client({ mvs: null }).client)).rejects.toThrow(
       '相关 MV 响应格式不正确',
     )
+  })
+})
+
+describe('Top MV API', () => {
+  const client = (response: unknown) => {
+    const get = vi.fn(
+      async <T>(_path: string, _params?: unknown) => response as T,
+    )
+    return { client: { get } as Pick<HttpClient, 'get'>, get }
+  }
+
+  it('unwraps /top/mv covers and artists', async () => {
+    const request = client({
+      data: [
+        {
+          artistId: 402,
+          artistName: '海岸信号',
+          artists: [{ extra: true, id: 402, name: '海岸信号' }],
+          cover: 'https://images.example.com/top.jpg',
+          duration: 180_000,
+          extra: true,
+          id: 702,
+          name: '潮汐回声',
+          playCount: 12_000,
+        },
+        {
+          duration: 1,
+          id: 0,
+          name: '无效',
+        },
+        {
+          artists: [{ id: 401, name: '林间电台' }],
+          id: 703,
+          name: '  夜航现场  ',
+          picUrl: 'https://images.example.com/live.jpg',
+        },
+      ],
+    })
+
+    await expect(getTopMvs(request.client)).resolves.toEqual([
+      {
+        artistId: 402,
+        artistName: '海岸信号',
+        artists: [{ id: 402, name: '海岸信号' }],
+        duration: 180_000,
+        id: 702,
+        name: '潮汐回声',
+        picUrl: 'https://images.example.com/top.jpg',
+        playCount: 12_000,
+      },
+      {
+        artistId: 0,
+        artistName: '',
+        artists: [{ id: 401, name: '林间电台' }],
+        duration: 0,
+        id: 703,
+        name: '夜航现场',
+        picUrl: 'https://images.example.com/live.jpg',
+        playCount: 0,
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/top/mv', { limit: TOP_MV_LIMIT })
+  })
+
+  it('rejects a missing data array and slices the list', async () => {
+    await expect(getTopMvs(client({ data: null }).client)).rejects.toThrow(
+      'MV 排行响应格式不正确',
+    )
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `MV ${index + 1}`,
+      cover: `https://images.example.com/${index}.jpg`,
+    }))
+    const list = await getTopMvs(client({ data: many }).client)
+    expect(list).toHaveLength(TOP_MV_LIMIT)
+    expect(list.map((item) => item.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
   })
 })

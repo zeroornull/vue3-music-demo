@@ -29,7 +29,16 @@ const MvCardStub = defineComponent({
 })
 
 function mountSection(
-  props: Partial<{ error: string | null; loading: boolean; mvs: typeof mv[] }> = {},
+  props: Partial<{
+    emptyTitle: string
+    error: string | null
+    errorTitle: string
+    limit: number
+    loading: boolean
+    mvs: typeof mv[]
+    testid: string
+    title: string
+  }> = {},
 ) {
   return mount(MvSection, {
     props: { error: null, loading: false, mvs: [], ...props },
@@ -60,5 +69,36 @@ describe('MvSection', () => {
     const mvs = Array.from({ length: 10 }, (_, index) => ({ ...mv, id: index + 1 }))
     const wrapper = mountSection({ mvs })
     expect(wrapper.findAll('[data-testid="mv-card"]')).toHaveLength(8)
+  })
+
+  it('uses a distinct title and test ids for MV ranking', () => {
+    const wrapper = mountSection({
+      emptyTitle: '暂无 MV 排行',
+      limit: 10,
+      mvs: [],
+      testid: 'mv-toplist',
+      title: 'MV 排行',
+    })
+    expect(wrapper.get('h2').text()).toBe('MV 排行')
+    expect(wrapper.get('[data-testid="mv-toplist-empty"]').text()).toContain('暂无 MV 排行')
+    expect(wrapper.find('[data-testid="mv-empty"]').exists()).toBe(false)
+  })
+
+  it('shows ten ranking cards when limit is 10', () => {
+    const mvs = Array.from({ length: 12 }, (_, index) => ({ ...mv, id: index + 1 }))
+    const wrapper = mountSection({ limit: 10, mvs, testid: 'mv-toplist', title: 'MV 排行' })
+    expect(wrapper.findAll('[data-testid="mv-card"]')).toHaveLength(10)
+  })
+
+  it('renders ranking error copy and retry', async () => {
+    const wrapper = mountSection({
+      error: 'offline',
+      errorTitle: 'MV 排行加载失败',
+      testid: 'mv-toplist',
+      title: 'MV 排行',
+    })
+    expect(wrapper.get('[role="alert"]').text()).toContain('MV 排行加载失败')
+    await wrapper.get('[data-testid="mv-toplist-retry"]').trigger('click')
+    expect(wrapper.emitted('retry')).toHaveLength(1)
   })
 })
