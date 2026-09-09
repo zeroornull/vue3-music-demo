@@ -74,7 +74,7 @@ function readCommentList(values: unknown[]): MediaComment[] {
 
 async function getMediaCommentPage(
   path: string,
-  id: number,
+  id: number | string,
   offset: number,
   errorMessage: string,
   client: Pick<HttpClient, 'get'>,
@@ -138,15 +138,26 @@ export async function getMvComments(
   return page.comments
 }
 
+export async function getVideoCommentPage(
+  id: string,
+  offset = 0,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<CommentPage> {
+  return getMediaCommentPage(
+    '/comment/video',
+    id,
+    offset,
+    '视频评论响应格式不正确',
+    client,
+  )
+}
+
 export async function getVideoComments(
   id: string,
   client: Pick<HttpClient, 'get'> = http,
 ): Promise<MediaComment[]> {
-  const response = await client.get<{
-    comments?: unknown
-    hotComments?: unknown
-  }>('/comment/video', { id, limit: COMMENT_LIMIT })
-  return mergeComments(response, '视频评论响应格式不正确')
+  const page = await getVideoCommentPage(id, 0, client)
+  return page.comments
 }
 
 export async function getDjComments(

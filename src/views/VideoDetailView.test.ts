@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getVideoComments } from '@/api/comment'
+import { getVideoCommentPage } from '@/api/comment'
 import { getRelatedVideos, getVideoDetail, getVideoUrl } from '@/api/video'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -14,7 +14,8 @@ import { useVideoStore } from '@/stores/video'
 import VideoDetailView from '@/views/VideoDetailView.vue'
 
 vi.mock('@/api/comment', () => ({
-  getVideoComments: vi.fn(),
+  COMMENT_LIMIT: 20,
+  getVideoCommentPage: vi.fn(),
 }))
 vi.mock('@/api/video', () => ({
   getRelatedVideos: vi.fn(),
@@ -80,8 +81,8 @@ describe('VideoDetailView', () => {
     vi.mocked(getVideoDetail).mockRejectedValue(new Error('no detail'))
     vi.mocked(getRelatedVideos).mockReset()
     vi.mocked(getRelatedVideos).mockRejectedValue(new Error('no related'))
-    vi.mocked(getVideoComments).mockReset()
-    vi.mocked(getVideoComments).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getVideoCommentPage).mockReset()
+    vi.mocked(getVideoCommentPage).mockRejectedValue(new Error('no comments'))
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -214,9 +215,10 @@ describe('VideoDetailView', () => {
   })
 
   it('renders comments without blocking playback or linking the author', async () => {
-    vi.mocked(getVideoComments).mockResolvedValue([
-      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
-    ])
+    vi.mocked(getVideoCommentPage).mockResolvedValue({
+      comments: [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }],
+      more: false,
+    })
     const wrapper = await mountView()
     await flushPromises()
 
@@ -230,7 +232,7 @@ describe('VideoDetailView', () => {
   })
 
   it('shows an empty comments state when the list is empty', async () => {
-    vi.mocked(getVideoComments).mockResolvedValue([])
+    vi.mocked(getVideoCommentPage).mockResolvedValue({ comments: [], more: false })
     const wrapper = await mountView()
     await flushPromises()
 
@@ -243,5 +245,31 @@ describe('VideoDetailView', () => {
 
     expect(wrapper.find('[data-testid="video-comments"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="mv-player"]').exists()).toBe(true)
+  })
+
+  it('loads more comments without dropping the first page', async () => {
+    vi.mocked(getVideoCommentPage)
+      .mockResolvedValueOnce({
+        comments: [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }],
+        more: true,
+      })
+      .mockResolvedValueOnce({
+        comments: [{ commentId: 21, content: '第二页', nickname: '夜航乐队' }],
+        more: false,
+      })
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="video-comments-more"]').text()).toBe(
+      '加载更多评论',
+    )
+    await wrapper.get('[data-testid="video-comments-more"]').trigger('click')
+    await flushPromises()
+
+    expect(getVideoCommentPage).toHaveBeenNthCalledWith(2, 'VID001', 20)
+    const comments = wrapper.get('[data-testid="video-comments"]')
+    expect(comments.text()).toContain('走过林间。')
+    expect(comments.text()).toContain('第二页')
+    expect(wrapper.find('[data-testid="video-comments-more"]').exists()).toBe(false)
   })
 })

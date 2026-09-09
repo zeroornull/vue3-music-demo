@@ -567,6 +567,10 @@ describe('App host gate', () => {
     videoDetailStore.comments = [
       { commentId: 1, content: '走过林间。', nickname: '林间电台' },
     ]
+    videoDetailStore.commentsMore = true
+    videoDetailStore.commentsMoreError = 'stale'
+    videoDetailStore.commentsMoreLoading = true
+    videoDetailStore.commentOffset = 20
     mountApp()
 
     useHostStore().clearHost()
@@ -575,6 +579,10 @@ describe('App host gate', () => {
     expect(videoDetailStore.playback).toBeNull()
     expect(videoDetailStore.loadedId).toBeNull()
     expect(videoDetailStore.comments).toBeNull()
+    expect(videoDetailStore.commentsMore).toBe(false)
+    expect(videoDetailStore.commentsMoreError).toBeNull()
+    expect(videoDetailStore.commentsMoreLoading).toBe(false)
+    expect(videoDetailStore.commentOffset).toBe(0)
   })
 
   it('clears playlist cache when the host gate closes', async () => {

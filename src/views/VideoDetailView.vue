@@ -14,7 +14,17 @@ const route = useRoute()
 const videoStore = useVideoStore()
 const detailStore = useVideoDetailStore()
 const playerStore = usePlayerStore()
-const { playback, detail, relatedVideos, comments, loading, error } = storeToRefs(detailStore)
+const {
+  playback,
+  detail,
+  relatedVideos,
+  comments,
+  commentsMore,
+  commentsMoreLoading,
+  commentsMoreError,
+  loading,
+  error,
+} = storeToRefs(detailStore)
 const { clips } = storeToRefs(videoStore)
 
 const videoId = computed(() => {
@@ -31,6 +41,10 @@ const related = computed(() => {
 })
 const title = computed(() => related.value?.title || `视频 #${videoId.value ?? '未知'}`)
 const creator = computed(() => related.value?.creatorName || '')
+
+function loadMoreComments() {
+  void detailStore.loadMoreComments().catch(() => undefined)
+}
 
 function requestVideo(force = false) {
   const id = videoId.value
@@ -122,6 +136,18 @@ watch(
             <p>{{ item.content }}</p>
           </li>
         </ul>
+        <p v-if="commentsMoreError" class="comments-more-error" role="alert">
+          {{ commentsMoreError }}
+        </p>
+        <button
+          v-if="comments.length && commentsMore"
+          type="button"
+          data-testid="video-comments-more"
+          :disabled="commentsMoreLoading"
+          @click="loadMoreComments"
+        >
+          {{ commentsMoreLoading ? '正在加载评论' : '加载更多评论' }}
+        </button>
       </section>
       <section
         v-if="relatedVideos?.length"
@@ -227,6 +253,15 @@ h1 {
 .comment-list p {
   margin: 6px 0 0;
   color: var(--color-muted);
+}
+
+.comments-more-error {
+  margin: 12px 0 0;
+  color: var(--color-danger);
+}
+
+.video-comments button {
+  margin-top: 16px;
 }
 
 .related-grid {

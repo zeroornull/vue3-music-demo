@@ -10,6 +10,7 @@ import {
   getPlaylistCommentPage,
   getPlaylistComments,
   getSongComments,
+  getVideoCommentPage,
   getVideoComments,
 } from '@/api/comment'
 
@@ -287,6 +288,7 @@ describe('Video comment API', () => {
     expect(request.get).toHaveBeenCalledWith('/comment/video', {
       id: 'VID001',
       limit: COMMENT_LIMIT,
+      offset: 0,
     })
   })
 
@@ -294,6 +296,60 @@ describe('Video comment API', () => {
     await expect(
       getVideoComments('VID001', client({ comments: null }).client),
     ).rejects.toThrow('视频评论响应格式不正确')
+  })
+
+  it('pages later video comments without prepending hot comments', async () => {
+    const request = client({
+      comments: [
+        {
+          commentId: 21,
+          content: '  第二页  ',
+          extra: true,
+          user: { nickname: '  夜航乐队  ' },
+        },
+        { commentId: 0, content: '无效' },
+      ],
+      hotComments: [
+        {
+          commentId: 1,
+          content: '热评不应出现在第二页',
+          user: { nickname: '林间电台' },
+        },
+      ],
+      more: false,
+    })
+    await expect(
+      getVideoCommentPage('VID001', COMMENT_LIMIT, request.client),
+    ).resolves.toEqual({
+      comments: [{ commentId: 21, content: '第二页', nickname: '夜航乐队' }],
+      more: false,
+    })
+    expect(request.get).toHaveBeenCalledWith('/comment/video', {
+      id: 'VID001',
+      limit: COMMENT_LIMIT,
+      offset: COMMENT_LIMIT,
+    })
+  })
+
+  it('reads video more from the payload and infers it from a full page', async () => {
+    await expect(
+      getVideoCommentPage(
+        'VID001',
+        0,
+        client({
+          comments: [{ commentId: 1, content: '一条', user: { nickname: '林间电台' } }],
+          more: true,
+        }).client,
+      ),
+    ).resolves.toMatchObject({ more: true })
+    const full = Array.from({ length: COMMENT_LIMIT }, (_, index) => ({
+      commentId: index + 1,
+      content: `评论${index + 1}`,
+      user: { nickname: '用户' },
+    }))
+    await expect(
+      getVideoCommentPage('VID001', COMMENT_LIMIT, client({ comments: full }).client),
+    ).resolves.toMatchObject({ more: true })
   })
 })
 

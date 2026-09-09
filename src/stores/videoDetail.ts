@@ -1,29 +1,39 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { getVideoComments } from '@/api/comment'
+import { COMMENT_LIMIT, getVideoCommentPage } from '@/api/comment'
 import { getErrorMessage } from '@/api/http'
 import { getRelatedVideos, getVideoDetail, getVideoUrl } from '@/api/video'
 import type { MediaComment } from '@/models/comment'
 import type { HallVideo, VideoDetail, VideoUrl } from '@/models/video'
 
 let requestSerial = 0
+let commentsMoreSerial = 0
 
 export const useVideoDetailStore = defineStore('videoDetail', () => {
   const playback = ref<VideoUrl | null>(null)
   const detail = ref<VideoDetail | null>(null)
   const relatedVideos = ref<HallVideo[] | null>(null)
   const comments = ref<MediaComment[] | null>(null)
+  const commentsMore = ref(false)
+  const commentsMoreLoading = ref(false)
+  const commentsMoreError = ref<string | null>(null)
+  const commentOffset = ref(0)
   const error = ref<string | null>(null)
   const loading = ref(false)
   const loadedId = ref<string | null>(null)
 
   function reset() {
     requestSerial++
+    commentsMoreSerial++
     playback.value = null
     detail.value = null
     relatedVideos.value = null
     comments.value = null
+    commentsMore.value = false
+    commentsMoreLoading.value = false
+    commentsMoreError.value = null
+    commentOffset.value = 0
     loadedId.value = null
     error.value = null
     loading.value = false
@@ -45,6 +55,11 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
     }
 
     const serial = ++requestSerial
+    commentsMoreSerial++
+    commentsMore.value = false
+    commentsMoreLoading.value = false
+    commentsMoreError.value = null
+    commentOffset.value = 0
     if (loadedId.value !== vid) {
       playback.value = null
       detail.value = null
@@ -97,22 +112,66 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
   }
 
   function requestComments(id: string, serial: number) {
-    void Promise.resolve(getVideoComments(id))
-      .then((list) => {
+    const moreSerial = commentsMoreSerial
+    void Promise.resolve(getVideoCommentPage(id, 0))
+      .then((page) => {
         if (serial !== requestSerial) return
         if (loadedId.value !== id) return
-        comments.value = list
+        if (moreSerial !== commentsMoreSerial) return
+        comments.value = page.comments
+        commentsMore.value = page.more
+        commentsMoreError.value = null
+        commentOffset.value = COMMENT_LIMIT
       })
       .catch(() => undefined)
   }
 
+  async function loadMoreComments() {
+    const id = loadedId.value
+    if (
+      id === null ||
+      comments.value === null ||
+      !comments.value.length ||
+      !commentsMore.value ||
+      commentsMoreLoading.value
+    ) {
+      return
+    }
+    const serial = ++commentsMoreSerial
+    const offset = commentOffset.value
+    commentsMoreLoading.value = true
+    commentsMoreError.value = null
+    try {
+      const page = await getVideoCommentPage(id, offset)
+      if (serial !== commentsMoreSerial || loadedId.value !== id) return
+      const seen = new Set(comments.value.map((item) => item.commentId))
+      comments.value = [
+        ...comments.value,
+        ...page.comments.filter((item) => !seen.has(item.commentId)),
+      ]
+      commentsMore.value = page.more
+      commentOffset.value = offset + COMMENT_LIMIT
+    } catch (requestError) {
+      if (serial !== commentsMoreSerial || loadedId.value !== id) return
+      commentsMoreError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === commentsMoreSerial) commentsMoreLoading.value = false
+    }
+  }
+
   return {
     load,
+    loadMoreComments,
     reset,
     playback,
     detail,
     relatedVideos,
     comments,
+    commentsMore,
+    commentsMoreLoading,
+    commentsMoreError,
+    commentOffset,
     error,
     loading,
     loadedId,
