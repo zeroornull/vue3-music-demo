@@ -21,9 +21,12 @@ const CardStub = defineComponent({
 
 function mountSection(
   props: Partial<{
+    emptyTitle: string
     error: string | null
     programs: typeof program[]
     loading: boolean
+    testid: string
+    title: string
   }> = {},
 ) {
   return mount(DjProgramSection, {
@@ -51,5 +54,17 @@ describe('DjProgramSection', () => {
     const data = mountSection({ programs: [program] })
     expect(data.get('h2').text()).toBe('推荐电台')
     expect(data.get('[data-testid="dj-card"]').text()).toBe('深夜民谣')
+  })
+
+  it('uses a distinct title and test ids for the program toplist', () => {
+    const wrapper = mountSection({
+      emptyTitle: '暂无节目榜',
+      programs: [],
+      testid: 'dj-toplist',
+      title: '节目榜',
+    })
+    expect(wrapper.get('h2').text()).toBe('节目榜')
+    expect(wrapper.get('[data-testid="dj-toplist-empty"]').text()).toContain('暂无节目榜')
+    expect(wrapper.find('[data-testid="dj-empty"]').exists()).toBe(false)
   })
 })

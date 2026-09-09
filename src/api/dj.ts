@@ -14,6 +14,7 @@ import { normalizeSong, type NetworkSong } from '@/models/song'
 export const DJ_BANNER_LIMIT = 10
 export const DJ_RADIO_PAGE_SIZE = 12
 export const DJ_RADIO_PROGRAM_PAGE_SIZE = 20
+export const DJ_PROGRAM_TOPLIST_LIMIT = 10
 
 export interface HotDjRadioQuery {
   cateId: number
@@ -160,6 +161,27 @@ export async function getPersonalizedDjPrograms(
   return response.result
     .map(readDjProgram)
     .filter((item): item is DjProgram => item !== null)
+}
+
+export async function getDjProgramToplist(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<DjProgram[]> {
+  const response = await client.get<{ toplist?: unknown }>('/dj/program/toplist', {
+    limit: DJ_PROGRAM_TOPLIST_LIMIT,
+  })
+  if (!Array.isArray(response.toplist)) {
+    throw new Error('电台节目榜响应格式不正确')
+  }
+  return response.toplist
+    .map((entry) => {
+      const program = isRecord(entry) ? entry.program : null
+      return readRadioProgram(program)
+    })
+    .filter(
+      (item): item is DjProgram =>
+        item !== null && Number.isInteger(item.id) && item.id > 0,
+    )
+    .slice(0, DJ_PROGRAM_TOPLIST_LIMIT)
 }
 
 export async function getDjProgramDetail(

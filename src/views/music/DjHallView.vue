@@ -15,6 +15,9 @@ withDefaults(
     programs: DjProgram[]
     programsError?: string | null
     programsLoading?: boolean
+    toplistPrograms?: DjProgram[]
+    toplistError?: string | null
+    toplistLoading?: boolean
     radios?: HallRadio[]
     radiosError?: string | null
     radiosLoading?: boolean
@@ -27,6 +30,9 @@ withDefaults(
     cateId: 0,
     programsError: null,
     programsLoading: false,
+    toplistPrograms: () => [],
+    toplistError: null,
+    toplistLoading: false,
     radios: () => [],
     radiosError: null,
     radiosLoading: false,
@@ -38,6 +44,7 @@ defineEmits<{
   'load-more-radios': []
   'retry-banners': []
   'retry-programs': []
+  'retry-toplist': []
   'retry-radios': []
   'select-banner': [banner: Banner]
   'select-cat': [id: number]
@@ -73,6 +80,16 @@ defineEmits<{
       :loading="programsLoading"
       :programs="programs"
       @retry="$emit('retry-programs')"
+    />
+    <DjProgramSection
+      empty-title="暂无节目榜"
+      error-title="节目榜加载失败"
+      testid="dj-toplist"
+      title="节目榜"
+      :error="toplistError"
+      :loading="toplistLoading"
+      :programs="toplistPrograms"
+      @retry="$emit('retry-toplist')"
     />
   </div>
 </template>

@@ -10,6 +10,7 @@ import {
   DJ_RADIO_PAGE_SIZE,
   getDjBanners,
   getDjCategories,
+  getDjProgramToplist,
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
@@ -34,6 +35,7 @@ vi.mock('@/api/dj', async (importOriginal) => {
     getDjBanners: vi.fn(),
     getDjCategories: vi.fn(),
     getDjProgramDetail: vi.fn(),
+    getDjProgramToplist: vi.fn(),
     getHotDjRadios: vi.fn(),
     getPersonalizedDjPrograms: vi.fn(),
   }
@@ -65,6 +67,9 @@ const HallStub = defineComponent({
     'programs',
     'programsError',
     'programsLoading',
+    'toplistPrograms',
+    'toplistError',
+    'toplistLoading',
     'radios',
     'radiosError',
     'radiosLoading',
@@ -75,6 +80,7 @@ const HallStub = defineComponent({
   emits: [
     'retry-banners',
     'retry-programs',
+    'retry-toplist',
     'retry-radios',
     'select-banner',
     'select-cat',
@@ -107,12 +113,15 @@ const HallStub = defineComponent({
       <span v-if="bannersError" data-testid="banner-error">{{ bannersError }}</span>
       <span data-testid="program-count">{{ programs.length }}</span>
       <span v-if="programsError" data-testid="program-error">{{ programsError }}</span>
+      <span data-testid="toplist-count">{{ toplistPrograms.length }}</span>
+      <span v-if="toplistError" data-testid="toplist-error">{{ toplistError }}</span>
       <span data-testid="radio-count">{{ radios.length }}</span>
       <span v-if="radiosError" data-testid="radio-error">{{ radiosError }}</span>
       <button data-testid="page-cat" @click="$emit('select-cat', 6)">cat</button>
       <button data-testid="page-radio-retry" @click="$emit('retry-radios')">retry radios</button>
       <button data-testid="page-banner-retry" @click="$emit('retry-banners')">retry banners</button>
       <button data-testid="page-program-retry" @click="$emit('retry-programs')">retry programs</button>
+      <button data-testid="page-toplist-retry" @click="$emit('retry-toplist')">retry toplist</button>
       <button
         data-testid="select-song-banner"
         @click="$emit('select-banner', banners[0])"
@@ -163,8 +172,10 @@ describe('DjHallPage', () => {
     vi.mocked(getDjCategories).mockReset()
     vi.mocked(getHotDjRadios).mockReset()
     vi.mocked(getPersonalizedDjPrograms).mockReset()
+    vi.mocked(getDjProgramToplist).mockReset()
     vi.mocked(getDjBanners).mockResolvedValue([banner])
     vi.mocked(getPersonalizedDjPrograms).mockResolvedValue([program])
+    vi.mocked(getDjProgramToplist).mockResolvedValue([])
     vi.mocked(getDjCategories).mockResolvedValue([{ id: 2, name: '音乐故事' }])
     vi.mocked(getHotDjRadios).mockResolvedValue({
       more: false,
@@ -200,6 +211,31 @@ describe('DjHallPage', () => {
     expect(wrapper.get('[data-testid="banner-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="program-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="radio-count"]').text()).toBe('1')
+  })
+
+  it('loads and retries the program toplist independently', async () => {
+    vi.mocked(getDjProgramToplist)
+      .mockRejectedValueOnce(new Error('toplist offline'))
+      .mockResolvedValueOnce([
+        {
+          copywriter: '夜航电台',
+          id: 903,
+          name: '夜航精选',
+          picUrl: 'https://images.example.com/top.jpg',
+        },
+      ])
+
+    const { wrapper } = await mountPage()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="toplist-error"]').text()).toBe('toplist offline')
+    expect(wrapper.get('[data-testid="program-count"]').text()).toBe('1')
+
+    await wrapper.get('[data-testid="page-toplist-retry"]').trigger('click')
+    await flushPromises()
+
+    expect(getDjProgramToplist).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="toplist-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="program-count"]').text()).toBe('1')
   })
 
   it('retries a failed category list', async () => {

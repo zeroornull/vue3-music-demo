@@ -25,6 +25,9 @@ const {
   programs,
   programsError,
   programsLoading,
+  toplistPrograms,
+  toplistError,
+  toplistLoading,
   radios,
   radiosError,
   radiosLoading,
@@ -46,6 +49,10 @@ function requestBanners(force = false) {
 
 function requestPrograms(force = false) {
   void djStore.loadPrograms(force).catch(() => undefined)
+}
+
+function requestToplist(force = false) {
+  void djStore.loadToplist(force).catch(() => undefined)
 }
 
 async function requestCategories(force = false) {
@@ -126,6 +133,7 @@ watch(queryCateId, (id) => {
 onMounted(() => {
   requestBanners()
   requestPrograms()
+  requestToplist()
   void requestCategories()
 })
 </script>
@@ -142,6 +150,9 @@ onMounted(() => {
       :programs="programs"
       :programs-error="programsError"
       :programs-loading="programsLoading"
+      :toplist-programs="toplistPrograms"
+      :toplist-error="toplistError"
+      :toplist-loading="toplistLoading"
       :radios="radios"
       :radios-error="radiosError || categoriesError"
       :radios-loading="radiosLoading || categoriesLoading"
@@ -149,6 +160,7 @@ onMounted(() => {
       @load-more-radios="loadMoreRadios"
       @retry-banners="requestBanners(true)"
       @retry-programs="requestPrograms(true)"
+      @retry-toplist="requestToplist(true)"
       @retry-radios="retryRadios"
       @select-banner="selectBanner"
       @select-cat="selectCat"

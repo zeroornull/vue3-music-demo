@@ -273,6 +273,14 @@ describe('App host gate', () => {
         picUrl: 'https://images.example.com/dj.jpg',
       },
     ]
+    djStore.toplistPrograms = [
+      {
+        copywriter: '夜航电台',
+        id: 903,
+        name: '夜航精选',
+        picUrl: 'https://images.example.com/top.jpg',
+      },
+    ]
     djStore.banners = [
       {
         bannerId: 1,
@@ -343,6 +351,7 @@ describe('App host gate', () => {
     await flushPromises()
 
     expect(djStore.programs).toEqual([])
+    expect(djStore.toplistPrograms).toEqual([])
     expect(djStore.banners).toEqual([])
     expect(djStore.loadedId).toBeNull()
     expect(djStore.categories).toEqual([])

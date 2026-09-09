@@ -9,6 +9,7 @@ import {
   getDjProgramDetail,
   getDjRadioDetail,
   getDjRadioPrograms,
+  getDjProgramToplist,
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
@@ -29,6 +30,7 @@ vi.mock('@/api/dj', async (importOriginal) => {
     getDjProgramDetail: vi.fn(),
     getDjRadioDetail: vi.fn(),
     getDjRadioPrograms: vi.fn(),
+    getDjProgramToplist: vi.fn(),
     getHotDjRadios: vi.fn(),
     getPersonalizedDjPrograms: vi.fn(),
   }
@@ -127,6 +129,7 @@ describe('dj store', () => {
     vi.mocked(getHotDjRadios).mockReset()
     vi.mocked(getHotDjRadios).mockRejectedValue(new Error('no radios'))
     vi.mocked(getPersonalizedDjPrograms).mockReset()
+    vi.mocked(getDjProgramToplist).mockReset()
     vi.mocked(getDjComments).mockReset()
     vi.mocked(getDjComments).mockRejectedValue(new Error('no comments'))
     vi.mocked(getDjRadioComments).mockReset()
@@ -161,6 +164,65 @@ describe('dj store', () => {
     expect(store.programs).toEqual([program])
     expect(store.programsError).toBeNull()
     expect(getPersonalizedDjPrograms).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads program toplist independently of recommended programs', async () => {
+    const ranked = { ...program, copywriter: '夜航电台', picUrl: 'https://images.example.com/top.jpg' }
+    vi.mocked(getDjProgramToplist).mockResolvedValue([ranked])
+    vi.mocked(getPersonalizedDjPrograms).mockResolvedValue([program])
+    const store = useDjStore()
+
+    await store.loadToplist()
+    await store.loadToplist()
+    await store.loadPrograms()
+
+    expect(store.toplistPrograms).toEqual([ranked])
+    expect(getDjProgramToplist).toHaveBeenCalledTimes(1)
+    expect(store.toplistError).toBeNull()
+    expect(store.programs).toEqual([program])
+  })
+
+  it('keeps recommended programs when the toplist fails', async () => {
+    vi.mocked(getPersonalizedDjPrograms).mockResolvedValue([program])
+    vi.mocked(getDjProgramToplist).mockRejectedValue(new Error('toplist offline'))
+    const store = useDjStore()
+
+    await store.loadPrograms()
+    await expect(store.loadToplist()).rejects.toThrow('toplist offline')
+
+    expect(store.programs).toEqual([program])
+    expect(store.toplistPrograms).toEqual([])
+    expect(store.toplistError).toBe('toplist offline')
+    expect(store.toplistLoading).toBe(false)
+  })
+
+  it('does not drop in-flight toplist when recommended programs load', async () => {
+    const ranked = { ...program, copywriter: '夜航电台' }
+    const pendingToplist = deferred<typeof program[]>()
+    vi.mocked(getDjProgramToplist).mockReturnValueOnce(pendingToplist.promise)
+    vi.mocked(getPersonalizedDjPrograms).mockResolvedValue([program])
+    const store = useDjStore()
+    const pending = store.loadToplist()
+    await store.loadPrograms()
+    pendingToplist.resolve([ranked])
+    await pending
+
+    expect(store.programs).toEqual([program])
+    expect(store.toplistPrograms).toEqual([ranked])
+    expect(store.toplistError).toBeNull()
+  })
+
+  it('drops in-flight toplist after reset', async () => {
+    const pendingToplist = deferred<typeof program[]>()
+    vi.mocked(getDjProgramToplist).mockReturnValueOnce(pendingToplist.promise)
+    const store = useDjStore()
+    const pending = store.loadToplist()
+    store.reset()
+    pendingToplist.resolve([program])
+    await pending
+
+    expect(store.toplistPrograms).toEqual([])
+    expect(store.toplistLoading).toBe(false)
   })
 
   it('loads program detail and caches by id', async () => {

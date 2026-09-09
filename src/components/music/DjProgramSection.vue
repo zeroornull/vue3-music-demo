@@ -4,13 +4,21 @@ import type { DjProgram } from '@/models/dj'
 
 withDefaults(
   defineProps<{
+    emptyTitle?: string
     error?: string | null
-    programs: DjProgram[]
+    errorTitle?: string
     loading?: boolean
+    programs: DjProgram[]
+    testid?: string
+    title?: string
   }>(),
   {
+    emptyTitle: '暂无推荐电台',
     error: null,
+    errorTitle: '推荐电台加载失败',
     loading: false,
+    testid: 'dj',
+    title: '推荐电台',
   },
 )
 
@@ -20,11 +28,11 @@ defineEmits<{
 </script>
 
 <template>
-  <section class="dj-section" aria-labelledby="dj-title">
+  <section class="dj-section" :aria-labelledby="`${testid}-title`">
     <div class="section-heading">
       <div>
         <p class="eyebrow">Radio</p>
-        <h2 id="dj-title">推荐电台</h2>
+        <h2 :id="`${testid}-title`">{{ title }}</h2>
       </div>
       <p>点击封面即可打开节目并播放</p>
     </div>
@@ -32,10 +40,10 @@ defineEmits<{
     <div
       v-if="loading"
       class="dj-grid"
-      data-testid="dj-loading"
+      :data-testid="`${testid}-loading`"
       role="status"
       aria-busy="true"
-      aria-label="正在加载推荐电台"
+      :aria-label="`正在加载${title}`"
     >
       <div v-for="index in 6" :key="index" class="dj-skeleton" />
     </div>
@@ -46,10 +54,10 @@ defineEmits<{
       role="alert"
     >
       <div>
-        <strong>推荐电台加载失败</strong>
+        <strong>{{ errorTitle }}</strong>
         <p>{{ error }}</p>
       </div>
-      <button type="button" data-testid="dj-retry" @click="$emit('retry')">
+      <button type="button" :data-testid="`${testid}-retry`" @click="$emit('retry')">
         重新加载
       </button>
     </div>
@@ -57,9 +65,9 @@ defineEmits<{
     <div
       v-else-if="!programs.length"
       class="state-card"
-      data-testid="dj-empty"
+      :data-testid="`${testid}-empty`"
     >
-      <strong>暂无推荐电台</strong>
+      <strong>{{ emptyTitle }}</strong>
       <p>API 已连接，但本次没有返回推荐节目。</p>
     </div>
 

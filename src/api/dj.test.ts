@@ -10,8 +10,10 @@ import {
   getDjProgramDetail,
   getDjRadioDetail,
   getDjRadioPrograms,
+  getDjProgramToplist,
   getHotDjRadios,
   getPersonalizedDjPrograms,
+  DJ_PROGRAM_TOPLIST_LIMIT,
 } from '@/api/dj'
 
 const client = (response: unknown) => {
@@ -96,6 +98,68 @@ describe('DJ API', () => {
     await expect(
       getPersonalizedDjPrograms(client({ result: null }).client),
     ).rejects.toThrow('推荐电台响应格式不正确')
+  })
+
+  it('unwraps /dj/program/toplist covers and radio names', async () => {
+    const request = client({
+      toplist: [
+        {
+          extra: true,
+          program: {
+            coverUrl: 'https://images.example.com/top.jpg',
+            extra: true,
+            id: 901,
+            name: '深夜民谣',
+            radio: { id: 801, name: '夜航电台' },
+          },
+          rank: 1,
+        },
+        { program: { id: 0, name: '无效' } },
+        {
+          program: {
+            id: 902,
+            name: '  潮汐夜话  ',
+            picUrl: 'https://images.example.com/tide.jpg',
+          },
+        },
+      ],
+    })
+
+    await expect(getDjProgramToplist(request.client)).resolves.toEqual([
+      {
+        copywriter: '夜航电台',
+        id: 901,
+        name: '深夜民谣',
+        paid: false,
+        picUrl: 'https://images.example.com/top.jpg',
+      },
+      {
+        copywriter: '',
+        id: 902,
+        name: '  潮汐夜话  ',
+        paid: false,
+        picUrl: 'https://images.example.com/tide.jpg',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/program/toplist', {
+      limit: DJ_PROGRAM_TOPLIST_LIMIT,
+    })
+  })
+
+  it('rejects a missing toplist array and slices the list', async () => {
+    await expect(
+      getDjProgramToplist(client({ toplist: null }).client),
+    ).rejects.toThrow('电台节目榜响应格式不正确')
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      program: {
+        id: index + 1,
+        name: `节目 ${index + 1}`,
+        picUrl: `https://images.example.com/${index}.jpg`,
+      },
+    }))
+    await expect(
+      getDjProgramToplist(client({ toplist: many }).client),
+    ).resolves.toHaveLength(DJ_PROGRAM_TOPLIST_LIMIT)
   })
 
   it('unwraps /dj/program/detail and maps the playable song', async () => {

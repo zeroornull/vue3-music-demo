@@ -9,6 +9,7 @@ import {
   getDjProgramDetail,
   getDjRadioDetail,
   getDjRadioPrograms,
+  getDjProgramToplist,
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
@@ -26,6 +27,7 @@ import type {
 
 let requestSerial = 0
 let listSerial = 0
+let toplistSerial = 0
 let bannerSerial = 0
 let categorySerial = 0
 let radioSerial = 0
@@ -40,6 +42,9 @@ export const useDjStore = defineStore('dj', () => {
   const programs = ref<DjProgram[]>([])
   const programsError = ref<string | null>(null)
   const programsLoading = ref(false)
+  const toplistPrograms = ref<DjProgram[]>([])
+  const toplistError = ref<string | null>(null)
+  const toplistLoading = ref(false)
   const banners = ref<DjBanner[]>([])
   const bannersError = ref<string | null>(null)
   const bannersLoading = ref(false)
@@ -93,12 +98,16 @@ export const useDjStore = defineStore('dj', () => {
     resetDetail()
     resetRadio()
     listSerial++
+    toplistSerial++
     bannerSerial++
     categorySerial++
     radioSerial++
     programs.value = []
     programsError.value = null
     programsLoading.value = false
+    toplistPrograms.value = []
+    toplistError.value = null
+    toplistLoading.value = false
     banners.value = []
     bannersError.value = null
     bannersLoading.value = false
@@ -151,6 +160,27 @@ export const useDjStore = defineStore('dj', () => {
       throw requestError
     } finally {
       if (serial === listSerial) programsLoading.value = false
+    }
+  }
+
+  async function loadToplist(force = false) {
+    if (toplistPrograms.value.length && !force && !toplistError.value) {
+      return
+    }
+
+    const serial = ++toplistSerial
+    toplistLoading.value = true
+    toplistError.value = null
+    try {
+      const next = await getDjProgramToplist()
+      if (serial !== toplistSerial) return
+      toplistPrograms.value = next
+    } catch (requestError) {
+      if (serial !== toplistSerial) return
+      toplistError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === toplistSerial) toplistLoading.value = false
     }
   }
 
@@ -433,6 +463,7 @@ export const useDjStore = defineStore('dj', () => {
     load,
     loadBanners,
     loadPrograms,
+    loadToplist,
     loadCategories,
     loadRadios,
     loadMoreRadios,
@@ -449,6 +480,9 @@ export const useDjStore = defineStore('dj', () => {
     programs,
     programsError,
     programsLoading,
+    toplistPrograms,
+    toplistError,
+    toplistLoading,
     banners,
     bannersError,
     bannersLoading,

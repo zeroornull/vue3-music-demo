@@ -21,12 +21,16 @@ const BannerStub = defineComponent({
 
 const DjStub = defineComponent({
   name: 'DjProgramSection',
-  props: ['error', 'loading', 'programs'],
+  props: ['error', 'loading', 'programs', 'testid', 'title'],
   emits: ['retry'],
   template: `
-    <section data-testid="hall-programs">
+    <section :data-testid="testid === 'dj-toplist' ? 'hall-toplist' : 'hall-programs'">
+      <h2>{{ title || '推荐电台' }}</h2>
       <span>{{ programs.length }}</span>
-      <button data-testid="dj-retry" @click="$emit('retry')">retry</button>
+      <button
+        :data-testid="testid === 'dj-toplist' ? 'dj-toplist-retry' : 'dj-retry'"
+        @click="$emit('retry')"
+      >retry</button>
     </section>
   `,
 })
@@ -64,11 +68,14 @@ describe('DjHallView', () => {
     expect(wrapper.get('[data-testid="hall-banners"] h2').text()).toBe('电台推荐')
     expect(wrapper.get('[data-testid="hall-banners"]').text()).toContain('1')
     expect(wrapper.get('[data-testid="hall-programs"]').text()).toContain('1')
+    expect(wrapper.get('[data-testid="hall-toplist"] h2').text()).toBe('节目榜')
     expect(wrapper.get('#radio-cat-title').text()).toBe('电台分类')
     await wrapper.get('[data-testid="banner-retry"]').trigger('click')
     await wrapper.get('[data-testid="dj-retry"]').trigger('click')
+    await wrapper.get('[data-testid="dj-toplist-retry"]').trigger('click')
     expect(wrapper.emitted('retry-banners')).toHaveLength(1)
     expect(wrapper.emitted('retry-programs')).toHaveLength(1)
+    expect(wrapper.emitted('retry-toplist')).toHaveLength(1)
   })
 
   it('forwards banner select to the hall page', async () => {
