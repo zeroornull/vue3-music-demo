@@ -14,7 +14,7 @@ import {
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
-import { getDjComments, getDjRadioComments } from '@/api/comment'
+import { COMMENT_LIMIT, getDjCommentPage, getDjRadioComments } from '@/api/comment'
 import { getErrorMessage } from '@/api/http'
 import type { MediaComment } from '@/models/comment'
 import type {
@@ -27,6 +27,7 @@ import type {
 } from '@/models/dj'
 
 let requestSerial = 0
+let commentsMoreSerial = 0
 let listSerial = 0
 let toplistSerial = 0
 let bannerSerial = 0
@@ -72,13 +73,22 @@ export const useDjStore = defineStore('dj', () => {
   const relatedRadios = ref<HallRadio[] | null>(null)
   const relatedPrograms = ref<DjProgram[] | null>(null)
   const comments = ref<MediaComment[] | null>(null)
+  const commentsMore = ref(false)
+  const commentsMoreLoading = ref(false)
+  const commentsMoreError = ref<string | null>(null)
+  const commentOffset = ref(0)
   const radioComments = ref<MediaComment[] | null>(null)
 
   function resetDetail() {
     requestSerial++
+    commentsMoreSerial++
     program.value = null
     relatedPrograms.value = null
     comments.value = null
+    commentsMore.value = false
+    commentsMoreLoading.value = false
+    commentsMoreError.value = null
+    commentOffset.value = 0
     error.value = null
     loading.value = false
     loadedId.value = null
@@ -228,6 +238,11 @@ export const useDjStore = defineStore('dj', () => {
     }
 
     const serial = ++requestSerial
+    commentsMoreSerial++
+    commentsMore.value = false
+    commentsMoreLoading.value = false
+    commentsMoreError.value = null
+    commentOffset.value = 0
     if (loadedId.value !== id) {
       program.value = null
       relatedPrograms.value = null
@@ -254,13 +269,52 @@ export const useDjStore = defineStore('dj', () => {
   }
 
   function requestComments(id: number, serial: number) {
-    void Promise.resolve(getDjComments(id))
-      .then((list) => {
+    const moreSerial = commentsMoreSerial
+    void Promise.resolve(getDjCommentPage(id, 0))
+      .then((page) => {
         if (serial !== requestSerial) return
         if (loadedId.value !== id) return
-        comments.value = list
+        if (moreSerial !== commentsMoreSerial) return
+        comments.value = page.comments
+        commentsMore.value = page.more
+        commentsMoreError.value = null
+        commentOffset.value = COMMENT_LIMIT
       })
       .catch(() => undefined)
+  }
+
+  async function loadMoreComments() {
+    const id = loadedId.value
+    if (
+      id === null ||
+      comments.value === null ||
+      !comments.value.length ||
+      !commentsMore.value ||
+      commentsMoreLoading.value
+    ) {
+      return
+    }
+    const serial = ++commentsMoreSerial
+    const offset = commentOffset.value
+    commentsMoreLoading.value = true
+    commentsMoreError.value = null
+    try {
+      const page = await getDjCommentPage(id, offset)
+      if (serial !== commentsMoreSerial || loadedId.value !== id) return
+      const seen = new Set(comments.value.map((item) => item.commentId))
+      comments.value = [
+        ...comments.value,
+        ...page.comments.filter((item) => !seen.has(item.commentId)),
+      ]
+      commentsMore.value = page.more
+      commentOffset.value = offset + COMMENT_LIMIT
+    } catch (requestError) {
+      if (serial !== commentsMoreSerial || loadedId.value !== id) return
+      commentsMoreError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === commentsMoreSerial) commentsMoreLoading.value = false
+    }
   }
 
   async function loadCategories(force = false) {
@@ -501,6 +555,7 @@ export const useDjStore = defineStore('dj', () => {
     setCate,
     loadRadio,
     loadMoreRadioPrograms,
+    loadMoreComments,
     resetDetail,
     resetRadio,
     reset,
@@ -539,6 +594,10 @@ export const useDjStore = defineStore('dj', () => {
     relatedRadios,
     relatedPrograms,
     comments,
+    commentsMore,
+    commentsMoreLoading,
+    commentsMoreError,
+    commentOffset,
     radioComments,
   }
 })

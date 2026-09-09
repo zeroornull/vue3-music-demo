@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getDjComments } from '@/api/comment'
+import { getDjCommentPage } from '@/api/comment'
 import { getDjProgramDetail, getDjRadioPrograms } from '@/api/dj'
 
 vi.mock('@/views/music/DjHallPage.vue', () => ({
@@ -18,7 +18,8 @@ import { useDjStore } from '@/stores/dj'
 import DjView from '@/views/DjView.vue'
 
 vi.mock('@/api/comment', () => ({
-  getDjComments: vi.fn(),
+  COMMENT_LIMIT: 20,
+  getDjCommentPage: vi.fn(),
 }))
 
 vi.mock('@/api/dj', async (importOriginal) => {
@@ -98,8 +99,8 @@ describe('DjView', () => {
     vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
     vi.mocked(getDjRadioPrograms).mockReset()
     vi.mocked(getDjRadioPrograms).mockRejectedValue(new Error('no programs'))
-    vi.mocked(getDjComments).mockReset()
-    vi.mocked(getDjComments).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getDjCommentPage).mockReset()
+    vi.mocked(getDjCommentPage).mockRejectedValue(new Error('no comments'))
   })
 
   it('redirects a missing program id to the radio hall', async () => {
@@ -211,9 +212,10 @@ describe('DjView', () => {
   })
 
   it('renders comments without blocking play or linking the author', async () => {
-    vi.mocked(getDjComments).mockResolvedValue([
-      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
-    ])
+    vi.mocked(getDjCommentPage).mockResolvedValue({
+      comments: [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }],
+      more: false,
+    })
     const { wrapper } = await mountView()
     await flushPromises()
 
@@ -225,7 +227,7 @@ describe('DjView', () => {
   })
 
   it('shows an empty comments state when the list is empty', async () => {
-    vi.mocked(getDjComments).mockResolvedValue([])
+    vi.mocked(getDjCommentPage).mockResolvedValue({ comments: [], more: false })
     const { wrapper } = await mountView()
     await flushPromises()
     expect(wrapper.get('[data-testid="dj-comments"]').text()).toContain('暂无评论')
@@ -235,5 +237,29 @@ describe('DjView', () => {
     const { wrapper } = await mountView()
     await flushPromises()
     expect(wrapper.find('[data-testid="dj-comments"]').exists()).toBe(false)
+  })
+
+  it('loads more comments without dropping the first page', async () => {
+    vi.mocked(getDjCommentPage)
+      .mockResolvedValueOnce({
+        comments: [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }],
+        more: true,
+      })
+      .mockResolvedValueOnce({
+        comments: [{ commentId: 21, content: '第二页', nickname: '夜航乐队' }],
+        more: false,
+      })
+    const { wrapper } = await mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="dj-comments-more"]').text()).toBe('加载更多评论')
+    await wrapper.get('[data-testid="dj-comments-more"]').trigger('click')
+    await flushPromises()
+
+    expect(getDjCommentPage).toHaveBeenNthCalledWith(2, 901, 20)
+    const comments = wrapper.get('[data-testid="dj-comments"]')
+    expect(comments.text()).toContain('走过林间。')
+    expect(comments.text()).toContain('第二页')
+    expect(wrapper.find('[data-testid="dj-comments-more"]').exists()).toBe(false)
   })
 })

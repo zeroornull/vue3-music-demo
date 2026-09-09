@@ -14,11 +14,12 @@ import {
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
-import { getDjComments, getDjRadioComments } from '@/api/comment'
+import { COMMENT_LIMIT, getDjCommentPage, getDjRadioComments } from '@/api/comment'
 import { useDjStore } from '@/stores/dj'
 
 vi.mock('@/api/comment', () => ({
-  getDjComments: vi.fn(),
+  COMMENT_LIMIT: 20,
+  getDjCommentPage: vi.fn(),
   getDjRadioComments: vi.fn(),
 }))
 
@@ -133,8 +134,8 @@ describe('dj store', () => {
     vi.mocked(getPersonalizedDjPrograms).mockReset()
     vi.mocked(getDjProgramToplist).mockReset()
     vi.mocked(getDjRadioToplist).mockReset()
-    vi.mocked(getDjComments).mockReset()
-    vi.mocked(getDjComments).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getDjCommentPage).mockReset()
+    vi.mocked(getDjCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getDjRadioComments).mockReset()
     vi.mocked(getDjRadioComments).mockRejectedValue(new Error('no radio comments'))
   })
@@ -706,7 +707,7 @@ describe('dj store', () => {
       nickname: '林间电台',
     }
     vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
-    vi.mocked(getDjComments).mockResolvedValue([comment])
+    vi.mocked(getDjCommentPage).mockResolvedValue({ comments: [comment], more: true })
     const store = useDjStore()
 
     await store.load(901)
@@ -714,14 +715,16 @@ describe('dj store', () => {
     await store.load(901)
 
     expect(store.comments).toEqual([comment])
+    expect(store.commentsMore).toBe(true)
+    expect(store.commentOffset).toBe(COMMENT_LIMIT)
     expect(getDjProgramDetail).toHaveBeenCalledTimes(1)
-    expect(getDjComments).toHaveBeenCalledTimes(1)
-    expect(getDjComments).toHaveBeenCalledWith(901)
+    expect(getDjCommentPage).toHaveBeenCalledTimes(1)
+    expect(getDjCommentPage).toHaveBeenCalledWith(901, 0)
   })
 
   it('keeps the program when comments fail', async () => {
     vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
-    vi.mocked(getDjComments).mockRejectedValue(new Error('comments offline'))
+    vi.mocked(getDjCommentPage).mockRejectedValue(new Error('comments offline'))
     const store = useDjStore()
 
     await store.load(901)
@@ -739,9 +742,9 @@ describe('dj store', () => {
       nickname: '林间电台',
     }
     vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
-    vi.mocked(getDjComments)
+    vi.mocked(getDjCommentPage)
       .mockRejectedValueOnce(new Error('comments offline'))
-      .mockResolvedValueOnce([comment])
+      .mockResolvedValueOnce({ comments: [comment], more: false })
     const store = useDjStore()
 
     await store.load(901)
@@ -752,14 +755,16 @@ describe('dj store', () => {
     await settle()
 
     expect(getDjProgramDetail).toHaveBeenCalledTimes(1)
-    expect(getDjComments).toHaveBeenCalledTimes(2)
+    expect(getDjCommentPage).toHaveBeenCalledTimes(2)
     expect(store.comments).toEqual([comment])
+    expect(store.commentsMore).toBe(false)
   })
 
   it('does not keep stale comments after the program id changes', async () => {
-    const first = deferred<
-      { commentId: number; content: string; nickname: string }[]
-    >()
+    const first = deferred<{
+      comments: { commentId: number; content: string; nickname: string }[]
+      more: boolean
+    }>()
     const nextDetail = { ...detail, id: 902, name: '潮汐夜话', radioId: 802 }
     const nextComment = {
       commentId: 9,
@@ -769,22 +774,24 @@ describe('dj store', () => {
     vi.mocked(getDjProgramDetail)
       .mockResolvedValueOnce(detail)
       .mockResolvedValueOnce(nextDetail)
-    vi.mocked(getDjComments)
+    vi.mocked(getDjCommentPage)
       .mockReturnValueOnce(first.promise)
-      .mockResolvedValueOnce([nextComment])
+      .mockResolvedValueOnce({ comments: [nextComment], more: false })
     const store = useDjStore()
 
     await store.load(901)
     await store.load(902)
     await settle()
-    first.resolve([
-      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
-    ])
+    first.resolve({
+      comments: [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }],
+      more: true,
+    })
     await settle()
 
     expect(store.program?.id).toBe(902)
     expect(store.comments).toEqual([nextComment])
-    expect(getDjComments).toHaveBeenLastCalledWith(902)
+    expect(store.commentsMore).toBe(false)
+    expect(getDjCommentPage).toHaveBeenLastCalledWith(902, 0)
   })
 
   it('clears comments immediately when the program id changes', async () => {
@@ -801,9 +808,9 @@ describe('dj store', () => {
     vi.mocked(getDjProgramDetail)
       .mockResolvedValueOnce(detail)
       .mockResolvedValueOnce({ ...detail, id: 902, name: '潮汐夜话' })
-    vi.mocked(getDjComments)
-      .mockResolvedValueOnce([comment])
-      .mockResolvedValueOnce([nextComment])
+    vi.mocked(getDjCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: false })
+      .mockResolvedValueOnce({ comments: [nextComment], more: false })
     const store = useDjStore()
 
     await store.load(901)
@@ -819,7 +826,7 @@ describe('dj store', () => {
 
   it('treats an empty comment list as loaded and does not retry', async () => {
     vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
-    vi.mocked(getDjComments).mockResolvedValue([])
+    vi.mocked(getDjCommentPage).mockResolvedValue({ comments: [], more: false })
     const store = useDjStore()
 
     await store.load(901)
@@ -827,7 +834,114 @@ describe('dj store', () => {
     await store.load(901)
 
     expect(store.comments).toEqual([])
-    expect(getDjComments).toHaveBeenCalledTimes(1)
+    expect(getDjCommentPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('appends more comments without dropping the first page', async () => {
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjCommentPage)
+      .mockResolvedValueOnce({ comments: [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }], more: true })
+      .mockResolvedValueOnce({ comments: [extra, { commentId: 1, content: '走过林间。', nickname: '林间电台' }], more: false })
+    const store = useDjStore()
+    await store.load(901)
+    await settle()
+    await store.loadMoreComments()
+    await settle()
+
+    expect(getDjCommentPage).toHaveBeenNthCalledWith(1, 901, 0)
+    expect(getDjCommentPage).toHaveBeenNthCalledWith(2, 901, COMMENT_LIMIT)
+    expect(store.comments).toEqual([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+      extra,
+    ])
+    expect(store.commentsMore).toBe(false)
+    expect(store.commentOffset).toBe(COMMENT_LIMIT * 2)
+  })
+
+  it('keeps loaded comments when load more fails', async () => {
+    const comment = { commentId: 1, content: '走过林间。', nickname: '林间电台' }
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockRejectedValueOnce(new Error('more offline'))
+    const store = useDjStore()
+    await store.load(901)
+    await settle()
+    await expect(store.loadMoreComments()).rejects.toThrow('more offline')
+
+    expect(store.comments).toEqual([comment])
+    expect(store.commentsMore).toBe(true)
+    expect(store.commentsMoreError).toBe('more offline')
+    expect(store.commentsMoreLoading).toBe(false)
+  })
+
+  it('does not request another page when more is false', async () => {
+    const comment = { commentId: 1, content: '走过林间。', nickname: '林间电台' }
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjCommentPage).mockResolvedValue({ comments: [comment], more: false })
+    const store = useDjStore()
+    await store.load(901)
+    await settle()
+    await store.loadMoreComments()
+
+    expect(getDjCommentPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not let a late first page overwrite appended comments', async () => {
+    const firstA = deferred<{
+      comments: { commentId: number; content: string; nickname: string }[]
+      more: boolean
+    }>()
+    const firstB = deferred<{
+      comments: { commentId: number; content: string; nickname: string }[]
+      more: boolean
+    }>()
+    const comment = { commentId: 1, content: '走过林间。', nickname: '林间电台' }
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjCommentPage)
+      .mockReturnValueOnce(firstA.promise)
+      .mockReturnValueOnce(firstB.promise)
+      .mockResolvedValueOnce({ comments: [extra], more: false })
+    const store = useDjStore()
+    await store.load(901)
+    await store.load(901)
+    firstA.resolve({ comments: [comment], more: true })
+    await settle()
+    await store.loadMoreComments()
+    firstB.resolve({ comments: [comment], more: true })
+    await settle()
+
+    expect(store.comments).toEqual([comment, extra])
+    expect(store.commentsMore).toBe(false)
+    expect(getDjCommentPage).toHaveBeenCalledTimes(3)
+  })
+
+  it('drops in-flight more comments after the program id changes', async () => {
+    const pending = deferred<{ comments: { commentId: number; content: string; nickname: string }[]; more: boolean }>()
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    const comment = { commentId: 1, content: '走过林间。', nickname: '林间电台' }
+    const nextComment = { commentId: 9, content: '下一期留言', nickname: '海岸信号' }
+    vi.mocked(getDjProgramDetail)
+      .mockResolvedValueOnce(detail)
+      .mockResolvedValueOnce({ ...detail, id: 902, name: '潮汐夜话' })
+    vi.mocked(getDjCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce({ comments: [nextComment], more: false })
+    const store = useDjStore()
+    await store.load(901)
+    await settle()
+    const more = store.loadMoreComments()
+    await store.load(902)
+    pending.resolve({ comments: [extra], more: false })
+    await more
+    await settle()
+
+    expect(store.program?.id).toBe(902)
+    expect(store.comments).toEqual([nextComment])
+    expect(store.commentsMore).toBe(false)
   })
 
   it('loads radio comments with the detail and ignores a comment failure', async () => {

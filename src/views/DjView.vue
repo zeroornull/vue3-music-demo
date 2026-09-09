@@ -13,7 +13,16 @@ const route = useRoute()
 const router = useRouter()
 const djStore = useDjStore()
 const playerStore = usePlayerStore()
-const { program, relatedPrograms, comments, loading, error } = storeToRefs(djStore)
+const {
+  program,
+  relatedPrograms,
+  comments,
+  commentsMore,
+  commentsMoreLoading,
+  commentsMoreError,
+  loading,
+  error,
+} = storeToRefs(djStore)
 const notice = ref<string | null>(null)
 let playSerial = 0
 
@@ -27,6 +36,10 @@ const programId = computed(() => {
 function requestProgram(force = false) {
   if (programId.value === null) return
   void djStore.load(programId.value, force).catch(() => undefined)
+}
+
+function loadMoreComments() {
+  void djStore.loadMoreComments().catch(() => undefined)
 }
 
 function playProgram() {
@@ -122,6 +135,18 @@ watch(
             <p>{{ item.content }}</p>
           </li>
         </ul>
+        <p v-if="commentsMoreError" class="comments-more-error" role="alert">
+          {{ commentsMoreError }}
+        </p>
+        <button
+          v-if="comments.length && commentsMore"
+          type="button"
+          data-testid="dj-comments-more"
+          :disabled="commentsMoreLoading"
+          @click="loadMoreComments"
+        >
+          {{ commentsMoreLoading ? '正在加载评论' : '加载更多评论' }}
+        </button>
       </section>
       <section
         v-if="relatedPrograms?.length"
@@ -240,6 +265,15 @@ watch(
 
 .comment-list p {
   margin: 6px 0 0;
+}
+
+.comments-more-error {
+  margin: 0;
+  color: var(--color-danger);
+}
+
+.dj-comments button {
+  justify-self: start;
 }
 
 .related-grid {

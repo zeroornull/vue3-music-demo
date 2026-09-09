@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { HttpClient } from '@/api/http'
 import {
   COMMENT_LIMIT,
+  getDjCommentPage,
   getDjComments,
   getDjRadioComments,
   getMvCommentPage,
@@ -379,6 +380,7 @@ describe('DJ program comment API', () => {
     expect(request.get).toHaveBeenCalledWith('/comment/dj', {
       id: 901,
       limit: COMMENT_LIMIT,
+      offset: 0,
     })
   })
 
@@ -386,6 +388,58 @@ describe('DJ program comment API', () => {
     await expect(
       getDjComments(901, client({ comments: null }).client),
     ).rejects.toThrow('电台节目评论响应格式不正确')
+  })
+
+  it('pages later DJ program comments without prepending hot comments', async () => {
+    const request = client({
+      comments: [
+        {
+          commentId: 21,
+          content: '  第二页  ',
+          extra: true,
+          user: { nickname: '  夜航乐队  ' },
+        },
+        { commentId: 0, content: '无效' },
+      ],
+      hotComments: [
+        {
+          commentId: 1,
+          content: '热评不应出现在第二页',
+          user: { nickname: '林间电台' },
+        },
+      ],
+      more: false,
+    })
+    await expect(getDjCommentPage(901, COMMENT_LIMIT, request.client)).resolves.toEqual({
+      comments: [{ commentId: 21, content: '第二页', nickname: '夜航乐队' }],
+      more: false,
+    })
+    expect(request.get).toHaveBeenCalledWith('/comment/dj', {
+      id: 901,
+      limit: COMMENT_LIMIT,
+      offset: COMMENT_LIMIT,
+    })
+  })
+
+  it('reads DJ program more from the payload and infers it from a full page', async () => {
+    await expect(
+      getDjCommentPage(
+        901,
+        0,
+        client({
+          comments: [{ commentId: 1, content: '一条', user: { nickname: '林间电台' } }],
+          more: true,
+        }).client,
+      ),
+    ).resolves.toMatchObject({ more: true })
+    const full = Array.from({ length: COMMENT_LIMIT }, (_, index) => ({
+      commentId: index + 1,
+      content: `评论${index + 1}`,
+      user: { nickname: '用户' },
+    }))
+    await expect(
+      getDjCommentPage(901, COMMENT_LIMIT, client({ comments: full }).client),
+    ).resolves.toMatchObject({ more: true })
   })
 })
 

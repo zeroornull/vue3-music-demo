@@ -371,6 +371,10 @@ describe('App host gate', () => {
     djStore.comments = [
       { commentId: 1, content: '走过林间。', nickname: '林间电台' },
     ]
+    djStore.commentsMore = true
+    djStore.commentsMoreError = 'stale'
+    djStore.commentsMoreLoading = true
+    djStore.commentOffset = 20
     djStore.radioComments = [
       { commentId: 2, content: '夜色刚好', nickname: '海岸信号' },
     ]
@@ -401,6 +405,10 @@ describe('App host gate', () => {
     expect(djStore.relatedRadios).toBeNull()
     expect(djStore.relatedPrograms).toBeNull()
     expect(djStore.comments).toBeNull()
+    expect(djStore.commentsMore).toBe(false)
+    expect(djStore.commentsMoreError).toBeNull()
+    expect(djStore.commentsMoreLoading).toBe(false)
+    expect(djStore.commentOffset).toBe(0)
     expect(djStore.radioComments).toBeNull()
     expect(djStore.radioLoadedId).toBeNull()
   })

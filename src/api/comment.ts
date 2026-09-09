@@ -160,15 +160,26 @@ export async function getVideoComments(
   return page.comments
 }
 
+export async function getDjCommentPage(
+  id: number,
+  offset = 0,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<CommentPage> {
+  return getMediaCommentPage(
+    '/comment/dj',
+    id,
+    offset,
+    '电台节目评论响应格式不正确',
+    client,
+  )
+}
+
 export async function getDjComments(
   id: number,
   client: Pick<HttpClient, 'get'> = http,
 ): Promise<MediaComment[]> {
-  const response = await client.get<{
-    comments?: unknown
-    hotComments?: unknown
-  }>('/comment/dj', { id, limit: COMMENT_LIMIT })
-  return mergeComments(response, '电台节目评论响应格式不正确')
+  const page = await getDjCommentPage(id, 0, client)
+  return page.comments
 }
 
 export async function getDjRadioComments(
