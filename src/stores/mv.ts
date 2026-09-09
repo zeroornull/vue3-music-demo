@@ -2,28 +2,38 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
-import { getMvComments } from '@/api/comment'
+import { COMMENT_LIMIT, getMvCommentPage } from '@/api/comment'
 import { getMvDetail, getMvUrl, getSimiMvs } from '@/api/mv'
 import type { MediaComment } from '@/models/comment'
 import type { MvDetail, MvUrl, SimiMv } from '@/models/mv'
 
 let requestSerial = 0
+let commentsMoreSerial = 0
 
 export const useMvStore = defineStore('mv', () => {
   const playback = ref<MvUrl | null>(null)
   const detail = ref<MvDetail | null>(null)
   const relatedMvs = ref<SimiMv[] | null>(null)
   const comments = ref<MediaComment[] | null>(null)
+  const commentsMore = ref(false)
+  const commentsMoreLoading = ref(false)
+  const commentsMoreError = ref<string | null>(null)
+  const commentOffset = ref(0)
   const error = ref<string | null>(null)
   const loading = ref(false)
   const loadedId = ref<number | null>(null)
 
   function reset() {
     requestSerial++
+    commentsMoreSerial++
     playback.value = null
     detail.value = null
     relatedMvs.value = null
     comments.value = null
+    commentsMore.value = false
+    commentsMoreLoading.value = false
+    commentsMoreError.value = null
+    commentOffset.value = 0
     loadedId.value = null
     error.value = null
     loading.value = false
@@ -44,6 +54,11 @@ export const useMvStore = defineStore('mv', () => {
     }
 
     const serial = ++requestSerial
+    commentsMoreSerial++
+    commentsMore.value = false
+    commentsMoreLoading.value = false
+    commentsMoreError.value = null
+    commentOffset.value = 0
     if (loadedId.value !== id) {
       playback.value = null
       detail.value = null
@@ -84,13 +99,52 @@ export const useMvStore = defineStore('mv', () => {
   }
 
   function requestComments(id: number, serial: number) {
-    void Promise.resolve(getMvComments(id))
-      .then((list) => {
+    const moreSerial = commentsMoreSerial
+    void Promise.resolve(getMvCommentPage(id, 0))
+      .then((page) => {
         if (serial !== requestSerial) return
         if (loadedId.value !== id) return
-        comments.value = list
+        if (moreSerial !== commentsMoreSerial) return
+        comments.value = page.comments
+        commentsMore.value = page.more
+        commentsMoreError.value = null
+        commentOffset.value = COMMENT_LIMIT
       })
       .catch(() => undefined)
+  }
+
+  async function loadMoreComments() {
+    const id = loadedId.value
+    if (
+      id === null ||
+      comments.value === null ||
+      !comments.value.length ||
+      !commentsMore.value ||
+      commentsMoreLoading.value
+    ) {
+      return
+    }
+    const serial = ++commentsMoreSerial
+    const offset = commentOffset.value
+    commentsMoreLoading.value = true
+    commentsMoreError.value = null
+    try {
+      const page = await getMvCommentPage(id, offset)
+      if (serial !== commentsMoreSerial || loadedId.value !== id) return
+      const seen = new Set(comments.value.map((item) => item.commentId))
+      comments.value = [
+        ...comments.value,
+        ...page.comments.filter((item) => !seen.has(item.commentId)),
+      ]
+      commentsMore.value = page.more
+      commentOffset.value = offset + COMMENT_LIMIT
+    } catch (requestError) {
+      if (serial !== commentsMoreSerial || loadedId.value !== id) return
+      commentsMoreError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === commentsMoreSerial) commentsMoreLoading.value = false
+    }
   }
 
   function requestRelated(id: number, serial: number) {
@@ -105,5 +159,20 @@ export const useMvStore = defineStore('mv', () => {
       })
   }
 
-  return { load, reset, playback, detail, relatedMvs, comments, error, loading, loadedId }
+  return {
+    load,
+    loadMoreComments,
+    reset,
+    playback,
+    detail,
+    relatedMvs,
+    comments,
+    commentsMore,
+    commentsMoreLoading,
+    commentsMoreError,
+    commentOffset,
+    error,
+    loading,
+    loadedId,
+  }
 })

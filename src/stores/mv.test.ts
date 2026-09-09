@@ -1,12 +1,13 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getMvComments } from '@/api/comment'
+import { COMMENT_LIMIT, getMvCommentPage } from '@/api/comment'
 import { getMvDetail, getMvUrl, getSimiMvs } from '@/api/mv'
 import { useMvStore } from '@/stores/mv'
 
 vi.mock('@/api/comment', () => ({
-  getMvComments: vi.fn(),
+  COMMENT_LIMIT: 20,
+  getMvCommentPage: vi.fn(),
 }))
 vi.mock('@/api/mv', () => ({
   getMvDetail: vi.fn(),
@@ -66,8 +67,8 @@ describe('mv store', () => {
     vi.mocked(getMvDetail).mockRejectedValue(new Error('no detail'))
     vi.mocked(getSimiMvs).mockReset()
     vi.mocked(getSimiMvs).mockRejectedValue(new Error('no simi'))
-    vi.mocked(getMvComments).mockReset()
-    vi.mocked(getMvComments).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getMvCommentPage).mockReset()
+    vi.mocked(getMvCommentPage).mockRejectedValue(new Error('no comments'))
   })
 
   it('loads an MV URL and caches the same id', async () => {
@@ -293,7 +294,7 @@ describe('mv store', () => {
   it('reset drops cached playback', async () => {
     vi.mocked(getMvUrl).mockResolvedValue(playback)
     vi.mocked(getMvDetail).mockResolvedValue(detail)
-    vi.mocked(getMvComments).mockResolvedValue([comment])
+    vi.mocked(getMvCommentPage).mockResolvedValue({ comments: [comment], more: true })
     const store = useMvStore()
     await store.load(701)
     await settle()
@@ -304,6 +305,7 @@ describe('mv store', () => {
     expect(store.detail).toBeNull()
     expect(store.relatedMvs).toBeNull()
     expect(store.comments).toBeNull()
+    expect(store.commentsMore).toBe(false)
     expect(store.loadedId).toBeNull()
     expect(store.error).toBeNull()
   })
@@ -313,13 +315,13 @@ describe('mv store', () => {
 
     await expect(store.load(0)).rejects.toThrow('缺少有效的 MV ID')
     expect(getMvUrl).not.toHaveBeenCalled()
-    expect(getMvComments).not.toHaveBeenCalled()
+    expect(getMvCommentPage).not.toHaveBeenCalled()
     expect(store.error).toBe('缺少有效的 MV ID')
   })
 
   it('loads comments with the URL and does not refetch on cache', async () => {
     vi.mocked(getMvUrl).mockResolvedValue(playback)
-    vi.mocked(getMvComments).mockResolvedValue([comment])
+    vi.mocked(getMvCommentPage).mockResolvedValue({ comments: [comment], more: true })
     const store = useMvStore()
 
     await store.load(701)
@@ -327,14 +329,16 @@ describe('mv store', () => {
     await store.load(701)
 
     expect(store.comments).toEqual([comment])
+    expect(store.commentsMore).toBe(true)
+    expect(store.commentOffset).toBe(COMMENT_LIMIT)
     expect(getMvUrl).toHaveBeenCalledTimes(1)
-    expect(getMvComments).toHaveBeenCalledTimes(1)
-    expect(getMvComments).toHaveBeenCalledWith(701)
+    expect(getMvCommentPage).toHaveBeenCalledTimes(1)
+    expect(getMvCommentPage).toHaveBeenCalledWith(701, 0)
   })
 
   it('treats an empty comment list as loaded and does not retry', async () => {
     vi.mocked(getMvUrl).mockResolvedValue(playback)
-    vi.mocked(getMvComments).mockResolvedValue([])
+    vi.mocked(getMvCommentPage).mockResolvedValue({ comments: [], more: false })
     const store = useMvStore()
 
     await store.load(701)
@@ -343,12 +347,12 @@ describe('mv store', () => {
     await settle()
 
     expect(store.comments).toEqual([])
-    expect(getMvComments).toHaveBeenCalledTimes(1)
+    expect(getMvCommentPage).toHaveBeenCalledTimes(1)
   })
 
   it('keeps playback when comments fail', async () => {
     vi.mocked(getMvUrl).mockResolvedValue(playback)
-    vi.mocked(getMvComments).mockRejectedValue(new Error('comments offline'))
+    vi.mocked(getMvCommentPage).mockRejectedValue(new Error('comments offline'))
     const store = useMvStore()
 
     await store.load(701)
@@ -361,9 +365,9 @@ describe('mv store', () => {
 
   it('retries comments on a cached URL when the first comment request failed', async () => {
     vi.mocked(getMvUrl).mockResolvedValue(playback)
-    vi.mocked(getMvComments)
+    vi.mocked(getMvCommentPage)
       .mockRejectedValueOnce(new Error('comments offline'))
-      .mockResolvedValueOnce([comment])
+      .mockResolvedValueOnce({ comments: [comment], more: false })
     const store = useMvStore()
 
     await store.load(701)
@@ -374,29 +378,130 @@ describe('mv store', () => {
     await settle()
 
     expect(getMvUrl).toHaveBeenCalledTimes(1)
-    expect(getMvComments).toHaveBeenCalledTimes(2)
+    expect(getMvCommentPage).toHaveBeenCalledTimes(2)
     expect(store.comments).toEqual([comment])
+    expect(store.commentsMore).toBe(false)
   })
 
   it('does not keep stale comments after the MV id changes', async () => {
-    const first = deferred<typeof comment[]>()
+    const first = deferred<{ comments: typeof comment[]; more: boolean }>()
     const nextPlayback = { id: 702, url: 'https://media.example.com/next.mp4' }
     const nextComment = { ...comment, commentId: 9, content: '下一支留言' }
     vi.mocked(getMvUrl)
       .mockResolvedValueOnce(playback)
       .mockResolvedValueOnce(nextPlayback)
-    vi.mocked(getMvComments)
+    vi.mocked(getMvCommentPage)
       .mockReturnValueOnce(first.promise)
-      .mockResolvedValueOnce([nextComment])
+      .mockResolvedValueOnce({ comments: [nextComment], more: false })
     const store = useMvStore()
 
     await store.load(701)
     await store.load(702)
     await settle()
-    first.resolve([comment])
+    first.resolve({ comments: [comment], more: true })
     await settle()
 
     expect(store.playback?.id).toBe(702)
     expect(store.comments).toEqual([nextComment])
+    expect(store.commentsMore).toBe(false)
+  })
+
+  it('appends more comments without dropping the first page', async () => {
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockResolvedValueOnce({ comments: [extra, comment], more: false })
+    const store = useMvStore()
+    await store.load(701)
+    await settle()
+    await store.loadMoreComments()
+    await settle()
+
+    expect(getMvCommentPage).toHaveBeenNthCalledWith(1, 701, 0)
+    expect(getMvCommentPage).toHaveBeenNthCalledWith(2, 701, COMMENT_LIMIT)
+    expect(store.comments).toEqual([comment, extra])
+    expect(store.commentsMore).toBe(false)
+    expect(store.commentsMoreLoading).toBe(false)
+    expect(store.commentOffset).toBe(COMMENT_LIMIT * 2)
+  })
+
+  it('keeps loaded comments when load more fails', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockRejectedValueOnce(new Error('more offline'))
+    const store = useMvStore()
+    await store.load(701)
+    await settle()
+    await expect(store.loadMoreComments()).rejects.toThrow('more offline')
+
+    expect(store.comments).toEqual([comment])
+    expect(store.commentsMore).toBe(true)
+    expect(store.commentsMoreError).toBe('more offline')
+    expect(store.commentsMoreLoading).toBe(false)
+  })
+
+  it('does not request another page when more is false', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvCommentPage).mockResolvedValue({
+      comments: [comment],
+      more: false,
+    })
+    const store = useMvStore()
+    await store.load(701)
+    await settle()
+    await store.loadMoreComments()
+
+    expect(getMvCommentPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not let a late first page overwrite appended comments', async () => {
+    const firstA = deferred<{ comments: typeof comment[]; more: boolean }>()
+    const firstB = deferred<{ comments: typeof comment[]; more: boolean }>()
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvCommentPage)
+      .mockReturnValueOnce(firstA.promise)
+      .mockReturnValueOnce(firstB.promise)
+      .mockResolvedValueOnce({ comments: [extra], more: false })
+    const store = useMvStore()
+    await store.load(701)
+    await store.load(701)
+    firstA.resolve({ comments: [comment], more: true })
+    await settle()
+    await store.loadMoreComments()
+    firstB.resolve({ comments: [comment], more: true })
+    await settle()
+
+    expect(store.comments).toEqual([comment, extra])
+    expect(store.commentsMore).toBe(false)
+    expect(getMvCommentPage).toHaveBeenCalledTimes(3)
+  })
+
+  it('drops in-flight more comments after the MV id changes', async () => {
+    const pending = deferred<{ comments: typeof comment[]; more: boolean }>()
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    const nextPlayback = { id: 702, url: 'https://media.example.com/next.mp4' }
+    const nextComment = { ...comment, commentId: 9, content: '下一支留言' }
+    vi.mocked(getMvUrl)
+      .mockResolvedValueOnce(playback)
+      .mockResolvedValueOnce(nextPlayback)
+    vi.mocked(getMvCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce({ comments: [nextComment], more: false })
+    const store = useMvStore()
+    await store.load(701)
+    await settle()
+    const more = store.loadMoreComments()
+    await store.load(702)
+    pending.resolve({ comments: [extra], more: false })
+    await more
+    await settle()
+
+    expect(store.playback?.id).toBe(702)
+    expect(store.comments).toEqual([nextComment])
+    expect(store.commentsMore).toBe(false)
   })
 })

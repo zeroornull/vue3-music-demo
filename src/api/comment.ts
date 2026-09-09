@@ -72,27 +72,40 @@ function readCommentList(values: unknown[]): MediaComment[] {
   return list
 }
 
-export async function getPlaylistCommentPage(
+async function getMediaCommentPage(
+  path: string,
   id: number,
-  offset = 0,
-  client: Pick<HttpClient, 'get'> = http,
+  offset: number,
+  errorMessage: string,
+  client: Pick<HttpClient, 'get'>,
 ): Promise<CommentPage> {
   const response = await client.get<{
     comments?: unknown
     hotComments?: unknown
     more?: unknown
-  }>('/comment/playlist', { id, limit: COMMENT_LIMIT, offset })
+  }>(path, { id, limit: COMMENT_LIMIT, offset })
   if (!Array.isArray(response.comments)) {
-    throw new Error('歌单评论响应格式不正确')
+    throw new Error(errorMessage)
   }
   const more = readMore(response)
   if (offset <= 0) {
-    return {
-      comments: mergeComments(response, '歌单评论响应格式不正确'),
-      more,
-    }
+    return { comments: mergeComments(response, errorMessage), more }
   }
   return { comments: readCommentList(response.comments), more }
+}
+
+export async function getPlaylistCommentPage(
+  id: number,
+  offset = 0,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<CommentPage> {
+  return getMediaCommentPage(
+    '/comment/playlist',
+    id,
+    offset,
+    '歌单评论响应格式不正确',
+    client,
+  )
 }
 
 export async function getPlaylistComments(
@@ -103,15 +116,26 @@ export async function getPlaylistComments(
   return page.comments
 }
 
+export async function getMvCommentPage(
+  id: number,
+  offset = 0,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<CommentPage> {
+  return getMediaCommentPage(
+    '/comment/mv',
+    id,
+    offset,
+    'MV 评论响应格式不正确',
+    client,
+  )
+}
+
 export async function getMvComments(
   id: number,
   client: Pick<HttpClient, 'get'> = http,
 ): Promise<MediaComment[]> {
-  const response = await client.get<{
-    comments?: unknown
-    hotComments?: unknown
-  }>('/comment/mv', { id, limit: COMMENT_LIMIT })
-  return mergeComments(response, 'MV 评论响应格式不正确')
+  const page = await getMvCommentPage(id, 0, client)
+  return page.comments
 }
 
 export async function getVideoComments(

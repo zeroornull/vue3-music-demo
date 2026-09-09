@@ -538,6 +538,10 @@ describe('App host gate', () => {
     mvStore.playback = { id: 701, url: 'https://media.example.com/mv.mp4' }
     mvStore.loadedId = 701
     mvStore.comments = [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }]
+    mvStore.commentsMore = true
+    mvStore.commentsMoreError = 'stale'
+    mvStore.commentsMoreLoading = true
+    mvStore.commentOffset = 20
     mountApp()
 
     useHostStore().clearHost()
@@ -546,6 +550,10 @@ describe('App host gate', () => {
     expect(mvStore.playback).toBeNull()
     expect(mvStore.loadedId).toBeNull()
     expect(mvStore.comments).toBeNull()
+    expect(mvStore.commentsMore).toBe(false)
+    expect(mvStore.commentsMoreError).toBeNull()
+    expect(mvStore.commentsMoreLoading).toBe(false)
+    expect(mvStore.commentOffset).toBe(0)
   })
 
   it('clears video playback cache when the host gate closes', async () => {

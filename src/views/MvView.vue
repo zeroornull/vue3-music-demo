@@ -14,7 +14,17 @@ const route = useRoute()
 const mvStore = useMvStore()
 const playerStore = usePlayerStore()
 const videoStore = useVideoStore()
-const { playback, detail, relatedMvs, comments, loading, error } = storeToRefs(mvStore)
+const {
+  playback,
+  detail,
+  relatedMvs,
+  comments,
+  commentsMore,
+  commentsMoreLoading,
+  commentsMoreError,
+  loading,
+  error,
+} = storeToRefs(mvStore)
 const { mvs, privateContents } = storeToRefs(videoStore)
 
 const mvId = computed(() => {
@@ -44,6 +54,10 @@ const namedArtists = computed(() =>
   (related.value?.artists ?? []).filter((artist) => artist.name.trim()),
 )
 const artistName = computed(() => related.value?.artistName?.trim() || '')
+
+function loadMoreComments() {
+  void mvStore.loadMoreComments().catch(() => undefined)
+}
 
 function requestMv(force = false) {
   const id = mvId.value
@@ -159,6 +173,18 @@ watch(
             <p>{{ item.content }}</p>
           </li>
         </ul>
+        <p v-if="commentsMoreError" class="comments-more-error" role="alert">
+          {{ commentsMoreError }}
+        </p>
+        <button
+          v-if="comments.length && commentsMore"
+          type="button"
+          data-testid="mv-comments-more"
+          :disabled="commentsMoreLoading"
+          @click="loadMoreComments"
+        >
+          {{ commentsMoreLoading ? '正在加载评论' : '加载更多评论' }}
+        </button>
       </section>
       <section
         v-if="relatedMvs?.length"
@@ -277,6 +303,15 @@ h1 {
 
 .comment-list p {
   margin: 6px 0 0;
+}
+
+.comments-more-error {
+  margin: 12px 0 0;
+  color: var(--color-danger);
+}
+
+.mv-comments button {
+  margin-top: 16px;
 }
 
 .related-grid {
