@@ -37,6 +37,8 @@ vi.mock('@/api/song', () => ({
   getSongDetail: vi.fn(),
   getSongUrl: vi.fn(),
   getSimiSongs: vi.fn(),
+  checkMusic: vi.fn(),
+  SONG_URL_MISSING: '歌曲暂无可播放地址',
 }))
 
 const RouterStub = { template: '<div data-testid="router-view" />' }

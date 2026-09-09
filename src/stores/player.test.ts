@@ -4,7 +4,13 @@ import { flushPromises } from '@vue/test-utils'
 import { getSongComments } from '@/api/comment'
 import { getPersonalFm, trashPersonalFm } from '@/api/fm'
 import { getSimiPlaylists } from '@/api/playlist'
-import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
+import {
+  checkMusic,
+  getSimiSongs,
+  getSongDetail,
+  getSongUrl,
+  SONG_URL_MISSING,
+} from '@/api/song'
 import type { AudioAdapter } from '@/audio/audioAdapter'
 import {
   resetAudioAdapter,
@@ -90,6 +96,8 @@ describe('Player store', () => {
     resetAudioAdapter()
     vi.mocked(getSongDetail).mockImplementation(async (id) => song(id))
     vi.mocked(getSongUrl).mockResolvedValue({ id: 1, url: 'x' })
+    vi.mocked(checkMusic).mockReset()
+    vi.mocked(checkMusic).mockRejectedValue(new Error('no check'))
     vi.mocked(getSimiSongs).mockRejectedValue(new Error('no similar'))
     vi.mocked(getSimiPlaylists).mockReset()
     vi.mocked(getSimiPlaylists).mockRejectedValue(new Error('no playlists'))
@@ -137,6 +145,72 @@ describe('Player store', () => {
     expect(player.error).toBe('暂无播放地址')
     expect(player.loading).toBe(false)
     expect(player.hasPlayableSource).toBe(false)
+    expect(checkMusic).not.toHaveBeenCalled()
+  })
+
+  it('replaces a missing URL with the copyright check message', async () => {
+    vi.mocked(getSongUrl).mockRejectedValueOnce(new Error(SONG_URL_MISSING))
+    vi.mocked(checkMusic).mockResolvedValueOnce({
+      message: '亲爱的,暂无版权',
+      playable: false,
+    })
+    const player = usePlayerStore()
+
+    await expect(player.play(song(1))).rejects.toThrow('亲爱的,暂无版权')
+    expect(player.error).toBe('亲爱的,暂无版权')
+    expect(player.loading).toBe(false)
+    expect(player.hasPlayableSource).toBe(false)
+    expect(checkMusic).toHaveBeenCalledTimes(1)
+    expect(checkMusic).toHaveBeenCalledWith(1)
+  })
+
+  it('keeps the missing-URL error when the song is still marked playable', async () => {
+    vi.mocked(getSongUrl).mockRejectedValueOnce(new Error(SONG_URL_MISSING))
+    vi.mocked(checkMusic).mockResolvedValueOnce({ message: 'ok', playable: true })
+    const player = usePlayerStore()
+
+    await expect(player.play(song(1))).rejects.toThrow(SONG_URL_MISSING)
+    expect(player.error).toBe(SONG_URL_MISSING)
+    expect(checkMusic).toHaveBeenCalledWith(1)
+  })
+
+  it('keeps the missing-URL error when the copyright check fails', async () => {
+    vi.mocked(getSongUrl).mockRejectedValueOnce(new Error(SONG_URL_MISSING))
+    vi.mocked(checkMusic).mockRejectedValueOnce(new Error('check offline'))
+    const player = usePlayerStore()
+
+    await expect(player.play(song(1))).rejects.toThrow(SONG_URL_MISSING)
+    expect(player.error).toBe(SONG_URL_MISSING)
+  })
+
+  it('does not check copyright when a playable URL is returned', async () => {
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    expect(checkMusic).not.toHaveBeenCalled()
+  })
+
+  it('drops a stale copyright check after a later play starts', async () => {
+    const pendingUrl = deferred<{ id: number; url: string }>()
+    const pendingCheck = deferred<{ message: string; playable: boolean }>()
+    vi.mocked(getSongUrl)
+      .mockReturnValueOnce(pendingUrl.promise)
+      .mockResolvedValueOnce({ id: 2, url: 'y' })
+    vi.mocked(checkMusic).mockReturnValueOnce(pendingCheck.promise)
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    const first = player.play(song(1))
+    pendingUrl.reject(new Error(SONG_URL_MISSING))
+    await flushPromises()
+    expect(checkMusic).toHaveBeenCalledTimes(1)
+    await player.play(song(2))
+    pendingCheck.resolve({ message: '亲爱的,暂无版权', playable: false })
+    await expect(first).resolves.toBe(false)
+
+    expect(player.current?.id).toBe(2)
+    expect(player.error).toBeNull()
+    expect(player.isPlaying).toBe(true)
+    expect(player.hasPlayableSource).toBe(true)
   })
 
   it('records adapter play errors', async () => {

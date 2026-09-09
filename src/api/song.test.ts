@@ -1,6 +1,16 @@
+import type { AxiosAdapter } from 'axios'
+import { AxiosHeaders } from 'axios'
 import { describe, expect, it, vi } from 'vitest'
-import type { HttpClient } from '@/api/http'
-import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
+
+import { createHttpClient, type HttpClient } from '@/api/http'
+import {
+  checkMusic,
+  getSimiSongs,
+  getSongDetail,
+  getSongUrl,
+  SONG_UNPLAYABLE_FALLBACK,
+  SONG_URL_MISSING,
+} from '@/api/song'
 
 const client = (response: unknown) => {
   const get = vi.fn(
@@ -33,7 +43,7 @@ describe('Song API', () => {
       { data: [{ id: 1, url: '  ' }] },
     ]) {
       await expect(getSongUrl(1, client(response).client)).rejects.toThrow(
-        '歌曲暂无可播放地址',
+        SONG_URL_MISSING,
       )
     }
   })
@@ -111,5 +121,69 @@ describe('Song API', () => {
       name: `相似 ${index + 1}`,
     }))
     await expect(getSimiSongs(301, client({ songs: many }).client)).resolves.toHaveLength(10)
+  })
+})
+
+describe('Check music API', () => {
+  it('unwraps a playable /check/music body', async () => {
+    const request = client({ extra: true, message: 'ok', success: true })
+    await expect(checkMusic(301, request.client)).resolves.toEqual({
+      message: 'ok',
+      playable: true,
+    })
+    const status = request.get.mock.calls[0]?.[2]?.validateStatus
+    expect(typeof status).toBe('function')
+    expect(status(200)).toBe(true)
+    expect(status(404)).toBe(true)
+    expect(status(500)).toBe(false)
+    await expect(checkMusic(301, client({ success: true }).client)).resolves.toEqual({
+      message: 'ok',
+      playable: true,
+    })
+    await expect(
+      checkMusic(301, client({ success: true, message: '   ' }).client),
+    ).resolves.toEqual({
+      message: 'ok',
+      playable: true,
+    })
+  })
+
+  it('unwraps an unplayable body and fills a blank message', async () => {
+    const blocked = client({
+      extra: true,
+      message: '  亲爱的,暂无版权  ',
+      success: false,
+    })
+    await expect(checkMusic(301, blocked.client)).resolves.toEqual({
+      message: '亲爱的,暂无版权',
+      playable: false,
+    })
+    await expect(
+      checkMusic(301, client({ success: false, message: '   ' }).client),
+    ).resolves.toEqual({
+      message: SONG_UNPLAYABLE_FALLBACK,
+      playable: false,
+    })
+  })
+
+  it('rejects a missing success flag', async () => {
+    await expect(checkMusic(301, client({ message: 'ok' }).client)).rejects.toThrow(
+      '歌曲可播放性响应格式不正确',
+    )
+  })
+
+  it('reads an unplayable 404 body from /check/music', async () => {
+    const adapter: AxiosAdapter = async (config) => ({
+      config,
+      data: { message: '亲爱的,暂无版权', success: false },
+      headers: new AxiosHeaders(),
+      status: 404,
+      statusText: 'Not Found',
+    })
+    const http = createHttpClient({ adapter, now: () => 1 })
+    await expect(checkMusic(301, http)).resolves.toEqual({
+      message: '亲爱的,暂无版权',
+      playable: false,
+    })
   })
 })

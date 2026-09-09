@@ -2,7 +2,13 @@ import { defineStore } from 'pinia'
 import { getSongComments } from '@/api/comment'
 import { getPersonalFm, trashPersonalFm } from '@/api/fm'
 import { getSimiPlaylists } from '@/api/playlist'
-import { getSimiSongs, getSongDetail, getSongUrl } from '@/api/song'
+import {
+  checkMusic,
+  getSimiSongs,
+  getSongDetail,
+  getSongUrl,
+  SONG_URL_MISSING,
+} from '@/api/song'
 import { createAudioAdapter, type AudioAdapter } from '@/audio/audioAdapter'
 import { readPlayerVolume, savePlayerVolume } from '@/config/playerVolume'
 import type { MediaComment } from '@/models/comment'
@@ -174,7 +180,22 @@ export const usePlayerStore = defineStore('player', {
         if (this.relatedSongs === null) this.requestRelated(song.id)
         if (this.relatedPlaylists === null) this.requestSimiPlaylists(song.id)
         if (this.comments === null) this.requestComments(song.id)
-        const url = await getSongUrl(song.id)
+        let url
+        try {
+          url = await getSongUrl(song.id)
+        } catch (urlError) {
+          if (serial !== requestSerial) return false
+          const missing =
+            urlError instanceof Error && urlError.message === SONG_URL_MISSING
+          if (missing) {
+            const check = await checkMusic(song.id).catch(() => null)
+            if (serial !== requestSerial) return false
+            if (check && !check.playable) {
+              throw new Error(check.message)
+            }
+          }
+          throw urlError
+        }
         if (serial !== requestSerial) return false
         const audio = injectedAdapter ?? createAudioAdapter()
         if (!injectedAdapter) injectedAdapter = audio
