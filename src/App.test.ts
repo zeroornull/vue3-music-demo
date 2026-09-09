@@ -466,12 +466,22 @@ describe('App host gate', () => {
         updateFrequency: '',
       },
     ]
+    musicStore.newestAlbums = [
+      {
+        artist: { id: 401, name: '林间电台' },
+        id: 501,
+        name: '夜航',
+        picUrl: 'https://images.example.com/album.jpg',
+        publishTime: 1_609_459_200_000,
+      },
+    ]
     mountApp()
 
     useHostStore().clearHost()
     await flushPromises()
 
     expect(musicStore.topLists).toEqual([])
+    expect(musicStore.newestAlbums).toEqual([])
   })
 
   it('clears MV playback cache when the host gate closes', async () => {

@@ -1,5 +1,5 @@
 import { http, type HttpClient } from '@/api/http'
-import type { AlbumDetail, AlbumPage } from '@/models/album'
+import type { AlbumDetail, AlbumPage, NewestAlbum } from '@/models/album'
 import { normalizeSong, type NetworkSong, type Song } from '@/models/song'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -55,4 +55,52 @@ export async function getAlbum(
     },
     songs,
   }
+}
+
+export const NEWEST_ALBUM_LIMIT = 10
+
+function readNewestAlbum(value: unknown): NewestAlbum | null {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'number' ||
+    !Number.isInteger(value.id) ||
+    value.id <= 0
+  ) {
+    return null
+  }
+  const name = typeof value.name === 'string' ? value.name.trim() : ''
+  if (!name) return null
+  const picUrl =
+    typeof value.picUrl === 'string' && value.picUrl
+      ? value.picUrl
+      : typeof value.blurPicUrl === 'string' && value.blurPicUrl
+        ? value.blurPicUrl
+        : ''
+  const rawArtist = isRecord(value.artist)
+    ? value.artist
+    : Array.isArray(value.artists) && isRecord(value.artists[0])
+      ? value.artists[0]
+      : {}
+  return {
+    artist: readArtist(rawArtist),
+    id: value.id,
+    name,
+    picUrl,
+    publishTime: typeof value.publishTime === 'number' ? value.publishTime : 0,
+  }
+}
+
+export async function getNewestAlbums(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<NewestAlbum[]> {
+  const response = await client.get<{ albums?: unknown }>('/album/newest', {
+    limit: NEWEST_ALBUM_LIMIT,
+  })
+  if (!Array.isArray(response.albums)) {
+    throw new Error('新碟上架响应格式不正确')
+  }
+  return response.albums
+    .map(readNewestAlbum)
+    .filter((item): item is NewestAlbum => item !== null)
+    .slice(0, NEWEST_ALBUM_LIMIT)
 }

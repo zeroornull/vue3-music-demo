@@ -1,11 +1,15 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getNewestAlbums } from '@/api/album'
 import { getPersonalizedPlaylists } from '@/api/personalized'
 import { getPersonalizedNewSongs } from '@/api/newSong'
 import { getTopLists } from '@/api/toplist'
 import { useMusicStore } from '@/stores/music'
 
+vi.mock('@/api/album', () => ({
+  getNewestAlbums: vi.fn(),
+}))
 vi.mock('@/api/personalized', () => ({
   getPersonalizedPlaylists: vi.fn(),
 }))
@@ -50,6 +54,7 @@ describe('music store', () => {
     setActivePinia(createPinia())
     vi.mocked(getPersonalizedPlaylists).mockReset()
     vi.mocked(getPersonalizedNewSongs).mockReset()
+    vi.mocked(getNewestAlbums).mockReset()
     vi.mocked(getTopLists).mockReset()
   })
 
@@ -134,6 +139,7 @@ describe('music store', () => {
     expect(store.topLists).toEqual([])
     expect(store.personalized).toEqual([])
     expect(store.newSongs).toEqual([])
+    expect(store.newestAlbums).toEqual([])
   })
 
   it('does not cache a top-list success while an error is still set', async () => {
@@ -221,5 +227,80 @@ describe('music store', () => {
     expect(store.newSongs).toEqual([newSong])
     expect(store.newSongsError).toBeNull()
     expect(store.newSongsLoading).toBe(false)
+  })
+
+  const newestAlbum = {
+    artist: { id: 401, name: '林间电台' },
+    id: 501,
+    name: '夜航',
+    picUrl: 'https://images.example.com/album.jpg',
+    publishTime: 1_609_459_200_000,
+  }
+
+  it('loads and caches newest albums independently of new songs', async () => {
+    vi.mocked(getNewestAlbums).mockResolvedValue([newestAlbum])
+    vi.mocked(getPersonalizedNewSongs).mockResolvedValue([newSong])
+    const store = useMusicStore()
+
+    await store.loadNewestAlbums()
+    await store.loadNewestAlbums()
+    await store.loadNewSongs()
+
+    expect(store.newestAlbums).toEqual([newestAlbum])
+    expect(getNewestAlbums).toHaveBeenCalledTimes(1)
+    expect(store.newestAlbumsError).toBeNull()
+    expect(store.newSongs).toEqual([newSong])
+  })
+
+  it('does not drop in-flight newest albums when new songs load', async () => {
+    let resolveAlbums!: (value: typeof newestAlbum[]) => void
+    vi.mocked(getNewestAlbums).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveAlbums = resolve
+      }),
+    )
+    vi.mocked(getPersonalizedNewSongs).mockResolvedValue([newSong])
+    const store = useMusicStore()
+    const pending = store.loadNewestAlbums()
+    await store.loadNewSongs()
+    resolveAlbums([newestAlbum])
+    await pending
+
+    expect(store.newSongs).toEqual([newSong])
+    expect(store.newestAlbums).toEqual([newestAlbum])
+    expect(store.newestAlbumsError).toBeNull()
+  })
+
+  it('keeps new songs when newest albums fail', async () => {
+    vi.mocked(getPersonalizedNewSongs).mockResolvedValue([newSong])
+    vi.mocked(getNewestAlbums).mockRejectedValue(new Error('albums offline'))
+    const store = useMusicStore()
+
+    await store.loadNewSongs()
+    await expect(store.loadNewestAlbums()).rejects.toThrow('albums offline')
+
+    expect(store.newSongs).toEqual([newSong])
+    expect(store.newestAlbums).toEqual([])
+    expect(store.newestAlbumsError).toBe('albums offline')
+    expect(store.newestAlbumsLoading).toBe(false)
+  })
+
+  it('drops in-flight newest albums after reset', async () => {
+    let resolveList!: (value: typeof newestAlbum[]) => void
+    vi.mocked(getNewestAlbums).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveList = resolve
+      }),
+    )
+    const store = useMusicStore()
+    const pending = store.loadNewestAlbums()
+    store.reset()
+    resolveList([newestAlbum])
+    await pending
+
+    expect(store.newestAlbums).toEqual([])
+    vi.mocked(getNewestAlbums).mockResolvedValueOnce([])
+    await store.loadNewestAlbums()
+    expect(getNewestAlbums).toHaveBeenCalledTimes(2)
   })
 })

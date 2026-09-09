@@ -2,15 +2,18 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
+import { getNewestAlbums } from '@/api/album'
 import { getPersonalizedNewSongs } from '@/api/newSong'
 import { getPersonalizedPlaylists } from '@/api/personalized'
 import { getTopLists } from '@/api/toplist'
+import type { NewestAlbum } from '@/models/album'
 import type { PersonalizedNewSong } from '@/models/newSong'
 import type { PersonalizedPlaylist } from '@/models/personalized'
 import type { TopList } from '@/models/toplist'
 
 let personalizedSerial = 0
 let newSongSerial = 0
+let newestAlbumSerial = 0
 let topListSerial = 0
 
 export const useMusicStore = defineStore('music', () => {
@@ -20,6 +23,9 @@ export const useMusicStore = defineStore('music', () => {
   const newSongs = ref<PersonalizedNewSong[]>([])
   const newSongsError = ref<string | null>(null)
   const newSongsLoading = ref(false)
+  const newestAlbums = ref<NewestAlbum[]>([])
+  const newestAlbumsError = ref<string | null>(null)
+  const newestAlbumsLoading = ref(false)
   const topLists = ref<TopList[]>([])
   const topListsError = ref<string | null>(null)
   const topListsLoading = ref(false)
@@ -70,6 +76,7 @@ export const useMusicStore = defineStore('music', () => {
   function reset() {
     personalizedSerial++
     newSongSerial++
+    newestAlbumSerial++
     topListSerial++
     personalized.value = []
     personalizedError.value = null
@@ -77,6 +84,9 @@ export const useMusicStore = defineStore('music', () => {
     newSongs.value = []
     newSongsError.value = null
     newSongsLoading.value = false
+    newestAlbums.value = []
+    newestAlbumsError.value = null
+    newestAlbumsLoading.value = false
     topLists.value = []
     topListsError.value = null
     topListsLoading.value = false
@@ -101,14 +111,37 @@ export const useMusicStore = defineStore('music', () => {
     }
   }
 
+  async function loadNewestAlbums(force = false) {
+    if (newestAlbums.value.length && !force && !newestAlbumsError.value) return
+
+    const serial = ++newestAlbumSerial
+    newestAlbumsLoading.value = true
+    newestAlbumsError.value = null
+    try {
+      const next = await getNewestAlbums()
+      if (serial !== newestAlbumSerial) return
+      newestAlbums.value = next
+    } catch (requestError) {
+      if (serial !== newestAlbumSerial) return
+      newestAlbumsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === newestAlbumSerial) newestAlbumsLoading.value = false
+    }
+  }
+
   return {
     loadPersonalized,
     loadNewSongs,
+    loadNewestAlbums,
     loadTopLists,
     reset,
     newSongs,
     newSongsError,
     newSongsLoading,
+    newestAlbums,
+    newestAlbumsError,
+    newestAlbumsLoading,
     personalized,
     personalizedError,
     personalizedLoading,

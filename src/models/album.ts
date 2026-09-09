@@ -19,3 +19,11 @@ export interface AlbumPage {
   album: AlbumDetail
   songs: Song[]
 }
+
+export interface NewestAlbum {
+  artist: AlbumArtist
+  id: number
+  name: string
+  picUrl: string
+  publishTime: number
+}

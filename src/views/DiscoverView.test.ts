@@ -6,6 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getNewestAlbums } from '@/api/album'
 import { getBanners } from '@/api/banner'
 import { getPersonalizedPlaylists } from '@/api/personalized'
 import { getPersonalizedNewSongs } from '@/api/newSong'
@@ -25,6 +26,9 @@ vi.mock('@/views/MvView.vue', () => ({
   default: { name: 'MvView', template: '<div data-testid="mv-stub" />' },
 }))
 
+vi.mock('@/api/album', () => ({
+  getNewestAlbums: vi.fn(),
+}))
 vi.mock('@/api/banner', () => ({
   getBanners: vi.fn(),
 }))
@@ -113,6 +117,23 @@ const NewSongSectionStub = defineComponent({
   `,
 })
 
+const NewestAlbumSectionStub = defineComponent({
+  name: 'NewestAlbumSection',
+  props: {
+    albums: { type: Array, required: true },
+    error: { type: String, default: null },
+    loading: { type: Boolean, required: true },
+  },
+  emits: ['retry'],
+  template: `
+    <section data-testid="newest-album-stub">
+      <span data-testid="newest-album-count">{{ albums.length }}</span>
+      <span v-if="error" data-testid="newest-album-error">{{ error }}</span>
+      <button data-testid="newest-album-retry" @click="$emit('retry')">retry</button>
+    </section>
+  `,
+})
+
 const MvSectionStub = defineComponent({
   name: 'MvSection',
   props: {
@@ -143,6 +164,7 @@ async function mountView() {
       stubs: {
         BannerCarousel: BannerCarouselStub,
         NewSongSection: NewSongSectionStub,
+        NewestAlbumSection: NewestAlbumSectionStub,
         MvSection: MvSectionStub,
         PersonalizedSection: PersonalizedSectionStub,
         RouterLink: defineComponent({
@@ -179,6 +201,8 @@ describe('DiscoverView', () => {
     vi.mocked(getPersonalizedPlaylists).mockResolvedValue([])
     vi.mocked(getPersonalizedNewSongs).mockReset()
     vi.mocked(getPersonalizedNewSongs).mockResolvedValue([])
+    vi.mocked(getNewestAlbums).mockReset()
+    vi.mocked(getNewestAlbums).mockResolvedValue([])
     vi.mocked(getPersonalizedMvs).mockReset()
     vi.mocked(getPersonalizedMvs).mockResolvedValue([])
   })
@@ -191,7 +215,7 @@ describe('DiscoverView', () => {
 
     expect(wrapper.get('h1').text()).toBe('推荐')
     expect(wrapper.get('.summary').text()).toBe(
-      '四个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转、顶栏视频入口、Host 文案、主题已接入、内容卡片主题、歌曲 MV、队列和新歌 MV、顶栏搜索 MV、歌曲行专辑、播放条封面、新歌卡片专辑、播放条封面进专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、歌曲行歌手、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类、电台页头分类、相似歌曲、视频大厅分类、歌手馆筛选、搜索视频、相似歌曲露出、歌词露出、队列删歌、音量记住、歌单评论、MV 评论、视频评论、搜索分页、私人 FM、歌单搜索分页、歌手搜索分页、专辑搜索分页、MV 搜索分页、电台搜索分页、视频搜索分页、私人 FM 垃圾桶、私人 FM 页、电台节目评论、电台评论、歌曲评论、相似歌单。',
+      '五个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转、顶栏视频入口、Host 文案、主题已接入、内容卡片主题、歌曲 MV、队列和新歌 MV、顶栏搜索 MV、歌曲行专辑、播放条封面、新歌卡片专辑、播放条封面进专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、歌曲行歌手、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类、电台页头分类、相似歌曲、视频大厅分类、歌手馆筛选、搜索视频、相似歌曲露出、歌词露出、队列删歌、音量记住、歌单评论、MV 评论、视频评论、搜索分页、私人 FM、歌单搜索分页、歌手搜索分页、专辑搜索分页、MV 搜索分页、电台搜索分页、视频搜索分页、私人 FM 垃圾桶、私人 FM 页、电台节目评论、电台评论、歌曲评论、相似歌单、新碟上架。',
     )
     expect(wrapper.find('.next-slices').exists()).toBe(false)
     expect(wrapper.text()).toContain('打开视频大厅')
@@ -415,6 +439,67 @@ describe('DiscoverView', () => {
 
     expect(getPersonalizedMvs).toHaveBeenCalledTimes(2)
     expect(wrapper.get('[data-testid="mv-count"]').text()).toBe('1')
+  })
+
+  it('loads and retries newest albums independently', async () => {
+    vi.mocked(getBanners).mockResolvedValue([])
+    vi.mocked(getPersonalizedNewSongs).mockResolvedValue([
+      {
+        alg: 'featured',
+        canDislike: false,
+        id: 301,
+        name: '晚风来信',
+        picUrl: 'https://images.example.com/song.jpg',
+        song: {
+          album: { id: 501, name: '晚风来信', picUrl: 'https://images.example.com/album.jpg' },
+          artists: [{ id: 401, name: '林间电台' }],
+          id: 301,
+          name: '晚风来信',
+        },
+        type: 4,
+      },
+    ])
+    vi.mocked(getPersonalizedMvs).mockResolvedValue([
+      {
+        alg: 'featured',
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [{ id: 401, name: '林间电台' }],
+        canDislike: false,
+        copywriter: '热门推荐',
+        duration: 238_000,
+        id: 701,
+        name: '晚风来信 · Live',
+        picUrl: 'https://images.example.com/mv.jpg',
+        playCount: 3_280_000,
+        subed: false,
+        type: 1,
+      },
+    ])
+    vi.mocked(getNewestAlbums)
+      .mockRejectedValueOnce(new Error('albums offline'))
+      .mockResolvedValueOnce([
+        {
+          artist: { id: 401, name: '林间电台' },
+          id: 501,
+          name: '夜航',
+          picUrl: 'https://images.example.com/album.jpg',
+          publishTime: 1_609_459_200_000,
+        },
+      ])
+
+    const { wrapper } = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="newest-album-error"]').text()).toBe('albums offline')
+    expect(wrapper.get('[data-testid="new-song-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="mv-count"]').text()).toBe('1')
+
+    await wrapper.get('[data-testid="newest-album-retry"]').trigger('click')
+    await flushPromises()
+
+    expect(getNewestAlbums).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="newest-album-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="new-song-count"]').text()).toBe('1')
   })
 
   it('starts personal FM from the discover page', async () => {
