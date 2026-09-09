@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
-import { getPersonalizedMvs, getTopMvs } from '@/api/mv'
+import { getFirstMvs, getPersonalizedMvs, getTopMvs } from '@/api/mv'
 import { getPrivateContents } from '@/api/privateContent'
 import { getHallVideos, getVideoGroups } from '@/api/video'
 import type { PersonalizedMv, SimiMv } from '@/models/mv'
@@ -11,6 +11,7 @@ import { ALL_VIDEO_GROUP_ID, type HallVideo, type VideoGroup } from '@/models/vi
 
 let mvSerial = 0
 let topMvSerial = 0
+let firstMvSerial = 0
 let privateContentSerial = 0
 let groupSerial = 0
 let clipSerial = 0
@@ -22,6 +23,9 @@ export const useVideoStore = defineStore('video', () => {
   const topMvs = ref<SimiMv[]>([])
   const topMvsError = ref<string | null>(null)
   const topMvsLoading = ref(false)
+  const firstMvs = ref<SimiMv[]>([])
+  const firstMvsError = ref<string | null>(null)
+  const firstMvsLoading = ref(false)
   const privateContents = ref<PrivateContent[]>([])
   const privateContentsError = ref<string | null>(null)
   const privateContentsLoading = ref(false)
@@ -38,6 +42,7 @@ export const useVideoStore = defineStore('video', () => {
   function reset() {
     mvSerial++
     topMvSerial++
+    firstMvSerial++
     privateContentSerial++
     groupSerial++
     clipSerial++
@@ -47,6 +52,9 @@ export const useVideoStore = defineStore('video', () => {
     topMvs.value = []
     topMvsError.value = null
     topMvsLoading.value = false
+    firstMvs.value = []
+    firstMvsError.value = null
+    firstMvsLoading.value = false
     privateContents.value = []
     privateContentsError.value = null
     privateContentsLoading.value = false
@@ -100,6 +108,27 @@ export const useVideoStore = defineStore('video', () => {
       throw requestError
     } finally {
       if (serial === topMvSerial) topMvsLoading.value = false
+    }
+  }
+
+  async function loadFirstMvs(force = false) {
+    if (firstMvs.value.length && !force && !firstMvsError.value) {
+      return
+    }
+
+    const serial = ++firstMvSerial
+    firstMvsLoading.value = true
+    firstMvsError.value = null
+    try {
+      const next = await getFirstMvs()
+      if (serial !== firstMvSerial) return
+      firstMvs.value = next
+    } catch (requestError) {
+      if (serial !== firstMvSerial) return
+      firstMvsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === firstMvSerial) firstMvsLoading.value = false
     }
   }
 
@@ -219,6 +248,7 @@ export const useVideoStore = defineStore('video', () => {
   return {
     loadMvs,
     loadTopMvs,
+    loadFirstMvs,
     loadPrivateContents,
     loadGroups,
     loadClips,
@@ -231,6 +261,9 @@ export const useVideoStore = defineStore('video', () => {
     topMvs,
     topMvsError,
     topMvsLoading,
+    firstMvs,
+    firstMvsError,
+    firstMvsLoading,
     privateContents,
     privateContentsError,
     privateContentsLoading,

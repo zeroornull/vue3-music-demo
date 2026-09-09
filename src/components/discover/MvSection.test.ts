@@ -101,4 +101,36 @@ describe('MvSection', () => {
     await wrapper.get('[data-testid="mv-toplist-retry"]').trigger('click')
     expect(wrapper.emitted('retry')).toHaveLength(1)
   })
+
+  it('uses a distinct title and test ids for newest MVs', () => {
+    const wrapper = mountSection({
+      emptyTitle: '暂无最新 MV',
+      limit: 10,
+      mvs: [],
+      testid: 'mv-first',
+      title: '最新 MV',
+    })
+    expect(wrapper.get('h2').text()).toBe('最新 MV')
+    expect(wrapper.get('#mv-first-title').text()).toBe('最新 MV')
+    expect(wrapper.get('[data-testid="mv-first-empty"]').text()).toContain('暂无最新 MV')
+    expect(wrapper.find('[data-testid="mv-empty"]').exists()).toBe(false)
+  })
+
+  it('shows ten newest cards when limit is 10', () => {
+    const mvs = Array.from({ length: 12 }, (_, index) => ({ ...mv, id: index + 1 }))
+    const wrapper = mountSection({ limit: 10, mvs, testid: 'mv-first', title: '最新 MV' })
+    expect(wrapper.findAll('[data-testid="mv-card"]')).toHaveLength(10)
+  })
+
+  it('renders newest MV error copy and retry', async () => {
+    const wrapper = mountSection({
+      error: 'offline',
+      errorTitle: '最新 MV 加载失败',
+      testid: 'mv-first',
+      title: '最新 MV',
+    })
+    expect(wrapper.get('[role="alert"]').text()).toContain('最新 MV 加载失败')
+    await wrapper.get('[data-testid="mv-first-retry"]').trigger('click')
+    expect(wrapper.emitted('retry')).toHaveLength(1)
+  })
 })

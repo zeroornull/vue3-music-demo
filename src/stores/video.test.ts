@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getPersonalizedMvs, getTopMvs } from '@/api/mv'
+import { getFirstMvs, getPersonalizedMvs, getTopMvs } from '@/api/mv'
 import { getPrivateContents } from '@/api/privateContent'
 import { getHallVideos, getVideoGroups } from '@/api/video'
 import { useVideoStore } from '@/stores/video'
@@ -9,6 +9,7 @@ import { useVideoStore } from '@/stores/video'
 vi.mock('@/api/mv', () => ({
   getPersonalizedMvs: vi.fn(),
   getTopMvs: vi.fn(),
+  getFirstMvs: vi.fn(),
 }))
 
 vi.mock('@/api/privateContent', () => ({
@@ -64,6 +65,7 @@ describe('video store', () => {
     setActivePinia(createPinia())
     vi.mocked(getPersonalizedMvs).mockReset()
     vi.mocked(getTopMvs).mockReset()
+    vi.mocked(getFirstMvs).mockReset()
     vi.mocked(getPrivateContents).mockReset()
     vi.mocked(getVideoGroups).mockReset()
     vi.mocked(getHallVideos).mockReset()
@@ -206,6 +208,100 @@ describe('video store', () => {
 
     expect(store.topMvs).toEqual([])
     expect(store.topMvsLoading).toBe(false)
+  })
+
+  const newest = {
+    artistId: 403,
+    artistName: '夜航乐队',
+    artists: [{ id: 403, name: '夜航乐队' }],
+    duration: 210_000,
+    id: 801,
+    name: '港口晨曲',
+    picUrl: 'https://images.example.com/first.jpg',
+    playCount: 8_800,
+  }
+
+  it('loads newest MVs independently of recommended and ranking MVs', async () => {
+    vi.mocked(getFirstMvs).mockResolvedValue([newest])
+    vi.mocked(getTopMvs).mockResolvedValue([ranked])
+    vi.mocked(getPersonalizedMvs).mockResolvedValue([mv])
+    const store = useVideoStore()
+
+    await store.loadFirstMvs()
+    await store.loadFirstMvs()
+    await store.loadTopMvs()
+    await store.loadMvs()
+
+    expect(store.firstMvs).toEqual([newest])
+    expect(getFirstMvs).toHaveBeenCalledTimes(1)
+    expect(store.firstMvsError).toBeNull()
+    expect(store.topMvs).toEqual([ranked])
+    expect(store.mvs).toEqual([mv])
+  })
+
+  it('keeps ranking and recommended MVs when newest MVs fail', async () => {
+    vi.mocked(getPersonalizedMvs).mockResolvedValue([mv])
+    vi.mocked(getTopMvs).mockResolvedValue([ranked])
+    vi.mocked(getFirstMvs).mockRejectedValue(new Error('newest offline'))
+    const store = useVideoStore()
+
+    await store.loadMvs()
+    await store.loadTopMvs()
+    await expect(store.loadFirstMvs()).rejects.toThrow('newest offline')
+
+    expect(store.mvs).toEqual([mv])
+    expect(store.topMvs).toEqual([ranked])
+    expect(store.firstMvs).toEqual([])
+    expect(store.firstMvsError).toBe('newest offline')
+    expect(store.firstMvsLoading).toBe(false)
+  })
+
+  it('does not drop in-flight newest MVs when ranking loads', async () => {
+    const pendingNewest = deferred<typeof newest[]>()
+    vi.mocked(getFirstMvs).mockReturnValueOnce(pendingNewest.promise)
+    vi.mocked(getTopMvs).mockResolvedValue([ranked])
+    vi.mocked(getPersonalizedMvs).mockResolvedValue([mv])
+    const store = useVideoStore()
+    const pending = store.loadFirstMvs()
+    await store.loadTopMvs()
+    await store.loadMvs()
+    pendingNewest.resolve([newest])
+    await pending
+
+    expect(store.mvs).toEqual([mv])
+    expect(store.topMvs).toEqual([ranked])
+    expect(store.firstMvs).toEqual([newest])
+    expect(store.firstMvsError).toBeNull()
+  })
+
+  it('drops in-flight newest MVs after reset', async () => {
+    const pendingNewest = deferred<typeof newest[]>()
+    vi.mocked(getFirstMvs).mockReturnValueOnce(pendingNewest.promise)
+    const store = useVideoStore()
+    const pending = store.loadFirstMvs()
+    store.reset()
+    pendingNewest.resolve([newest])
+    await pending
+
+    expect(store.firstMvs).toEqual([])
+    expect(store.firstMvsLoading).toBe(false)
+    expect(store.firstMvsError).toBeNull()
+  })
+
+  it('retries newest MVs after a failed force refresh', async () => {
+    vi.mocked(getFirstMvs)
+      .mockResolvedValueOnce([newest])
+      .mockRejectedValueOnce(new Error('newest offline'))
+      .mockResolvedValueOnce([newest])
+    const store = useVideoStore()
+
+    await store.loadFirstMvs()
+    await expect(store.loadFirstMvs(true)).rejects.toThrow('newest offline')
+    await store.loadFirstMvs()
+
+    expect(getFirstMvs).toHaveBeenCalledTimes(3)
+    expect(store.firstMvsError).toBeNull()
+    expect(store.firstMvs).toEqual([newest])
   })
 
   it('drops in-flight exclusive videos after reset', async () => {

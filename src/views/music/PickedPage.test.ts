@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getBanners } from '@/api/banner'
 import { getPersonalizedDjPrograms } from '@/api/dj'
-import { getPersonalizedMvs, getTopMvs } from '@/api/mv'
+import { getFirstMvs, getPersonalizedMvs, getTopMvs } from '@/api/mv'
 import { getPrivateContents } from '@/api/privateContent'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -31,6 +31,7 @@ vi.mock('@/api/banner', () => ({
 vi.mock('@/api/mv', () => ({
   getPersonalizedMvs: vi.fn(),
   getTopMvs: vi.fn(),
+  getFirstMvs: vi.fn(),
   getMvUrl: vi.fn(),
 }))
 
@@ -58,6 +59,9 @@ const PickedViewStub = defineComponent({
     'topMvs',
     'topMvsError',
     'topMvsLoading',
+    'firstMvs',
+    'firstMvsError',
+    'firstMvsLoading',
     'privateContents',
     'privateError',
     'privateLoading',
@@ -67,6 +71,7 @@ const PickedViewStub = defineComponent({
     'retry-dj',
     'retry-mvs',
     'retry-top-mvs',
+    'retry-first-mvs',
     'retry-private',
     'select-banner',
   ],
@@ -79,9 +84,12 @@ const PickedViewStub = defineComponent({
       <span data-testid="mv-count">{{ mvs.length }}</span>
       <span data-testid="top-mv-count">{{ topMvs.length }}</span>
       <span v-if="topMvsError" data-testid="top-mv-error">{{ topMvsError }}</span>
+      <span data-testid="first-mv-count">{{ firstMvs.length }}</span>
+      <span v-if="firstMvsError" data-testid="first-mv-error">{{ firstMvsError }}</span>
       <button data-testid="page-private-retry" @click="$emit('retry-private')">retry</button>
       <button data-testid="page-dj-retry" @click="$emit('retry-dj')">retry dj</button>
       <button data-testid="page-top-mv-retry" @click="$emit('retry-top-mvs')">retry top mvs</button>
+      <button data-testid="page-first-mv-retry" @click="$emit('retry-first-mvs')">retry first mvs</button>
       <button
         data-testid="select-album-banner"
         @click="$emit('select-banner', { bannerId: 2, pic: 'x', targetId: 501, targetType: 10, typeTitle: '专辑' })"
@@ -110,10 +118,12 @@ describe('PickedPage', () => {
     vi.mocked(getBanners).mockReset()
     vi.mocked(getPersonalizedMvs).mockReset()
     vi.mocked(getTopMvs).mockReset()
+    vi.mocked(getFirstMvs).mockReset()
     vi.mocked(getPrivateContents).mockReset()
     vi.mocked(getPersonalizedDjPrograms).mockReset()
     vi.mocked(getBanners).mockResolvedValue([])
     vi.mocked(getTopMvs).mockResolvedValue([])
+    vi.mocked(getFirstMvs).mockResolvedValue([])
     vi.mocked(getPersonalizedMvs).mockResolvedValue([
       {
         alg: '',
@@ -221,6 +231,42 @@ describe('PickedPage', () => {
     expect(getTopMvs).toHaveBeenCalledTimes(2)
     expect(wrapper.get('[data-testid="top-mv-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="mv-count"]').text()).toBe('1')
+  })
+
+  it('loads and retries newest MVs independently', async () => {
+    vi.mocked(getFirstMvs)
+      .mockRejectedValueOnce(new Error('newest offline'))
+      .mockResolvedValueOnce([
+        {
+          artistId: 403,
+          artistName: '夜航乐队',
+          artists: [{ id: 403, name: '夜航乐队' }],
+          duration: 210_000,
+          id: 801,
+          name: '港口晨曲',
+          picUrl: 'https://images.example.com/first.jpg',
+          playCount: 8_800,
+        },
+      ])
+
+    const wrapper = mount(PickedPage, {
+      global: {
+        plugins: [createAppRouter(createMemoryHistory())],
+        stubs: { PickedView: PickedViewStub },
+      },
+    })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="first-mv-error"]').text()).toBe('newest offline')
+    expect(wrapper.get('[data-testid="mv-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="top-mv-count"]').text()).toBe('0')
+
+    await wrapper.get('[data-testid="page-first-mv-retry"]').trigger('click')
+    await flushPromises()
+
+    expect(getFirstMvs).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="first-mv-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="mv-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="top-mv-count"]').text()).toBe('0')
   })
 
   it('opens album, playlist and MV banners', async () => {

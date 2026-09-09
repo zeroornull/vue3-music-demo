@@ -22,6 +22,9 @@ withDefaults(
     topMvs?: SimiMv[]
     topMvsError?: string | null
     topMvsLoading?: boolean
+    firstMvs?: SimiMv[]
+    firstMvsError?: string | null
+    firstMvsLoading?: boolean
     privateContents: PrivateContent[]
     privateError?: string | null
     privateLoading?: boolean
@@ -36,6 +39,9 @@ withDefaults(
     topMvs: () => [],
     topMvsError: null,
     topMvsLoading: false,
+    firstMvs: () => [],
+    firstMvsError: null,
+    firstMvsLoading: false,
     privateError: null,
     privateLoading: false,
   },
@@ -46,6 +52,7 @@ defineEmits<{
   'retry-dj': []
   'retry-mvs': []
   'retry-top-mvs': []
+  'retry-first-mvs': []
   'retry-private': []
   'select-banner': [banner: Banner]
 }>()
@@ -88,6 +95,17 @@ defineEmits<{
       :loading="topMvsLoading"
       :mvs="topMvs"
       @retry="$emit('retry-top-mvs')"
+    />
+    <MvSection
+      empty-title="暂无最新 MV"
+      error-title="最新 MV 加载失败"
+      :limit="10"
+      testid="mv-first"
+      title="最新 MV"
+      :error="firstMvsError"
+      :loading="firstMvsLoading"
+      :mvs="firstMvs"
+      @retry="$emit('retry-first-mvs')"
     />
   </div>
 </template>

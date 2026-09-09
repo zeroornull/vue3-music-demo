@@ -238,6 +238,18 @@ describe('App host gate', () => {
         playCount: 12_000,
       },
     ]
+    videoStore.firstMvs = [
+      {
+        artistId: 403,
+        artistName: '夜航乐队',
+        artists: [{ id: 403, name: '夜航乐队' }],
+        duration: 210_000,
+        id: 801,
+        name: '港口晨曲',
+        picUrl: 'https://images.example.com/first.jpg',
+        playCount: 8_800,
+      },
+    ]
     mountApp()
 
     useHostStore().clearHost()
@@ -246,6 +258,7 @@ describe('App host gate', () => {
     expect(videoStore.privateContents).toEqual([])
     expect(videoStore.mvs).toEqual([])
     expect(videoStore.topMvs).toEqual([])
+    expect(videoStore.firstMvs).toEqual([])
   })
 
   it('clears video hall cache when the host gate closes', async () => {

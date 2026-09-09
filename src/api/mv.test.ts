@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
 import {
+  FIRST_MV_LIMIT,
+  getFirstMvs,
   getMvDetail,
   getMvUrl,
   getPersonalizedMvs,
@@ -282,6 +284,82 @@ describe('Top MV API', () => {
     }))
     const list = await getTopMvs(client({ data: many }).client)
     expect(list).toHaveLength(TOP_MV_LIMIT)
+    expect(list.map((item) => item.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+  })
+})
+
+describe('Newest MV API', () => {
+  const client = (response: unknown) => {
+    const get = vi.fn(
+      async <T>(_path: string, _params?: unknown) => response as T,
+    )
+    return { client: { get } as Pick<HttpClient, 'get'>, get }
+  }
+
+  it('unwraps /mv/first covers and artists', async () => {
+    const request = client({
+      data: [
+        {
+          artistId: 403,
+          artistName: '夜航乐队',
+          artists: [{ extra: true, id: 403, name: '夜航乐队' }],
+          cover: 'https://images.example.com/first.jpg',
+          duration: 210_000,
+          extra: true,
+          id: 801,
+          name: '港口晨曲',
+          playCount: 8_800,
+        },
+        {
+          duration: 1,
+          id: 0,
+          name: '无效',
+        },
+        {
+          artists: [{ id: 401, name: '林间电台' }],
+          id: 802,
+          name: '  晚风现场  ',
+          picUrl: 'https://images.example.com/first-live.jpg',
+        },
+      ],
+    })
+
+    await expect(getFirstMvs(request.client)).resolves.toEqual([
+      {
+        artistId: 403,
+        artistName: '夜航乐队',
+        artists: [{ id: 403, name: '夜航乐队' }],
+        duration: 210_000,
+        id: 801,
+        name: '港口晨曲',
+        picUrl: 'https://images.example.com/first.jpg',
+        playCount: 8_800,
+      },
+      {
+        artistId: 0,
+        artistName: '',
+        artists: [{ id: 401, name: '林间电台' }],
+        duration: 0,
+        id: 802,
+        name: '晚风现场',
+        picUrl: 'https://images.example.com/first-live.jpg',
+        playCount: 0,
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/mv/first', { limit: FIRST_MV_LIMIT })
+  })
+
+  it('rejects a missing data array and slices the list', async () => {
+    await expect(getFirstMvs(client({ data: null }).client)).rejects.toThrow(
+      '最新 MV 响应格式不正确',
+    )
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `MV ${index + 1}`,
+      cover: `https://images.example.com/${index}.jpg`,
+    }))
+    const list = await getFirstMvs(client({ data: many }).client)
+    expect(list).toHaveLength(FIRST_MV_LIMIT)
     expect(list.map((item) => item.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
   })
 })

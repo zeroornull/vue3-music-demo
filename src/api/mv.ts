@@ -139,6 +139,7 @@ export async function getSimiMvs(
 }
 
 export const TOP_MV_LIMIT = 10
+export const FIRST_MV_LIMIT = 10
 
 export async function getTopMvs(
   client: Pick<HttpClient, 'get'> = http,
@@ -153,4 +154,19 @@ export async function getTopMvs(
     .map(readSimiMv)
     .filter((item): item is SimiMv => item !== null)
     .slice(0, TOP_MV_LIMIT)
+}
+
+export async function getFirstMvs(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SimiMv[]> {
+  const response = await client.get<{ data?: unknown }>('/mv/first', {
+    limit: FIRST_MV_LIMIT,
+  })
+  if (!Array.isArray(response.data)) {
+    throw new Error('最新 MV 响应格式不正确')
+  }
+  return response.data
+    .map(readSimiMv)
+    .filter((item): item is SimiMv => item !== null)
+    .slice(0, FIRST_MV_LIMIT)
 }
