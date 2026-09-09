@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getPlaylistComments } from '@/api/comment'
+import { getPlaylistCommentPage } from '@/api/comment'
 import { getPlaylistDetail, getPlaylistTracks, getRelatedPlaylists } from '@/api/playlist'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -14,7 +14,8 @@ import { usePlaylistStore } from '@/stores/playlist'
 import PlaylistView from '@/views/PlaylistView.vue'
 
 vi.mock('@/api/comment', () => ({
-  getPlaylistComments: vi.fn(),
+  COMMENT_LIMIT: 20,
+  getPlaylistCommentPage: vi.fn(),
 }))
 vi.mock('@/api/playlist', () => ({
   getPlaylistDetail: vi.fn(),
@@ -135,8 +136,8 @@ describe('PlaylistView', () => {
     vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
     vi.mocked(getRelatedPlaylists).mockReset()
     vi.mocked(getRelatedPlaylists).mockRejectedValue(new Error('no related'))
-    vi.mocked(getPlaylistComments).mockReset()
-    vi.mocked(getPlaylistComments).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getPlaylistCommentPage).mockReset()
+    vi.mocked(getPlaylistCommentPage).mockRejectedValue(new Error('no comments'))
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -260,9 +261,10 @@ describe('PlaylistView', () => {
   })
 
   it('renders comments without blocking the song list or linking the author', async () => {
-    vi.mocked(getPlaylistComments).mockResolvedValue([
-      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
-    ])
+    vi.mocked(getPlaylistCommentPage).mockResolvedValue({
+      comments: [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }],
+      more: false,
+    })
     const wrapper = await mountView()
     await flushPromises()
 
@@ -274,7 +276,7 @@ describe('PlaylistView', () => {
   })
 
   it('shows an empty comments state when the list is empty', async () => {
-    vi.mocked(getPlaylistComments).mockResolvedValue([])
+    vi.mocked(getPlaylistCommentPage).mockResolvedValue({ comments: [], more: false })
     const wrapper = await mountView()
     await flushPromises()
 
@@ -287,5 +289,31 @@ describe('PlaylistView', () => {
 
     expect(wrapper.find('[data-testid="playlist-comments"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="playlist-songs"]').exists()).toBe(true)
+  })
+
+  it('loads more comments without dropping the first page', async () => {
+    vi.mocked(getPlaylistCommentPage)
+      .mockResolvedValueOnce({
+        comments: [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }],
+        more: true,
+      })
+      .mockResolvedValueOnce({
+        comments: [{ commentId: 21, content: '第二页', nickname: '夜航乐队' }],
+        more: false,
+      })
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="playlist-comments-more"]').text()).toBe(
+      '加载更多评论',
+    )
+    await wrapper.get('[data-testid="playlist-comments-more"]').trigger('click')
+    await flushPromises()
+
+    expect(getPlaylistCommentPage).toHaveBeenNthCalledWith(2, 101, 20)
+    const comments = wrapper.get('[data-testid="playlist-comments"]')
+    expect(comments.text()).toContain('走过林间。')
+    expect(comments.text()).toContain('第二页')
+    expect(wrapper.find('[data-testid="playlist-comments-more"]').exists()).toBe(false)
   })
 })

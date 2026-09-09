@@ -6,6 +6,7 @@ import {
   getDjComments,
   getDjRadioComments,
   getMvComments,
+  getPlaylistCommentPage,
   getPlaylistComments,
   getSongComments,
   getVideoComments,
@@ -56,6 +57,7 @@ describe('Playlist comment API', () => {
     expect(request.get).toHaveBeenCalledWith('/comment/playlist', {
       id: 101,
       limit: COMMENT_LIMIT,
+      offset: 0,
     })
   })
 
@@ -88,6 +90,73 @@ describe('Playlist comment API', () => {
       content: '评论20',
       nickname: '评论用户',
     })
+  })
+
+  it('pages later comments without prepending hot comments', async () => {
+    const request = client({
+      comments: [
+        {
+          commentId: 21,
+          content: '  第二页  ',
+          extra: true,
+          user: { nickname: '  夜航乐队  ' },
+        },
+        { commentId: 0, content: '无效' },
+        {
+          commentId: 21,
+          content: '重复',
+          user: { nickname: '重复' },
+        },
+      ],
+      hotComments: [
+        {
+          commentId: 1,
+          content: '热评不应出现在第二页',
+          user: { nickname: '林间电台' },
+        },
+      ],
+      more: false,
+    })
+    await expect(getPlaylistCommentPage(101, COMMENT_LIMIT, request.client)).resolves.toEqual({
+      comments: [{ commentId: 21, content: '第二页', nickname: '夜航乐队' }],
+      more: false,
+    })
+    expect(request.get).toHaveBeenCalledWith('/comment/playlist', {
+      id: 101,
+      limit: COMMENT_LIMIT,
+      offset: COMMENT_LIMIT,
+    })
+  })
+
+  it('reads more from the payload and infers it from a full page', async () => {
+    await expect(
+      getPlaylistCommentPage(
+        101,
+        0,
+        client({
+          comments: [{ commentId: 1, content: '一条', user: { nickname: '林间电台' } }],
+          more: true,
+        }).client,
+      ),
+    ).resolves.toMatchObject({ more: true })
+    await expect(
+      getPlaylistCommentPage(
+        101,
+        COMMENT_LIMIT,
+        client({
+          comments: [{ commentId: 21, content: '一条', user: { nickname: '林间电台' } }],
+          more: false,
+        }).client,
+      ),
+    ).resolves.toMatchObject({ more: false })
+    const full = Array.from({ length: COMMENT_LIMIT }, (_, index) => ({
+      commentId: index + 1,
+      content: `评论${index + 1}`,
+      user: { nickname: '用户' },
+    }))
+    await expect(
+      getPlaylistCommentPage(101, COMMENT_LIMIT, client({ comments: full }).client),
+    ).resolves.toMatchObject({ more: true })
   })
 
   it('uses 匿名 when the nickname is blank', async () => {

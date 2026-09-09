@@ -585,6 +585,13 @@ describe('App host gate', () => {
     }
     playlistStore.songs = [{ id: 301, name: '晚风来信', artists: [] }]
     playlistStore.loadedId = 101
+    playlistStore.comments = [
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ]
+    playlistStore.commentsMore = true
+    playlistStore.commentsMoreError = 'stale'
+    playlistStore.commentsMoreLoading = true
+    playlistStore.commentOffset = 20
     mountApp()
 
     useHostStore().clearHost()
@@ -593,6 +600,11 @@ describe('App host gate', () => {
     expect(playlistStore.playlist).toBeNull()
     expect(playlistStore.songs).toHaveLength(0)
     expect(playlistStore.loadedId).toBeNull()
+    expect(playlistStore.comments).toBeNull()
+    expect(playlistStore.commentsMore).toBe(false)
+    expect(playlistStore.commentsMoreError).toBeNull()
+    expect(playlistStore.commentsMoreLoading).toBe(false)
+    expect(playlistStore.commentOffset).toBe(0)
   })
 
   it('clears active playback when the host gate closes', async () => {

@@ -14,7 +14,17 @@ import { usePlaylistStore } from '@/stores/playlist'
 const route = useRoute()
 const playlistStore = usePlaylistStore()
 const playerStore = usePlayerStore()
-const { playlist, songs, relatedPlaylists, comments, loading, error } = storeToRefs(playlistStore)
+const {
+  playlist,
+  songs,
+  relatedPlaylists,
+  comments,
+  commentsMore,
+  commentsMoreLoading,
+  commentsMoreError,
+  loading,
+  error,
+} = storeToRefs(playlistStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
 let playSerial = 0
@@ -29,6 +39,10 @@ const playlistId = computed(() => {
 function requestPlaylist(force = false) {
   if (playlistId.value === null) return
   void playlistStore.load(playlistId.value, force).catch(() => undefined)
+}
+
+function loadMoreComments() {
+  void playlistStore.loadMoreComments().catch(() => undefined)
 }
 
 function playAll() {
@@ -145,6 +159,18 @@ watch(
             <p>{{ item.content }}</p>
           </li>
         </ul>
+        <p v-if="commentsMoreError" class="comments-more-error" role="alert">
+          {{ commentsMoreError }}
+        </p>
+        <button
+          v-if="comments.length && commentsMore"
+          type="button"
+          data-testid="playlist-comments-more"
+          :disabled="commentsMoreLoading"
+          @click="loadMoreComments"
+        >
+          {{ commentsMoreLoading ? '正在加载评论' : '加载更多评论' }}
+        </button>
       </section>
       <section
         v-if="relatedPlaylists?.length"
@@ -223,6 +249,15 @@ watch(
 
 .comment-list p {
   margin: 6px 0 0;
+}
+
+.comments-more-error {
+  margin: 12px 0 0;
+  color: var(--color-danger);
+}
+
+.playlist-comments button {
+  margin-top: 16px;
 }
 
 .related-grid {

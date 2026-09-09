@@ -1,12 +1,13 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getPlaylistComments } from '@/api/comment'
+import { COMMENT_LIMIT, getPlaylistCommentPage } from '@/api/comment'
 import { getPlaylistDetail, getPlaylistTracks, getRelatedPlaylists } from '@/api/playlist'
 import { usePlaylistStore } from '@/stores/playlist'
 
 vi.mock('@/api/comment', () => ({
-  getPlaylistComments: vi.fn(),
+  COMMENT_LIMIT: 20,
+  getPlaylistCommentPage: vi.fn(),
 }))
 vi.mock('@/api/playlist', () => ({
   getPlaylistDetail: vi.fn(),
@@ -77,8 +78,8 @@ describe('playlist store', () => {
     vi.mocked(getPlaylistTracks).mockReset()
     vi.mocked(getRelatedPlaylists).mockReset()
     vi.mocked(getRelatedPlaylists).mockRejectedValue(new Error('no related'))
-    vi.mocked(getPlaylistComments).mockReset()
-    vi.mocked(getPlaylistComments).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getPlaylistCommentPage).mockReset()
+    vi.mocked(getPlaylistCommentPage).mockRejectedValue(new Error('no comments'))
   })
 
   it('loads detail and tracks together and caches the same id', async () => {
@@ -215,7 +216,7 @@ describe('playlist store', () => {
     await expect(store.load(0)).rejects.toThrow('缺少有效的歌单 ID')
     expect(getPlaylistDetail).not.toHaveBeenCalled()
     expect(getRelatedPlaylists).not.toHaveBeenCalled()
-    expect(getPlaylistComments).not.toHaveBeenCalled()
+    expect(getPlaylistCommentPage).not.toHaveBeenCalled()
     expect(store.error).toBe('缺少有效的歌单 ID')
     expect(store.playlist).toBeNull()
   })
@@ -300,7 +301,10 @@ describe('playlist store', () => {
   it('loads comments with the detail and ignores a comment failure', async () => {
     vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
     vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
-    vi.mocked(getPlaylistComments).mockResolvedValue([comment])
+    vi.mocked(getPlaylistCommentPage).mockResolvedValue({
+      comments: [comment],
+      more: true,
+    })
     const store = usePlaylistStore()
 
     await store.load(101)
@@ -308,15 +312,17 @@ describe('playlist store', () => {
     await store.load(101)
 
     expect(store.comments).toEqual([comment])
+    expect(store.commentsMore).toBe(true)
+    expect(store.commentOffset).toBe(COMMENT_LIMIT)
     expect(getPlaylistDetail).toHaveBeenCalledTimes(1)
-    expect(getPlaylistComments).toHaveBeenCalledTimes(1)
-    expect(getPlaylistComments).toHaveBeenCalledWith(101)
+    expect(getPlaylistCommentPage).toHaveBeenCalledTimes(1)
+    expect(getPlaylistCommentPage).toHaveBeenCalledWith(101, 0)
   })
 
   it('keeps the playlist when comments fail', async () => {
     vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
     vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
-    vi.mocked(getPlaylistComments).mockRejectedValue(new Error('comments offline'))
+    vi.mocked(getPlaylistCommentPage).mockRejectedValue(new Error('comments offline'))
     const store = usePlaylistStore()
 
     await store.load(101)
@@ -331,9 +337,9 @@ describe('playlist store', () => {
   it('retries comments on a cached playlist when the first comment request failed', async () => {
     vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
     vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
-    vi.mocked(getPlaylistComments)
+    vi.mocked(getPlaylistCommentPage)
       .mockRejectedValueOnce(new Error('comments offline'))
-      .mockResolvedValueOnce([comment])
+      .mockResolvedValueOnce({ comments: [comment], more: false })
     const store = usePlaylistStore()
 
     await store.load(101)
@@ -344,30 +350,133 @@ describe('playlist store', () => {
     await settle()
 
     expect(getPlaylistDetail).toHaveBeenCalledTimes(1)
-    expect(getPlaylistComments).toHaveBeenCalledTimes(2)
+    expect(getPlaylistCommentPage).toHaveBeenCalledTimes(2)
     expect(store.comments).toEqual([comment])
+    expect(store.commentsMore).toBe(false)
   })
 
   it('does not keep stale comments after the playlist id changes', async () => {
-    const first = deferred<typeof comment[]>()
+    const first = deferred<{ comments: typeof comment[]; more: boolean }>()
     const nextPlaylist = { ...playlist, id: 202, name: '下一张歌单' }
     const nextComment = { ...comment, commentId: 9, content: '下一张留言' }
     vi.mocked(getPlaylistDetail)
       .mockResolvedValueOnce(playlist)
       .mockResolvedValueOnce(nextPlaylist)
     vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
-    vi.mocked(getPlaylistComments)
+    vi.mocked(getPlaylistCommentPage)
       .mockReturnValueOnce(first.promise)
-      .mockResolvedValueOnce([nextComment])
+      .mockResolvedValueOnce({ comments: [nextComment], more: false })
     const store = usePlaylistStore()
 
     await store.load(101)
     await store.load(202)
     await settle()
-    first.resolve([comment])
+    first.resolve({ comments: [comment], more: true })
     await settle()
 
     expect(store.playlist?.id).toBe(202)
     expect(store.comments).toEqual([nextComment])
+    expect(store.commentsMore).toBe(false)
+  })
+
+  it('appends more comments without dropping the first page', async () => {
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockResolvedValueOnce({ comments: [extra, comment], more: false })
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    await store.loadMoreComments()
+    await settle()
+
+    expect(getPlaylistCommentPage).toHaveBeenNthCalledWith(1, 101, 0)
+    expect(getPlaylistCommentPage).toHaveBeenNthCalledWith(2, 101, COMMENT_LIMIT)
+    expect(store.comments).toEqual([comment, extra])
+    expect(store.commentsMore).toBe(false)
+    expect(store.commentsMoreLoading).toBe(false)
+    expect(store.commentOffset).toBe(COMMENT_LIMIT * 2)
+  })
+
+  it('keeps loaded comments when load more fails', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockRejectedValueOnce(new Error('more offline'))
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    await expect(store.loadMoreComments()).rejects.toThrow('more offline')
+
+    expect(store.comments).toEqual([comment])
+    expect(store.commentsMore).toBe(true)
+    expect(store.commentsMoreError).toBe('more offline')
+    expect(store.commentsMoreLoading).toBe(false)
+  })
+
+  it('does not request another page when more is false', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistCommentPage).mockResolvedValue({
+      comments: [comment],
+      more: false,
+    })
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    await store.loadMoreComments()
+
+    expect(getPlaylistCommentPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('drops in-flight more comments after the playlist id changes', async () => {
+    const pending = deferred<{ comments: typeof comment[]; more: boolean }>()
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    const nextPlaylist = { ...playlist, id: 202, name: '下一张歌单' }
+    const nextComment = { ...comment, commentId: 9, content: '下一张留言' }
+    vi.mocked(getPlaylistDetail)
+      .mockResolvedValueOnce(playlist)
+      .mockResolvedValueOnce(nextPlaylist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce({ comments: [nextComment], more: false })
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    const more = store.loadMoreComments()
+    await store.load(202)
+    pending.resolve({ comments: [extra], more: false })
+    await more
+    await settle()
+
+    expect(store.playlist?.id).toBe(202)
+    expect(store.comments).toEqual([nextComment])
+    expect(store.commentsMore).toBe(false)
+  })
+
+  it('clears comment pagination after reset', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistCommentPage).mockResolvedValue({
+      comments: [comment],
+      more: true,
+    })
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    store.commentsMoreError = 'stale'
+    store.commentsMoreLoading = true
+    store.reset()
+
+    expect(store.comments).toBeNull()
+    expect(store.commentsMore).toBe(false)
+    expect(store.commentsMoreLoading).toBe(false)
+    expect(store.commentsMoreError).toBeNull()
+    expect(store.commentOffset).toBe(0)
   })
 })

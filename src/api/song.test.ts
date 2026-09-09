@@ -14,7 +14,11 @@ import {
 
 const client = (response: unknown) => {
   const get = vi.fn(
-    async <T>(_path: string, _params?: unknown) => response as T,
+    async <T>(
+      _path: string,
+      _params?: unknown,
+      _config?: { validateStatus?: (status: number) => boolean },
+    ) => response as T,
   )
   return { client: { get } as Pick<HttpClient, 'get'>, get }
 }
@@ -132,10 +136,10 @@ describe('Check music API', () => {
       playable: true,
     })
     const status = request.get.mock.calls[0]?.[2]?.validateStatus
-    expect(typeof status).toBe('function')
-    expect(status(200)).toBe(true)
-    expect(status(404)).toBe(true)
-    expect(status(500)).toBe(false)
+    expect(status).toEqual(expect.any(Function))
+    expect(status?.(200)).toBe(true)
+    expect(status?.(404)).toBe(true)
+    expect(status?.(500)).toBe(false)
     await expect(checkMusic(301, client({ success: true }).client)).resolves.toEqual({
       message: 'ok',
       playable: true,
