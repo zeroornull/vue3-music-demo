@@ -32,6 +32,9 @@ const {
   radiosError,
   radiosLoading,
   radiosMore,
+  radioToplist,
+  radioToplistError,
+  radioToplistLoading,
 } = storeToRefs(djStore)
 const notice = ref<string | null>(null)
 let playSerial = 0
@@ -53,6 +56,10 @@ function requestPrograms(force = false) {
 
 function requestToplist(force = false) {
   void djStore.loadToplist(force).catch(() => undefined)
+}
+
+function requestRadioToplist(force = false) {
+  void djStore.loadRadioToplist(force).catch(() => undefined)
 }
 
 async function requestCategories(force = false) {
@@ -134,6 +141,7 @@ onMounted(() => {
   requestBanners()
   requestPrograms()
   requestToplist()
+  requestRadioToplist()
   void requestCategories()
 })
 </script>
@@ -157,11 +165,15 @@ onMounted(() => {
       :radios-error="radiosError || categoriesError"
       :radios-loading="radiosLoading || categoriesLoading"
       :radios-more="radiosMore"
+      :radio-toplist="radioToplist"
+      :radio-toplist-error="radioToplistError"
+      :radio-toplist-loading="radioToplistLoading"
       @load-more-radios="loadMoreRadios"
       @retry-banners="requestBanners(true)"
       @retry-programs="requestPrograms(true)"
       @retry-toplist="requestToplist(true)"
       @retry-radios="retryRadios"
+      @retry-radio-toplist="requestRadioToplist(true)"
       @select-banner="selectBanner"
       @select-cat="selectCat"
     />

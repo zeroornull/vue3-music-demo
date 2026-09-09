@@ -10,6 +10,7 @@ import {
   getDjRadioDetail,
   getDjRadioPrograms,
   getDjProgramToplist,
+  getDjRadioToplist,
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
@@ -31,6 +32,7 @@ vi.mock('@/api/dj', async (importOriginal) => {
     getDjRadioDetail: vi.fn(),
     getDjRadioPrograms: vi.fn(),
     getDjProgramToplist: vi.fn(),
+    getDjRadioToplist: vi.fn(),
     getHotDjRadios: vi.fn(),
     getPersonalizedDjPrograms: vi.fn(),
   }
@@ -130,6 +132,7 @@ describe('dj store', () => {
     vi.mocked(getHotDjRadios).mockRejectedValue(new Error('no radios'))
     vi.mocked(getPersonalizedDjPrograms).mockReset()
     vi.mocked(getDjProgramToplist).mockReset()
+    vi.mocked(getDjRadioToplist).mockReset()
     vi.mocked(getDjComments).mockReset()
     vi.mocked(getDjComments).mockRejectedValue(new Error('no comments'))
     vi.mocked(getDjRadioComments).mockReset()
@@ -223,6 +226,66 @@ describe('dj store', () => {
 
     expect(store.toplistPrograms).toEqual([])
     expect(store.toplistLoading).toBe(false)
+  })
+
+  it('loads radio ranking independently of category radios', async () => {
+    vi.mocked(getDjRadioToplist).mockResolvedValue([radio])
+    vi.mocked(getDjCategories).mockResolvedValue([category])
+    vi.mocked(getHotDjRadios).mockResolvedValue({ more: false, radios: [relatedRadio] })
+    const store = useDjStore()
+
+    await store.loadRadioToplist()
+    await store.loadRadioToplist()
+    await store.setCate(2)
+
+    expect(store.radioToplist).toEqual([radio])
+    expect(getDjRadioToplist).toHaveBeenCalledTimes(1)
+    expect(store.radioToplistError).toBeNull()
+    expect(store.radios).toEqual([relatedRadio])
+  })
+
+  it('keeps category radios when ranking fails', async () => {
+    vi.mocked(getDjCategories).mockResolvedValue([category])
+    vi.mocked(getHotDjRadios).mockResolvedValue({ more: false, radios: [radio] })
+    vi.mocked(getDjRadioToplist).mockRejectedValue(new Error('rank offline'))
+    const store = useDjStore()
+
+    await store.setCate(2)
+    await expect(store.loadRadioToplist()).rejects.toThrow('rank offline')
+
+    expect(store.radios).toEqual([radio])
+    expect(store.radioToplist).toEqual([])
+    expect(store.radioToplistError).toBe('rank offline')
+    expect(store.radioToplistLoading).toBe(false)
+  })
+
+  it('does not drop in-flight radio ranking when category radios load', async () => {
+    const pendingRank = deferred<typeof radio[]>()
+    vi.mocked(getDjRadioToplist).mockReturnValueOnce(pendingRank.promise)
+    vi.mocked(getDjCategories).mockResolvedValue([category])
+    vi.mocked(getHotDjRadios).mockResolvedValue({ more: false, radios: [relatedRadio] })
+    const store = useDjStore()
+    const pending = store.loadRadioToplist()
+    await store.setCate(2)
+    pendingRank.resolve([radio])
+    await pending
+
+    expect(store.radios).toEqual([relatedRadio])
+    expect(store.radioToplist).toEqual([radio])
+    expect(store.radioToplistError).toBeNull()
+  })
+
+  it('drops in-flight radio ranking after reset', async () => {
+    const pendingRank = deferred<typeof radio[]>()
+    vi.mocked(getDjRadioToplist).mockReturnValueOnce(pendingRank.promise)
+    const store = useDjStore()
+    const pending = store.loadRadioToplist()
+    store.reset()
+    pendingRank.resolve([radio])
+    await pending
+
+    expect(store.radioToplist).toEqual([])
+    expect(store.radioToplistLoading).toBe(false)
   })
 
   it('loads program detail and caches by id', async () => {

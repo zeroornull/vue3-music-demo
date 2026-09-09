@@ -11,9 +11,12 @@ import {
   getDjRadioDetail,
   getDjRadioPrograms,
   getDjProgramToplist,
+  getDjRadioToplist,
   getHotDjRadios,
   getPersonalizedDjPrograms,
   DJ_PROGRAM_TOPLIST_LIMIT,
+  DJ_RADIO_TOPLIST_LIMIT,
+  DJ_RADIO_TOPLIST_TYPE,
 } from '@/api/dj'
 
 const client = (response: unknown) => {
@@ -317,6 +320,85 @@ describe('DJ API', () => {
     )
     expect(inferred.radios).toHaveLength(DJ_RADIO_PAGE_SIZE)
     expect(inferred.more).toBe(true)
+  })
+
+  it('unwraps /dj/toplist radios and drops invalid ids', async () => {
+    const request = client({
+      djRadios: [
+        {
+          dj: { nickname: '林间主播' },
+          extra: true,
+          id: 801,
+          name: '夜航电台',
+          picUrl: 'https://images.example.com/radio.jpg',
+          playCount: 12_000,
+          rcmdText: '睡前故事',
+        },
+        { id: 0, name: '无效' },
+        {
+          id: 802,
+          name: '潮汐电台',
+          picUrl: 'https://images.example.com/radio2.jpg',
+        },
+      ],
+    })
+    await expect(getDjRadioToplist(request.client)).resolves.toEqual([
+      {
+        djName: '林间主播',
+        id: 801,
+        name: '夜航电台',
+        paid: false,
+        picUrl: 'https://images.example.com/radio.jpg',
+        playCount: 12_000,
+        rcmdText: '睡前故事',
+      },
+      {
+        djName: '',
+        id: 802,
+        name: '潮汐电台',
+        paid: false,
+        picUrl: 'https://images.example.com/radio2.jpg',
+        playCount: 0,
+        rcmdText: '',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/toplist', {
+      limit: DJ_RADIO_TOPLIST_LIMIT,
+      type: DJ_RADIO_TOPLIST_TYPE,
+    })
+  })
+
+  it('accepts a toplist array, rejects a missing list, and slices to the cap', async () => {
+    const alt = client({
+      toplist: [
+        {
+          id: 803,
+          name: '海岸电台',
+          picUrl: 'https://images.example.com/coast.jpg',
+        },
+      ],
+    })
+    await expect(getDjRadioToplist(alt.client)).resolves.toEqual([
+      {
+        djName: '',
+        id: 803,
+        name: '海岸电台',
+        paid: false,
+        picUrl: 'https://images.example.com/coast.jpg',
+        playCount: 0,
+        rcmdText: '',
+      },
+    ])
+    await expect(
+      getDjRadioToplist(client({ djRadios: null, toplist: null }).client),
+    ).rejects.toThrow('电台榜响应格式不正确')
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `电台 ${index + 1}`,
+    }))
+    const list = await getDjRadioToplist(client({ djRadios: many }).client)
+    expect(list).toHaveLength(DJ_RADIO_TOPLIST_LIMIT)
+    expect(list.map((item) => item.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
   })
 
   it('unwraps a radio detail and its program page as text-safe rows', async () => {

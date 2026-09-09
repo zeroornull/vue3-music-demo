@@ -10,6 +10,7 @@ import {
   getDjRadioDetail,
   getDjRadioPrograms,
   getDjProgramToplist,
+  getDjRadioToplist,
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
@@ -31,6 +32,7 @@ let toplistSerial = 0
 let bannerSerial = 0
 let categorySerial = 0
 let radioSerial = 0
+let radioToplistSerial = 0
 let radioDetailSerial = 0
 let radioProgramSerial = 0
 
@@ -56,6 +58,9 @@ export const useDjStore = defineStore('dj', () => {
   const radiosError = ref<string | null>(null)
   const radiosLoading = ref(false)
   const radiosMore = ref(false)
+  const radioToplist = ref<HallRadio[]>([])
+  const radioToplistError = ref<string | null>(null)
+  const radioToplistLoading = ref(false)
   const radio = ref<DjRadioDetail | null>(null)
   const radioError = ref<string | null>(null)
   const radioLoading = ref(false)
@@ -102,6 +107,7 @@ export const useDjStore = defineStore('dj', () => {
     bannerSerial++
     categorySerial++
     radioSerial++
+    radioToplistSerial++
     programs.value = []
     programsError.value = null
     programsLoading.value = false
@@ -119,6 +125,9 @@ export const useDjStore = defineStore('dj', () => {
     radiosError.value = null
     radiosLoading.value = false
     radiosMore.value = false
+    radioToplist.value = []
+    radioToplistError.value = null
+    radioToplistLoading.value = false
   }
 
   async function loadBanners(force = false) {
@@ -181,6 +190,27 @@ export const useDjStore = defineStore('dj', () => {
       throw requestError
     } finally {
       if (serial === toplistSerial) toplistLoading.value = false
+    }
+  }
+
+  async function loadRadioToplist(force = false) {
+    if (radioToplist.value.length && !force && !radioToplistError.value) {
+      return
+    }
+
+    const serial = ++radioToplistSerial
+    radioToplistLoading.value = true
+    radioToplistError.value = null
+    try {
+      const next = await getDjRadioToplist()
+      if (serial !== radioToplistSerial) return
+      radioToplist.value = next
+    } catch (requestError) {
+      if (serial !== radioToplistSerial) return
+      radioToplistError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === radioToplistSerial) radioToplistLoading.value = false
     }
   }
 
@@ -464,6 +494,7 @@ export const useDjStore = defineStore('dj', () => {
     loadBanners,
     loadPrograms,
     loadToplist,
+    loadRadioToplist,
     loadCategories,
     loadRadios,
     loadMoreRadios,
@@ -494,6 +525,9 @@ export const useDjStore = defineStore('dj', () => {
     radiosError,
     radiosLoading,
     radiosMore,
+    radioToplist,
+    radioToplistError,
+    radioToplistLoading,
     radio,
     radioError,
     radioLoading,

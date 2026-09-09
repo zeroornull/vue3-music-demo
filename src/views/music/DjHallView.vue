@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import BannerCarousel from '@/components/discover/BannerCarousel.vue'
 import DjProgramSection from '@/components/music/DjProgramSection.vue'
+import DjRadioRankSection from '@/components/music/DjRadioRankSection.vue'
 import DjRadioSection from '@/components/music/DjRadioSection.vue'
 import type { Banner } from '@/models/banner'
 import type { DjCategory, DjProgram, HallRadio } from '@/models/dj'
@@ -22,6 +23,9 @@ withDefaults(
     radiosError?: string | null
     radiosLoading?: boolean
     radiosMore?: boolean
+    radioToplist?: HallRadio[]
+    radioToplistError?: string | null
+    radioToplistLoading?: boolean
   }>(),
   {
     bannersError: null,
@@ -37,6 +41,9 @@ withDefaults(
     radiosError: null,
     radiosLoading: false,
     radiosMore: false,
+    radioToplist: () => [],
+    radioToplistError: null,
+    radioToplistLoading: false,
   },
 )
 
@@ -46,6 +53,7 @@ defineEmits<{
   'retry-programs': []
   'retry-toplist': []
   'retry-radios': []
+  'retry-radio-toplist': []
   'select-banner': [banner: Banner]
   'select-cat': [id: number]
 }>()
@@ -74,6 +82,12 @@ defineEmits<{
       @load-more="$emit('load-more-radios')"
       @retry="$emit('retry-radios')"
       @select-cat="$emit('select-cat', $event)"
+    />
+    <DjRadioRankSection
+      :error="radioToplistError"
+      :loading="radioToplistLoading"
+      :radios="radioToplist"
+      @retry="$emit('retry-radio-toplist')"
     />
     <DjProgramSection
       :error="programsError"

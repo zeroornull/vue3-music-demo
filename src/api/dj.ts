@@ -15,6 +15,8 @@ export const DJ_BANNER_LIMIT = 10
 export const DJ_RADIO_PAGE_SIZE = 12
 export const DJ_RADIO_PROGRAM_PAGE_SIZE = 20
 export const DJ_PROGRAM_TOPLIST_LIMIT = 10
+export const DJ_RADIO_TOPLIST_LIMIT = 10
+export const DJ_RADIO_TOPLIST_TYPE = 'hot'
 
 export interface HotDjRadioQuery {
   cateId: number
@@ -276,6 +278,31 @@ export async function getHotDjRadios(
         ? response.hasMore
         : radios.length >= limit,
   }
+}
+
+export async function getDjRadioToplist(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallRadio[]> {
+  const response = await client.get<{ djRadios?: unknown; toplist?: unknown }>(
+    '/dj/toplist',
+    {
+      limit: DJ_RADIO_TOPLIST_LIMIT,
+      type: DJ_RADIO_TOPLIST_TYPE,
+    },
+  )
+  const raw = Array.isArray(response.djRadios)
+    ? response.djRadios
+    : response.toplist
+  if (!Array.isArray(raw)) {
+    throw new Error('电台榜响应格式不正确')
+  }
+  return raw
+    .map(readHallRadio)
+    .filter(
+      (item): item is HallRadio =>
+        item !== null && Number.isInteger(item.id) && item.id > 0,
+    )
+    .slice(0, DJ_RADIO_TOPLIST_LIMIT)
 }
 
 export async function getDjRadioDetail(
