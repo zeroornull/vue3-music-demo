@@ -12,6 +12,10 @@ import {
   getDjProgramToplist,
   getDjRadioToplist,
   getDjRecommendRadios,
+  getDjRecommendPrograms,
+  getDjHotRadios,
+  getDjRecommendByType,
+  getDjCategoryRecommend,
   getDjTodayPrograms,
   getDjProgramHoursToplist,
   getDjRadioHoursToplist,
@@ -46,6 +50,10 @@ let recommendRadioSerial = 0
 let todayProgramSerial = 0
 let programHoursSerial = 0
 let radioHoursSerial = 0
+let recommendProgramSerial = 0
+let hotRadioSerial = 0
+let typeRecommendSerial = 0
+let categoryRecommendSerial = 0
 let radioDetailSerial = 0
 let radioProgramSerial = 0
 let radioCommentsMoreSerial = 0
@@ -87,6 +95,19 @@ export const useDjStore = defineStore('dj', () => {
   const radioHours = ref<HallRadio[]>([])
   const radioHoursError = ref<string | null>(null)
   const radioHoursLoading = ref(false)
+  const recommendPrograms = ref<DjProgram[]>([])
+  const recommendProgramsError = ref<string | null>(null)
+  const recommendProgramsLoading = ref(false)
+  const hotRadios = ref<HallRadio[]>([])
+  const hotRadiosError = ref<string | null>(null)
+  const hotRadiosLoading = ref(false)
+  const typeRecommendRadios = ref<HallRadio[]>([])
+  const typeRecommendRadiosError = ref<string | null>(null)
+  const typeRecommendRadiosLoading = ref(false)
+  const typeRecommendLoadedId = ref<number | null>(null)
+  const categoryRecommendRadios = ref<HallRadio[]>([])
+  const categoryRecommendRadiosError = ref<string | null>(null)
+  const categoryRecommendRadiosLoading = ref(false)
   const radio = ref<DjRadioDetail | null>(null)
   const radioError = ref<string | null>(null)
   const radioLoading = ref(false)
@@ -156,6 +177,10 @@ export const useDjStore = defineStore('dj', () => {
     todayProgramSerial++
     programHoursSerial++
     radioHoursSerial++
+    recommendProgramSerial++
+    hotRadioSerial++
+    typeRecommendSerial++
+    categoryRecommendSerial++
     programs.value = []
     programsError.value = null
     programsLoading.value = false
@@ -188,6 +213,19 @@ export const useDjStore = defineStore('dj', () => {
     radioHours.value = []
     radioHoursError.value = null
     radioHoursLoading.value = false
+    recommendPrograms.value = []
+    recommendProgramsError.value = null
+    recommendProgramsLoading.value = false
+    hotRadios.value = []
+    hotRadiosError.value = null
+    hotRadiosLoading.value = false
+    typeRecommendRadios.value = []
+    typeRecommendRadiosError.value = null
+    typeRecommendRadiosLoading.value = false
+    typeRecommendLoadedId.value = null
+    categoryRecommendRadios.value = []
+    categoryRecommendRadiosError.value = null
+    categoryRecommendRadiosLoading.value = false
   }
 
   async function loadBanners(force = false) {
@@ -351,6 +389,104 @@ export const useDjStore = defineStore('dj', () => {
       throw requestError
     } finally {
       if (serial === radioHoursSerial) radioHoursLoading.value = false
+    }
+  }
+
+  async function loadRecommendPrograms(force = false) {
+    if (
+      recommendPrograms.value.length &&
+      !force &&
+      !recommendProgramsError.value
+    ) {
+      return
+    }
+    const serial = ++recommendProgramSerial
+    recommendProgramsLoading.value = true
+    recommendProgramsError.value = null
+    try {
+      const next = await getDjRecommendPrograms()
+      if (serial !== recommendProgramSerial) return
+      recommendPrograms.value = next
+    } catch (requestError) {
+      if (serial !== recommendProgramSerial) return
+      recommendProgramsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === recommendProgramSerial) recommendProgramsLoading.value = false
+    }
+  }
+
+  async function loadHotRadios(force = false) {
+    if (hotRadios.value.length && !force && !hotRadiosError.value) {
+      return
+    }
+    const serial = ++hotRadioSerial
+    hotRadiosLoading.value = true
+    hotRadiosError.value = null
+    try {
+      const next = await getDjHotRadios()
+      if (serial !== hotRadioSerial) return
+      hotRadios.value = next
+    } catch (requestError) {
+      if (serial !== hotRadioSerial) return
+      hotRadiosError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === hotRadioSerial) hotRadiosLoading.value = false
+    }
+  }
+
+  async function loadRecommendByType(force = false) {
+    if (cateId.value <= 0) return
+    if (
+      typeRecommendLoadedId.value === cateId.value &&
+      !force &&
+      !typeRecommendRadiosError.value
+    ) {
+      return
+    }
+    const serial = ++typeRecommendSerial
+    const requested = cateId.value
+    typeRecommendRadiosLoading.value = true
+    typeRecommendRadiosError.value = null
+    try {
+      const next = await getDjRecommendByType(requested)
+      if (serial !== typeRecommendSerial) return
+      if (requested !== cateId.value) return
+      typeRecommendRadios.value = next
+      typeRecommendLoadedId.value = requested
+    } catch (requestError) {
+      if (serial !== typeRecommendSerial) return
+      typeRecommendRadiosError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === typeRecommendSerial) typeRecommendRadiosLoading.value = false
+    }
+  }
+
+  async function loadCategoryRecommend(force = false) {
+    if (
+      categoryRecommendRadios.value.length &&
+      !force &&
+      !categoryRecommendRadiosError.value
+    ) {
+      return
+    }
+    const serial = ++categoryRecommendSerial
+    categoryRecommendRadiosLoading.value = true
+    categoryRecommendRadiosError.value = null
+    try {
+      const next = await getDjCategoryRecommend()
+      if (serial !== categoryRecommendSerial) return
+      categoryRecommendRadios.value = next
+    } catch (requestError) {
+      if (serial !== categoryRecommendSerial) return
+      categoryRecommendRadiosError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === categoryRecommendSerial) {
+        categoryRecommendRadiosLoading.value = false
+      }
     }
   }
 
@@ -525,14 +661,22 @@ export const useDjStore = defineStore('dj', () => {
   }
 
   async function setCate(id: number) {
-    if (id === cateId.value && radios.value.length && !radiosError.value) {
-      return
+    if (id !== cateId.value) {
+      typeRecommendSerial++
+      cateId.value = id
+      radios.value = []
+      radiosError.value = null
+      radiosMore.value = false
+      typeRecommendRadios.value = []
+      typeRecommendRadiosError.value = null
+      typeRecommendRadiosLoading.value = false
+      typeRecommendLoadedId.value = null
     }
-    cateId.value = id
-    radios.value = []
-    radiosError.value = null
-    radiosMore.value = false
-    await loadRadios(true)
+    const [radiosResult] = await Promise.allSettled([
+      loadRadios(),
+      loadRecommendByType(),
+    ])
+    if (radiosResult.status === 'rejected') throw radiosResult.reason
   }
 
   async function loadRadio(id: number, force = false) {
@@ -727,6 +871,10 @@ export const useDjStore = defineStore('dj', () => {
     loadTodayPrograms,
     loadProgramHours,
     loadRadioHours,
+    loadRecommendPrograms,
+    loadHotRadios,
+    loadRecommendByType,
+    loadCategoryRecommend,
     loadCategories,
     loadRadios,
     loadMoreRadios,
@@ -774,6 +922,18 @@ export const useDjStore = defineStore('dj', () => {
     radioHours,
     radioHoursError,
     radioHoursLoading,
+    recommendPrograms,
+    recommendProgramsError,
+    recommendProgramsLoading,
+    hotRadios,
+    hotRadiosError,
+    hotRadiosLoading,
+    typeRecommendRadios,
+    typeRecommendRadiosError,
+    typeRecommendRadiosLoading,
+    categoryRecommendRadios,
+    categoryRecommendRadiosError,
+    categoryRecommendRadiosLoading,
     radio,
     radioError,
     radioLoading,

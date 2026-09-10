@@ -38,6 +38,18 @@ withDefaults(
     radioHours?: HallRadio[]
     radioHoursError?: string | null
     radioHoursLoading?: boolean
+    recommendPrograms?: DjProgram[]
+    recommendProgramsError?: string | null
+    recommendProgramsLoading?: boolean
+    hotRadios?: HallRadio[]
+    hotRadiosError?: string | null
+    hotRadiosLoading?: boolean
+    typeRecommendRadios?: HallRadio[]
+    typeRecommendRadiosError?: string | null
+    typeRecommendRadiosLoading?: boolean
+    categoryRecommendRadios?: HallRadio[]
+    categoryRecommendRadiosError?: string | null
+    categoryRecommendRadiosLoading?: boolean
   }>(),
   {
     bannersError: null,
@@ -68,6 +80,18 @@ withDefaults(
     radioHours: () => [],
     radioHoursError: null,
     radioHoursLoading: false,
+    recommendPrograms: () => [],
+    recommendProgramsError: null,
+    recommendProgramsLoading: false,
+    hotRadios: () => [],
+    hotRadiosError: null,
+    hotRadiosLoading: false,
+    typeRecommendRadios: () => [],
+    typeRecommendRadiosError: null,
+    typeRecommendRadiosLoading: false,
+    categoryRecommendRadios: () => [],
+    categoryRecommendRadiosError: null,
+    categoryRecommendRadiosLoading: false,
   },
 )
 
@@ -82,6 +106,10 @@ defineEmits<{
   'retry-today-programs': []
   'retry-program-hours': []
   'retry-radio-hours': []
+  'retry-recommend-programs': []
+  'retry-hot-radios': []
+  'retry-type-recommend': []
+  'retry-category-recommend': []
   'select-banner': [banner: Banner]
   'select-cat': [id: number]
 }>()
@@ -122,6 +150,36 @@ defineEmits<{
       @retry="$emit('retry-recommend-radios')"
     />
     <DjRadioRankSection
+      empty-title="暂无热门电台"
+      error-title="热门电台加载失败"
+      testid="dj-hot"
+      title="热门电台"
+      :error="hotRadiosError"
+      :loading="hotRadiosLoading"
+      :radios="hotRadios"
+      @retry="$emit('retry-hot-radios')"
+    />
+    <DjRadioRankSection
+      empty-title="暂无分类精选电台"
+      error-title="分类精选电台加载失败"
+      testid="dj-type-recommend"
+      title="分类精选电台"
+      :error="typeRecommendRadiosError"
+      :loading="typeRecommendRadiosLoading"
+      :radios="typeRecommendRadios"
+      @retry="$emit('retry-type-recommend')"
+    />
+    <DjRadioRankSection
+      empty-title="暂无分类推荐"
+      error-title="分类推荐加载失败"
+      testid="dj-category-recommend"
+      title="分类推荐"
+      :error="categoryRecommendRadiosError"
+      :loading="categoryRecommendRadiosLoading"
+      :radios="categoryRecommendRadios"
+      @retry="$emit('retry-category-recommend')"
+    />
+    <DjRadioRankSection
       :error="radioToplistError"
       :loading="radioToplistLoading"
       :radios="radioToplist"
@@ -142,6 +200,16 @@ defineEmits<{
       :loading="programsLoading"
       :programs="programs"
       @retry="$emit('retry-programs')"
+    />
+    <DjProgramSection
+      empty-title="暂无推荐节目"
+      error-title="推荐节目加载失败"
+      testid="dj-recommend-programs"
+      title="推荐节目"
+      :error="recommendProgramsError"
+      :loading="recommendProgramsLoading"
+      :programs="recommendPrograms"
+      @retry="$emit('retry-recommend-programs')"
     />
     <DjProgramSection
       empty-title="暂无今日优选"

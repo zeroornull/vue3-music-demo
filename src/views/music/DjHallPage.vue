@@ -47,9 +47,31 @@ const {
   radioHours,
   radioHoursError,
   radioHoursLoading,
+  recommendPrograms,
+  recommendProgramsError,
+  recommendProgramsLoading,
+  hotRadios,
+  hotRadiosError,
+  hotRadiosLoading,
+  typeRecommendRadios,
+  typeRecommendRadiosError,
+  typeRecommendRadiosLoading,
+  categoryRecommendRadios,
+  categoryRecommendRadiosError,
+  categoryRecommendRadiosLoading,
 } = storeToRefs(djStore)
 const notice = ref<string | null>(null)
 let playSerial = 0
+const typeRecommendPending = computed(
+  () =>
+    typeRecommendRadiosLoading.value ||
+    (!cateId.value && categoriesLoading.value),
+)
+const typeRecommendBlockError = computed(() => {
+  if (typeRecommendRadiosError.value) return typeRecommendRadiosError.value
+  if (!cateId.value) return categoriesError.value
+  return null
+})
 
 const queryCateId = computed(() => {
   const value = route.query.cateId
@@ -90,6 +112,26 @@ function requestRadioHours(force = false) {
   void djStore.loadRadioHours(force).catch(() => undefined)
 }
 
+function requestRecommendPrograms(force = false) {
+  void djStore.loadRecommendPrograms(force).catch(() => undefined)
+}
+
+function requestHotRadios(force = false) {
+  void djStore.loadHotRadios(force).catch(() => undefined)
+}
+
+function requestTypeRecommend(force = false) {
+  if (djStore.cateId) {
+    void djStore.loadRecommendByType(force).catch(() => undefined)
+    return
+  }
+  void requestCategories(force)
+}
+
+function requestCategoryRecommend(force = false) {
+  void djStore.loadCategoryRecommend(force).catch(() => undefined)
+}
+
 async function requestCategories(force = false) {
   try {
     await djStore.loadCategories(force)
@@ -100,6 +142,7 @@ async function requestCategories(force = false) {
         return
       }
       if (force) await djStore.loadRadios(true)
+      await djStore.loadRecommendByType(force).catch(() => undefined)
       return
     }
     if (!djStore.cateId && djStore.categories[0]) {
@@ -174,6 +217,9 @@ onMounted(() => {
   requestTodayPrograms()
   requestProgramHours()
   requestRadioHours()
+  requestRecommendPrograms()
+  requestHotRadios()
+  requestCategoryRecommend()
   void requestCategories()
 })
 </script>
@@ -212,6 +258,18 @@ onMounted(() => {
       :radio-hours="radioHours"
       :radio-hours-error="radioHoursError"
       :radio-hours-loading="radioHoursLoading"
+      :recommend-programs="recommendPrograms"
+      :recommend-programs-error="recommendProgramsError"
+      :recommend-programs-loading="recommendProgramsLoading"
+      :hot-radios="hotRadios"
+      :hot-radios-error="hotRadiosError"
+      :hot-radios-loading="hotRadiosLoading"
+      :type-recommend-radios="typeRecommendRadios"
+      :type-recommend-radios-error="typeRecommendBlockError"
+      :type-recommend-radios-loading="typeRecommendPending"
+      :category-recommend-radios="categoryRecommendRadios"
+      :category-recommend-radios-error="categoryRecommendRadiosError"
+      :category-recommend-radios-loading="categoryRecommendRadiosLoading"
       @load-more-radios="loadMoreRadios"
       @retry-banners="requestBanners(true)"
       @retry-programs="requestPrograms(true)"
@@ -222,6 +280,10 @@ onMounted(() => {
       @retry-today-programs="requestTodayPrograms(true)"
       @retry-program-hours="requestProgramHours(true)"
       @retry-radio-hours="requestRadioHours(true)"
+      @retry-recommend-programs="requestRecommendPrograms(true)"
+      @retry-hot-radios="requestHotRadios(true)"
+      @retry-type-recommend="requestTypeRecommend(true)"
+      @retry-category-recommend="requestCategoryRecommend(true)"
       @select-banner="selectBanner"
       @select-cat="selectCat"
     />

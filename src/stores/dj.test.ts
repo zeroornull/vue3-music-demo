@@ -12,6 +12,10 @@ import {
   getDjProgramToplist,
   getDjRadioToplist,
   getDjRecommendRadios,
+  getDjRecommendPrograms,
+  getDjHotRadios,
+  getDjRecommendByType,
+  getDjCategoryRecommend,
   getDjTodayPrograms,
   getDjProgramHoursToplist,
   getDjRadioHoursToplist,
@@ -43,6 +47,10 @@ vi.mock('@/api/dj', async (importOriginal) => {
     getDjProgramToplist: vi.fn(),
     getDjRadioToplist: vi.fn(),
     getDjRecommendRadios: vi.fn(),
+    getDjRecommendPrograms: vi.fn(),
+    getDjHotRadios: vi.fn(),
+    getDjRecommendByType: vi.fn(),
+    getDjCategoryRecommend: vi.fn(),
     getDjTodayPrograms: vi.fn(),
     getDjProgramHoursToplist: vi.fn(),
     getDjRadioHoursToplist: vi.fn(),
@@ -147,6 +155,11 @@ describe('dj store', () => {
     vi.mocked(getDjProgramToplist).mockReset()
     vi.mocked(getDjRadioToplist).mockReset()
     vi.mocked(getDjRecommendRadios).mockReset()
+    vi.mocked(getDjRecommendPrograms).mockReset()
+    vi.mocked(getDjHotRadios).mockReset()
+    vi.mocked(getDjRecommendByType).mockReset()
+    vi.mocked(getDjCategoryRecommend).mockReset()
+    vi.mocked(getDjRecommendByType).mockResolvedValue([])
     vi.mocked(getDjTodayPrograms).mockReset()
     vi.mocked(getDjProgramHoursToplist).mockReset()
     vi.mocked(getDjRadioHoursToplist).mockReset()
@@ -360,6 +373,122 @@ describe('dj store', () => {
     expect(store.todayPrograms).toEqual([])
     expect(store.programHours).toEqual([])
     expect(store.radioHours).toEqual([])
+  })
+
+  it('loads recommend programs, hot radios and category recommend independently', async () => {
+    const recProgram = { ...program, id: 921, name: '推荐夜航' }
+    const hot = { ...radio, id: 831, name: '热门夜航' }
+    const typed = { ...radio, id: 841, name: '故事电台' }
+    const grouped = { ...radio, id: 851, name: '分类夜航' }
+    vi.mocked(getDjRecommendPrograms).mockResolvedValue([recProgram])
+    vi.mocked(getDjHotRadios).mockResolvedValue([hot])
+    vi.mocked(getDjRecommendByType).mockResolvedValue([typed])
+    vi.mocked(getDjCategoryRecommend).mockResolvedValue([grouped])
+    vi.mocked(getHotDjRadios).mockResolvedValue({ more: false, radios: [radio] })
+    const store = useDjStore()
+
+    await store.loadRecommendPrograms()
+    await store.loadRecommendPrograms()
+    await store.loadHotRadios()
+    await store.loadCategoryRecommend()
+    await store.setCate(2)
+    await store.setCate(2)
+
+    expect(store.recommendPrograms).toEqual([recProgram])
+    expect(store.hotRadios).toEqual([hot])
+    expect(store.categoryRecommendRadios).toEqual([grouped])
+    expect(store.typeRecommendRadios).toEqual([typed])
+    expect(getDjRecommendPrograms).toHaveBeenCalledTimes(1)
+    expect(getDjHotRadios).toHaveBeenCalledTimes(1)
+    expect(getDjCategoryRecommend).toHaveBeenCalledTimes(1)
+    expect(getDjRecommendByType).toHaveBeenCalledTimes(1)
+    expect(getDjRecommendByType).toHaveBeenCalledWith(2)
+  })
+
+  it('keeps other extras when hot radios fail', async () => {
+    vi.mocked(getDjRecommendPrograms).mockResolvedValue([
+      { ...program, id: 921, name: '推荐夜航' },
+    ])
+    vi.mocked(getDjHotRadios).mockRejectedValue(new Error('hot offline'))
+    const store = useDjStore()
+
+    await store.loadRecommendPrograms()
+    await expect(store.loadHotRadios()).rejects.toThrow('hot offline')
+
+    expect(store.recommendPrograms).toEqual([
+      { ...program, id: 921, name: '推荐夜航' },
+    ])
+    expect(store.hotRadios).toEqual([])
+    expect(store.hotRadiosError).toBe('hot offline')
+  })
+
+  it('keeps radios when type recommend fails during setCate', async () => {
+    vi.mocked(getHotDjRadios).mockResolvedValue({ more: false, radios: [radio] })
+    vi.mocked(getDjRecommendByType).mockRejectedValue(new Error('type offline'))
+    const store = useDjStore()
+
+    await store.setCate(2)
+
+    expect(store.radios).toEqual([radio])
+    expect(store.radiosError).toBeNull()
+    expect(store.typeRecommendRadios).toEqual([])
+    expect(store.typeRecommendRadiosError).toBe('type offline')
+  })
+
+  it('still applies type recommend when category radios fail', async () => {
+    const typed = { ...radio, id: 841, name: '故事电台' }
+    vi.mocked(getHotDjRadios).mockRejectedValue(new Error('radios offline'))
+    vi.mocked(getDjRecommendByType).mockResolvedValue([typed])
+    const store = useDjStore()
+
+    await expect(store.setCate(2)).rejects.toThrow('radios offline')
+    expect(store.radios).toEqual([])
+    expect(store.radiosError).toBe('radios offline')
+    expect(store.typeRecommendRadios).toEqual([typed])
+    expect(store.typeRecommendRadiosError).toBeNull()
+  })
+
+  it('skips type recommend until a category is selected', async () => {
+    const store = useDjStore()
+    await store.loadRecommendByType()
+    expect(getDjRecommendByType).not.toHaveBeenCalled()
+    expect(store.typeRecommendRadios).toEqual([])
+  })
+
+  it('drops in-flight type recommend after a category change', async () => {
+    const stale = { ...radio, id: 841, name: '故事电台' }
+    const next = { ...radio, id: 842, name: '创作电台' }
+    const pending = deferred<typeof radio[]>()
+    vi.mocked(getHotDjRadios).mockResolvedValue({ more: false, radios: [radio] })
+    vi.mocked(getDjRecommendByType)
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce([next])
+    const store = useDjStore()
+    const first = store.setCate(2)
+    await Promise.resolve()
+    const second = store.setCate(6)
+    pending.resolve([stale])
+    await first
+    await second
+
+    expect(store.cateId).toBe(6)
+    expect(store.typeRecommendRadios).toEqual([next])
+    expect(getDjRecommendByType).toHaveBeenNthCalledWith(2, 6)
+  })
+
+  it('drops in-flight hall extras after reset including new lists', async () => {
+    const pending = deferred<typeof radio[]>()
+    vi.mocked(getDjHotRadios).mockReturnValueOnce(pending.promise)
+    const store = useDjStore()
+    const loading = store.loadHotRadios()
+    store.reset()
+    pending.resolve([radio])
+    await loading
+
+    expect(store.hotRadios).toEqual([])
+    expect(store.recommendPrograms).toEqual([])
+    expect(store.categoryRecommendRadios).toEqual([])
+    expect(store.typeRecommendRadios).toEqual([])
   })
 
   it('loads program detail and caches by id', async () => {

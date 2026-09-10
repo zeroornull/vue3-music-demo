@@ -15,6 +15,10 @@ import {
   getHotDjRadios,
   getPersonalizedDjPrograms,
   getDjRecommendRadios,
+  getDjRecommendPrograms,
+  getDjHotRadios,
+  getDjRecommendByType,
+  getDjCategoryRecommend,
   getDjTodayPrograms,
   getDjProgramHoursToplist,
   getDjRadioHoursToplist,
@@ -24,6 +28,10 @@ import {
   DJ_RECOMMEND_LIMIT,
   DJ_TODAY_LIMIT,
   DJ_HOURS_LIMIT,
+  DJ_HOT_RADIO_LIMIT,
+  DJ_PROGRAM_RECOMMEND_LIMIT,
+  DJ_TYPE_RECOMMEND_LIMIT,
+  DJ_CATEGORY_RECOMMEND_LIMIT,
 } from '@/api/dj'
 
 const client = (response: unknown) => {
@@ -708,5 +716,157 @@ describe('DJ API', () => {
         }).client,
       ),
     ).resolves.toMatchObject([{ id: 913, name: '推荐付费期', paid: true }])
+  })
+
+  it('unwraps /dj/program/recommend programs', async () => {
+    const request = client({
+      programs: [
+        {
+          coverUrl: 'https://images.example.com/rec.jpg',
+          extra: true,
+          id: 921,
+          name: '推荐夜航',
+          radio: { name: '夜航电台' },
+        },
+        { id: 0, name: '无效' },
+      ],
+    })
+    await expect(getDjRecommendPrograms(request.client)).resolves.toEqual([
+      {
+        copywriter: '夜航电台',
+        id: 921,
+        name: '推荐夜航',
+        paid: false,
+        picUrl: 'https://images.example.com/rec.jpg',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/program/recommend')
+    await expect(
+      getDjRecommendPrograms(client({ programs: null }).client),
+    ).rejects.toThrow('推荐节目响应格式不正确')
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `节目 ${index + 1}`,
+    }))
+    await expect(
+      getDjRecommendPrograms(client({ programs: many }).client),
+    ).resolves.toHaveLength(DJ_PROGRAM_RECOMMEND_LIMIT)
+  })
+
+  it('unwraps /dj/hot radios', async () => {
+    const request = client({
+      djRadios: [
+        {
+          extra: true,
+          id: 831,
+          name: '热门夜航',
+          picUrl: 'https://images.example.com/hot.jpg',
+        },
+      ],
+    })
+    await expect(getDjHotRadios(request.client)).resolves.toEqual([
+      {
+        djName: '',
+        id: 831,
+        name: '热门夜航',
+        paid: false,
+        picUrl: 'https://images.example.com/hot.jpg',
+        playCount: 0,
+        rcmdText: '',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/hot', { limit: DJ_HOT_RADIO_LIMIT })
+    await expect(
+      getDjHotRadios(client({ djRadios: null }).client),
+    ).rejects.toThrow('热门电台响应格式不正确')
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `热门 ${index + 1}`,
+    }))
+    await expect(
+      getDjHotRadios(client({ djRadios: many }).client),
+    ).resolves.toHaveLength(DJ_HOT_RADIO_LIMIT)
+  })
+
+  it('loads /dj/recommend/type for a category', async () => {
+    const request = client({
+      djRadios: [{ id: 841, name: '故事电台' }],
+    })
+    await expect(getDjRecommendByType(2, request.client)).resolves.toEqual([
+      {
+        djName: '',
+        id: 841,
+        name: '故事电台',
+        paid: false,
+        picUrl: '',
+        playCount: 0,
+        rcmdText: '',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/recommend/type', { type: 2 })
+    await expect(getDjRecommendByType(0, client({}).client)).rejects.toThrow(
+      '缺少有效的电台分类',
+    )
+    await expect(
+      getDjRecommendByType(2, client({ djRadios: null }).client),
+    ).rejects.toThrow('分类精选电台响应格式不正确')
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `分类 ${index + 1}`,
+    }))
+    await expect(
+      getDjRecommendByType(2, client({ djRadios: many }).client),
+    ).resolves.toHaveLength(DJ_TYPE_RECOMMEND_LIMIT)
+  })
+
+  it('flattens /dj/category/recommend radios', async () => {
+    const request = client({
+      data: [
+        {
+          categoryId: 2,
+          categoryName: '音乐故事',
+          radios: [
+            { extra: true, id: 851, name: '分类夜航' },
+            { id: 851, name: '重复' },
+          ],
+        },
+        {
+          radios: [{ id: 852, name: '第二类' }],
+        },
+      ],
+    })
+    await expect(getDjCategoryRecommend(request.client)).resolves.toEqual([
+      {
+        djName: '',
+        id: 851,
+        name: '分类夜航',
+        paid: false,
+        picUrl: '',
+        playCount: 0,
+        rcmdText: '',
+      },
+      {
+        djName: '',
+        id: 852,
+        name: '第二类',
+        paid: false,
+        picUrl: '',
+        playCount: 0,
+        rcmdText: '',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/category/recommend')
+    await expect(
+      getDjCategoryRecommend(client({ data: null }).client),
+    ).rejects.toThrow('分类推荐电台响应格式不正确')
+    const many = Array.from({ length: 6 }, (_, index) => ({
+      radios: [
+        { id: index * 2 + 1, name: `甲 ${index}` },
+        { id: index * 2 + 2, name: `乙 ${index}` },
+      ],
+    }))
+    await expect(
+      getDjCategoryRecommend(client({ data: many }).client),
+    ).resolves.toHaveLength(DJ_CATEGORY_RECOMMEND_LIMIT)
   })
 })

@@ -20,6 +20,10 @@ export const DJ_RADIO_TOPLIST_TYPE = 'hot'
 export const DJ_RECOMMEND_LIMIT = 10
 export const DJ_TODAY_LIMIT = 10
 export const DJ_HOURS_LIMIT = 10
+export const DJ_PROGRAM_RECOMMEND_LIMIT = 10
+export const DJ_HOT_RADIO_LIMIT = 10
+export const DJ_TYPE_RECOMMEND_LIMIT = 10
+export const DJ_CATEGORY_RECOMMEND_LIMIT = 10
 
 export interface HotDjRadioQuery {
   cateId: number
@@ -407,6 +411,90 @@ export async function getDjRadioHoursToplist(
     .map(readToplistRadio)
     .filter((item): item is HallRadio => item !== null)
     .slice(0, DJ_HOURS_LIMIT)
+}
+
+export async function getDjRecommendPrograms(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<DjProgram[]> {
+  const response = await client.get<Record<string, unknown>>('/dj/program/recommend')
+  const raw = unwrapList(response, ['programs'])
+  if (!raw) {
+    throw new Error('推荐节目响应格式不正确')
+  }
+  return raw
+    .map(readRadioProgram)
+    .filter(
+      (item): item is DjProgram =>
+        item !== null && Number.isInteger(item.id) && item.id > 0,
+    )
+    .slice(0, DJ_PROGRAM_RECOMMEND_LIMIT)
+}
+
+export async function getDjHotRadios(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallRadio[]> {
+  const response = await client.get<Record<string, unknown>>('/dj/hot', {
+    limit: DJ_HOT_RADIO_LIMIT,
+  })
+  const raw = unwrapList(response, ['djRadios'])
+  if (!raw) {
+    throw new Error('热门电台响应格式不正确')
+  }
+  return raw
+    .map(readHallRadio)
+    .filter(
+      (item): item is HallRadio =>
+        item !== null && Number.isInteger(item.id) && item.id > 0,
+    )
+    .slice(0, DJ_HOT_RADIO_LIMIT)
+}
+
+export async function getDjRecommendByType(
+  type: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallRadio[]> {
+  if (!Number.isInteger(type) || type <= 0) {
+    throw new Error('缺少有效的电台分类')
+  }
+  const response = await client.get<Record<string, unknown>>('/dj/recommend/type', {
+    type,
+  })
+  const raw = unwrapList(response, ['djRadios'])
+  if (!raw) {
+    throw new Error('分类精选电台响应格式不正确')
+  }
+  return raw
+    .map(readHallRadio)
+    .filter(
+      (item): item is HallRadio =>
+        item !== null && Number.isInteger(item.id) && item.id > 0,
+    )
+    .slice(0, DJ_TYPE_RECOMMEND_LIMIT)
+}
+
+export async function getDjCategoryRecommend(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallRadio[]> {
+  const response = await client.get<Record<string, unknown>>('/dj/category/recommend')
+  const groups = unwrapList(response, ['data'])
+  if (!groups) {
+    throw new Error('分类推荐电台响应格式不正确')
+  }
+  const seen = new Set<number>()
+  const radios: HallRadio[] = []
+  for (const group of groups) {
+    const list = isRecord(group) && Array.isArray(group.radios) ? group.radios : []
+    for (const raw of list) {
+      const item = readHallRadio(raw)
+      if (!item || !Number.isInteger(item.id) || item.id <= 0 || seen.has(item.id)) {
+        continue
+      }
+      seen.add(item.id)
+      radios.push(item)
+      if (radios.length >= DJ_CATEGORY_RECOMMEND_LIMIT) return radios
+    }
+  }
+  return radios
 }
 
 export async function getDjRadioDetail(
