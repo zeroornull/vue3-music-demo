@@ -8,7 +8,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App from '@/App.vue'
-import { getSongComments } from '@/api/comment'
+import { getSongCommentPage, getSongComments } from '@/api/comment'
 import { getSimiPlaylists } from '@/api/playlist'
 import { getSongUrl } from '@/api/song'
 import { setAudioAdapter, usePlayerStore } from '@/stores/player'
@@ -28,7 +28,9 @@ import { THEME_STORAGE_KEY } from '@/config/theme'
 import { useHostStore } from '@/stores/host'
 
 vi.mock('@/api/comment', () => ({
+  COMMENT_LIMIT: 20,
   getSongComments: vi.fn(),
+  getSongCommentPage: vi.fn(),
 }))
 vi.mock('@/api/playlist', () => ({
   getSimiPlaylists: vi.fn(),
@@ -69,6 +71,8 @@ describe('App host gate', () => {
     vi.mocked(getSongUrl).mockReset()
     vi.mocked(getSongComments).mockReset()
     vi.mocked(getSongComments).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getSongCommentPage).mockReset()
+    vi.mocked(getSongCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getSimiPlaylists).mockReset()
     vi.mocked(getSimiPlaylists).mockRejectedValue(new Error('no playlists'))
   })
@@ -677,6 +681,10 @@ describe('App host gate', () => {
     player.comments = [
       { commentId: 1, content: '走过林间。', nickname: '林间电台' },
     ]
+    player.commentsMore = true
+    player.commentsMoreError = 'stale'
+    player.commentsMoreLoading = true
+    player.commentOffset = 20
     player.isFm = true
     const lyricStore = useLyricStore()
     lyricStore.showLyric = true
@@ -691,6 +699,10 @@ describe('App host gate', () => {
     expect(player.relatedSongs).toBeNull()
     expect(player.relatedPlaylists).toBeNull()
     expect(player.comments).toBeNull()
+    expect(player.commentsMore).toBe(false)
+    expect(player.commentsMoreError).toBeNull()
+    expect(player.commentsMoreLoading).toBe(false)
+    expect(player.commentOffset).toBe(0)
     expect(adapter.src).toBe('')
     expect(player.current).toBeNull()
     expect(player.queue).toHaveLength(0)

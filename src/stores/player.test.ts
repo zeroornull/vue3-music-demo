@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
-import { getSongComments } from '@/api/comment'
+import { COMMENT_LIMIT, getSongCommentPage } from '@/api/comment'
 import { getPersonalFm, trashPersonalFm } from '@/api/fm'
 import { getSimiPlaylists } from '@/api/playlist'
 import {
@@ -19,7 +19,8 @@ import {
 } from '@/stores/player'
 
 vi.mock('@/api/comment', () => ({
-  getSongComments: vi.fn(),
+  COMMENT_LIMIT: 20,
+  getSongCommentPage: vi.fn(),
 }))
 vi.mock('@/api/fm', () => ({
   getPersonalFm: vi.fn(),
@@ -101,8 +102,8 @@ describe('Player store', () => {
     vi.mocked(getSimiSongs).mockRejectedValue(new Error('no similar'))
     vi.mocked(getSimiPlaylists).mockReset()
     vi.mocked(getSimiPlaylists).mockRejectedValue(new Error('no playlists'))
-    vi.mocked(getSongComments).mockReset()
-    vi.mocked(getSongComments).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getSongCommentPage).mockReset()
+    vi.mocked(getSongCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getPersonalFm).mockReset()
     vi.mocked(getPersonalFm).mockRejectedValue(new Error('no fm'))
     vi.mocked(trashPersonalFm).mockReset()
@@ -1100,7 +1101,7 @@ describe('Player store', () => {
   }
 
   it('loads comments with playback and does not refetch on cache', async () => {
-    vi.mocked(getSongComments).mockResolvedValue([comment])
+    vi.mocked(getSongCommentPage).mockResolvedValue({ comments: [comment], more: true })
     setAudioAdapter(mockAdapter())
     const player = usePlayerStore()
 
@@ -1110,14 +1111,16 @@ describe('Player store', () => {
     await flushPromises()
 
     expect(player.comments).toEqual([comment])
+    expect(player.commentsMore).toBe(true)
+    expect(player.commentOffset).toBe(COMMENT_LIMIT)
     expect(player.current).toEqual(song(1))
     expect(player.isPlaying).toBe(true)
-    expect(getSongComments).toHaveBeenCalledTimes(1)
-    expect(getSongComments).toHaveBeenCalledWith(1)
+    expect(getSongCommentPage).toHaveBeenCalledTimes(1)
+    expect(getSongCommentPage).toHaveBeenCalledWith(1, 0)
   })
 
   it('keeps playback when comments fail', async () => {
-    vi.mocked(getSongComments).mockRejectedValue(new Error('comments offline'))
+    vi.mocked(getSongCommentPage).mockRejectedValue(new Error('comments offline'))
     setAudioAdapter(mockAdapter())
     const player = usePlayerStore()
 
@@ -1131,9 +1134,9 @@ describe('Player store', () => {
   })
 
   it('retries comments on a cached current when the first comment request failed', async () => {
-    vi.mocked(getSongComments)
+    vi.mocked(getSongCommentPage)
       .mockRejectedValueOnce(new Error('comments offline'))
-      .mockResolvedValueOnce([comment])
+      .mockResolvedValueOnce({ comments: [comment], more: false })
     setAudioAdapter(mockAdapter())
     const player = usePlayerStore()
 
@@ -1145,48 +1148,51 @@ describe('Player store', () => {
     await flushPromises()
 
     expect(getSongUrl).toHaveBeenCalledTimes(2)
-    expect(getSongComments).toHaveBeenCalledTimes(2)
+    expect(getSongCommentPage).toHaveBeenCalledTimes(2)
     expect(player.comments).toEqual([comment])
+    expect(player.commentsMore).toBe(false)
   })
 
   it('does not keep stale comments after the current song changes', async () => {
-    const first = deferred<typeof comment[]>()
+    const first = deferred<{ comments: typeof comment[]; more: boolean }>()
     const nextComment = { ...comment, commentId: 9, content: '下一首留言' }
-    vi.mocked(getSongComments)
+    vi.mocked(getSongCommentPage)
       .mockReturnValueOnce(first.promise)
-      .mockResolvedValueOnce([nextComment])
+      .mockResolvedValueOnce({ comments: [nextComment], more: false })
     setAudioAdapter(mockAdapter())
     const player = usePlayerStore()
 
     await player.play(song(1))
     await player.play(song(2))
     await flushPromises()
-    first.resolve([comment])
+    first.resolve({ comments: [comment], more: true })
     await flushPromises()
 
     expect(player.current?.id).toBe(2)
     expect(player.comments).toEqual([nextComment])
-    expect(getSongComments).toHaveBeenLastCalledWith(2)
+    expect(player.commentsMore).toBe(false)
+    expect(getSongCommentPage).toHaveBeenLastCalledWith(2, 0)
   })
 
   it('does not drop in-flight comments when pausing', async () => {
-    const first = deferred<typeof comment[]>()
-    vi.mocked(getSongComments).mockReturnValueOnce(first.promise)
+    const first = deferred<{ comments: typeof comment[]; more: boolean }>()
+    vi.mocked(getSongCommentPage).mockReturnValueOnce(first.promise)
     setAudioAdapter(mockAdapter())
     const player = usePlayerStore()
 
     await player.play(song(1))
     player.pause()
-    first.resolve([comment])
+    first.resolve({ comments: [comment], more: true })
     await flushPromises()
 
     expect(player.comments).toEqual([comment])
+    expect(player.commentsMore).toBe(true)
     expect(player.current?.id).toBe(1)
     expect(player.isPlaying).toBe(false)
   })
 
   it('treats an empty comment list as loaded and does not retry', async () => {
-    vi.mocked(getSongComments).mockResolvedValue([])
+    vi.mocked(getSongCommentPage).mockResolvedValue({ comments: [], more: false })
     setAudioAdapter(mockAdapter())
     const player = usePlayerStore()
 
@@ -1196,7 +1202,120 @@ describe('Player store', () => {
     await flushPromises()
 
     expect(player.comments).toEqual([])
-    expect(getSongComments).toHaveBeenCalledTimes(1)
+    expect(getSongCommentPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('appends more comments without dropping the first page', async () => {
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    vi.mocked(getSongCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockResolvedValueOnce({ comments: [extra, comment], more: false })
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    await flushPromises()
+    await player.loadMoreComments()
+    await flushPromises()
+
+    expect(getSongCommentPage).toHaveBeenNthCalledWith(1, 1, 0)
+    expect(getSongCommentPage).toHaveBeenNthCalledWith(2, 1, COMMENT_LIMIT)
+    expect(player.comments).toEqual([comment, extra])
+    expect(player.commentsMore).toBe(false)
+    expect(player.commentOffset).toBe(COMMENT_LIMIT * 2)
+  })
+
+  it('keeps loaded comments when load more fails', async () => {
+    vi.mocked(getSongCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockRejectedValueOnce(new Error('more offline'))
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    await flushPromises()
+    await expect(player.loadMoreComments()).rejects.toThrow('more offline')
+
+    expect(player.comments).toEqual([comment])
+    expect(player.commentsMore).toBe(true)
+    expect(player.commentsMoreError).toBe('more offline')
+    expect(player.commentsMoreLoading).toBe(false)
+  })
+
+  it('does not request another page when more is false', async () => {
+    vi.mocked(getSongCommentPage).mockResolvedValue({ comments: [comment], more: false })
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    await flushPromises()
+    await player.loadMoreComments()
+
+    expect(getSongCommentPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not let a late first page overwrite appended comments', async () => {
+    const firstA = deferred<{ comments: typeof comment[]; more: boolean }>()
+    const firstB = deferred<{ comments: typeof comment[]; more: boolean }>()
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    vi.mocked(getSongCommentPage)
+      .mockReturnValueOnce(firstA.promise)
+      .mockReturnValueOnce(firstB.promise)
+      .mockResolvedValueOnce({ comments: [extra], more: false })
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    await player.play(song(1))
+    firstA.resolve({ comments: [comment], more: true })
+    await flushPromises()
+    await player.loadMoreComments()
+    firstB.resolve({ comments: [comment], more: true })
+    await flushPromises()
+
+    expect(player.comments).toEqual([comment, extra])
+    expect(player.commentsMore).toBe(false)
+    expect(getSongCommentPage).toHaveBeenCalledTimes(3)
+  })
+
+  it('drops in-flight more comments after the current song changes', async () => {
+    const pending = deferred<{ comments: typeof comment[]; more: boolean }>()
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    const nextComment = { ...comment, commentId: 9, content: '下一首留言' }
+    vi.mocked(getSongCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce({ comments: [nextComment], more: false })
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    await flushPromises()
+    const more = player.loadMoreComments()
+    await player.play(song(2))
+    pending.resolve({ comments: [extra], more: false })
+    await more
+    await flushPromises()
+
+    expect(player.current?.id).toBe(2)
+    expect(player.comments).toEqual([nextComment])
+    expect(player.commentsMore).toBe(false)
+  })
+
+  it('does not drop in-flight more comments when pausing', async () => {
+    const pending = deferred<{ comments: typeof comment[]; more: boolean }>()
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    vi.mocked(getSongCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockReturnValueOnce(pending.promise)
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    await flushPromises()
+    const more = player.loadMoreComments()
+    player.pause()
+    pending.resolve({ comments: [extra], more: false })
+    await more
+    await flushPromises()
+
+    expect(player.comments).toEqual([comment, extra])
+    expect(player.commentsMore).toBe(false)
+    expect(player.isPlaying).toBe(false)
   })
 
   it('removes a queued song that is not current without stopping playback', async () => {

@@ -1,15 +1,23 @@
 // @vitest-environment happy-dom
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getSongCommentPage } from '@/api/comment'
 import PlayerLyricPanel from '@/components/player/PlayerLyricPanel.vue'
 import { useLyricStore } from '@/stores/lyric'
 import { usePlayerStore } from '@/stores/player'
 
+vi.mock('@/api/comment', () => ({
+  COMMENT_LIMIT: 20,
+  getSongCommentPage: vi.fn(),
+}))
+
 describe('PlayerLyricPanel', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.mocked(getSongCommentPage).mockReset()
+    vi.mocked(getSongCommentPage).mockRejectedValue(new Error('no comments'))
   })
 
   function mountPanel() {
@@ -178,6 +186,36 @@ describe('PlayerLyricPanel', () => {
     const wrapper = mountPanel()
     await wrapper.vm.$nextTick()
     expect(bodyEl('[data-testid="song-comments"]').textContent).toContain('暂无评论')
+    wrapper.unmount()
+  })
+
+  it('loads more song comments without dropping the first page', async () => {
+    vi.mocked(getSongCommentPage).mockResolvedValueOnce({
+      comments: [{ commentId: 21, content: '第二页', nickname: '夜航乐队' }],
+      more: false,
+    })
+    const lyrics = useLyricStore()
+    const player = usePlayerStore()
+    lyrics.lines = [{ text: '走过林间。', time: 12 }]
+    player.current = { id: 1, name: '晚风来信', artists: [] }
+    player.comments = [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }]
+    player.commentsMore = true
+    player.commentOffset = 20
+    lyrics.open()
+    const wrapper = mountPanel()
+    await wrapper.vm.$nextTick()
+
+    expect(bodyEl('[data-testid="song-comments-more"]').textContent).toBe(
+      '加载更多评论',
+    )
+    bodyEl('[data-testid="song-comments-more"]').click()
+    await flushPromises()
+
+    expect(getSongCommentPage).toHaveBeenCalledWith(1, 20)
+    const comments = bodyEl('[data-testid="song-comments"]')
+    expect(comments.textContent).toContain('走过林间。')
+    expect(comments.textContent).toContain('第二页')
+    expect(document.querySelector('[data-testid="song-comments-more"]')).toBeNull()
     wrapper.unmount()
   })
 })

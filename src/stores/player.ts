@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getSongComments } from '@/api/comment'
+import { COMMENT_LIMIT, getSongCommentPage } from '@/api/comment'
 import { getPersonalFm, trashPersonalFm } from '@/api/fm'
 import { getSimiPlaylists } from '@/api/playlist'
 import {
@@ -31,6 +31,7 @@ const LOOP_MODE_NEXT: Record<LoopMode, LoopMode> = {
 
 let injectedAdapter: AudioAdapter | undefined
 let requestSerial = 0
+let commentsMoreSerial = 0
 let fmSerial = 0
 let pauseGeneration = 0
 let unbindAudio: (() => void) | undefined
@@ -124,6 +125,10 @@ export const usePlayerStore = defineStore('player', {
     relatedSongs: null as Song[] | null,
     relatedPlaylists: null as RelatedPlaylist[] | null,
     comments: null as MediaComment[] | null,
+    commentsMore: false,
+    commentsMoreLoading: false,
+    commentsMoreError: null as string | null,
+    commentOffset: 0,
     isFm: false,
   }),
   getters: {
@@ -174,7 +179,7 @@ export const usePlayerStore = defineStore('player', {
         if (this.current?.id !== song.id) {
           this.relatedSongs = null
           this.relatedPlaylists = null
-          this.comments = null
+          this.resetCommentsPaging()
         }
         this.current = song
         if (this.relatedSongs === null) this.requestRelated(song.id)
@@ -344,7 +349,7 @@ export const usePlayerStore = defineStore('player', {
         this.duration = 0
         this.relatedSongs = null
         this.relatedPlaylists = null
-        this.comments = null
+        this.resetCommentsPaging()
         this.showQueue = false
         this.isFm = false
         return true
@@ -536,17 +541,67 @@ export const usePlayerStore = defineStore('player', {
         })
         .catch(() => undefined)
     },
+    resetCommentsPaging() {
+      commentsMoreSerial++
+      this.comments = null
+      this.commentsMore = false
+      this.commentsMoreLoading = false
+      this.commentsMoreError = null
+      this.commentOffset = 0
+    },
     requestComments(songId: number) {
       if (!Number.isInteger(songId) || songId <= 0) {
         this.comments = []
+        this.commentsMore = false
+        this.commentsMoreError = null
+        this.commentOffset = 0
         return
       }
-      void Promise.resolve(getSongComments(songId))
-        .then((list) => {
+      const moreSerial = commentsMoreSerial
+      void Promise.resolve(getSongCommentPage(songId, 0))
+        .then((page) => {
           if (this.current?.id !== songId) return
-          this.comments = list
+          if (moreSerial !== commentsMoreSerial) return
+          this.comments = page.comments
+          this.commentsMore = page.more
+          this.commentsMoreError = null
+          this.commentOffset = COMMENT_LIMIT
         })
         .catch(() => undefined)
+    },
+    async loadMoreComments() {
+      const id = this.current?.id
+      if (
+        id == null ||
+        this.comments === null ||
+        !this.comments.length ||
+        !this.commentsMore ||
+        this.commentsMoreLoading
+      ) {
+        return
+      }
+      const serial = ++commentsMoreSerial
+      const offset = this.commentOffset
+      this.commentsMoreLoading = true
+      this.commentsMoreError = null
+      try {
+        const page = await getSongCommentPage(id, offset)
+        if (serial !== commentsMoreSerial || this.current?.id !== id) return
+        const seen = new Set(this.comments.map((item) => item.commentId))
+        this.comments = [
+          ...this.comments,
+          ...page.comments.filter((item) => !seen.has(item.commentId)),
+        ]
+        this.commentsMore = page.more
+        this.commentOffset = offset + COMMENT_LIMIT
+      } catch (requestError) {
+        if (serial !== commentsMoreSerial || this.current?.id !== id) return
+        this.commentsMoreError =
+          requestError instanceof Error ? requestError.message : '评论加载失败'
+        throw requestError
+      } finally {
+        if (serial === commentsMoreSerial) this.commentsMoreLoading = false
+      }
     },
     async removeFromQueue(id: number): Promise<boolean> {
       if (!Number.isInteger(id) || id <= 0) return false
@@ -571,7 +626,7 @@ export const usePlayerStore = defineStore('player', {
         this.duration = 0
         this.relatedSongs = null
         this.relatedPlaylists = null
-        this.comments = null
+        this.resetCommentsPaging()
         this.showQueue = false
         this.isFm = false
         fmSerial++
@@ -622,7 +677,7 @@ export const usePlayerStore = defineStore('player', {
       this.showQueue = false
       this.relatedSongs = null
       this.relatedPlaylists = null
-      this.comments = null
+      this.resetCommentsPaging()
       this.isFm = false
       fmSerial++
     },

@@ -204,13 +204,24 @@ export async function getDjRadioComments(
   return page.comments
 }
 
+export async function getSongCommentPage(
+  id: number,
+  offset = 0,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<CommentPage> {
+  return getMediaCommentPage(
+    '/comment/music',
+    id,
+    offset,
+    '歌曲评论响应格式不正确',
+    client,
+  )
+}
+
 export async function getSongComments(
   id: number,
   client: Pick<HttpClient, 'get'> = http,
 ): Promise<MediaComment[]> {
-  const response = await client.get<{
-    comments?: unknown
-    hotComments?: unknown
-  }>('/comment/music', { id, limit: COMMENT_LIMIT })
-  return mergeComments(response, '歌曲评论响应格式不正确')
+  const page = await getSongCommentPage(id, 0, client)
+  return page.comments
 }

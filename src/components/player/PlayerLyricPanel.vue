@@ -12,7 +12,13 @@ const emit = defineEmits<{
 const lyrics = useLyricStore()
 const player = usePlayerStore()
 const { error, lines, loading, showLyric } = storeToRefs(lyrics)
-const { comments, currentTime } = storeToRefs(player)
+const {
+  comments,
+  commentsMore,
+  commentsMoreLoading,
+  commentsMoreError,
+  currentTime,
+} = storeToRefs(player)
 
 const activeIndex = computed(() => {
   const time = currentTime.value
@@ -166,6 +172,18 @@ onUnmounted(() => {
                 <p>{{ item.content }}</p>
               </li>
             </ul>
+            <p v-if="commentsMoreError" class="comments-more-error" role="alert">
+              {{ commentsMoreError }}
+            </p>
+            <button
+              v-if="comments.length && commentsMore"
+              type="button"
+              data-testid="song-comments-more"
+              :disabled="commentsMoreLoading"
+              @click="player.loadMoreComments().catch(() => undefined)"
+            >
+              {{ commentsMoreLoading ? '正在加载评论' : '加载更多评论' }}
+            </button>
           </section>
         </div>
       </aside>
@@ -294,6 +312,15 @@ onUnmounted(() => {
 .comment-list li {
   padding: 10px 0;
   border-top: 1px solid var(--color-border);
+}
+
+.comments-more-error {
+  margin: 0;
+  color: var(--color-danger);
+}
+
+.song-comments button {
+  justify-self: start;
 }
 
 .comment-list li:first-child {
