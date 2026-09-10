@@ -18,6 +18,8 @@ export const ARTIST_LIST_PAGE_SIZE = 30
 export const ARTIST_MV_PAGE_SIZE = 12
 export const ARTIST_ALBUM_PAGE_SIZE = 12
 export const TOP_ARTIST_LIMIT = 10
+export const ARTIST_TOP_SONG_LIMIT = 10
+export const ARTIST_NEW_MV_LIMIT = 10
 
 export interface ArtistListQuery {
   area?: number
@@ -99,6 +101,62 @@ export async function getArtistSongs(
     more: songs.length >= limit,
     songs,
   }
+}
+
+function unwrapSongList(response: unknown): unknown[] | null {
+  if (!isRecord(response)) return null
+  if (Array.isArray(response.songs)) return response.songs
+  const nested = isRecord(response.data) ? response.data : null
+  if (nested && Array.isArray(nested.songs)) return nested.songs
+  return null
+}
+
+export async function getArtistTopSongs(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<Song[]> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的歌手 ID')
+  }
+  const response = await client.get<unknown>('/artist/top/song', { id })
+  const raw = unwrapSongList(response)
+  if (!raw) {
+    throw new Error('歌手热门50响应格式不正确')
+  }
+  return raw
+    .filter(isNetworkSong)
+    .map(normalizeSong)
+    .slice(0, ARTIST_TOP_SONG_LIMIT)
+}
+
+function unwrapMvList(response: unknown): unknown[] | null {
+  if (!isRecord(response)) return null
+  if (Array.isArray(response.mvs)) return response.mvs
+  const nested = isRecord(response.data) ? response.data : null
+  if (nested && Array.isArray(nested.mvs)) return nested.mvs
+  if (nested && Array.isArray(nested.mvList)) return nested.mvList
+  return null
+}
+
+export async function getArtistNewMvs(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<ArtistMv[]> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的歌手 ID')
+  }
+  const response = await client.get<unknown>('/artist/new/mv', {
+    id,
+    limit: ARTIST_NEW_MV_LIMIT,
+  })
+  const raw = unwrapMvList(response)
+  if (!raw) {
+    throw new Error('歌手最新 MV 响应格式不正确')
+  }
+  return raw
+    .map(readArtistMv)
+    .filter((item): item is ArtistMv => item !== null && item.id > 0)
+    .slice(0, ARTIST_NEW_MV_LIMIT)
 }
 
 function readPositiveId(value: unknown): number {

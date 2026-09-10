@@ -11,9 +11,13 @@ import {
   getArtistDetail,
   getArtistList,
   getArtistMvs,
+  getArtistNewMvs,
   getArtistSongs,
+  getArtistTopSongs,
   getSimiArtists,
   getTopArtists,
+  ARTIST_NEW_MV_LIMIT,
+  ARTIST_TOP_SONG_LIMIT,
   TOP_ARTIST_LIMIT,
 } from '@/api/artist'
 
@@ -106,6 +110,64 @@ describe('Artist API', () => {
     await expect(
       getArtistSongs({ id: 401 }, client({ songs: null }).client),
     ).rejects.toThrow('歌手歌曲响应格式不正确')
+  })
+
+  it('unwraps /artist/top/song and slices the hot 50', async () => {
+    const many = Array.from({ length: ARTIST_TOP_SONG_LIMIT + 2 }, (_, index) => ({
+      ar: [{ id: 401, name: '林间电台' }],
+      dt: 180_000,
+      extra: true,
+      id: 301 + index,
+      name: `热门${index + 1}`,
+    }))
+    const request = client({ extra: true, songs: many })
+    const list = await getArtistTopSongs(401, request.client)
+    expect(list).toHaveLength(ARTIST_TOP_SONG_LIMIT)
+    expect(list[0]).toMatchObject({ id: 301, name: '热门1' })
+    expect(request.get).toHaveBeenCalledWith('/artist/top/song', { id: 401 })
+    await expect(getArtistTopSongs(0, client({}).client)).rejects.toThrow(
+      '缺少有效的歌手 ID',
+    )
+    await expect(
+      getArtistTopSongs(401, client({ songs: null }).client),
+    ).rejects.toThrow('歌手热门50响应格式不正确')
+  })
+
+  it('unwraps nested /artist/new/mv covers', async () => {
+    const request = client({
+      data: {
+        mvs: [
+          {
+            artist: { id: 401, name: '林间电台' },
+            cover: 'https://images.example.com/new-mv.jpg',
+            extra: true,
+            id: 801,
+            name: '最新现场',
+            playCount: 8_800,
+          },
+          { id: 0, name: '无效' },
+        ],
+      },
+    })
+    await expect(getArtistNewMvs(401, request.client)).resolves.toEqual([
+      {
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [{ id: 401, name: '林间电台' }],
+        duration: 0,
+        id: 801,
+        name: '最新现场',
+        picUrl: 'https://images.example.com/new-mv.jpg',
+        playCount: 8_800,
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/artist/new/mv', {
+      id: 401,
+      limit: ARTIST_NEW_MV_LIMIT,
+    })
+    await expect(
+      getArtistNewMvs(401, client({ data: { mvs: null } }).client),
+    ).rejects.toThrow('歌手最新 MV 响应格式不正确')
   })
 
   it('unwraps /artist/mv and falls back to imgurl', async () => {

@@ -11,7 +11,9 @@ import {
   getArtistDetail,
   getArtistList,
   getArtistMvs,
+  getArtistNewMvs,
   getArtistSongs,
+  getArtistTopSongs,
   getSimiArtists,
 } from '@/api/artist'
 import { useArtistStore } from '@/stores/artist'
@@ -25,7 +27,9 @@ vi.mock('@/api/artist', async (importOriginal) => {
     getArtistDetail: vi.fn(),
     getArtistList: vi.fn(),
     getArtistMvs: vi.fn(),
+    getArtistNewMvs: vi.fn(),
     getArtistSongs: vi.fn(),
+    getArtistTopSongs: vi.fn(),
     getSimiArtists: vi.fn(),
   }
 })
@@ -88,8 +92,12 @@ describe('artist store', () => {
     vi.mocked(getArtistList).mockReset()
     vi.mocked(getArtistMvs).mockReset()
     vi.mocked(getArtistSongs).mockReset()
+    vi.mocked(getArtistTopSongs).mockReset()
+    vi.mocked(getArtistNewMvs).mockReset()
     vi.mocked(getSimiArtists).mockReset()
     vi.mocked(getSimiArtists).mockRejectedValue(new Error('no similar'))
+    vi.mocked(getArtistTopSongs).mockResolvedValue([])
+    vi.mocked(getArtistNewMvs).mockResolvedValue([])
   })
 
   it('loads detail and the first hot page once', async () => {
@@ -109,6 +117,7 @@ describe('artist store', () => {
       id: 401,
       limit: ARTIST_SONG_PAGE_SIZE,
       offset: 0,
+      order: 'hot',
     })
   })
 
@@ -133,6 +142,7 @@ describe('artist store', () => {
       id: 402,
       limit: ARTIST_SONG_PAGE_SIZE,
       offset: 0,
+      order: 'hot',
     })
   })
 
@@ -643,5 +653,76 @@ describe('artist store', () => {
 
     expect(store.relatedArtists).toBeNull()
     expect(store.artists).toEqual([{ id: 401, img1v1Url: '', name: '林间电台' }])
+  })
+
+  it('reloads songs once when applying a new sort on the same artist', async () => {
+    const fresh = { ...song, id: 303, name: '最新单曲' }
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs)
+      .mockResolvedValueOnce({ more: true, songs: [song] })
+      .mockResolvedValueOnce({ more: false, songs: [fresh] })
+    vi.mocked(getArtistTopSongs).mockResolvedValue([song])
+    const store = useArtistStore()
+    await store.load(401)
+    await settle()
+    expect(store.topSongs).toEqual([song])
+
+    await store.applyFilters(401, 'new')
+    expect(store.songSort).toBe('new')
+    expect(store.songs).toEqual([fresh])
+    expect(getArtistDetail).toHaveBeenCalledTimes(1)
+    expect(getArtistSongs).toHaveBeenNthCalledWith(2, {
+      id: 401,
+      limit: ARTIST_SONG_PAGE_SIZE,
+      offset: 0,
+      order: 'time',
+    })
+    await store.applyFilters(401, 'new')
+    expect(getArtistSongs).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads new MVs independently of the paginated MV tab', async () => {
+    const freshMv = {
+      artistId: 401,
+      artistName: '林间电台',
+      artists: [{ id: 401, name: '林间电台' }],
+      duration: 0,
+      id: 801,
+      name: '最新现场',
+      picUrl: '',
+      playCount: 1,
+    }
+    vi.mocked(getArtistNewMvs).mockResolvedValue([freshMv])
+    const store = useArtistStore()
+    await store.loadNewMvs(401)
+    await store.loadNewMvs(401)
+    expect(store.newMvs).toEqual([freshMv])
+    expect(getArtistNewMvs).toHaveBeenCalledTimes(1)
+    expect(getArtistNewMvs).toHaveBeenCalledWith(401)
+  })
+
+  it('drops in-flight new MVs after switching artist', async () => {
+    const stale = {
+      artistId: 401,
+      artistName: '林间电台',
+      artists: [{ id: 401, name: '林间电台' }],
+      duration: 0,
+      id: 801,
+      name: '过期现场',
+      picUrl: '',
+      playCount: 1,
+    }
+    const pending = deferred<typeof stale[]>()
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getArtistNewMvs).mockReturnValueOnce(pending.promise)
+    const store = useArtistStore()
+    await store.load(401)
+    const inflight = store.loadNewMvs(401)
+    await store.load(402)
+    pending.resolve([stale])
+    await inflight
+    expect(store.newMvs).toEqual([])
+    expect(store.newMvsLoadedId).toBeNull()
   })
 })

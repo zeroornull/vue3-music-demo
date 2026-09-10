@@ -1,20 +1,23 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import ArtistAlbumSection from '@/components/artist/ArtistAlbumSection.vue'
 import ArtistDescSection from '@/components/artist/ArtistDescSection.vue'
 import ArtistHeader from '@/components/artist/ArtistHeader.vue'
 import ArtistMvSection from '@/components/artist/ArtistMvSection.vue'
+import MvCard from '@/components/discover/MvCard.vue'
 import ArtistHallCard from '@/components/music/ArtistHallCard.vue'
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
+import type { ArtistSongSort } from '@/models/artist'
 import type { Song } from '@/models/song'
 import { Pages } from '@/router/pages'
 import { useArtistStore } from '@/stores/artist'
 import { usePlayerStore } from '@/stores/player'
 
 const route = useRoute()
+const router = useRouter()
 const artistStore = useArtistStore()
 const playerStore = usePlayerStore()
 const {
@@ -35,6 +38,13 @@ const {
   descError,
   descLoading,
   relatedArtists,
+  songSort,
+  topSongs,
+  topSongsError,
+  topSongsLoading,
+  newMvs,
+  newMvsError,
+  newMvsLoading,
 } = storeToRefs(artistStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
@@ -48,9 +58,26 @@ const artistId = computed(() => {
   return Number.isInteger(id) && id > 0 ? id : null
 })
 
+const querySort = computed<ArtistSongSort>(() => {
+  const value = route.query.sort
+  const raw = Array.isArray(value) ? value[0] : value
+  return raw === 'new' ? 'new' : 'hot'
+})
+
 function requestArtist(force = false) {
   if (artistId.value === null) return
-  void artistStore.load(artistId.value, force).catch(() => undefined)
+  if (force) {
+    void artistStore.load(artistId.value, true).catch(() => undefined)
+    return
+  }
+  void artistStore.applyFilters(artistId.value, querySort.value).catch(() => undefined)
+}
+
+function selectSort(next: ArtistSongSort) {
+  if (artistId.value === null) return
+  const query: Record<string, string> = { id: String(artistId.value) }
+  if (next === 'new') query.sort = 'new'
+  void router.push({ name: Pages.artistDetail, query })
 }
 
 function loadMore() {
@@ -80,11 +107,22 @@ function showMvs() {
   tab.value = 'mvs'
   if (artistId.value === null) return
   void artistStore.loadMvs(artistId.value).catch(() => undefined)
+  void artistStore.loadNewMvs(artistId.value).catch(() => undefined)
 }
 
 function retryMvs() {
   if (artistId.value === null) return
   void artistStore.loadMvs(artistId.value, true).catch(() => undefined)
+}
+
+function retryNewMvs() {
+  if (artistId.value === null) return
+  void artistStore.loadNewMvs(artistId.value, true).catch(() => undefined)
+}
+
+function retryTopSongs() {
+  if (artistId.value === null) return
+  artistStore.requestTopSongs(artistId.value, true)
 }
 
 function loadMoreMvs() {
@@ -108,7 +146,10 @@ function playAll() {
     .playAll(songs.value)
     .then((started) => {
       if (serial !== playSerial) return
-      if (started) notice.value = '正在播放热门歌曲。'
+      if (started) {
+        notice.value =
+          songSort.value === 'new' ? '正在播放最新歌曲。' : '正在播放热门歌曲。'
+      }
     })
     .catch(() => {
       if (serial !== playSerial) return
@@ -131,11 +172,14 @@ function playSong(song: Song) {
 }
 
 watch(
-  artistId,
-  (id) => {
+  [artistId, querySort],
+  ([id], previous) => {
+    const prevId = previous?.[0]
     notice.value = null
-    playSerial += 1
-    tab.value = 'songs'
+    if (id !== prevId) {
+      playSerial += 1
+      tab.value = 'songs'
+    }
     if (id === null) {
       artistStore.resetDetail()
       return
@@ -250,11 +294,56 @@ watch(
         aria-labelledby="artist-tab-songs"
         :hidden="tab !== 'songs'"
       >
+        <div class="artist-sort" role="group" aria-label="歌曲排序">
+          <button
+            type="button"
+            data-testid="artist-sort-hot"
+            :aria-pressed="songSort === 'hot' ? 'true' : 'false'"
+            @click="selectSort('hot')"
+          >
+            热门
+          </button>
+          <button
+            type="button"
+            data-testid="artist-sort-new"
+            :aria-pressed="songSort === 'new' ? 'true' : 'false'"
+            @click="selectSort('new')"
+          >
+            最新
+          </button>
+        </div>
+        <section
+          v-if="topSongsLoading || topSongsError || topSongs.length"
+          class="artist-top-songs"
+          aria-labelledby="artist-top-songs-title"
+        >
+          <h2 id="artist-top-songs-title">热门50</h2>
+          <p v-if="topSongsLoading && !topSongs.length">正在加载热门50。</p>
+          <div v-else-if="topSongsError && !topSongs.length" role="alert">
+            <p>{{ topSongsError }}</p>
+            <button type="button" data-testid="artist-top-songs-retry" @click="retryTopSongs">
+              重新加载
+            </button>
+          </div>
+          <div v-else data-testid="artist-top-songs">
+            <PlaylistSongList
+              :songs="topSongs"
+              :current-id="current?.id ?? null"
+              :paginate="false"
+              empty-description="暂时没有热门50。"
+              @play="playSong"
+            />
+          </div>
+        </section>
         <PlaylistSongList
           :songs="songs"
           :current-id="current?.id ?? null"
           :paginate="false"
-          empty-description="这位歌手暂时没有可播放的热门歌曲。"
+          :empty-description="
+            songSort === 'new'
+              ? '这位歌手暂时没有可播放的最新歌曲。'
+              : '这位歌手暂时没有可播放的热门歌曲。'
+          "
           @play="playSong"
         />
         <button
@@ -289,6 +378,25 @@ watch(
         aria-labelledby="artist-tab-mvs"
         :hidden="tab !== 'mvs'"
       >
+        <section
+          class="artist-new-mvs"
+          aria-labelledby="artist-new-mvs-title"
+        >
+          <h2 id="artist-new-mvs-title">最新 MV</h2>
+          <p v-if="newMvsLoading && !newMvs.length">正在加载最新 MV。</p>
+          <div v-else-if="newMvsError && !newMvs.length" role="alert">
+            <p>{{ newMvsError }}</p>
+            <button type="button" data-testid="artist-new-mvs-retry" @click="retryNewMvs">
+              重新加载
+            </button>
+          </div>
+          <div v-else-if="!newMvs.length" data-testid="artist-new-mvs-empty">
+            暂无最新 MV
+          </div>
+          <div v-else data-testid="artist-new-mvs" class="new-mv-grid">
+            <MvCard v-for="item in newMvs" :key="item.id" :mv="item" />
+          </div>
+        </section>
         <ArtistMvSection
           :error="mvsError"
           :loading="mvsLoading"
@@ -347,6 +455,53 @@ watch(
   color: var(--color-accent);
   font-weight: 720;
   text-decoration: none;
+}
+
+.artist-sort {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.artist-sort button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--color-nav-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-nav);
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.artist-sort button[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+
+.artist-top-songs,
+.artist-new-mvs {
+  margin: 0 0 24px;
+}
+
+.artist-top-songs h2,
+.artist-new-mvs h2 {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+}
+
+.new-mv-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 22px);
+}
+
+@media (max-width: 900px) {
+  .new-mv-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .related-artists {

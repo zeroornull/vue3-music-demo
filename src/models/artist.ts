@@ -10,6 +10,8 @@ export interface ArtistDetail {
   mvSize: number
 }
 
+export type ArtistSongSort = 'hot' | 'new'
+
 export interface ArtistSongPage {
   songs: Song[]
   more: boolean

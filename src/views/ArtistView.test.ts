@@ -11,7 +11,9 @@ import {
   getArtistDesc,
   getArtistDetail,
   getArtistMvs,
+  getArtistNewMvs,
   getArtistSongs,
+  getArtistTopSongs,
   getSimiArtists,
 } from '@/api/artist'
 import { createAppRouter } from '@/router'
@@ -27,7 +29,9 @@ vi.mock('@/api/artist', async (importOriginal) => {
     getArtistDesc: vi.fn(),
     getArtistDetail: vi.fn(),
     getArtistMvs: vi.fn(),
+    getArtistNewMvs: vi.fn(),
     getArtistSongs: vi.fn(),
+    getArtistTopSongs: vi.fn(),
     getSimiArtists: vi.fn(),
   }
 })
@@ -145,6 +149,11 @@ async function mountView(query: Record<string, string> = { id: '401' }) {
         ArtistAlbumSection: AlbumSectionStub,
         ArtistDescSection: DescSectionStub,
         ArtistMvSection: MvSectionStub,
+        MvCard: defineComponent({
+          name: 'MvCard',
+          props: ['mv'],
+          template: '<article>{{ mv.name }}</article>',
+        }),
         PlaylistSongList: SongListStub,
         RouterLink: defineComponent({
           props: ['to'],
@@ -165,7 +174,11 @@ describe('ArtistView', () => {
     vi.mocked(getArtistDetail).mockReset()
     vi.mocked(getArtistMvs).mockReset()
     vi.mocked(getArtistSongs).mockReset()
+    vi.mocked(getArtistTopSongs).mockReset()
+    vi.mocked(getArtistNewMvs).mockReset()
     vi.mocked(getSimiArtists).mockReset()
+    vi.mocked(getArtistTopSongs).mockResolvedValue([])
+    vi.mocked(getArtistNewMvs).mockResolvedValue([])
     vi.mocked(getArtistDetail).mockResolvedValue(artist)
     vi.mocked(getArtistSongs).mockResolvedValue({ more: true, songs })
     vi.mocked(getArtistMvs).mockResolvedValue({
@@ -269,6 +282,7 @@ describe('ArtistView', () => {
       id: 401,
       limit: 10,
       offset: 1,
+      order: 'hot',
     })
   })
 
@@ -461,5 +475,72 @@ describe('ArtistView', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="related-artists"]').exists()).toBe(false)
+  })
+
+  it('renders 热门50 from /artist/top/song', async () => {
+    vi.mocked(getArtistTopSongs).mockResolvedValue([
+      { ...songs[0]!, id: 311, name: '热门50首' },
+    ])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('#artist-top-songs-title').text()).toBe('热门50')
+    expect(wrapper.get('[data-testid="artist-top-songs"]').text()).toContain('play')
+    expect(getArtistTopSongs).toHaveBeenCalledWith(401)
+  })
+
+  it('loads time-ordered songs when opened with sort=new', async () => {
+    await mountView({ id: '401', sort: 'new' })
+    await flushPromises()
+    expect(getArtistSongs).toHaveBeenCalledWith({
+      id: 401,
+      limit: 10,
+      offset: 0,
+      order: 'time',
+    })
+  })
+
+  it('writes sort=new and reloads songs once', async () => {
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-sort-hot"]').attributes('aria-pressed')).toBe(
+      'true',
+    )
+    vi.mocked(getArtistSongs).mockResolvedValueOnce({
+      more: false,
+      songs: [{ ...songs[0]!, id: 303, name: '最新单曲' }],
+    })
+    await wrapper.get('[data-testid="artist-sort-new"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-sort-new"]').attributes('aria-pressed')).toBe(
+      'true',
+    )
+    expect(getArtistSongs).toHaveBeenLastCalledWith({
+      id: 401,
+      limit: 10,
+      offset: 0,
+      order: 'time',
+    })
+  })
+
+  it('loads new MVs with the video tab', async () => {
+    vi.mocked(getArtistNewMvs).mockResolvedValue([
+      {
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [{ id: 401, name: '林间电台' }],
+        duration: 1,
+        id: 801,
+        name: '最新现场',
+        picUrl: '',
+        playCount: 1,
+      },
+    ])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(getArtistNewMvs).not.toHaveBeenCalled()
+    await wrapper.get('[data-testid="artist-tab-mvs"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-new-mvs"]').text()).toContain('最新现场')
+    expect(getArtistNewMvs).toHaveBeenCalledWith(401)
   })
 })

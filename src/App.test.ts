@@ -169,6 +169,27 @@ describe('App host gate', () => {
     artistStore.artists = [
       { id: 401, img1v1Url: '', name: '林间电台' },
     ]
+    artistStore.topSongs = [
+      {
+        artists: [{ id: 401, name: '林间电台' }],
+        duration: 1,
+        id: 301,
+        name: '热门1',
+      },
+    ]
+    artistStore.songSort = 'new'
+    artistStore.newMvs = [
+      {
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [{ id: 401, name: '林间电台' }],
+        duration: 1,
+        id: 801,
+        name: '最新现场',
+        picUrl: '',
+        playCount: 1,
+      },
+    ]
     artistStore.relatedArtists = [
       { id: 402, img1v1Url: '', name: '海岸信号' },
     ]
@@ -187,6 +208,9 @@ describe('App host gate', () => {
     expect(artistStore.descLoadedId).toBeNull()
     expect(artistStore.artists).toEqual([])
     expect(artistStore.relatedArtists).toBeNull()
+    expect(artistStore.topSongs).toEqual([])
+    expect(artistStore.songSort).toBe('hot')
+    expect(artistStore.newMvs).toEqual([])
     expect(artistStore.area).toBe(-1)
     expect(artistStore.type).toBe(-1)
     expect(artistStore.initial).toBe('-1')

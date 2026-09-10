@@ -11,11 +11,20 @@ import {
   getArtistDetail,
   getArtistList,
   getArtistMvs,
+  getArtistNewMvs,
   getArtistSongs,
+  getArtistTopSongs,
   getSimiArtists,
 } from '@/api/artist'
 import { getErrorMessage } from '@/api/http'
-import type { ArtistAlbum, ArtistDesc, ArtistDetail, ArtistMv, HallArtist } from '@/models/artist'
+import type {
+  ArtistAlbum,
+  ArtistDesc,
+  ArtistDetail,
+  ArtistMv,
+  ArtistSongSort,
+  HallArtist,
+} from '@/models/artist'
 import type { Song } from '@/models/song'
 
 let requestSerial = 0
@@ -23,6 +32,8 @@ let listSerial = 0
 let mvSerial = 0
 let albumSerial = 0
 let descSerial = 0
+let topSongSerial = 0
+let newMvSerial = 0
 
 export const useArtistStore = defineStore('artist', () => {
   const artist = ref<ArtistDetail | null>(null)
@@ -46,6 +57,15 @@ export const useArtistStore = defineStore('artist', () => {
   const descLoading = ref(false)
   const descLoadedId = ref<number | null>(null)
   const relatedArtists = ref<HallArtist[] | null>(null)
+  const songSort = ref<ArtistSongSort>('hot')
+  const topSongs = ref<Song[]>([])
+  const topSongsError = ref<string | null>(null)
+  const topSongsLoading = ref(false)
+  const topSongsLoadedId = ref<number | null>(null)
+  const newMvs = ref<ArtistMv[]>([])
+  const newMvsError = ref<string | null>(null)
+  const newMvsLoading = ref(false)
+  const newMvsLoadedId = ref<number | null>(null)
   const artists = ref<HallArtist[]>([])
   const artistsError = ref<string | null>(null)
   const artistsLoading = ref(false)
@@ -72,12 +92,32 @@ export const useArtistStore = defineStore('artist', () => {
     albumsLoadedId.value = null
   }
 
+  function clearTopSongs() {
+    topSongSerial++
+    topSongs.value = []
+    topSongsError.value = null
+    topSongsLoading.value = false
+    topSongsLoadedId.value = null
+  }
+
+  function clearNewMvs() {
+    newMvSerial++
+    newMvs.value = []
+    newMvsError.value = null
+    newMvsLoading.value = false
+    newMvsLoadedId.value = null
+  }
+
   function clearDesc() {
     descSerial++
     desc.value = null
     descError.value = null
     descLoading.value = false
     descLoadedId.value = null
+  }
+
+  function songOrder(): 'hot' | 'time' {
+    return songSort.value === 'new' ? 'time' : 'hot'
   }
 
   function resetDetail() {
@@ -89,6 +129,9 @@ export const useArtistStore = defineStore('artist', () => {
     more.value = false
     loadedId.value = null
     relatedArtists.value = null
+    songSort.value = 'hot'
+    clearTopSongs()
+    clearNewMvs()
     clearMvs()
     clearAlbums()
     clearDesc()
@@ -125,6 +168,8 @@ export const useArtistStore = defineStore('artist', () => {
       loadedId.value = null
       more.value = false
       relatedArtists.value = null
+      clearTopSongs()
+      clearNewMvs()
       clearMvs()
       clearAlbums()
       clearDesc()
@@ -134,7 +179,12 @@ export const useArtistStore = defineStore('artist', () => {
     try {
       const [detail, page] = await Promise.all([
         getArtistDetail(id),
-        getArtistSongs({ id, offset: 0, limit: ARTIST_SONG_PAGE_SIZE }),
+        getArtistSongs({
+          id,
+          limit: ARTIST_SONG_PAGE_SIZE,
+          offset: 0,
+          order: songOrder(),
+        }),
       ])
       if (serial !== requestSerial) return false
       artist.value = detail
@@ -142,6 +192,7 @@ export const useArtistStore = defineStore('artist', () => {
       more.value = page.more
       loadedId.value = id
       requestRelated(id)
+      requestTopSongs(id)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -149,6 +200,86 @@ export const useArtistStore = defineStore('artist', () => {
       throw requestError
     } finally {
       if (serial === requestSerial) loading.value = false
+    }
+  }
+
+  function requestTopSongs(id: number, force = false) {
+    if (!Number.isInteger(id) || id <= 0) return
+    if (!force && topSongsLoadedId.value === id && !topSongsError.value) return
+    const serial = ++topSongSerial
+    topSongsLoading.value = true
+    topSongsError.value = null
+    void Promise.resolve(getArtistTopSongs(id))
+      .then((list) => {
+        if (serial !== topSongSerial || loadedId.value !== id) return
+        topSongs.value = list
+        topSongsLoadedId.value = id
+      })
+      .catch((requestError) => {
+        if (serial !== topSongSerial || loadedId.value !== id) return
+        topSongsError.value = getErrorMessage(requestError)
+      })
+      .finally(() => {
+        if (serial === topSongSerial) topSongsLoading.value = false
+      })
+  }
+
+  async function applyFilters(id: number, sort: ArtistSongSort) {
+    const nextSort: ArtistSongSort = sort === 'new' ? 'new' : 'hot'
+    const sameArtist = loadedId.value === id && artist.value && !error.value
+    if (sameArtist && songSort.value === nextSort) {
+      requestTopSongs(id)
+      return true
+    }
+    songSort.value = nextSort
+    if (sameArtist) {
+      const serial = ++requestSerial
+      songs.value = []
+      more.value = false
+      loading.value = true
+      error.value = null
+      try {
+        const page = await getArtistSongs({
+          id,
+          limit: ARTIST_SONG_PAGE_SIZE,
+          offset: 0,
+          order: songOrder(),
+        })
+        if (serial !== requestSerial) return false
+        songs.value = page.songs
+        more.value = page.more
+        return true
+      } catch (requestError) {
+        if (serial !== requestSerial) return false
+        error.value = getErrorMessage(requestError)
+        throw requestError
+      } finally {
+        if (serial === requestSerial) loading.value = false
+      }
+    }
+    return load(id)
+  }
+
+  async function loadNewMvs(id: number, force = false) {
+    if (!Number.isInteger(id) || id <= 0) return
+    if (!force && newMvsLoading.value) return
+    if (!force && newMvsLoadedId.value === id && !newMvsError.value) return
+    const serial = ++newMvSerial
+    newMvsLoading.value = true
+    newMvsError.value = null
+    try {
+      const next = await getArtistNewMvs(id)
+      if (serial !== newMvSerial) return
+      if (loadedId.value !== null && loadedId.value !== id) return
+      newMvs.value = next
+      newMvsLoadedId.value = id
+    } catch (requestError) {
+      if (serial !== newMvSerial) return
+      if (loadedId.value !== null && loadedId.value !== id) return
+      newMvsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === newMvSerial) newMvsLoading.value = false
     }
   }
 
@@ -316,6 +447,7 @@ export const useArtistStore = defineStore('artist', () => {
         id,
         limit: ARTIST_SONG_PAGE_SIZE,
         offset: songs.value.length,
+        order: songOrder(),
       })
       if (serial !== requestSerial) return
       songs.value = [...songs.value, ...page.songs]
@@ -424,8 +556,11 @@ export const useArtistStore = defineStore('artist', () => {
 
   return {
     load,
+    applyFilters,
     loadMore,
     loadMvs,
+    loadNewMvs,
+    requestTopSongs,
     loadMoreMvs,
     loadAlbums,
     loadMoreAlbums,
@@ -445,6 +580,14 @@ export const useArtistStore = defineStore('artist', () => {
     more,
     loadedId,
     relatedArtists,
+    songSort,
+    topSongs,
+    topSongsError,
+    topSongsLoading,
+    newMvs,
+    newMvsError,
+    newMvsLoading,
+    newMvsLoadedId,
     mvs,
     mvsError,
     mvsLoading,
