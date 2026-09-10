@@ -6,14 +6,16 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getDjRadioComments } from '@/api/comment'
+import { getDjRadioCommentPage } from '@/api/comment'
 import { getDjRadioDetail, getDjRadioPrograms, getHotDjRadios } from '@/api/dj'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import DjRadioView from '@/views/DjRadioView.vue'
 
 vi.mock('@/api/comment', () => ({
-  getDjRadioComments: vi.fn(),
+  COMMENT_LIMIT: 20,
+  getDjCommentPage: vi.fn(),
+  getDjRadioCommentPage: vi.fn(),
 }))
 
 vi.mock('@/api/dj', async (importOriginal) => {
@@ -72,8 +74,8 @@ describe('DjRadioView', () => {
     vi.mocked(getDjRadioDetail).mockResolvedValue(radio)
     vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs })
     vi.mocked(getHotDjRadios).mockRejectedValue(new Error('no radios'))
-    vi.mocked(getDjRadioComments).mockReset()
-    vi.mocked(getDjRadioComments).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getDjRadioCommentPage).mockReset()
+    vi.mocked(getDjRadioCommentPage).mockRejectedValue(new Error('no comments'))
   })
 
   it('shows a missing-id empty state', async () => {
@@ -133,9 +135,10 @@ describe('DjRadioView', () => {
   })
 
   it('renders radio comments without blocking programs or linking the author', async () => {
-    vi.mocked(getDjRadioComments).mockResolvedValue([
-      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
-    ])
+    vi.mocked(getDjRadioCommentPage).mockResolvedValue({
+      comments: [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }],
+      more: false,
+    })
     const wrapper = await mountView({ id: '801' })
     await flushPromises()
 
@@ -148,7 +151,7 @@ describe('DjRadioView', () => {
   })
 
   it('shows an empty radio comments state when the list is empty', async () => {
-    vi.mocked(getDjRadioComments).mockResolvedValue([])
+    vi.mocked(getDjRadioCommentPage).mockResolvedValue({ comments: [], more: false })
     const wrapper = await mountView({ id: '801' })
     await flushPromises()
     expect(wrapper.get('[data-testid="dj-radio-comments"]').text()).toContain(
@@ -161,5 +164,33 @@ describe('DjRadioView', () => {
     await flushPromises()
     expect(wrapper.get('h1').text()).toBe('夜航电台')
     expect(wrapper.find('[data-testid="dj-radio-comments"]').exists()).toBe(false)
+  })
+
+  it('loads more radio comments without dropping the first page', async () => {
+    vi.mocked(getDjRadioCommentPage)
+      .mockResolvedValueOnce({
+        comments: [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }],
+        more: true,
+      })
+      .mockResolvedValueOnce({
+        comments: [{ commentId: 21, content: '第二页', nickname: '夜航乐队' }],
+        more: false,
+      })
+    const wrapper = await mountView({ id: '801' })
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="dj-radio-comments-more"]').text()).toBe(
+      '加载更多评论',
+    )
+    await wrapper.get('[data-testid="dj-radio-comments-more"]').trigger('click')
+    await flushPromises()
+
+    expect(getDjRadioCommentPage).toHaveBeenNthCalledWith(2, 801, 20)
+    const comments = wrapper.get('[data-testid="dj-radio-comments"]')
+    expect(comments.text()).toContain('走过林间。')
+    expect(comments.text()).toContain('第二页')
+    expect(wrapper.find('[data-testid="dj-radio-comments-more"]').exists()).toBe(
+      false,
+    )
   })
 })

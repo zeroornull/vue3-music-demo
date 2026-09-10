@@ -21,6 +21,9 @@ const {
   radioProgramsMore,
   relatedRadios,
   radioComments,
+  radioCommentsMore,
+  radioCommentsMoreLoading,
+  radioCommentsMoreError,
 } = storeToRefs(djStore)
 
 const radioId = computed(() => {
@@ -37,6 +40,10 @@ function requestRadio(force = false) {
 
 function loadMore() {
   void Promise.resolve(djStore.loadMoreRadioPrograms()).catch(() => undefined)
+}
+
+function loadMoreComments() {
+  void djStore.loadMoreRadioComments().catch(() => undefined)
 }
 
 watch(
@@ -159,6 +166,18 @@ watch(
             <p>{{ item.content }}</p>
           </li>
         </ul>
+        <p v-if="radioCommentsMoreError" class="comments-more-error" role="alert">
+          {{ radioCommentsMoreError }}
+        </p>
+        <button
+          v-if="radioComments.length && radioCommentsMore"
+          type="button"
+          data-testid="dj-radio-comments-more"
+          :disabled="radioCommentsMoreLoading"
+          @click="loadMoreComments"
+        >
+          {{ radioCommentsMoreLoading ? '正在加载评论' : '加载更多评论' }}
+        </button>
       </section>
       <section
         v-if="relatedRadios?.length"
@@ -238,6 +257,15 @@ watch(
 
 .comment-list p {
   margin: 6px 0 0;
+}
+
+.comments-more-error {
+  margin: 12px 0 0;
+  color: var(--color-danger);
+}
+
+.dj-radio-comments button {
+  justify-self: start;
 }
 
 .related-grid {

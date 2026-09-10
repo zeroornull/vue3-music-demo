@@ -378,6 +378,10 @@ describe('App host gate', () => {
     djStore.radioComments = [
       { commentId: 2, content: '夜色刚好', nickname: '海岸信号' },
     ]
+    djStore.radioCommentsMore = true
+    djStore.radioCommentsMoreError = 'stale'
+    djStore.radioCommentsMoreLoading = true
+    djStore.radioCommentOffset = 20
     djStore.radioPrograms = [
       {
         copywriter: '',
@@ -410,6 +414,10 @@ describe('App host gate', () => {
     expect(djStore.commentsMoreLoading).toBe(false)
     expect(djStore.commentOffset).toBe(0)
     expect(djStore.radioComments).toBeNull()
+    expect(djStore.radioCommentsMore).toBe(false)
+    expect(djStore.radioCommentsMoreError).toBeNull()
+    expect(djStore.radioCommentsMoreLoading).toBe(false)
+    expect(djStore.radioCommentOffset).toBe(0)
     expect(djStore.radioLoadedId).toBeNull()
   })
 
