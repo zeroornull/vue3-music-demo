@@ -1,6 +1,7 @@
 import { http, type HttpClient } from '@/api/http'
 import { readCount, unwrapStatsRecord } from '@/api/mediaStats'
 import {
+  RECOMMEND_VIDEO_LIMIT,
   VIDEO_HALL_PAGE_SIZE,
   type HallVideo,
   type HallVideoPage,
@@ -10,7 +11,7 @@ import {
   type VideoUrl,
 } from '@/models/video'
 
-export { VIDEO_HALL_PAGE_SIZE }
+export { RECOMMEND_VIDEO_LIMIT, VIDEO_HALL_PAGE_SIZE }
 
 export interface HallVideoQuery {
   groupId?: number
@@ -22,7 +23,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function readGroup(value: unknown): VideoGroup | null {
-  if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'number' ||
+    !Number.isInteger(value.id) ||
+    value.id <= 0 ||
+    typeof value.name !== 'string'
+  ) {
     return null
   }
   const name = value.name.trim()
@@ -89,6 +96,31 @@ export async function getVideoGroups(
     throw new Error('视频分类响应格式不正确')
   }
   return response.data.map(readGroup).filter((item): item is VideoGroup => item !== null)
+}
+
+export async function getVideoCategories(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<VideoGroup[]> {
+  const response = await client.get<{ data?: unknown }>('/video/category/list')
+  if (!Array.isArray(response.data)) {
+    throw new Error('视频分类列表响应格式不正确')
+  }
+  return response.data.map(readGroup).filter((item): item is VideoGroup => item !== null)
+}
+
+export async function getRecommendVideos(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallVideo[]> {
+  const response = await client.get<{ datas?: unknown }>('/video/timeline/recommend', {
+    offset: 0,
+  })
+  if (!Array.isArray(response.datas)) {
+    throw new Error('推荐视频响应格式不正确')
+  }
+  return response.datas
+    .map(readClip)
+    .filter((item): item is HallVideo => item !== null)
+    .slice(0, RECOMMEND_VIDEO_LIMIT)
 }
 
 export async function getHallVideos(

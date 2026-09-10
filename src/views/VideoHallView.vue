@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+import { ALL_MV_LIMIT } from '@/api/mv'
+import MvSection from '@/components/discover/MvSection.vue'
 import VideoClipCard from '@/components/video/VideoClipCard.vue'
 import VideoGroupBar from '@/components/video/VideoGroupBar.vue'
 import VideoGroupPanel from '@/components/video/VideoGroupPanel.vue'
+import type { SimiMv } from '@/models/mv'
 import {
   ALL_VIDEO_GROUP_ID,
   VIDEO_GROUP_CHIP_LIMIT,
@@ -19,7 +22,16 @@ const props = withDefaults(
     groups: VideoGroup[]
     groupsError?: string | null
     groupsLoading?: boolean
+    hotAllMvs?: SimiMv[]
+    hotAllMvsError?: string | null
+    hotAllMvsLoading?: boolean
     more?: boolean
+    newAllMvs?: SimiMv[]
+    newAllMvsError?: string | null
+    newAllMvsLoading?: boolean
+    recommendClips?: HallVideo[]
+    recommendError?: string | null
+    recommendLoading?: boolean
     selected: number
   }>(),
   {
@@ -27,13 +39,25 @@ const props = withDefaults(
     clipsLoading: false,
     groupsError: null,
     groupsLoading: false,
+    hotAllMvs: () => [],
+    hotAllMvsError: null,
+    hotAllMvsLoading: false,
     more: false,
+    newAllMvs: () => [],
+    newAllMvsError: null,
+    newAllMvsLoading: false,
+    recommendClips: () => [],
+    recommendError: null,
+    recommendLoading: false,
   },
 )
 
 const emit = defineEmits<{
   'load-more': []
   retry: []
+  'retry-hot-all-mvs': []
+  'retry-new-all-mvs': []
+  'retry-recommend': []
   'select-group': [id: number]
 }>()
 
@@ -66,8 +90,52 @@ function selectGroup(id: number) {
     <header class="page-header">
       <p class="eyebrow">Video</p>
       <h1>视频</h1>
-      <p>按分类浏览推荐视频。点击封面打开播放页。</p>
+      <p>按分类浏览推荐视频、热门全部 MV 和最新全部 MV。点击封面打开播放页。</p>
     </header>
+
+    <section class="recommend" aria-labelledby="video-recommend-title">
+      <h2 id="video-recommend-title">推荐视频</h2>
+      <div
+        v-if="recommendLoading && !recommendClips.length"
+        class="clip-grid"
+        data-testid="video-recommend-loading"
+        aria-busy="true"
+      >
+        <div v-for="index in 4" :key="index" class="clip-skeleton" />
+      </div>
+      <div
+        v-else-if="recommendError && !recommendClips.length"
+        class="state-card error-state"
+        role="alert"
+      >
+        <div>
+          <strong>推荐视频加载失败</strong>
+          <p>{{ recommendError }}</p>
+        </div>
+        <button
+          type="button"
+          data-testid="video-recommend-retry"
+          @click="$emit('retry-recommend')"
+        >
+          重新加载
+        </button>
+      </div>
+      <div
+        v-else-if="!recommendClips.length"
+        class="state-card"
+        data-testid="video-recommend-empty"
+      >
+        <strong>暂无推荐视频</strong>
+        <p>API 已连接，但本次没有返回推荐视频。</p>
+      </div>
+      <div v-else class="clip-grid" data-testid="video-recommend">
+        <VideoClipCard
+          v-for="clip in recommendClips"
+          :key="clip.vid"
+          :clip="clip"
+        />
+      </div>
+    </section>
 
     <div class="group-row">
       <VideoGroupBar
@@ -164,6 +232,29 @@ function selectGroup(id: number) {
     >
       加载更多
     </button>
+
+    <MvSection
+      empty-title="暂无热门全部 MV"
+      error-title="热门全部 MV 加载失败"
+      :limit="ALL_MV_LIMIT"
+      testid="mv-all-hot"
+      title="热门全部 MV"
+      :error="hotAllMvsError"
+      :loading="hotAllMvsLoading"
+      :mvs="hotAllMvs"
+      @retry="$emit('retry-hot-all-mvs')"
+    />
+    <MvSection
+      empty-title="暂无最新全部 MV"
+      error-title="最新全部 MV 加载失败"
+      :limit="ALL_MV_LIMIT"
+      testid="mv-all-new"
+      title="最新全部 MV"
+      :error="newAllMvsError"
+      :loading="newAllMvsLoading"
+      :mvs="newAllMvs"
+      @retry="$emit('retry-new-all-mvs')"
+    />
   </main>
 </template>
 
@@ -312,11 +403,45 @@ h1 {
   opacity: 0.55;
 }
 
+.recommend h2 {
+  margin: 0 0 12px;
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+  letter-spacing: -0.025em;
+}
+
 .clip-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
   gap: 18px;
   min-width: 0;
+}
+
+.clip-skeleton {
+  min-height: 180px;
+  border-radius: 18px;
+  background: linear-gradient(
+    100deg,
+    var(--color-line) 20%,
+    var(--color-border) 45%,
+    var(--color-line) 70%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clip-skeleton {
+    animation: none;
+  }
 }
 
 @media (max-width: 720px) {

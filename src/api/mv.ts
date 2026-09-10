@@ -149,6 +149,19 @@ export async function getSimiMvs(
 export const TOP_MV_LIMIT = 10
 export const FIRST_MV_LIMIT = 10
 export const EXCLUSIVE_MV_LIMIT = 10
+export const ALL_MV_LIMIT = 10
+export const ALL_MV_ORDER = {
+  hot: '最热',
+  new: '最新',
+} as const
+
+export type AllMvOrder = (typeof ALL_MV_ORDER)[keyof typeof ALL_MV_ORDER]
+
+export interface AllMvQuery {
+  limit?: number
+  offset?: number
+  order?: AllMvOrder
+}
 
 export async function getTopMvs(
   client: Pick<HttpClient, 'get'> = http,
@@ -193,6 +206,41 @@ export async function getExclusiveMvs(
     .map(readSimiMv)
     .filter((item): item is SimiMv => item !== null)
     .slice(0, EXCLUSIVE_MV_LIMIT)
+}
+
+export async function getAllMvs(
+  query: AllMvQuery = {},
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SimiMv[]> {
+  const limit = query.limit ?? ALL_MV_LIMIT
+  const offset = query.offset ?? 0
+  const order = query.order === ALL_MV_ORDER.new ? ALL_MV_ORDER.new : ALL_MV_ORDER.hot
+  const response = await client.get<{ data?: unknown }>('/mv/all', {
+    area: '全部',
+    limit,
+    offset,
+    order,
+    type: '全部',
+  })
+  if (!Array.isArray(response.data)) {
+    throw new Error('全部 MV 响应格式不正确')
+  }
+  return response.data
+    .map(readSimiMv)
+    .filter((item): item is SimiMv => item !== null)
+    .slice(0, limit)
+}
+
+export async function getHotAllMvs(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SimiMv[]> {
+  return getAllMvs({ order: ALL_MV_ORDER.hot }, client)
+}
+
+export async function getNewAllMvs(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SimiMv[]> {
+  return getAllMvs({ order: ALL_MV_ORDER.new }, client)
 }
 
 export async function getMvStats(

@@ -3,13 +3,15 @@ import { describe, expect, it, vi } from 'vitest'
 import type { HttpClient } from '@/api/http'
 import {
   getHallVideos,
+  getRecommendVideos,
   getRelatedVideos,
+  getVideoCategories,
   getVideoDetail,
   getVideoGroups,
   getVideoStats,
   getVideoUrl,
 } from '@/api/video'
-import { VIDEO_HALL_PAGE_SIZE } from '@/models/video'
+import { mergeVideoTags, RECOMMEND_VIDEO_LIMIT, VIDEO_HALL_PAGE_SIZE } from '@/models/video'
 
 const client = (response: unknown) => {
   const get = vi.fn(async <T>(_path: string, _params?: unknown) => response as T)
@@ -195,6 +197,105 @@ describe('Related video API', () => {
     await expect(
       getRelatedVideos('VID001', client({ data: null }).client),
     ).rejects.toThrow('相关视频响应格式不正确')
+  })
+})
+
+describe('Video category list API', () => {
+  it('unwraps /video/category/list and skips invalid rows', async () => {
+    const request = client({
+      data: [
+        { extra: true, id: 201, name: ' 音乐 ' },
+        { id: 0, name: '忽略' },
+        { id: 202, name: '现场' },
+      ],
+    })
+    await expect(getVideoCategories(request.client)).resolves.toEqual([
+      { id: 201, name: '音乐' },
+      { id: 202, name: '现场' },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/video/category/list')
+  })
+
+  it('rejects a missing data array', async () => {
+    await expect(getVideoCategories(client({ data: null }).client)).rejects.toThrow(
+      '视频分类列表响应格式不正确',
+    )
+  })
+})
+
+describe('Recommend video API', () => {
+  const clip = {
+    data: {
+      coverUrl: 'https://images.example.com/clip.jpg',
+      creator: { nickname: '林间电台' },
+      durationms: 180_000,
+      playTime: 12_000,
+      title: '晚风现场',
+      vid: 'VID001',
+    },
+    extra: true,
+  }
+
+  it('unwraps /video/timeline/recommend clips', async () => {
+    const request = client({
+      datas: [clip, { data: { title: '缺 vid' } }],
+    })
+    await expect(getRecommendVideos(request.client)).resolves.toEqual([
+      {
+        coverUrl: 'https://images.example.com/clip.jpg',
+        creatorName: '林间电台',
+        durationms: 180_000,
+        playTime: 12_000,
+        title: '晚风现场',
+        vid: 'VID001',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/video/timeline/recommend', { offset: 0 })
+  })
+
+  it('rejects a missing datas array and slices the list', async () => {
+    await expect(getRecommendVideos(client({ datas: null }).client)).rejects.toThrow(
+      '推荐视频响应格式不正确',
+    )
+    const many = Array.from({ length: RECOMMEND_VIDEO_LIMIT + 2 }, (_, index) => ({
+      data: {
+        title: `推荐${index + 1}`,
+        vid: `VID${String(index + 1).padStart(3, '0')}`,
+      },
+    }))
+    const list = await getRecommendVideos(client({ datas: many }).client)
+    expect(list).toHaveLength(RECOMMEND_VIDEO_LIMIT)
+    expect(list.map((item) => item.vid)).toEqual([
+      'VID001',
+      'VID002',
+      'VID003',
+      'VID004',
+      'VID005',
+      'VID006',
+      'VID007',
+      'VID008',
+    ])
+  })
+})
+
+describe('mergeVideoTags', () => {
+  it('puts categories first and drops duplicate ids and names', () => {
+    expect(
+      mergeVideoTags(
+        [
+          { id: 201, name: '音乐' },
+          { id: 0, name: '无效' },
+        ],
+        [
+          { id: 101, name: '现场' },
+          { id: 201, name: '音乐标签' },
+          { id: 102, name: '现场' },
+        ],
+      ),
+    ).toEqual([
+      { id: 201, name: '音乐' },
+      { id: 101, name: '现场' },
+    ])
   })
 })
 

@@ -2,13 +2,18 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
 import {
+  ALL_MV_LIMIT,
+  ALL_MV_ORDER,
   FIRST_MV_LIMIT,
   EXCLUSIVE_MV_LIMIT,
+  getAllMvs,
   getExclusiveMvs,
   getFirstMvs,
+  getHotAllMvs,
   getMvDetail,
   getMvStats,
   getMvUrl,
+  getNewAllMvs,
   getPersonalizedMvs,
   getSimiMvs,
   getTopMvs,
@@ -420,6 +425,79 @@ describe('Exclusive MV API', () => {
     await expect(
       getExclusiveMvs(client({ data: many }).client),
     ).resolves.toHaveLength(EXCLUSIVE_MV_LIMIT)
+  })
+})
+
+describe('All MV API', () => {
+  const client = (response: unknown) => {
+    const get = vi.fn(
+      async <T>(_path: string, _params?: unknown) => response as T,
+    )
+    return { client: { get } as Pick<HttpClient, 'get'>, get }
+  }
+
+  it('unwraps /mv/all covers for hot and new orders', async () => {
+    const row = {
+      artistId: 401,
+      artistName: '林间电台',
+      artists: [{ extra: true, id: 401, name: '林间电台' }],
+      cover: 'https://images.example.com/all.jpg',
+      duration: 180_000,
+      extra: true,
+      id: 911,
+      name: '  全部现场  ',
+      playCount: 4_400,
+    }
+    const hot = client({ data: [row, { id: 0, name: '无效' }] })
+    await expect(getHotAllMvs(hot.client)).resolves.toEqual([
+      {
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [{ id: 401, name: '林间电台' }],
+        duration: 180_000,
+        id: 911,
+        name: '全部现场',
+        picUrl: 'https://images.example.com/all.jpg',
+        playCount: 4_400,
+      },
+    ])
+    expect(hot.get).toHaveBeenCalledWith('/mv/all', {
+      area: '全部',
+      limit: ALL_MV_LIMIT,
+      offset: 0,
+      order: ALL_MV_ORDER.hot,
+      type: '全部',
+    })
+
+    const fresh = client({ data: [row] })
+    await expect(getNewAllMvs(fresh.client)).resolves.toHaveLength(1)
+    expect(fresh.get).toHaveBeenCalledWith('/mv/all', {
+      area: '全部',
+      limit: ALL_MV_LIMIT,
+      offset: 0,
+      order: ALL_MV_ORDER.new,
+      type: '全部',
+    })
+  })
+
+  it('rejects a missing data array, defaults unknown order to hot, and slices', async () => {
+    await expect(getAllMvs({}, client({ data: null }).client)).rejects.toThrow(
+      '全部 MV 响应格式不正确',
+    )
+    const request = client({ data: [{ id: 911, name: '全部现场' }] })
+    await getAllMvs({ order: '上升最快' as never }, request.client)
+    expect(request.get).toHaveBeenCalledWith(
+      '/mv/all',
+      expect.objectContaining({ order: ALL_MV_ORDER.hot }),
+    )
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `全部 ${index + 1}`,
+      cover: `https://images.example.com/${index}.jpg`,
+    }))
+    await expect(
+      getAllMvs({ limit: ALL_MV_LIMIT }, client({ data: many }).client),
+    ).resolves.toHaveLength(ALL_MV_LIMIT)
   })
 })
 

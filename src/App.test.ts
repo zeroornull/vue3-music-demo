@@ -303,6 +303,40 @@ describe('App host gate', () => {
       },
     ]
     videoStore.clipsMore = true
+    videoStore.recommendClips = [
+      {
+        coverUrl: '',
+        creatorName: '林间电台',
+        durationms: 1,
+        playTime: 1,
+        title: '推荐现场',
+        vid: 'VID009',
+      },
+    ]
+    videoStore.hotAllMvs = [
+      {
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [],
+        duration: 1,
+        id: 911,
+        name: '热门全部',
+        picUrl: '',
+        playCount: 1,
+      },
+    ]
+    videoStore.newAllMvs = [
+      {
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [],
+        duration: 1,
+        id: 912,
+        name: '最新全部',
+        picUrl: '',
+        playCount: 1,
+      },
+    ]
     mountApp()
 
     useHostStore().clearHost()
@@ -312,6 +346,9 @@ describe('App host gate', () => {
     expect(videoStore.clips).toEqual([])
     expect(videoStore.clipsMore).toBe(false)
     expect(videoStore.groupId).toBe(0)
+    expect(videoStore.recommendClips).toEqual([])
+    expect(videoStore.hotAllMvs).toEqual([])
+    expect(videoStore.newAllMvs).toEqual([])
   })
 
   it('clears recommended radio cache when the host gate closes', async () => {

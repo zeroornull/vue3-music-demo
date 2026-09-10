@@ -2,12 +2,29 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
-import { getExclusiveMvs, getFirstMvs, getPersonalizedMvs, getTopMvs } from '@/api/mv'
+import {
+  getExclusiveMvs,
+  getFirstMvs,
+  getHotAllMvs,
+  getNewAllMvs,
+  getPersonalizedMvs,
+  getTopMvs,
+} from '@/api/mv'
 import { getPrivateContents } from '@/api/privateContent'
-import { getHallVideos, getVideoGroups } from '@/api/video'
+import {
+  getHallVideos,
+  getRecommendVideos,
+  getVideoCategories,
+  getVideoGroups,
+} from '@/api/video'
 import type { PersonalizedMv, SimiMv } from '@/models/mv'
 import type { PrivateContent } from '@/models/privateContent'
-import { ALL_VIDEO_GROUP_ID, type HallVideo, type VideoGroup } from '@/models/video'
+import {
+  ALL_VIDEO_GROUP_ID,
+  mergeVideoTags,
+  type HallVideo,
+  type VideoGroup,
+} from '@/models/video'
 
 let mvSerial = 0
 let topMvSerial = 0
@@ -16,6 +33,9 @@ let exclusiveMvSerial = 0
 let privateContentSerial = 0
 let groupSerial = 0
 let clipSerial = 0
+let recommendSerial = 0
+let hotAllMvSerial = 0
+let newAllMvSerial = 0
 
 export const useVideoStore = defineStore('video', () => {
   const mvs = ref<PersonalizedMv[]>([])
@@ -42,6 +62,15 @@ export const useVideoStore = defineStore('video', () => {
   const clipsLoading = ref(false)
   const clipsGroupId = ref(ALL_VIDEO_GROUP_ID)
   const clipsMore = ref(false)
+  const recommendClips = ref<HallVideo[]>([])
+  const recommendClipsError = ref<string | null>(null)
+  const recommendClipsLoading = ref(false)
+  const hotAllMvs = ref<SimiMv[]>([])
+  const hotAllMvsError = ref<string | null>(null)
+  const hotAllMvsLoading = ref(false)
+  const newAllMvs = ref<SimiMv[]>([])
+  const newAllMvsError = ref<string | null>(null)
+  const newAllMvsLoading = ref(false)
 
   function reset() {
     mvSerial++
@@ -51,6 +80,9 @@ export const useVideoStore = defineStore('video', () => {
     privateContentSerial++
     groupSerial++
     clipSerial++
+    recommendSerial++
+    hotAllMvSerial++
+    newAllMvSerial++
     mvs.value = []
     mvsError.value = null
     mvsLoading.value = false
@@ -75,6 +107,15 @@ export const useVideoStore = defineStore('video', () => {
     clipsLoading.value = false
     clipsGroupId.value = ALL_VIDEO_GROUP_ID
     clipsMore.value = false
+    recommendClips.value = []
+    recommendClipsError.value = null
+    recommendClipsLoading.value = false
+    hotAllMvs.value = []
+    hotAllMvsError.value = null
+    hotAllMvsLoading.value = false
+    newAllMvs.value = []
+    newAllMvsError.value = null
+    newAllMvsLoading.value = false
   }
 
   async function loadMvs(force = false) {
@@ -195,15 +236,103 @@ export const useVideoStore = defineStore('video', () => {
     groupsLoading.value = true
     groupsError.value = null
     try {
-      const next = await getVideoGroups()
+      const [categoriesResult, groupsResult] = await Promise.allSettled([
+        getVideoCategories(),
+        getVideoGroups(),
+      ])
       if (serial !== groupSerial) return
-      groups.value = next
+      const categories =
+        categoriesResult.status === 'fulfilled' ? categoriesResult.value : []
+      const tags = groupsResult.status === 'fulfilled' ? groupsResult.value : []
+      const merged = mergeVideoTags(categories, tags)
+      if (merged.length) {
+        groups.value = merged
+      } else {
+        const failure =
+          groupsResult.status === 'rejected'
+            ? groupsResult.reason
+            : categoriesResult.status === 'rejected'
+              ? categoriesResult.reason
+              : null
+        if (failure) {
+          groupsError.value = getErrorMessage(failure)
+          throw failure
+        }
+        groups.value = []
+      }
     } catch (requestError) {
       if (serial !== groupSerial) return
-      groupsError.value = getErrorMessage(requestError)
+      if (!groupsError.value) groupsError.value = getErrorMessage(requestError)
       throw requestError
     } finally {
       if (serial === groupSerial) groupsLoading.value = false
+    }
+  }
+
+  async function loadRecommendClips(force = false) {
+    if (
+      recommendClips.value.length &&
+      !force &&
+      !recommendClipsError.value
+    ) {
+      return
+    }
+
+    const serial = ++recommendSerial
+    recommendClipsLoading.value = true
+    recommendClipsError.value = null
+    try {
+      const next = await getRecommendVideos()
+      if (serial !== recommendSerial) return
+      recommendClips.value = next
+    } catch (requestError) {
+      if (serial !== recommendSerial) return
+      recommendClipsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === recommendSerial) recommendClipsLoading.value = false
+    }
+  }
+
+  async function loadHotAllMvs(force = false) {
+    if (hotAllMvs.value.length && !force && !hotAllMvsError.value) {
+      return
+    }
+
+    const serial = ++hotAllMvSerial
+    hotAllMvsLoading.value = true
+    hotAllMvsError.value = null
+    try {
+      const next = await getHotAllMvs()
+      if (serial !== hotAllMvSerial) return
+      hotAllMvs.value = next
+    } catch (requestError) {
+      if (serial !== hotAllMvSerial) return
+      hotAllMvsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === hotAllMvSerial) hotAllMvsLoading.value = false
+    }
+  }
+
+  async function loadNewAllMvs(force = false) {
+    if (newAllMvs.value.length && !force && !newAllMvsError.value) {
+      return
+    }
+
+    const serial = ++newAllMvSerial
+    newAllMvsLoading.value = true
+    newAllMvsError.value = null
+    try {
+      const next = await getNewAllMvs()
+      if (serial !== newAllMvSerial) return
+      newAllMvs.value = next
+    } catch (requestError) {
+      if (serial !== newAllMvSerial) return
+      newAllMvsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === newAllMvSerial) newAllMvsLoading.value = false
     }
   }
 
@@ -283,6 +412,9 @@ export const useVideoStore = defineStore('video', () => {
     loadGroups,
     loadClips,
     loadMoreClips,
+    loadRecommendClips,
+    loadHotAllMvs,
+    loadNewAllMvs,
     setGroup,
     reset,
     mvs,
@@ -309,5 +441,14 @@ export const useVideoStore = defineStore('video', () => {
     clipsLoading,
     clipsGroupId,
     clipsMore,
+    recommendClips,
+    recommendClipsError,
+    recommendClipsLoading,
+    hotAllMvs,
+    hotAllMvsError,
+    hotAllMvsLoading,
+    newAllMvs,
+    newAllMvsError,
+    newAllMvsLoading,
   }
 })

@@ -1,9 +1,21 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getExclusiveMvs, getFirstMvs, getPersonalizedMvs, getTopMvs } from '@/api/mv'
+import {
+  getExclusiveMvs,
+  getFirstMvs,
+  getHotAllMvs,
+  getNewAllMvs,
+  getPersonalizedMvs,
+  getTopMvs,
+} from '@/api/mv'
 import { getPrivateContents } from '@/api/privateContent'
-import { getHallVideos, getVideoGroups } from '@/api/video'
+import {
+  getHallVideos,
+  getRecommendVideos,
+  getVideoCategories,
+  getVideoGroups,
+} from '@/api/video'
 import { useVideoStore } from '@/stores/video'
 
 vi.mock('@/api/mv', () => ({
@@ -11,6 +23,8 @@ vi.mock('@/api/mv', () => ({
   getTopMvs: vi.fn(),
   getFirstMvs: vi.fn(),
   getExclusiveMvs: vi.fn(),
+  getHotAllMvs: vi.fn(),
+  getNewAllMvs: vi.fn(),
 }))
 
 vi.mock('@/api/privateContent', () => ({
@@ -20,6 +34,8 @@ vi.mock('@/api/privateContent', () => ({
 vi.mock('@/api/video', () => ({
   getHallVideos: vi.fn(),
   getVideoGroups: vi.fn(),
+  getVideoCategories: vi.fn(),
+  getRecommendVideos: vi.fn(),
 }))
 
 const privateContent = {
@@ -71,6 +87,14 @@ describe('video store', () => {
     vi.mocked(getPrivateContents).mockReset()
     vi.mocked(getVideoGroups).mockReset()
     vi.mocked(getHallVideos).mockReset()
+    vi.mocked(getVideoCategories).mockReset()
+    vi.mocked(getRecommendVideos).mockReset()
+    vi.mocked(getHotAllMvs).mockReset()
+    vi.mocked(getNewAllMvs).mockReset()
+    vi.mocked(getVideoCategories).mockResolvedValue([])
+    vi.mocked(getRecommendVideos).mockResolvedValue([])
+    vi.mocked(getHotAllMvs).mockResolvedValue([])
+    vi.mocked(getNewAllMvs).mockResolvedValue([])
   })
 
   it('loads and caches personalized MVs', async () => {
@@ -376,8 +400,104 @@ describe('video store', () => {
     expect(store.clipsMore).toBe(true)
     expect(store.groupId).toBe(0)
     expect(getVideoGroups).toHaveBeenCalledTimes(1)
+    expect(getVideoCategories).toHaveBeenCalledTimes(1)
     expect(getHallVideos).toHaveBeenCalledTimes(1)
     expect(getHallVideos).toHaveBeenCalledWith({ groupId: 0, offset: 0 })
+  })
+
+  it('merges video categories ahead of tags and keeps tags if categories fail', async () => {
+    vi.mocked(getVideoCategories).mockResolvedValue([
+      { id: 201, name: '音乐' },
+      { id: 101, name: '现场' },
+    ])
+    vi.mocked(getVideoGroups).mockResolvedValue([
+      { id: 101, name: '现场' },
+      { id: 102, name: '翻唱' },
+    ])
+    const store = useVideoStore()
+    await store.loadGroups()
+    expect(store.groups).toEqual([
+      { id: 201, name: '音乐' },
+      { id: 101, name: '现场' },
+      { id: 102, name: '翻唱' },
+    ])
+
+    vi.mocked(getVideoCategories).mockRejectedValueOnce(new Error('cat offline'))
+    await store.loadGroups(true)
+    expect(store.groups).toEqual([
+      { id: 101, name: '现场' },
+      { id: 102, name: '翻唱' },
+    ])
+    expect(store.groupsError).toBeNull()
+  })
+
+  it('keeps warm chips when both tag APIs fail on retry', async () => {
+    vi.mocked(getVideoCategories).mockResolvedValueOnce([
+      { id: 201, name: '音乐' },
+    ])
+    vi.mocked(getVideoGroups).mockResolvedValueOnce([
+      { id: 101, name: '现场' },
+    ])
+    const store = useVideoStore()
+    await store.loadGroups()
+    expect(store.groups).toEqual([
+      { id: 201, name: '音乐' },
+      { id: 101, name: '现场' },
+    ])
+
+    vi.mocked(getVideoCategories).mockRejectedValueOnce(new Error('cat offline'))
+    vi.mocked(getVideoGroups).mockRejectedValueOnce(new Error('group offline'))
+    await expect(store.loadGroups(true)).rejects.toThrow('group offline')
+    expect(store.groups).toEqual([
+      { id: 201, name: '音乐' },
+      { id: 101, name: '现场' },
+    ])
+    expect(store.groupsError).toBe('group offline')
+  })
+
+  it('loads recommend clips and hot/new all MVs independently', async () => {
+    const recommend = { ...clip, vid: 'VID009', title: '推荐现场' }
+    const hotMv = {
+      artistId: 401,
+      artistName: '林间电台',
+      artists: [{ id: 401, name: '林间电台' }],
+      duration: 180_000,
+      id: 911,
+      name: '全部现场',
+      picUrl: 'https://images.example.com/all.jpg',
+      playCount: 4_400,
+    }
+    const newMv = { ...hotMv, id: 912, name: '最新现场' }
+    vi.mocked(getRecommendVideos).mockResolvedValue([recommend])
+    vi.mocked(getHotAllMvs).mockResolvedValue([hotMv])
+    vi.mocked(getNewAllMvs).mockResolvedValue([newMv])
+    const store = useVideoStore()
+
+    await store.loadRecommendClips()
+    await store.loadHotAllMvs()
+    await store.loadNewAllMvs()
+    await store.loadRecommendClips()
+    await store.loadHotAllMvs()
+    await store.loadNewAllMvs()
+
+    expect(store.recommendClips).toEqual([recommend])
+    expect(store.hotAllMvs).toEqual([hotMv])
+    expect(store.newAllMvs).toEqual([newMv])
+    expect(getRecommendVideos).toHaveBeenCalledTimes(1)
+    expect(getHotAllMvs).toHaveBeenCalledTimes(1)
+    expect(getNewAllMvs).toHaveBeenCalledTimes(1)
+  })
+
+  it('drops in-flight recommend clips after reset', async () => {
+    const pending = deferred<typeof clip[]>()
+    vi.mocked(getRecommendVideos).mockReturnValueOnce(pending.promise)
+    const store = useVideoStore()
+    const loading = store.loadRecommendClips()
+    store.reset()
+    pending.resolve([clip])
+    await loading
+    expect(store.recommendClips).toEqual([])
+    expect(store.recommendClipsLoading).toBe(false)
   })
 
   it('refetches clips when the group changes and drops stale group requests', async () => {

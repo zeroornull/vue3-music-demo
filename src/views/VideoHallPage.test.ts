@@ -6,14 +6,27 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getHallVideos, getVideoGroups } from '@/api/video'
+import { getHotAllMvs, getNewAllMvs } from '@/api/mv'
+import {
+  getHallVideos,
+  getRecommendVideos,
+  getVideoCategories,
+  getVideoGroups,
+} from '@/api/video'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import VideoHallPage from '@/views/VideoHallPage.vue'
 
+vi.mock('@/api/mv', () => ({
+  getHotAllMvs: vi.fn(),
+  getNewAllMvs: vi.fn(),
+}))
+
 vi.mock('@/api/video', () => ({
   getHallVideos: vi.fn(),
   getVideoGroups: vi.fn(),
+  getVideoCategories: vi.fn(),
+  getRecommendVideos: vi.fn(),
 }))
 
 const HallViewStub = defineComponent({
@@ -25,17 +38,33 @@ const HallViewStub = defineComponent({
     'groups',
     'groupsError',
     'groupsLoading',
+    'hotAllMvs',
     'more',
+    'newAllMvs',
+    'recommendClips',
     'selected',
   ],
-  emits: ['load-more', 'retry', 'select-group'],
+  emits: [
+    'load-more',
+    'retry',
+    'retry-hot-all-mvs',
+    'retry-new-all-mvs',
+    'retry-recommend',
+    'select-group',
+  ],
   template: `
     <section>
       <span data-testid="clip-count">{{ clips.length }}</span>
       <span data-testid="selected-group">{{ selected }}</span>
       <span v-if="clipsError" data-testid="clip-error">{{ clipsError }}</span>
       <span data-testid="clip-more">{{ more ? 'yes' : 'no' }}</span>
+      <span data-testid="recommend-count">{{ (recommendClips || []).length }}</span>
+      <span data-testid="hot-all-count">{{ (hotAllMvs || []).length }}</span>
+      <span data-testid="new-all-count">{{ (newAllMvs || []).length }}</span>
       <button data-testid="page-retry" @click="$emit('retry')">retry</button>
+      <button data-testid="page-retry-recommend" @click="$emit('retry-recommend')">
+        retry-recommend
+      </button>
       <button data-testid="page-all" @click="$emit('select-group', 0)">all</button>
       <button data-testid="page-group" @click="$emit('select-group', 101)">group</button>
       <button data-testid="page-more" @click="$emit('load-more')">more</button>
@@ -71,8 +100,40 @@ describe('VideoHallPage', () => {
     setActivePinia(createPinia())
     vi.mocked(getVideoGroups).mockReset()
     vi.mocked(getHallVideos).mockReset()
+    vi.mocked(getVideoCategories).mockReset()
+    vi.mocked(getRecommendVideos).mockReset()
+    vi.mocked(getHotAllMvs).mockReset()
+    vi.mocked(getNewAllMvs).mockReset()
     vi.mocked(getVideoGroups).mockResolvedValue([{ id: 101, name: '现场' }])
+    vi.mocked(getVideoCategories).mockResolvedValue([{ id: 201, name: '音乐' }])
     vi.mocked(getHallVideos).mockResolvedValue({ clips: [clip], more: true })
+    vi.mocked(getRecommendVideos).mockResolvedValue([
+      { ...clip, vid: 'VID009', title: '推荐现场' },
+    ])
+    vi.mocked(getHotAllMvs).mockResolvedValue([
+      {
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [{ id: 401, name: '林间电台' }],
+        duration: 1,
+        id: 911,
+        name: '热门全部',
+        picUrl: '',
+        playCount: 1,
+      },
+    ])
+    vi.mocked(getNewAllMvs).mockResolvedValue([
+      {
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [{ id: 401, name: '林间电台' }],
+        duration: 1,
+        id: 912,
+        name: '最新全部',
+        picUrl: '',
+        playCount: 1,
+      },
+    ])
   })
 
   it('loads groups and clips, retries, changes group and loads more', async () => {
@@ -183,5 +244,24 @@ describe('VideoHallPage', () => {
     expect(router.currentRoute.value.query).toEqual({})
     expect(wrapper.get('[data-testid="selected-group"]').text()).toBe('0')
     expect(getHallVideos).toHaveBeenCalledWith({ groupId: 0, offset: 0 })
+  })
+
+  it('loads recommend clips and all-MV extras on mount and retries them', async () => {
+    const { wrapper } = await mountPage()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="recommend-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="hot-all-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="new-all-count"]').text()).toBe('1')
+    expect(getVideoCategories).toHaveBeenCalledTimes(1)
+    expect(getRecommendVideos).toHaveBeenCalledTimes(1)
+    expect(getHotAllMvs).toHaveBeenCalledTimes(1)
+    expect(getNewAllMvs).toHaveBeenCalledTimes(1)
+
+    vi.mocked(getRecommendVideos).mockResolvedValueOnce([
+      { ...clip, vid: 'VID010', title: '再推荐' },
+    ])
+    await wrapper.get('[data-testid="page-retry-recommend"]').trigger('click')
+    await flushPromises()
+    expect(getRecommendVideos).toHaveBeenCalledTimes(2)
   })
 })

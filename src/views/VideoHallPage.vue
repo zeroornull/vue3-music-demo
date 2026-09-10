@@ -20,6 +20,15 @@ const {
   groupsError,
   groupsLoading,
   groupId,
+  hotAllMvs,
+  hotAllMvsError,
+  hotAllMvsLoading,
+  newAllMvs,
+  newAllMvsError,
+  newAllMvsLoading,
+  recommendClips,
+  recommendClipsError,
+  recommendClipsLoading,
 } = storeToRefs(videoStore)
 
 const queryGroupId = computed(() => {
@@ -31,6 +40,9 @@ const queryGroupId = computed(() => {
 
 function requestHall(force = false) {
   void videoStore.loadGroups(force).catch(() => undefined)
+  void videoStore.loadRecommendClips(force).catch(() => undefined)
+  void videoStore.loadHotAllMvs(force).catch(() => undefined)
+  void videoStore.loadNewAllMvs(force).catch(() => undefined)
   const wanted = queryGroupId.value ?? ALL_VIDEO_GROUP_ID
   if (wanted !== videoStore.groupId) {
     void videoStore.setGroup(wanted).catch(() => undefined)
@@ -53,6 +65,18 @@ function selectGroup(id: number) {
 
 function loadMore() {
   void Promise.resolve(videoStore.loadMoreClips()).catch(() => undefined)
+}
+
+function retryRecommend() {
+  void videoStore.loadRecommendClips(true).catch(() => undefined)
+}
+
+function retryHotAllMvs() {
+  void videoStore.loadHotAllMvs(true).catch(() => undefined)
+}
+
+function retryNewAllMvs() {
+  void videoStore.loadNewAllMvs(true).catch(() => undefined)
 }
 
 watch(
@@ -79,10 +103,22 @@ onMounted(() => {
     :groups="groups"
     :groups-error="groupsError"
     :groups-loading="groupsLoading"
+    :hot-all-mvs="hotAllMvs"
+    :hot-all-mvs-error="hotAllMvsError"
+    :hot-all-mvs-loading="hotAllMvsLoading"
     :more="clipsMore"
+    :new-all-mvs="newAllMvs"
+    :new-all-mvs-error="newAllMvsError"
+    :new-all-mvs-loading="newAllMvsLoading"
+    :recommend-clips="recommendClips"
+    :recommend-error="recommendClipsError"
+    :recommend-loading="recommendClipsLoading"
     :selected="groupId"
     @load-more="loadMore"
     @retry="requestHall(true)"
+    @retry-hot-all-mvs="retryHotAllMvs"
+    @retry-new-all-mvs="retryNewAllMvs"
+    @retry-recommend="retryRecommend"
     @select-group="selectGroup"
   />
 </template>

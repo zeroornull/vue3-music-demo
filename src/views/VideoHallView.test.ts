@@ -33,6 +33,11 @@ describe('VideoHallView', () => {
     expect(wrapper.get('h1').text()).toBe('视频')
     expect(wrapper.get('[aria-label="视频分类"]').text()).toContain('全部视频')
     expect(wrapper.text()).toContain('晚风现场')
+    expect(wrapper.get('[data-testid="video-recommend-empty"]').text()).toContain(
+      '暂无推荐视频',
+    )
+    expect(wrapper.get('#mv-all-hot-title').text()).toBe('热门全部 MV')
+    expect(wrapper.get('#mv-all-new-title').text()).toBe('最新全部 MV')
 
     await wrapper.setProps({ clips: [], clipsError: '视频列表失败' })
     expect(wrapper.get('[role="alert"]').text()).toContain('视频列表失败')
@@ -149,5 +154,33 @@ describe('VideoHallView', () => {
       },
     })
     expect(wrapper.find('[data-testid="video-all-groups"]').exists()).toBe(false)
+  })
+
+  it('retries recommend clips and all-MV extras', async () => {
+    const wrapper = mount(VideoHallView, {
+      props: {
+        clips: [clip],
+        groups: [],
+        recommendClips: [],
+        recommendError: 'recommend offline',
+        hotAllMvsError: 'hot offline',
+        newAllMvsError: 'new offline',
+        selected: 0,
+      },
+      global: {
+        stubs: {
+          RouterLink: defineComponent({ template: '<a><slot /></a>' }),
+        },
+      },
+    })
+    expect(wrapper.get('[data-testid="video-recommend-retry"]').text()).toBe(
+      '重新加载',
+    )
+    await wrapper.get('[data-testid="video-recommend-retry"]').trigger('click')
+    await wrapper.get('[data-testid="mv-all-hot-retry"]').trigger('click')
+    await wrapper.get('[data-testid="mv-all-new-retry"]').trigger('click')
+    expect(wrapper.emitted('retry-recommend')).toHaveLength(1)
+    expect(wrapper.emitted('retry-hot-all-mvs')).toHaveLength(1)
+    expect(wrapper.emitted('retry-new-all-mvs')).toHaveLength(1)
   })
 })
