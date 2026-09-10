@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getBanners } from '@/api/banner'
 import { getPersonalizedDjPrograms } from '@/api/dj'
-import { getFirstMvs, getPersonalizedMvs, getTopMvs } from '@/api/mv'
+import { getExclusiveMvs, getFirstMvs, getPersonalizedMvs, getTopMvs } from '@/api/mv'
 import { getPrivateContents } from '@/api/privateContent'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -32,6 +32,7 @@ vi.mock('@/api/mv', () => ({
   getPersonalizedMvs: vi.fn(),
   getTopMvs: vi.fn(),
   getFirstMvs: vi.fn(),
+  getExclusiveMvs: vi.fn(),
   getMvUrl: vi.fn(),
 }))
 
@@ -62,6 +63,9 @@ const PickedViewStub = defineComponent({
     'firstMvs',
     'firstMvsError',
     'firstMvsLoading',
+    'exclusiveMvs',
+    'exclusiveMvsError',
+    'exclusiveMvsLoading',
     'privateContents',
     'privateError',
     'privateLoading',
@@ -72,6 +76,7 @@ const PickedViewStub = defineComponent({
     'retry-mvs',
     'retry-top-mvs',
     'retry-first-mvs',
+    'retry-exclusive-mvs',
     'retry-private',
     'select-banner',
   ],
@@ -86,10 +91,13 @@ const PickedViewStub = defineComponent({
       <span v-if="topMvsError" data-testid="top-mv-error">{{ topMvsError }}</span>
       <span data-testid="first-mv-count">{{ firstMvs.length }}</span>
       <span v-if="firstMvsError" data-testid="first-mv-error">{{ firstMvsError }}</span>
+      <span data-testid="exclusive-mv-count">{{ exclusiveMvs.length }}</span>
+      <span v-if="exclusiveMvsError" data-testid="exclusive-mv-error">{{ exclusiveMvsError }}</span>
       <button data-testid="page-private-retry" @click="$emit('retry-private')">retry</button>
       <button data-testid="page-dj-retry" @click="$emit('retry-dj')">retry dj</button>
       <button data-testid="page-top-mv-retry" @click="$emit('retry-top-mvs')">retry top mvs</button>
       <button data-testid="page-first-mv-retry" @click="$emit('retry-first-mvs')">retry first mvs</button>
+      <button data-testid="page-exclusive-mv-retry" @click="$emit('retry-exclusive-mvs')">retry exclusive mvs</button>
       <button
         data-testid="select-album-banner"
         @click="$emit('select-banner', { bannerId: 2, pic: 'x', targetId: 501, targetType: 10, typeTitle: '专辑' })"
@@ -119,11 +127,13 @@ describe('PickedPage', () => {
     vi.mocked(getPersonalizedMvs).mockReset()
     vi.mocked(getTopMvs).mockReset()
     vi.mocked(getFirstMvs).mockReset()
+    vi.mocked(getExclusiveMvs).mockReset()
     vi.mocked(getPrivateContents).mockReset()
     vi.mocked(getPersonalizedDjPrograms).mockReset()
     vi.mocked(getBanners).mockResolvedValue([])
     vi.mocked(getTopMvs).mockResolvedValue([])
     vi.mocked(getFirstMvs).mockResolvedValue([])
+    vi.mocked(getExclusiveMvs).mockResolvedValue([])
     vi.mocked(getPersonalizedMvs).mockResolvedValue([
       {
         alg: '',
@@ -267,6 +277,41 @@ describe('PickedPage', () => {
     expect(wrapper.get('[data-testid="first-mv-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="mv-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="top-mv-count"]').text()).toBe('0')
+  })
+
+  it('loads and retries exclusive MVs independently', async () => {
+    vi.mocked(getExclusiveMvs)
+      .mockRejectedValueOnce(new Error('exclusive offline'))
+      .mockResolvedValueOnce([
+        {
+          artistId: 401,
+          artistName: '林间电台',
+          artists: [{ id: 401, name: '林间电台' }],
+          duration: 0,
+          id: 901,
+          name: '独家现场',
+          picUrl: 'https://images.example.com/exclusive.jpg',
+          playCount: 8_800,
+        },
+      ])
+
+    const wrapper = mount(PickedPage, {
+      global: {
+        plugins: [createAppRouter(createMemoryHistory())],
+        stubs: { PickedView: PickedViewStub },
+      },
+    })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="exclusive-mv-error"]').text()).toBe(
+      'exclusive offline',
+    )
+    expect(wrapper.get('[data-testid="mv-count"]').text()).toBe('1')
+
+    await wrapper.get('[data-testid="page-exclusive-mv-retry"]').trigger('click')
+    await flushPromises()
+
+    expect(getExclusiveMvs).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="exclusive-mv-count"]').text()).toBe('1')
   })
 
   it('opens album, playlist and MV banners', async () => {

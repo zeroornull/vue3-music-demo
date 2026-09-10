@@ -13,6 +13,8 @@ import {
   getArtistMvs,
   getArtistSongs,
   getSimiArtists,
+  getTopArtists,
+  TOP_ARTIST_LIMIT,
 } from '@/api/artist'
 
 const client = (response: unknown) => {
@@ -382,5 +384,56 @@ describe('Similar artist API', () => {
     await expect(
       getSimiArtists(401, client({ artists: null }).client),
     ).rejects.toThrow('相似歌手响应格式不正确')
+  })
+})
+
+describe('Top artist API', () => {
+  it('unwraps /top/artists covers and drops invalid ids', async () => {
+    const request = client({
+      artists: [
+        {
+          extra: true,
+          id: 401,
+          img1v1Url: 'https://images.example.com/a.jpg',
+          name: '  林间电台  ',
+        },
+        { id: 0, name: '无效' },
+        { id: 402, name: '   ' },
+        {
+          id: 403,
+          name: '海岸信号',
+          picUrl: 'https://images.example.com/c.jpg',
+        },
+      ],
+    })
+    await expect(getTopArtists(request.client)).resolves.toEqual([
+      {
+        id: 401,
+        img1v1Url: 'https://images.example.com/a.jpg',
+        name: '林间电台',
+      },
+      {
+        id: 403,
+        img1v1Url: 'https://images.example.com/c.jpg',
+        name: '海岸信号',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/top/artists', {
+      limit: TOP_ARTIST_LIMIT,
+      offset: 0,
+    })
+  })
+
+  it('rejects a missing artists array and slices the list', async () => {
+    await expect(
+      getTopArtists(client({ artists: null }).client),
+    ).rejects.toThrow('热门歌手响应格式不正确')
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `歌手 ${index + 1}`,
+    }))
+    await expect(
+      getTopArtists(client({ artists: many }).client),
+    ).resolves.toHaveLength(TOP_ARTIST_LIMIT)
   })
 })

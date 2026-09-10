@@ -1,20 +1,26 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getNewestAlbums } from '@/api/album'
+import { getNewestAlbums, getTopAlbums } from '@/api/album'
+import { getTopArtists } from '@/api/artist'
 import { getPersonalizedPlaylists } from '@/api/personalized'
-import { getPersonalizedNewSongs } from '@/api/newSong'
+import { getPersonalizedNewSongs, getTopSongs } from '@/api/newSong'
 import { getTopLists } from '@/api/toplist'
 import { useMusicStore } from '@/stores/music'
 
 vi.mock('@/api/album', () => ({
   getNewestAlbums: vi.fn(),
+  getTopAlbums: vi.fn(),
+}))
+vi.mock('@/api/artist', () => ({
+  getTopArtists: vi.fn(),
 }))
 vi.mock('@/api/personalized', () => ({
   getPersonalizedPlaylists: vi.fn(),
 }))
 vi.mock('@/api/newSong', () => ({
   getPersonalizedNewSongs: vi.fn(),
+  getTopSongs: vi.fn(),
 }))
 vi.mock('@/api/toplist', () => ({
   getTopLists: vi.fn(),
@@ -55,6 +61,9 @@ describe('music store', () => {
     vi.mocked(getPersonalizedPlaylists).mockReset()
     vi.mocked(getPersonalizedNewSongs).mockReset()
     vi.mocked(getNewestAlbums).mockReset()
+    vi.mocked(getTopSongs).mockReset()
+    vi.mocked(getTopArtists).mockReset()
+    vi.mocked(getTopAlbums).mockReset()
     vi.mocked(getTopLists).mockReset()
   })
 
@@ -302,5 +311,67 @@ describe('music store', () => {
     vi.mocked(getNewestAlbums).mockResolvedValueOnce([])
     await store.loadNewestAlbums()
     expect(getNewestAlbums).toHaveBeenCalledTimes(2)
+  })
+
+  const topArtist = {
+    id: 401,
+    img1v1Url: 'https://images.example.com/a.jpg',
+    name: '林间电台',
+  }
+
+  it('loads top songs, artists and albums independently', async () => {
+    vi.mocked(getTopSongs).mockResolvedValue([newSong])
+    vi.mocked(getTopArtists).mockResolvedValue([topArtist])
+    vi.mocked(getTopAlbums).mockResolvedValue([newestAlbum])
+    vi.mocked(getPersonalizedNewSongs).mockResolvedValue([])
+    const store = useMusicStore()
+
+    await store.loadTopSongs()
+    await store.loadTopSongs()
+    await store.loadTopArtists()
+    await store.loadTopAlbums()
+    await store.loadNewSongs()
+
+    expect(store.topSongs).toEqual([newSong])
+    expect(store.topArtists).toEqual([topArtist])
+    expect(store.topAlbums).toEqual([newestAlbum])
+    expect(getTopSongs).toHaveBeenCalledTimes(1)
+    expect(getTopArtists).toHaveBeenCalledTimes(1)
+    expect(getTopAlbums).toHaveBeenCalledTimes(1)
+    expect(store.newSongs).toEqual([])
+  })
+
+  it('keeps other ranking lists when one ranking fails', async () => {
+    vi.mocked(getTopSongs).mockResolvedValue([newSong])
+    vi.mocked(getTopArtists).mockRejectedValue(new Error('artists offline'))
+    vi.mocked(getTopAlbums).mockResolvedValue([newestAlbum])
+    const store = useMusicStore()
+
+    await store.loadTopSongs()
+    await expect(store.loadTopArtists()).rejects.toThrow('artists offline')
+    await store.loadTopAlbums()
+
+    expect(store.topSongs).toEqual([newSong])
+    expect(store.topArtists).toEqual([])
+    expect(store.topArtistsError).toBe('artists offline')
+    expect(store.topAlbums).toEqual([newestAlbum])
+  })
+
+  it('drops in-flight ranking lists after reset', async () => {
+    let resolveSongs!: (value: typeof newSong[]) => void
+    vi.mocked(getTopSongs).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveSongs = resolve
+      }),
+    )
+    const store = useMusicStore()
+    const pending = store.loadTopSongs()
+    store.reset()
+    resolveSongs([newSong])
+    await pending
+
+    expect(store.topSongs).toEqual([])
+    expect(store.topArtists).toEqual([])
+    expect(store.topAlbums).toEqual([])
   })
 })

@@ -6,13 +6,23 @@ import type { PersonalizedNewSong } from '@/models/newSong'
 
 const props = withDefaults(
   defineProps<{
+    emptyTitle?: string
     error?: string | null
+    errorTitle?: string
+    eyebrow?: string
     items: PersonalizedNewSong[]
     loading?: boolean
+    testid?: string
+    title?: string
   }>(),
   {
+    emptyTitle: '暂无推荐新歌',
     error: null,
+    errorTitle: '推荐新歌加载失败',
+    eyebrow: 'Fresh tracks',
     loading: false,
+    testid: 'new-song',
+    title: '推荐新音乐',
   },
 )
 
@@ -25,11 +35,11 @@ const visibleItems = computed(() => props.items.slice(0, 10))
 </script>
 
 <template>
-  <section class="new-song-section" aria-labelledby="new-song-title">
+  <section class="new-song-section" :aria-labelledby="`${testid}-title`">
     <div class="section-heading">
       <div>
-        <p class="eyebrow">Fresh tracks</p>
-        <h2 id="new-song-title">推荐新音乐</h2>
+        <p class="eyebrow">{{ eyebrow }}</p>
+        <h2 :id="`${testid}-title`">{{ title }}</h2>
       </div>
       <p>点击歌曲即可使用最小播放器播放</p>
     </div>
@@ -37,11 +47,11 @@ const visibleItems = computed(() => props.items.slice(0, 10))
     <div
       v-if="loading"
       class="new-song-grid"
-      data-testid="new-song-loading"
+      :data-testid="`${testid}-loading`"
       aria-busy="true"
-      aria-label="正在加载推荐新歌"
+      :aria-label="`正在加载${title}`"
     >
-      <div v-for="index in 6" :key="index" class="song-skeleton" data-testid="new-song-skeleton">
+      <div v-for="index in 6" :key="index" class="song-skeleton" :data-testid="`${testid}-skeleton`">
         <span class="cover" />
         <span class="lines"><i /><i /><i /></span>
       </div>
@@ -49,15 +59,15 @@ const visibleItems = computed(() => props.items.slice(0, 10))
 
     <div v-else-if="error" class="state-card error-state" role="alert">
       <div>
-        <strong>推荐新歌加载失败</strong>
+        <strong>{{ errorTitle }}</strong>
         <p>{{ error }}</p>
       </div>
-      <button type="button" data-testid="new-song-retry" @click="emit('retry')">重新加载</button>
+      <button type="button" :data-testid="`${testid}-retry`" @click="emit('retry')">重新加载</button>
     </div>
 
-    <div v-else-if="!visibleItems.length" class="state-card" data-testid="new-song-empty">
+    <div v-else-if="!visibleItems.length" class="state-card" :data-testid="`${testid}-empty`">
       <div>
-        <strong>暂无推荐新歌</strong>
+        <strong>{{ emptyTitle }}</strong>
         <p>API 已连接，但本次没有返回新歌推荐。</p>
       </div>
     </div>

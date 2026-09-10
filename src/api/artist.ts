@@ -17,6 +17,7 @@ export const ARTIST_SONG_PAGE_SIZE = 10
 export const ARTIST_LIST_PAGE_SIZE = 30
 export const ARTIST_MV_PAGE_SIZE = 12
 export const ARTIST_ALBUM_PAGE_SIZE = 12
+export const TOP_ARTIST_LIMIT = 10
 
 export interface ArtistListQuery {
   area?: number
@@ -293,6 +294,24 @@ function readSimiArtist(value: unknown): HallArtist | null {
   const name = artist.name.trim()
   if (!name) return null
   return { ...artist, name }
+}
+
+export async function getTopArtists(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallArtist[]> {
+  const response = await client.get<{ artists?: unknown }>('/top/artists', {
+    limit: TOP_ARTIST_LIMIT,
+    offset: 0,
+  })
+  if (!Array.isArray(response.artists)) {
+    throw new Error('热门歌手响应格式不正确')
+  }
+  return response.artists
+    .map(readHallArtist)
+    .filter((item): item is HallArtist => item !== null)
+    .filter((item) => Number.isInteger(item.id) && item.id > 0 && item.name.trim())
+    .map((item) => ({ ...item, name: item.name.trim() }))
+    .slice(0, TOP_ARTIST_LIMIT)
 }
 
 export async function getSimiArtists(

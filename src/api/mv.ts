@@ -140,6 +140,7 @@ export async function getSimiMvs(
 
 export const TOP_MV_LIMIT = 10
 export const FIRST_MV_LIMIT = 10
+export const EXCLUSIVE_MV_LIMIT = 10
 
 export async function getTopMvs(
   client: Pick<HttpClient, 'get'> = http,
@@ -169,4 +170,19 @@ export async function getFirstMvs(
     .map(readSimiMv)
     .filter((item): item is SimiMv => item !== null)
     .slice(0, FIRST_MV_LIMIT)
+}
+
+export async function getExclusiveMvs(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SimiMv[]> {
+  const response = await client.get<{ data?: unknown }>('/mv/exclusive/rcmd', {
+    limit: EXCLUSIVE_MV_LIMIT,
+  })
+  if (!Array.isArray(response.data)) {
+    throw new Error('独家 MV 响应格式不正确')
+  }
+  return response.data
+    .map(readSimiMv)
+    .filter((item): item is SimiMv => item !== null)
+    .slice(0, EXCLUSIVE_MV_LIMIT)
 }

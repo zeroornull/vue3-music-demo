@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { HttpClient } from '@/api/http'
 import {
   FIRST_MV_LIMIT,
+  EXCLUSIVE_MV_LIMIT,
+  getExclusiveMvs,
   getFirstMvs,
   getMvDetail,
   getMvUrl,
@@ -361,5 +363,61 @@ describe('Newest MV API', () => {
     const list = await getFirstMvs(client({ data: many }).client)
     expect(list).toHaveLength(FIRST_MV_LIMIT)
     expect(list.map((item) => item.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+  })
+})
+
+describe('Exclusive MV API', () => {
+  const client = (response: unknown) => {
+    const get = vi.fn(
+      async <T>(_path: string, _params?: unknown) => response as T,
+    )
+    return { client: { get } as Pick<HttpClient, 'get'>, get }
+  }
+
+  it('unwraps /mv/exclusive/rcmd covers and artists', async () => {
+    const request = client({
+      data: [
+        {
+          artistId: 401,
+          artistName: '林间电台',
+          artists: [{ extra: true, id: 401, name: '林间电台' }],
+          cover: 'https://images.example.com/exclusive.jpg',
+          extra: true,
+          id: 901,
+          name: '  独家现场  ',
+          playCount: 8_800,
+        },
+        { id: 0, name: '无效' },
+      ],
+    })
+    await expect(getExclusiveMvs(request.client)).resolves.toEqual([
+      {
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [{ id: 401, name: '林间电台' }],
+        duration: 0,
+        id: 901,
+        name: '独家现场',
+        picUrl: 'https://images.example.com/exclusive.jpg',
+        playCount: 8_800,
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/mv/exclusive/rcmd', {
+      limit: EXCLUSIVE_MV_LIMIT,
+    })
+  })
+
+  it('rejects a missing data array and slices the list', async () => {
+    await expect(
+      getExclusiveMvs(client({ data: null }).client),
+    ).rejects.toThrow('独家 MV 响应格式不正确')
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `独家 ${index + 1}`,
+      picUrl: `https://images.example.com/${index}.jpg`,
+    }))
+    await expect(
+      getExclusiveMvs(client({ data: many }).client),
+    ).resolves.toHaveLength(EXCLUSIVE_MV_LIMIT)
   })
 })

@@ -36,7 +36,7 @@ const MvStub = defineComponent({
   emits: ['retry'],
   template: `
     <section
-      :data-testid="testid === 'mv-toplist' ? 'picked-top-mvs' : testid === 'mv-first' ? 'picked-first-mvs' : 'picked-mvs'"
+      :data-testid="testid === 'mv-toplist' ? 'picked-top-mvs' : testid === 'mv-first' ? 'picked-first-mvs' : testid === 'mv-exclusive' ? 'picked-exclusive-mvs' : 'picked-mvs'"
     >
       <h2>{{ title || '推荐 MV' }}</h2>
       <span data-testid="mv-count">{{ mvs.length }}</span>
@@ -44,7 +44,7 @@ const MvStub = defineComponent({
       <span v-if="emptyTitle" data-testid="mv-empty-title">{{ emptyTitle }}</span>
       <span v-if="errorTitle" data-testid="mv-error-title">{{ errorTitle }}</span>
       <button
-        :data-testid="testid === 'mv-toplist' ? 'mv-toplist-retry' : testid === 'mv-first' ? 'mv-first-retry' : 'mv-retry'"
+        :data-testid="testid === 'mv-toplist' ? 'mv-toplist-retry' : testid === 'mv-first' ? 'mv-first-retry' : testid === 'mv-exclusive' ? 'mv-exclusive-retry' : 'mv-retry'"
         @click="$emit('retry')"
       />
     </section>
@@ -121,6 +121,7 @@ describe('PickedView', () => {
           { ...newest, id: 802, name: '第二新片' },
           { ...newest, id: 803, name: '第三新片' },
         ],
+        exclusiveMvs: [{ ...newest, id: 901, name: '独家现场' }],
         privateContents: [privateContent],
         privateError: null,
         privateLoading: false,
@@ -142,12 +143,14 @@ describe('PickedView', () => {
       'picked-mvs',
       'picked-top-mvs',
       'picked-first-mvs',
+      'picked-exclusive-mvs',
     ])
     expect(wrapper.findAll('h2').map((node) => node.text())).toEqual([
       '推荐电台',
       '推荐 MV',
       'MV 排行',
       '最新 MV',
+      '独家 MV',
     ])
     expect(wrapper.get('[data-testid="picked-banners"]').text()).toContain('retry')
     expect(wrapper.get('[data-testid="picked-private"]').text()).toContain('1')
@@ -157,6 +160,10 @@ describe('PickedView', () => {
     expect(wrapper.get('[data-testid="picked-first-mvs"] [data-testid="mv-count"]').text()).toBe(
       '3',
     )
+    expect(wrapper.get('[data-testid="picked-exclusive-mvs"] [data-testid="mv-count"]').text()).toBe(
+      '1',
+    )
+    expect(wrapper.get('[data-testid="picked-exclusive-mvs"] h2').text()).toBe('独家 MV')
     expect(wrapper.get('[data-testid="picked-top-mvs"] h2').text()).toBe('MV 排行')
     expect(wrapper.get('[data-testid="picked-top-mvs"] [data-testid="mv-limit"]').text()).toBe(
       '10',
@@ -184,11 +191,13 @@ describe('PickedView', () => {
     await wrapper.get('[data-testid="mv-retry"]').trigger('click')
     await wrapper.get('[data-testid="mv-toplist-retry"]').trigger('click')
     await wrapper.get('[data-testid="mv-first-retry"]').trigger('click')
+    await wrapper.get('[data-testid="mv-exclusive-retry"]').trigger('click')
     expect(wrapper.emitted('retry-banners')).toHaveLength(1)
     expect(wrapper.emitted('retry-private')).toHaveLength(1)
     expect(wrapper.emitted('retry-dj')).toHaveLength(1)
     expect(wrapper.emitted('retry-mvs')).toHaveLength(1)
     expect(wrapper.emitted('retry-top-mvs')).toHaveLength(1)
     expect(wrapper.emitted('retry-first-mvs')).toHaveLength(1)
+    expect(wrapper.emitted('retry-exclusive-mvs')).toHaveLength(1)
   })
 })

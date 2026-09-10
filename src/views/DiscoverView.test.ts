@@ -6,10 +6,11 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getNewestAlbums } from '@/api/album'
+import { getNewestAlbums, getTopAlbums } from '@/api/album'
+import { getTopArtists } from '@/api/artist'
 import { getBanners } from '@/api/banner'
 import { getPersonalizedPlaylists } from '@/api/personalized'
-import { getPersonalizedNewSongs } from '@/api/newSong'
+import { getPersonalizedNewSongs, getTopSongs } from '@/api/newSong'
 import { getPersonalizedMvs } from '@/api/mv'
 import type { Banner } from '@/models/banner'
 import { createAppRouter } from '@/router'
@@ -28,6 +29,10 @@ vi.mock('@/views/MvView.vue', () => ({
 
 vi.mock('@/api/album', () => ({
   getNewestAlbums: vi.fn(),
+  getTopAlbums: vi.fn(),
+}))
+vi.mock('@/api/artist', () => ({
+  getTopArtists: vi.fn(),
 }))
 vi.mock('@/api/banner', () => ({
   getBanners: vi.fn(),
@@ -37,6 +42,7 @@ vi.mock('@/api/personalized', () => ({
 }))
 vi.mock('@/api/newSong', () => ({
   getPersonalizedNewSongs: vi.fn(),
+  getTopSongs: vi.fn(),
 }))
 vi.mock('@/api/mv', () => ({
   getPersonalizedMvs: vi.fn(),
@@ -105,14 +111,17 @@ const NewSongSectionStub = defineComponent({
     error: { type: String, default: null },
     items: { type: Array, required: true },
     loading: { type: Boolean, required: true },
+    testid: { type: String, default: 'new-song' },
+    title: { type: String, default: '推荐新音乐' },
   },
   emits: ['retry', 'select'],
   template: `
-    <section data-testid="new-song-stub">
-      <span data-testid="new-song-count">{{ items.length }}</span>
-      <span v-if="error" data-testid="new-song-error">{{ error }}</span>
-      <button data-testid="new-song-retry" @click="$emit('retry')">retry</button>
-      <button v-if="items[0]" data-testid="new-song-select" @click="$emit('select', items[0])">select</button>
+    <section :data-testid="testid + '-stub'">
+      <h2>{{ title }}</h2>
+      <span :data-testid="testid + '-count'">{{ items.length }}</span>
+      <span v-if="error" :data-testid="testid + '-error'">{{ error }}</span>
+      <button :data-testid="testid + '-retry'" @click="$emit('retry')">retry</button>
+      <button v-if="items[0]" :data-testid="testid + '-select'" @click="$emit('select', items[0])">select</button>
     </section>
   `,
 })
@@ -123,13 +132,34 @@ const NewestAlbumSectionStub = defineComponent({
     albums: { type: Array, required: true },
     error: { type: String, default: null },
     loading: { type: Boolean, required: true },
+    testid: { type: String, default: 'newest-album' },
+    title: { type: String, default: '新碟上架' },
   },
   emits: ['retry'],
   template: `
-    <section data-testid="newest-album-stub">
-      <span data-testid="newest-album-count">{{ albums.length }}</span>
-      <span v-if="error" data-testid="newest-album-error">{{ error }}</span>
-      <button data-testid="newest-album-retry" @click="$emit('retry')">retry</button>
+    <section :data-testid="testid + '-stub'">
+      <h2>{{ title }}</h2>
+      <span :data-testid="testid + '-count'">{{ albums.length }}</span>
+      <span v-if="error" :data-testid="testid + '-error'">{{ error }}</span>
+      <button :data-testid="testid + '-retry'" @click="$emit('retry')">retry</button>
+    </section>
+  `,
+})
+
+const HotArtistSectionStub = defineComponent({
+  name: 'HotArtistSection',
+  props: {
+    artists: { type: Array, required: true },
+    error: { type: String, default: null },
+    loading: { type: Boolean, required: true },
+  },
+  emits: ['retry'],
+  template: `
+    <section data-testid="top-artists-stub">
+      <h2>热门歌手</h2>
+      <span data-testid="top-artists-count">{{ artists.length }}</span>
+      <span v-if="error" data-testid="top-artists-error">{{ error }}</span>
+      <button data-testid="top-artists-retry" @click="$emit('retry')">retry</button>
     </section>
   `,
 })
@@ -165,6 +195,7 @@ async function mountView() {
         BannerCarousel: BannerCarouselStub,
         NewSongSection: NewSongSectionStub,
         NewestAlbumSection: NewestAlbumSectionStub,
+        HotArtistSection: HotArtistSectionStub,
         MvSection: MvSectionStub,
         PersonalizedSection: PersonalizedSectionStub,
         RouterLink: defineComponent({
@@ -203,6 +234,12 @@ describe('DiscoverView', () => {
     vi.mocked(getPersonalizedNewSongs).mockResolvedValue([])
     vi.mocked(getNewestAlbums).mockReset()
     vi.mocked(getNewestAlbums).mockResolvedValue([])
+    vi.mocked(getTopSongs).mockReset()
+    vi.mocked(getTopSongs).mockResolvedValue([])
+    vi.mocked(getTopArtists).mockReset()
+    vi.mocked(getTopArtists).mockResolvedValue([])
+    vi.mocked(getTopAlbums).mockReset()
+    vi.mocked(getTopAlbums).mockResolvedValue([])
     vi.mocked(getPersonalizedMvs).mockReset()
     vi.mocked(getPersonalizedMvs).mockResolvedValue([])
   })
@@ -215,7 +252,7 @@ describe('DiscoverView', () => {
 
     expect(wrapper.get('h1').text()).toBe('推荐')
     expect(wrapper.get('.summary').text()).toBe(
-      '五个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转、顶栏视频入口、Host 文案、主题已接入、内容卡片主题、歌曲 MV、队列和新歌 MV、顶栏搜索 MV、歌曲行专辑、播放条封面、新歌卡片专辑、播放条封面进专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、歌曲行歌手、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类、电台页头分类、相似歌曲、视频大厅分类、歌手馆筛选、搜索视频、相似歌曲露出、歌词露出、队列删歌、音量记住、歌单评论、MV 评论、视频评论、搜索分页、私人 FM、歌单搜索分页、歌手搜索分页、专辑搜索分页、MV 搜索分页、电台搜索分页、视频搜索分页、私人 FM 垃圾桶、私人 FM 页、电台节目评论、电台评论、歌曲评论、相似歌单、新碟上架、电台节目榜、MV 排行、电台榜、最新 MV、版权检查、歌单评论分页、MV 评论分页、视频评论分页、电台节目评论分页、电台评论分页、歌曲评论分页、歌单收藏者、搜索页不走建议、搜索默认词、搜索最佳匹配、歌单评论分页锁。',
+      '五个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转、顶栏视频入口、Host 文案、主题已接入、内容卡片主题、歌曲 MV、队列和新歌 MV、顶栏搜索 MV、歌曲行专辑、播放条封面、新歌卡片专辑、播放条封面进专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、歌曲行歌手、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类、电台页头分类、相似歌曲、视频大厅分类、歌手馆筛选、搜索视频、相似歌曲露出、歌词露出、队列删歌、音量记住、歌单评论、MV 评论、视频评论、搜索分页、私人 FM、歌单搜索分页、歌手搜索分页、专辑搜索分页、MV 搜索分页、电台搜索分页、视频搜索分页、私人 FM 垃圾桶、私人 FM 页、电台节目评论、电台评论、歌曲评论、相似歌单、新碟上架、电台节目榜、MV 排行、电台榜、最新 MV、版权检查、歌单评论分页、MV 评论分页、视频评论分页、电台节目评论分页、电台评论分页、歌曲评论分页、歌单收藏者、搜索页不走建议、搜索默认词、搜索最佳匹配、歌单评论分页锁、新歌榜、热门歌手、专辑榜、独家 MV。',
     )
     expect(wrapper.find('.next-slices').exists()).toBe(false)
     expect(wrapper.text()).toContain('打开视频大厅')
@@ -224,6 +261,12 @@ describe('DiscoverView', () => {
     expect(wrapper.find('nav[aria-label="迁移工具"]').exists()).toBe(false)
     expect(wrapper.get('[data-testid="banner-count"]').text()).toBe('1')
     expect(getBanners).toHaveBeenCalledTimes(1)
+    expect(getTopSongs).toHaveBeenCalledTimes(1)
+    expect(getTopArtists).toHaveBeenCalledTimes(1)
+    expect(getTopAlbums).toHaveBeenCalledTimes(1)
+    expect(wrapper.get('[data-testid="top-song-stub"]').text()).toContain('新歌榜')
+    expect(wrapper.get('[data-testid="top-artists-stub"]').text()).toContain('热门歌手')
+    expect(wrapper.get('[data-testid="top-album-stub"]').text()).toContain('专辑榜')
   })
 
   it('plays song banners and opens album, playlist and MV pages', async () => {
@@ -405,6 +448,36 @@ describe('DiscoverView', () => {
     )
     expect(playSong).toHaveBeenCalledWith(
       expect.objectContaining({ id: 301, mv: 701, name: '晚风来信' }),
+    )
+  })
+
+  it('plays a top-song ranking card independently of recommended new songs', async () => {
+    vi.mocked(getBanners).mockResolvedValue([])
+    vi.mocked(getTopSongs).mockResolvedValue([
+      {
+        alg: '',
+        canDislike: false,
+        id: 302,
+        name: '港口晨曲',
+        picUrl: '',
+        song: {
+          artists: [{ id: 401, name: '林间电台' }],
+          id: 302,
+          name: '港口晨曲',
+        },
+        type: 0,
+      },
+    ])
+    vi.mocked(getTopArtists).mockRejectedValue(new Error('artists offline'))
+    const { wrapper } = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="top-song-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="top-artists-error"]').text()).toBe(
+      'artists offline',
+    )
+    await wrapper.get('[data-testid="top-song-select"]').trigger('click')
+    expect(playSong).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 302, name: '港口晨曲' }),
     )
   })
 

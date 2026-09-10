@@ -58,6 +58,7 @@ export async function getAlbum(
 }
 
 export const NEWEST_ALBUM_LIMIT = 10
+export const TOP_ALBUM_LIMIT = 10
 
 function readNewestAlbum(value: unknown): NewestAlbum | null {
   if (
@@ -103,4 +104,25 @@ export async function getNewestAlbums(
     .map(readNewestAlbum)
     .filter((item): item is NewestAlbum => item !== null)
     .slice(0, NEWEST_ALBUM_LIMIT)
+}
+
+export async function getTopAlbums(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<NewestAlbum[]> {
+  const response = await client.get<{ monthData?: unknown; weekData?: unknown }>(
+    '/top/album',
+    { limit: TOP_ALBUM_LIMIT },
+  )
+  const week = Array.isArray(response.weekData) ? response.weekData : []
+  const month = Array.isArray(response.monthData) ? response.monthData : []
+  if (!Array.isArray(response.weekData) && !Array.isArray(response.monthData)) {
+    throw new Error('专辑榜响应格式不正确')
+  }
+  const mappedWeek = week
+    .map(readNewestAlbum)
+    .filter((item): item is NewestAlbum => item !== null)
+  const mappedMonth = month
+    .map(readNewestAlbum)
+    .filter((item): item is NewestAlbum => item !== null)
+  return (mappedWeek.length ? mappedWeek : mappedMonth).slice(0, TOP_ALBUM_LIMIT)
 }

@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getFirstMvs, getPersonalizedMvs, getTopMvs } from '@/api/mv'
+import { getExclusiveMvs, getFirstMvs, getPersonalizedMvs, getTopMvs } from '@/api/mv'
 import { getPrivateContents } from '@/api/privateContent'
 import { getHallVideos, getVideoGroups } from '@/api/video'
 import { useVideoStore } from '@/stores/video'
@@ -10,6 +10,7 @@ vi.mock('@/api/mv', () => ({
   getPersonalizedMvs: vi.fn(),
   getTopMvs: vi.fn(),
   getFirstMvs: vi.fn(),
+  getExclusiveMvs: vi.fn(),
 }))
 
 vi.mock('@/api/privateContent', () => ({
@@ -66,6 +67,7 @@ describe('video store', () => {
     vi.mocked(getPersonalizedMvs).mockReset()
     vi.mocked(getTopMvs).mockReset()
     vi.mocked(getFirstMvs).mockReset()
+    vi.mocked(getExclusiveMvs).mockReset()
     vi.mocked(getPrivateContents).mockReset()
     vi.mocked(getVideoGroups).mockReset()
     vi.mocked(getHallVideos).mockReset()
@@ -302,6 +304,48 @@ describe('video store', () => {
     expect(getFirstMvs).toHaveBeenCalledTimes(3)
     expect(store.firstMvsError).toBeNull()
     expect(store.firstMvs).toEqual([newest])
+  })
+
+  it('loads exclusive MVs independently of ranking MVs', async () => {
+    const exclusive = { ...newest, id: 901, name: '独家现场' }
+    vi.mocked(getExclusiveMvs).mockResolvedValue([exclusive])
+    vi.mocked(getFirstMvs).mockResolvedValue([newest])
+    const store = useVideoStore()
+
+    await store.loadExclusiveMvs()
+    await store.loadExclusiveMvs()
+    await store.loadFirstMvs()
+
+    expect(store.exclusiveMvs).toEqual([exclusive])
+    expect(getExclusiveMvs).toHaveBeenCalledTimes(1)
+    expect(store.firstMvs).toEqual([newest])
+  })
+
+  it('keeps newest MVs when exclusive MVs fail', async () => {
+    vi.mocked(getFirstMvs).mockResolvedValue([newest])
+    vi.mocked(getExclusiveMvs).mockRejectedValue(new Error('exclusive offline'))
+    const store = useVideoStore()
+
+    await store.loadFirstMvs()
+    await expect(store.loadExclusiveMvs()).rejects.toThrow('exclusive offline')
+
+    expect(store.firstMvs).toEqual([newest])
+    expect(store.exclusiveMvs).toEqual([])
+    expect(store.exclusiveMvsError).toBe('exclusive offline')
+  })
+
+  it('drops in-flight exclusive MVs after reset', async () => {
+    const exclusive = { ...newest, id: 901, name: '独家现场' }
+    const pendingExclusive = deferred<typeof exclusive[]>()
+    vi.mocked(getExclusiveMvs).mockReturnValueOnce(pendingExclusive.promise)
+    const store = useVideoStore()
+    const pending = store.loadExclusiveMvs()
+    store.reset()
+    pendingExclusive.resolve([exclusive])
+    await pending
+
+    expect(store.exclusiveMvs).toEqual([])
+    expect(store.exclusiveMvsLoading).toBe(false)
   })
 
   it('drops in-flight exclusive videos after reset', async () => {

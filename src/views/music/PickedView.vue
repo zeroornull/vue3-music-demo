@@ -25,6 +25,9 @@ withDefaults(
     firstMvs?: SimiMv[]
     firstMvsError?: string | null
     firstMvsLoading?: boolean
+    exclusiveMvs?: SimiMv[]
+    exclusiveMvsError?: string | null
+    exclusiveMvsLoading?: boolean
     privateContents: PrivateContent[]
     privateError?: string | null
     privateLoading?: boolean
@@ -42,6 +45,9 @@ withDefaults(
     firstMvs: () => [],
     firstMvsError: null,
     firstMvsLoading: false,
+    exclusiveMvs: () => [],
+    exclusiveMvsError: null,
+    exclusiveMvsLoading: false,
     privateError: null,
     privateLoading: false,
   },
@@ -53,6 +59,7 @@ defineEmits<{
   'retry-mvs': []
   'retry-top-mvs': []
   'retry-first-mvs': []
+  'retry-exclusive-mvs': []
   'retry-private': []
   'select-banner': [banner: Banner]
 }>()
@@ -106,6 +113,17 @@ defineEmits<{
       :loading="firstMvsLoading"
       :mvs="firstMvs"
       @retry="$emit('retry-first-mvs')"
+    />
+    <MvSection
+      empty-title="暂无独家 MV"
+      error-title="独家 MV 加载失败"
+      :limit="10"
+      testid="mv-exclusive"
+      title="独家 MV"
+      :error="exclusiveMvsError"
+      :loading="exclusiveMvsLoading"
+      :mvs="exclusiveMvs"
+      @retry="$emit('retry-exclusive-mvs')"
     />
   </div>
 </template>

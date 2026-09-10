@@ -30,9 +30,12 @@ const NewSongCardStub = defineComponent({
 
 function mountSection(
   props: Partial<{
+    emptyTitle: string
     error: string | null
     items: typeof newSong[]
     loading: boolean
+    testid: string
+    title: string
   }> = {},
 ) {
   return mount(NewSongSection, {
@@ -51,6 +54,18 @@ describe('NewSongSection', () => {
     const wrapper = mountSection({ loading: true })
     expect(wrapper.get('[data-testid="new-song-loading"]').attributes('aria-busy')).toBe('true')
     expect(wrapper.findAll('[data-testid="new-song-skeleton"]')).toHaveLength(6)
+  })
+
+  it('namespaces ranking skeleton and empty testids', () => {
+    const loading = mountSection({ loading: true, testid: 'top-song', title: '新歌榜' })
+    expect(loading.get('#top-song-title').text()).toBe('新歌榜')
+    expect(loading.findAll('[data-testid="top-song-skeleton"]')).toHaveLength(6)
+    const empty = mountSection({
+      emptyTitle: '暂无新歌榜',
+      testid: 'top-song',
+      title: '新歌榜',
+    })
+    expect(empty.get('[data-testid="top-song-empty"]').text()).toContain('暂无新歌榜')
   })
 
   it('renders an error and emits retry', async () => {

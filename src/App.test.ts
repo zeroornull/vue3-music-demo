@@ -256,6 +256,18 @@ describe('App host gate', () => {
         playCount: 8_800,
       },
     ]
+    videoStore.exclusiveMvs = [
+      {
+        artistId: 401,
+        artistName: '林间电台',
+        artists: [{ id: 401, name: '林间电台' }],
+        duration: 0,
+        id: 901,
+        name: '独家现场',
+        picUrl: '',
+        playCount: 1,
+      },
+    ]
     mountApp()
 
     useHostStore().clearHost()
@@ -265,6 +277,7 @@ describe('App host gate', () => {
     expect(videoStore.mvs).toEqual([])
     expect(videoStore.topMvs).toEqual([])
     expect(videoStore.firstMvs).toEqual([])
+    expect(videoStore.exclusiveMvs).toEqual([])
   })
 
   it('clears video hall cache when the host gate closes', async () => {
@@ -553,6 +566,27 @@ describe('App host gate', () => {
         publishTime: 1_609_459_200_000,
       },
     ]
+    musicStore.topSongs = [
+      {
+        alg: '',
+        canDislike: false,
+        id: 301,
+        name: '晚风来信',
+        picUrl: '',
+        song: { artists: [], id: 301, name: '晚风来信' },
+        type: 0,
+      },
+    ]
+    musicStore.topArtists = [{ id: 401, img1v1Url: '', name: '林间电台' }]
+    musicStore.topAlbums = [
+      {
+        artist: { id: 401, name: '林间电台' },
+        id: 502,
+        name: '晨雾',
+        picUrl: '',
+        publishTime: 0,
+      },
+    ]
     mountApp()
 
     useHostStore().clearHost()
@@ -560,6 +594,9 @@ describe('App host gate', () => {
 
     expect(musicStore.topLists).toEqual([])
     expect(musicStore.newestAlbums).toEqual([])
+    expect(musicStore.topSongs).toEqual([])
+    expect(musicStore.topArtists).toEqual([])
+    expect(musicStore.topAlbums).toEqual([])
   })
 
   it('clears MV playback cache when the host gate closes', async () => {

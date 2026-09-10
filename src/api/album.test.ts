@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { getAlbum, getNewestAlbums, NEWEST_ALBUM_LIMIT } from '@/api/album'
+import { getAlbum, getNewestAlbums, getTopAlbums, NEWEST_ALBUM_LIMIT, TOP_ALBUM_LIMIT } from '@/api/album'
 
 const client = (response: unknown) => {
   const get = vi.fn(async <T>(_path: string, _params?: unknown) => response as T)
@@ -139,5 +139,96 @@ describe('Newest album API', () => {
     await expect(
       getNewestAlbums(client({ albums: many }).client),
     ).resolves.toHaveLength(NEWEST_ALBUM_LIMIT)
+  })
+})
+
+describe('Top album API', () => {
+  it('prefers weekData from /top/album and maps artists', async () => {
+    const request = client({
+      monthData: [
+        {
+          artist: { id: 499, name: '月榜' },
+          id: 599,
+          name: '月榜专辑',
+          picUrl: 'https://images.example.com/month.jpg',
+        },
+      ],
+      weekData: [
+        {
+          extra: true,
+          id: 501,
+          name: '  夜航  ',
+          picUrl: 'https://images.example.com/album.jpg',
+          artist: { extra: true, id: 401, name: '林间电台' },
+          publishTime: 1_609_459_200_000,
+        },
+        { id: 0, name: '无效' },
+      ],
+    })
+    await expect(getTopAlbums(request.client)).resolves.toEqual([
+      {
+        artist: { id: 401, name: '林间电台' },
+        id: 501,
+        name: '夜航',
+        picUrl: 'https://images.example.com/album.jpg',
+        publishTime: 1_609_459_200_000,
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/top/album', { limit: TOP_ALBUM_LIMIT })
+  })
+
+  it('falls back to monthData and rejects a missing ranking payload', async () => {
+    await expect(
+      getTopAlbums(
+        client({
+          monthData: [
+            {
+              artists: [{ id: 402, name: '海岸信号' }],
+              blurPicUrl: 'https://images.example.com/blur.jpg',
+              id: 502,
+              name: '晨雾',
+            },
+          ],
+          weekData: [],
+        }).client,
+      ),
+    ).resolves.toEqual([
+      {
+        artist: { id: 402, name: '海岸信号' },
+        id: 502,
+        name: '晨雾',
+        picUrl: 'https://images.example.com/blur.jpg',
+        publishTime: 0,
+      },
+    ])
+    await expect(
+      getTopAlbums(client({ albums: [] }).client),
+    ).rejects.toThrow('专辑榜响应格式不正确')
+  })
+
+  it('falls back to monthData when week rows are all invalid', async () => {
+    await expect(
+      getTopAlbums(
+        client({
+          monthData: [
+            {
+              artist: { id: 401, name: '林间电台' },
+              id: 501,
+              name: '夜航',
+              picUrl: 'https://images.example.com/album.jpg',
+            },
+          ],
+          weekData: [{ id: 0, name: '无效' }],
+        }).client,
+      ),
+    ).resolves.toEqual([
+      {
+        artist: { id: 401, name: '林间电台' },
+        id: 501,
+        name: '夜航',
+        picUrl: 'https://images.example.com/album.jpg',
+        publishTime: 0,
+      },
+    ])
   })
 })
