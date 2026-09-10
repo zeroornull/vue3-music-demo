@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import type { MediaComment } from '@/models/comment'
+import { computed } from 'vue'
 
-withDefaults(
+import CommentThread from '@/components/comment/CommentThread.vue'
+import type { MediaComment } from '@/models/comment'
+import type { CommentFloorKind } from '@/stores/commentFloor'
+
+const props = withDefaults(
   defineProps<{
     comments?: MediaComment[] | null
     error?: string | null
     errorTitle?: string
     heading?: 'h2' | 'h3'
+    kind?: CommentFloorKind
+    resourceId?: number | string | null
     testid?: string
     title?: string
   }>(),
@@ -15,6 +21,7 @@ withDefaults(
     error: null,
     errorTitle: '热门评论加载失败',
     heading: 'h2',
+    resourceId: null,
     testid: 'hot-comments',
     title: '热门评论',
   },
@@ -23,6 +30,10 @@ withDefaults(
 defineEmits<{
   retry: []
 }>()
+
+const canFloor = computed(
+  () => Boolean(props.kind && props.resourceId != null && props.resourceId !== ''),
+)
 </script>
 
 <template>
@@ -33,7 +44,17 @@ defineEmits<{
     :aria-labelledby="`${testid}-title`"
   >
     <component :is="heading" :id="`${testid}-title`">{{ title }}</component>
-    <ul class="comment-list">
+    <ul v-if="canFloor" class="comment-list">
+      <CommentThread
+        v-for="item in comments"
+        :key="item.commentId"
+        :comment="item"
+        :kind="kind!"
+        :resource-id="resourceId!"
+        :testid="testid"
+      />
+    </ul>
+    <ul v-else class="comment-list">
       <li v-for="item in comments" :key="item.commentId">
         <strong>{{ item.nickname }}</strong>
         <p>{{ item.content }}</p>

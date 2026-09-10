@@ -7,6 +7,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getVideoCommentPage, getVideoHotComments } from '@/api/comment'
+import { getVideoCommentFloor } from '@/api/commentFloor'
 import { getRelatedVideos, getVideoDetail, getVideoStats, getVideoUrl } from '@/api/video'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -17,6 +18,14 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getVideoCommentPage: vi.fn(),
   getVideoHotComments: vi.fn(),
+}))
+vi.mock('@/api/commentFloor', () => ({
+  COMMENT_FLOOR_LIMIT: 10,
+  COMMENT_FLOOR_TYPE: { mv: 1, playlist: 2, song: 0, video: 5 },
+  getMvCommentFloor: vi.fn(),
+  getPlaylistCommentFloor: vi.fn(),
+  getSongCommentFloor: vi.fn(),
+  getVideoCommentFloor: vi.fn(),
 }))
 vi.mock('@/api/video', () => ({
   getRelatedVideos: vi.fn(),
@@ -83,6 +92,8 @@ describe('VideoDetailView', () => {
     vi.mocked(getVideoDetail).mockRejectedValue(new Error('no detail'))
     vi.mocked(getRelatedVideos).mockReset()
     vi.mocked(getRelatedVideos).mockRejectedValue(new Error('no related'))
+    vi.mocked(getVideoCommentFloor).mockReset()
+    vi.mocked(getVideoCommentFloor).mockRejectedValue(new Error('no floor'))
     vi.mocked(getVideoCommentPage).mockReset()
     vi.mocked(getVideoCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getVideoHotComments).mockReset()
@@ -338,5 +349,30 @@ describe('VideoDetailView', () => {
     expect(comments.text()).toContain('走过林间。')
     expect(comments.text()).toContain('第二页')
     expect(wrapper.find('[data-testid="video-comments-more"]').exists()).toBe(false)
+  })
+
+  it('expands video comment floors', async () => {
+    vi.mocked(getVideoCommentPage).mockResolvedValue({
+      comments: [
+        {
+          commentId: 11,
+          content: '走过林间。',
+          nickname: '林间电台',
+          replyCount: 2,
+        },
+      ],
+      more: false,
+    })
+    vi.mocked(getVideoCommentFloor).mockResolvedValue([
+      { commentId: 91, content: '楼中回复', nickname: '海岸信号' },
+    ])
+    const wrapper = await mountView()
+    await flushPromises()
+    await wrapper.get('[data-testid="video-comments-floor"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="video-comments"]').text()).toContain(
+      '楼中回复',
+    )
+    expect(getVideoCommentFloor).toHaveBeenCalledWith('VID001', 11)
   })
 })

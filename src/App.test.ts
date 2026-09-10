@@ -25,6 +25,7 @@ import { useVideoStore } from '@/stores/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
 import { useLyricStore } from '@/stores/lyric'
 import { THEME_STORAGE_KEY } from '@/config/theme'
+import { useCommentFloorStore } from '@/stores/commentFloor'
 import { useHostStore } from '@/stores/host'
 
 vi.mock('@/api/comment', () => ({
@@ -828,6 +829,14 @@ describe('App host gate', () => {
       subscribedCount: 88,
     }
     playlistStore.statsError = 'stale'
+    const floorStore = useCommentFloorStore()
+    floorStore.floors = {
+      '2:101:11': {
+        error: null,
+        loading: false,
+        replies: [{ commentId: 91, content: '楼中回复', nickname: '海岸信号' }],
+      },
+    }
     mountApp()
 
     useHostStore().clearHost()
@@ -837,6 +846,7 @@ describe('App host gate', () => {
     expect(playlistStore.songs).toHaveLength(0)
     expect(playlistStore.loadedId).toBeNull()
     expect(playlistStore.comments).toBeNull()
+    expect(floorStore.floor('playlist', 101, 11)).toBeNull()
     expect(playlistStore.commentsMore).toBe(false)
     expect(playlistStore.commentsMoreError).toBeNull()
     expect(playlistStore.commentsMoreLoading).toBe(false)

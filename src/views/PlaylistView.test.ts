@@ -7,6 +7,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getPlaylistCommentPage, getPlaylistHotComments } from '@/api/comment'
+import { getPlaylistCommentFloor } from '@/api/commentFloor'
 import {
   getPlaylistDetail,
   getPlaylistStats,
@@ -23,6 +24,14 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getPlaylistCommentPage: vi.fn(),
   getPlaylistHotComments: vi.fn(),
+}))
+vi.mock('@/api/commentFloor', () => ({
+  COMMENT_FLOOR_LIMIT: 10,
+  COMMENT_FLOOR_TYPE: { mv: 1, playlist: 2, song: 0, video: 5 },
+  getMvCommentFloor: vi.fn(),
+  getPlaylistCommentFloor: vi.fn(),
+  getSongCommentFloor: vi.fn(),
+  getVideoCommentFloor: vi.fn(),
 }))
 vi.mock('@/api/playlist', () => ({
   SUBSCRIBER_LIMIT: 20,
@@ -156,6 +165,8 @@ describe('PlaylistView', () => {
     vi.mocked(getPlaylistCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getPlaylistHotComments).mockReset()
     vi.mocked(getPlaylistHotComments).mockRejectedValue(new Error('no hot'))
+    vi.mocked(getPlaylistCommentFloor).mockReset()
+    vi.mocked(getPlaylistCommentFloor).mockRejectedValue(new Error('no floor'))
     vi.mocked(getPlaylistSubscriberPage).mockReset()
     vi.mocked(getPlaylistSubscriberPage).mockRejectedValue(
       new Error('no subscribers'),
@@ -340,6 +351,31 @@ describe('PlaylistView', () => {
     const latest = wrapper.get('[data-testid="playlist-comments"]')
     expect(latest.text()).toContain('夜色刚好')
     expect(latest.text()).not.toContain('林间热评')
+  })
+
+  it('expands playlist comment floors', async () => {
+    vi.mocked(getPlaylistCommentPage).mockResolvedValue({
+      comments: [
+        {
+          commentId: 11,
+          content: '走过林间。',
+          nickname: '林间电台',
+          replyCount: 2,
+        },
+      ],
+      more: false,
+    })
+    vi.mocked(getPlaylistCommentFloor).mockResolvedValue([
+      { commentId: 91, content: '楼中回复', nickname: '海岸信号' },
+    ])
+    const wrapper = await mountView()
+    await flushPromises()
+    await wrapper.get('[data-testid="playlist-comments-floor"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="playlist-comments"]').text()).toContain(
+      '楼中回复',
+    )
+    expect(getPlaylistCommentFloor).toHaveBeenCalledWith(101, 11)
   })
 
   it('loads and retries playlist hot comments without blocking songs', async () => {

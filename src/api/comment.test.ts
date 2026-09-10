@@ -78,6 +78,31 @@ describe('Playlist comment API', () => {
     ).rejects.toThrow('歌单评论响应格式不正确')
   })
 
+  it('keeps a positive replyCount on playlist comments', async () => {
+    await expect(
+      getPlaylistComments(
+        101,
+        client({
+          comments: [
+            {
+              commentId: 11,
+              content: '走过林间。',
+              replyCount: 2,
+              user: { nickname: '林间电台' },
+            },
+          ],
+        }).client,
+      ),
+    ).resolves.toEqual([
+      {
+        commentId: 11,
+        content: '走过林间。',
+        nickname: '林间电台',
+        replyCount: 2,
+      },
+    ])
+  })
+
   it('caps merged hot and normal comments at COMMENT_LIMIT', async () => {
     const hotComments = Array.from({ length: 12 }, (_, index) => ({
       commentId: index + 1,

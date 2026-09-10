@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
 import CommentHotSection from '@/components/comment/CommentHotSection.vue'
+import CommentThread from '@/components/comment/CommentThread.vue'
 import MediaCountRow from '@/components/media/MediaCountRow.vue'
 import MvPlayer from '@/components/mv/MvPlayer.vue'
 import VideoClipCard from '@/components/video/VideoClipCard.vue'
@@ -161,9 +162,11 @@ watch(
       />
       <CommentHotSection
         error-title="视频热门评论加载失败"
+        kind="video"
         testid="video-hot-comments"
         :comments="hotComments"
         :error="hotCommentsError"
+        :resource-id="videoId"
         @retry="retryHotComments"
       />
       <section
@@ -175,10 +178,14 @@ watch(
         <h2 id="video-comments-title">评论</h2>
         <p v-if="!latestComments?.length" class="comments-empty">暂无评论</p>
         <ul v-else class="comment-list">
-          <li v-for="item in latestComments" :key="item.commentId">
-            <strong>{{ item.nickname }}</strong>
-            <p>{{ item.content }}</p>
-          </li>
+          <CommentThread
+            v-for="item in latestComments"
+            :key="item.commentId"
+            kind="video"
+            testid="video-comments"
+            :comment="item"
+            :resource-id="videoId!"
+          />
         </ul>
         <p v-if="commentsMoreError" class="comments-more-error" role="alert">
           {{ commentsMoreError }}

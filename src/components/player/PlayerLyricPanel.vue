@@ -3,6 +3,7 @@ import { computed, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import CommentHotSection from '@/components/comment/CommentHotSection.vue'
+import CommentThread from '@/components/comment/CommentThread.vue'
 import { excludeSeenComments } from '@/models/comment'
 import { useLyricStore } from '@/stores/lyric'
 import { usePlayerStore } from '@/stores/player'
@@ -22,6 +23,7 @@ const {
   hotComments,
   hotCommentsError,
   currentTime,
+  current,
 } = storeToRefs(player)
 
 const latestComments = computed(() =>
@@ -169,9 +171,11 @@ onUnmounted(() => {
           <CommentHotSection
             error-title="歌曲热门评论加载失败"
             heading="h3"
+            kind="song"
             testid="song-hot-comments"
             :comments="hotComments"
             :error="hotCommentsError"
+            :resource-id="current?.id ?? null"
             @retry="player.loadHotComments(true).catch(() => undefined)"
           />
           <section
@@ -183,10 +187,15 @@ onUnmounted(() => {
             <h3 id="song-comments-title">评论</h3>
             <p v-if="!latestComments?.length" class="comments-empty">暂无评论</p>
             <ul v-else class="comment-list">
-              <li v-for="item in latestComments" :key="item.commentId">
-                <strong>{{ item.nickname }}</strong>
-                <p>{{ item.content }}</p>
-              </li>
+              <CommentThread
+                v-for="item in latestComments"
+                v-show="current?.id"
+                :key="item.commentId"
+                kind="song"
+                testid="song-comments"
+                :comment="item"
+                :resource-id="current?.id ?? 0"
+              />
             </ul>
             <p v-if="commentsMoreError" class="comments-more-error" role="alert">
               {{ commentsMoreError }}

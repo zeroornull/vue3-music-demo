@@ -1,5 +1,5 @@
 import { http, type HttpClient } from '@/api/http'
-import type { MediaComment } from '@/models/comment'
+import { parseMediaComment, type MediaComment } from '@/models/comment'
 
 export const COMMENT_LIMIT = 20
 export const COMMENT_HOT_LIMIT = 10
@@ -14,25 +14,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function readComment(value: unknown): MediaComment | null {
-  if (
-    !isRecord(value) ||
-    typeof value.commentId !== 'number' ||
-    !Number.isInteger(value.commentId) ||
-    value.commentId <= 0
-  ) {
-    return null
-  }
-  const content = typeof value.content === 'string' ? value.content.trim() : ''
-  if (!content) return null
-  const user = isRecord(value.user) ? value.user : {}
-  const nickname =
-    typeof user.nickname === 'string' ? user.nickname.trim() : ''
-  return {
-    commentId: value.commentId,
-    content,
-    nickname: nickname || '匿名',
-  }
+export function readComment(value: unknown): MediaComment | null {
+  return parseMediaComment(value)
 }
 
 function mergeComments(

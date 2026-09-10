@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
 import CommentHotSection from '@/components/comment/CommentHotSection.vue'
+import CommentThread from '@/components/comment/CommentThread.vue'
 import CategoryPlaylistCard from '@/components/music/CategoryPlaylistCard.vue'
 import PlaylistHeader from '@/components/playlist/PlaylistHeader.vue'
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
@@ -176,9 +177,11 @@ watch(
       />
       <CommentHotSection
         error-title="歌单热门评论加载失败"
+        kind="playlist"
         testid="playlist-hot-comments"
         :comments="hotComments"
         :error="hotCommentsError"
+        :resource-id="playlistId"
         @retry="retryHotComments"
       />
       <section
@@ -190,10 +193,14 @@ watch(
         <h2 id="playlist-comments-title">评论</h2>
         <p v-if="!latestComments?.length" class="comments-empty">暂无评论</p>
         <ul v-else class="comment-list">
-          <li v-for="item in latestComments" :key="item.commentId">
-            <strong>{{ item.nickname }}</strong>
-            <p>{{ item.content }}</p>
-          </li>
+          <CommentThread
+            v-for="item in latestComments"
+            :key="item.commentId"
+            kind="playlist"
+            testid="playlist-comments"
+            :comment="item"
+            :resource-id="playlistId!"
+          />
         </ul>
         <p v-if="commentsMoreError" class="comments-more-error" role="alert">
           {{ commentsMoreError }}

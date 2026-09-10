@@ -4,6 +4,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getSongCommentPage, getSongHotComments } from '@/api/comment'
+import { getSongCommentFloor } from '@/api/commentFloor'
 import PlayerLyricPanel from '@/components/player/PlayerLyricPanel.vue'
 import { useLyricStore } from '@/stores/lyric'
 import { usePlayerStore } from '@/stores/player'
@@ -13,6 +14,14 @@ vi.mock('@/api/comment', () => ({
   getSongCommentPage: vi.fn(),
   getSongHotComments: vi.fn(),
 }))
+vi.mock('@/api/commentFloor', () => ({
+  COMMENT_FLOOR_LIMIT: 10,
+  COMMENT_FLOOR_TYPE: { mv: 1, playlist: 2, song: 0, video: 5 },
+  getMvCommentFloor: vi.fn(),
+  getPlaylistCommentFloor: vi.fn(),
+  getSongCommentFloor: vi.fn(),
+  getVideoCommentFloor: vi.fn(),
+}))
 
 describe('PlayerLyricPanel', () => {
   beforeEach(() => {
@@ -21,6 +30,8 @@ describe('PlayerLyricPanel', () => {
     vi.mocked(getSongCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getSongHotComments).mockReset()
     vi.mocked(getSongHotComments).mockRejectedValue(new Error('no hot'))
+    vi.mocked(getSongCommentFloor).mockReset()
+    vi.mocked(getSongCommentFloor).mockRejectedValue(new Error('no floor'))
   })
 
   function mountPanel() {
@@ -178,6 +189,32 @@ describe('PlayerLyricPanel', () => {
     expect(bodyEl('[data-testid="player-lyric-line-0"]').textContent).toContain(
       '走过林间。',
     )
+    wrapper.unmount()
+  })
+
+  it('expands song comment floors in the lyric panel', async () => {
+    vi.mocked(getSongCommentFloor).mockResolvedValue([
+      { commentId: 91, content: '楼中回复', nickname: '海岸信号' },
+    ])
+    const lyrics = useLyricStore()
+    const player = usePlayerStore()
+    lyrics.lines = [{ text: '走过林间。', time: 12 }]
+    player.current = { id: 301, name: '晚风来信', artists: [] }
+    player.comments = [
+      {
+        commentId: 11,
+        content: '走过林间。',
+        nickname: '林间电台',
+        replyCount: 2,
+      },
+    ]
+    lyrics.open()
+    const wrapper = mountPanel()
+    await wrapper.vm.$nextTick()
+    bodyEl('[data-testid="song-comments-floor"]').click()
+    await flushPromises()
+    expect(bodyEl('[data-testid="song-comments"]').textContent).toContain('楼中回复')
+    expect(getSongCommentFloor).toHaveBeenCalledWith(301, 11)
     wrapper.unmount()
   })
 

@@ -7,6 +7,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getMvCommentPage, getMvHotComments } from '@/api/comment'
+import { getMvCommentFloor } from '@/api/commentFloor'
 import { getMvDetail, getMvStats, getMvUrl, getSimiMvs } from '@/api/mv'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -18,6 +19,14 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getMvCommentPage: vi.fn(),
   getMvHotComments: vi.fn(),
+}))
+vi.mock('@/api/commentFloor', () => ({
+  COMMENT_FLOOR_LIMIT: 10,
+  COMMENT_FLOOR_TYPE: { mv: 1, playlist: 2, song: 0, video: 5 },
+  getMvCommentFloor: vi.fn(),
+  getPlaylistCommentFloor: vi.fn(),
+  getSongCommentFloor: vi.fn(),
+  getVideoCommentFloor: vi.fn(),
 }))
 vi.mock('@/api/mv', () => ({
   getMvDetail: vi.fn(),
@@ -103,6 +112,8 @@ describe('MvView', () => {
     vi.mocked(getMvCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getMvHotComments).mockReset()
     vi.mocked(getMvHotComments).mockRejectedValue(new Error('no hot'))
+    vi.mocked(getMvCommentFloor).mockReset()
+    vi.mocked(getMvCommentFloor).mockRejectedValue(new Error('no floor'))
     vi.mocked(getMvStats).mockReset()
     vi.mocked(getMvStats).mockRejectedValue(new Error('no stats'))
   })
@@ -493,5 +504,28 @@ describe('MvView', () => {
       '缺少 MV ID',
     )
     expect(useMvStore().playback).toBeNull()
+  })
+
+  it('expands MV comment floors', async () => {
+    vi.mocked(getMvCommentPage).mockResolvedValue({
+      comments: [
+        {
+          commentId: 11,
+          content: '走过林间。',
+          nickname: '林间电台',
+          replyCount: 2,
+        },
+      ],
+      more: false,
+    })
+    vi.mocked(getMvCommentFloor).mockResolvedValue([
+      { commentId: 91, content: '楼中回复', nickname: '海岸信号' },
+    ])
+    const wrapper = await mountView()
+    await flushPromises()
+    await wrapper.get('[data-testid="mv-comments-floor"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="mv-comments"]').text()).toContain('楼中回复')
+    expect(getMvCommentFloor).toHaveBeenCalledWith(701, 11)
   })
 })

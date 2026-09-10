@@ -20,6 +20,7 @@ import { useVideoStore } from '@/stores/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
 import { useLyricStore } from '@/stores/lyric'
 import { useThemeStore } from '@/stores/theme'
+import { useCommentFloorStore } from '@/stores/commentFloor'
 
 const hostStore = useHostStore()
 useThemeStore()
@@ -36,6 +37,7 @@ const artistStore = useArtistStore()
 const djStore = useDjStore()
 const searchStore = useSearchStore()
 const lyricStore = useLyricStore()
+const commentFloorStore = useCommentFloorStore()
 const { isConfigured } = storeToRefs(hostStore)
 
 watch(isConfigured, (configured) => {
@@ -53,6 +55,7 @@ watch(isConfigured, (configured) => {
     djStore.reset()
     searchStore.reset()
     lyricStore.reset()
+    commentFloorStore.reset()
   }
 })
 </script>
