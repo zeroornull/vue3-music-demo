@@ -1,5 +1,13 @@
 import { http, type HttpClient } from '@/api/http'
-import type { MvArtistSummary, MvDetail, MvUrl, PersonalizedMv, SimiMv } from '@/models/mv'
+import { readCount, unwrapStatsRecord } from '@/api/mediaStats'
+import type {
+  MvArtistSummary,
+  MvDetail,
+  MvStats,
+  MvUrl,
+  PersonalizedMv,
+  SimiMv,
+} from '@/models/mv'
 
 interface PersonalizedMvResponse {
   result: PersonalizedMv[]
@@ -185,4 +193,24 @@ export async function getExclusiveMvs(
     .map(readSimiMv)
     .filter((item): item is SimiMv => item !== null)
     .slice(0, EXCLUSIVE_MV_LIMIT)
+}
+
+export async function getMvStats(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MvStats> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的 MV ID')
+  }
+  const response = await client.get<unknown>('/mv/detail/info', { mvid: id })
+  const raw = unwrapStatsRecord(response)
+  if (!raw) {
+    throw new Error('MV 计数响应格式不正确')
+  }
+  return {
+    commentCount: readCount(raw.commentCount),
+    likedCount: readCount(raw.likedCount),
+    playCount: readCount(raw.playCount),
+    shareCount: readCount(raw.shareCount),
+  }
 }

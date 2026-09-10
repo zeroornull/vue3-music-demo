@@ -19,6 +19,13 @@ export interface MvDetail {
   picUrl: string
 }
 
+export interface MvStats {
+  commentCount: number
+  likedCount: number
+  playCount: number
+  shareCount: number
+}
+
 export interface SimiMv {
   artistId: number
   artistName: string

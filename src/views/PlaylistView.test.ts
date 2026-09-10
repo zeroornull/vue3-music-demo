@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getPlaylistCommentPage } from '@/api/comment'
 import {
   getPlaylistDetail,
+  getPlaylistStats,
   getPlaylistSubscriberPage,
   getPlaylistTracks,
   getRelatedPlaylists,
@@ -25,6 +26,7 @@ vi.mock('@/api/comment', () => ({
 vi.mock('@/api/playlist', () => ({
   SUBSCRIBER_LIMIT: 20,
   getPlaylistDetail: vi.fn(),
+  getPlaylistStats: vi.fn(),
   getPlaylistSubscriberPage: vi.fn(),
   getPlaylistTracks: vi.fn(),
   getRelatedPlaylists: vi.fn(),
@@ -72,11 +74,17 @@ const songs = [
 
 const HeaderStub = defineComponent({
   name: 'PlaylistHeader',
-  props: ['playable', 'playlist'],
-  emits: ['play-all'],
+  props: ['playable', 'playlist', 'stats', 'statsError'],
+  emits: ['play-all', 'retry-stats'],
   template: `
     <section data-testid="playlist-header">
       <h1>{{ playlist.name }}</h1>
+      <span v-if="stats" data-testid="playlist-stats-comment">{{ stats.commentCount }}</span>
+      <button
+        v-if="statsError"
+        data-testid="playlist-stats-retry"
+        @click="$emit('retry-stats')"
+      >retry stats</button>
       <button data-testid="play-all" :disabled="!playable" @click="$emit('play-all')">play all</button>
     </section>
   `,
@@ -149,6 +157,8 @@ describe('PlaylistView', () => {
     vi.mocked(getPlaylistSubscriberPage).mockRejectedValue(
       new Error('no subscribers'),
     )
+    vi.mocked(getPlaylistStats).mockReset()
+    vi.mocked(getPlaylistStats).mockRejectedValue(new Error('no stats'))
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -261,6 +271,32 @@ describe('PlaylistView', () => {
       name: Pages.playlist,
       query: { id: 202 },
     })
+  })
+
+  it('loads and retries playlist stats without blocking the songs', async () => {
+    const counts = {
+      commentCount: 128,
+      playCount: 256_000,
+      shareCount: 16,
+      subscribedCount: 88,
+    }
+    vi.mocked(getPlaylistStats)
+      .mockRejectedValueOnce(new Error('stats offline'))
+      .mockResolvedValueOnce(counts)
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="playlist-songs"]').text()).toContain(
+      'play song',
+    )
+    expect(wrapper.get('[data-testid="playlist-stats-retry"]').text()).toContain(
+      'retry stats',
+    )
+
+    await wrapper.get('[data-testid="playlist-stats-retry"]').trigger('click')
+    await flushPromises()
+    expect(getPlaylistStats).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="playlist-stats-comment"]').text()).toBe('128')
+    expect(wrapper.find('[data-testid="playlist-stats-retry"]').exists()).toBe(false)
   })
 
   it('hides related playlists when the list is empty', async () => {

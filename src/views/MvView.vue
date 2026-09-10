@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
 import MvCard from '@/components/discover/MvCard.vue'
+import MediaCountRow from '@/components/media/MediaCountRow.vue'
 import MvPlayer from '@/components/mv/MvPlayer.vue'
 import { Pages } from '@/router/pages'
 import { useMvStore } from '@/stores/mv'
@@ -22,6 +23,8 @@ const {
   commentsMore,
   commentsMoreLoading,
   commentsMoreError,
+  stats,
+  statsError,
   loading,
   error,
 } = storeToRefs(mvStore)
@@ -58,6 +61,21 @@ const artistName = computed(() => related.value?.artistName?.trim() || '')
 function loadMoreComments() {
   void mvStore.loadMoreComments().catch(() => undefined)
 }
+
+function retryStats() {
+  void mvStore.loadStats(true).catch(() => undefined)
+}
+
+const extraCounts = computed(() => {
+  const next = stats.value
+  if (!next) return []
+  return [
+    { key: 'play', label: '次播放', value: next.playCount },
+    { key: 'comment', label: '条评论', value: next.commentCount },
+    { key: 'like', label: '次点赞', value: next.likedCount },
+    { key: 'share', label: '次分享', value: next.shareCount },
+  ]
+})
 
 function requestMv(force = false) {
   const id = mvId.value
@@ -156,6 +174,13 @@ watch(
           </RouterLink>
           <span v-else>{{ artistName }}</span>
         </p>
+        <MediaCountRow
+          error-title="MV 计数加载失败"
+          testid="mv-stats"
+          :counts="extraCounts"
+          :error="statsError"
+          @retry="retryStats"
+        />
       </header>
       <p v-if="error" class="notice error-notice" role="alert">{{ error }}</p>
       <MvPlayer :src="playback.url" :poster="related?.picUrl" :title="title" />

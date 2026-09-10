@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { COMMENT_LIMIT, getPlaylistCommentPage } from '@/api/comment'
 import {
   getPlaylistDetail,
+  getPlaylistStats,
   getPlaylistSubscriberPage,
   getPlaylistTracks,
   getRelatedPlaylists,
@@ -19,6 +20,7 @@ vi.mock('@/api/comment', () => ({
 vi.mock('@/api/playlist', () => ({
   SUBSCRIBER_LIMIT: 20,
   getPlaylistDetail: vi.fn(),
+  getPlaylistStats: vi.fn(),
   getPlaylistSubscriberPage: vi.fn(),
   getPlaylistTracks: vi.fn(),
   getRelatedPlaylists: vi.fn(),
@@ -99,6 +101,8 @@ describe('playlist store', () => {
     vi.mocked(getPlaylistSubscriberPage).mockRejectedValue(
       new Error('no subscribers'),
     )
+    vi.mocked(getPlaylistStats).mockReset()
+    vi.mocked(getPlaylistStats).mockRejectedValue(new Error('no stats'))
   })
 
   it('loads detail and tracks together and caches the same id', async () => {
@@ -238,6 +242,7 @@ describe('playlist store', () => {
     expect(getRelatedPlaylists).not.toHaveBeenCalled()
     expect(getPlaylistCommentPage).not.toHaveBeenCalled()
     expect(getPlaylistSubscriberPage).not.toHaveBeenCalled()
+    expect(getPlaylistStats).not.toHaveBeenCalled()
     expect(store.error).toBe('缺少有效的歌单 ID')
     expect(store.playlist).toBeNull()
   })
@@ -274,6 +279,98 @@ describe('playlist store', () => {
     expect(store.songs).toEqual(songs)
     expect(store.relatedPlaylists).toBeNull()
     expect(store.error).toBeNull()
+  })
+
+  it('loads playlist stats with the detail and keeps the playlist when stats fail', async () => {
+    const counts = {
+      commentCount: 128,
+      playCount: 128_000,
+      shareCount: 16,
+      subscribedCount: 88,
+    }
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistStats).mockResolvedValue(counts)
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+    await store.load(101)
+
+    expect(store.stats).toEqual(counts)
+    expect(store.statsError).toBeNull()
+    expect(getPlaylistStats).toHaveBeenCalledTimes(1)
+    expect(getPlaylistStats).toHaveBeenCalledWith(101)
+
+    vi.mocked(getPlaylistStats).mockReset()
+    vi.mocked(getPlaylistStats).mockRejectedValue(new Error('stats offline'))
+    store.reset()
+    await store.load(101)
+    await settle()
+    expect(store.playlist).toEqual(playlist)
+    expect(store.stats).toBeNull()
+    expect(store.statsError).toBe('stats offline')
+    expect(store.error).toBeNull()
+  })
+
+  it('retries playlist stats on a cached playlist and via loadStats', async () => {
+    const counts = {
+      commentCount: 128,
+      playCount: 128_000,
+      shareCount: 16,
+      subscribedCount: 88,
+    }
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistStats)
+      .mockRejectedValueOnce(new Error('stats offline'))
+      .mockResolvedValueOnce(counts)
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+    expect(store.statsError).toBe('stats offline')
+
+    await store.load(101)
+    await settle()
+    expect(store.stats).toEqual(counts)
+    expect(getPlaylistStats).toHaveBeenCalledTimes(2)
+
+    vi.mocked(getPlaylistStats)
+      .mockRejectedValueOnce(new Error('retry offline'))
+      .mockResolvedValueOnce(counts)
+    await store.loadStats(true)
+    await settle()
+    expect(store.stats).toEqual(counts)
+    expect(store.statsError).toBe('retry offline')
+    await store.loadStats(true)
+    await settle()
+    expect(store.stats).toEqual(counts)
+    expect(store.statsError).toBeNull()
+  })
+
+  it('drops in-flight playlist stats after reset', async () => {
+    const pending = deferred<{
+      commentCount: number
+      playCount: number
+      shareCount: number
+      subscribedCount: number
+    }>()
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistStats).mockReturnValueOnce(pending.promise)
+    const store = usePlaylistStore()
+    await store.load(101)
+    store.reset()
+    pending.resolve({
+      commentCount: 128,
+      playCount: 128_000,
+      shareCount: 16,
+      subscribedCount: 88,
+    })
+    await settle()
+    expect(store.stats).toBeNull()
+    expect(store.playlist).toBeNull()
   })
 
   it('retries related playlists on a cached playlist when the first related request failed', async () => {

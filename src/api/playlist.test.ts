@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { HttpClient } from '@/api/http'
 import {
   getPlaylistDetail,
+  getPlaylistStats,
   getPlaylistSubscriberPage,
   getPlaylistSubscribers,
   getPlaylistTracks,
@@ -324,5 +325,49 @@ describe('Playlist subscriber API', () => {
         }).client,
       ),
     ).resolves.toEqual([{ nickname: '林间电台', userId: 8 }])
+  })
+})
+
+describe('Playlist dynamic API', () => {
+  it('unwraps /playlist/detail/dynamic counts', async () => {
+    const request = client({
+      bookedCount: 50,
+      code: 200,
+      commentCount: 128,
+      extra: true,
+      playCount: 128_000,
+      shareCount: 16,
+      subscribedCount: 88,
+    })
+    await expect(getPlaylistStats(101, request.client)).resolves.toEqual({
+      commentCount: 128,
+      playCount: 128_000,
+      shareCount: 16,
+      subscribedCount: 88,
+    })
+    expect(request.get).toHaveBeenCalledWith('/playlist/detail/dynamic', { id: 101 })
+  })
+
+  it('falls back to bookedCount when subscribedCount is missing', async () => {
+    await expect(
+      getPlaylistStats(
+        101,
+        client({ bookedCount: 50, commentCount: 1, playCount: 2, shareCount: 3 }).client,
+      ),
+    ).resolves.toEqual({
+      commentCount: 1,
+      playCount: 2,
+      shareCount: 3,
+      subscribedCount: 50,
+    })
+  })
+
+  it('rejects a missing id or a body without count fields', async () => {
+    await expect(getPlaylistStats(0, client({}).client)).rejects.toThrow(
+      '缺少有效的歌单 ID',
+    )
+    await expect(
+      getPlaylistStats(101, client({ code: 200, playlist: {} }).client),
+    ).rejects.toThrow('歌单动态响应格式不正确')
   })
 })

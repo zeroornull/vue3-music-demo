@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { AlbumDetail } from '@/models/album'
+import MediaCountRow from '@/components/media/MediaCountRow.vue'
+import type { AlbumDetail, AlbumStats } from '@/models/album'
 import { Pages } from '@/router/pages'
 import { formatPublishDate } from '@/utils/number'
 
@@ -10,15 +11,20 @@ const props = withDefaults(
     album: AlbumDetail
     playable?: boolean
     songCount?: number | null
+    stats?: AlbumStats | null
+    statsError?: string | null
   }>(),
   {
     playable: false,
     songCount: null,
+    stats: null,
+    statsError: null,
   },
 )
 
 defineEmits<{
   'play-all': []
+  'retry-stats': []
 }>()
 
 const visibleTrackCount = computed(() =>
@@ -26,6 +32,16 @@ const visibleTrackCount = computed(() =>
 )
 
 const published = computed(() => formatPublishDate(props.album.publishTime))
+
+const extraCounts = computed(() => {
+  if (!props.stats) return []
+  return [
+    { key: 'comment', label: '条评论', value: props.stats.commentCount },
+    { key: 'subscribe', label: '人收藏', value: props.stats.subCount },
+    { key: 'like', label: '次点赞', value: props.stats.likedCount },
+    { key: 'share', label: '次分享', value: props.stats.shareCount },
+  ]
+})
 </script>
 
 <template>
@@ -58,6 +74,13 @@ const published = computed(() => formatPublishDate(props.album.publishTime))
       <p class="meta">
         <span>{{ visibleTrackCount }} 首</span>
       </p>
+      <MediaCountRow
+        error-title="专辑计数加载失败"
+        testid="album-stats"
+        :counts="extraCounts"
+        :error="statsError"
+        @retry="$emit('retry-stats')"
+      />
       <button
         type="button"
         data-testid="play-all"

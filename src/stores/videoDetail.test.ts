@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { COMMENT_LIMIT, getVideoCommentPage } from '@/api/comment'
-import { getRelatedVideos, getVideoDetail, getVideoUrl } from '@/api/video'
+import { getRelatedVideos, getVideoDetail, getVideoStats, getVideoUrl } from '@/api/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
 
 vi.mock('@/api/comment', () => ({
@@ -12,6 +12,7 @@ vi.mock('@/api/comment', () => ({
 vi.mock('@/api/video', () => ({
   getRelatedVideos: vi.fn(),
   getVideoDetail: vi.fn(),
+  getVideoStats: vi.fn(),
   getVideoUrl: vi.fn(),
 }))
 
@@ -66,6 +67,8 @@ describe('video detail store', () => {
     vi.mocked(getRelatedVideos).mockRejectedValue(new Error('no related'))
     vi.mocked(getVideoCommentPage).mockReset()
     vi.mocked(getVideoCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getVideoStats).mockReset()
+    vi.mocked(getVideoStats).mockRejectedValue(new Error('no stats'))
   })
 
   it('loads and caches a video url', async () => {
@@ -81,6 +84,7 @@ describe('video detail store', () => {
     vi.mocked(getVideoUrl).mockReturnValueOnce(pending.promise)
     const store = useVideoDetailStore()
     await expect(store.load('  ')).rejects.toThrow('缺少有效的视频 ID')
+    expect(getVideoStats).not.toHaveBeenCalled()
     const inflight = store.load('VID001')
     store.reset()
     pending.resolve(playback)
@@ -116,6 +120,83 @@ describe('video detail store', () => {
     expect(store.playback).toEqual(playback)
     expect(store.detail).toBeNull()
     expect(store.error).toBeNull()
+  })
+
+  it('loads video stats with the URL and keeps playback when stats fail', async () => {
+    const counts = {
+      commentCount: 18,
+      likedCount: 9,
+      playCount: 12_000,
+      shareCount: 3,
+    }
+    vi.mocked(getVideoStats).mockResolvedValue(counts)
+    const store = useVideoDetailStore()
+    await store.load('VID001')
+    await settle()
+    await store.load('VID001')
+    expect(store.stats).toEqual(counts)
+    expect(getVideoStats).toHaveBeenCalledTimes(1)
+    expect(getVideoStats).toHaveBeenCalledWith('VID001')
+
+    vi.mocked(getVideoStats).mockReset()
+    vi.mocked(getVideoStats).mockRejectedValue(new Error('stats offline'))
+    store.reset()
+    await store.load('VID001')
+    await settle()
+    expect(store.playback).toEqual(playback)
+    expect(store.stats).toBeNull()
+    expect(store.statsError).toBe('stats offline')
+    expect(store.error).toBeNull()
+  })
+
+  it('retries video stats on a cached URL and via loadStats', async () => {
+    const counts = {
+      commentCount: 18,
+      likedCount: 9,
+      playCount: 12_000,
+      shareCount: 3,
+    }
+    vi.mocked(getVideoStats)
+      .mockRejectedValueOnce(new Error('stats offline'))
+      .mockResolvedValueOnce(counts)
+    const store = useVideoDetailStore()
+    await store.load('VID001')
+    await settle()
+    await store.load('VID001')
+    await settle()
+    expect(store.stats).toEqual(counts)
+
+    vi.mocked(getVideoStats)
+      .mockRejectedValueOnce(new Error('retry offline'))
+      .mockResolvedValueOnce(counts)
+    await store.loadStats(true)
+    await settle()
+    expect(store.statsError).toBe('retry offline')
+    await store.loadStats(true)
+    await settle()
+    expect(store.statsError).toBeNull()
+  })
+
+  it('drops in-flight video stats after reset', async () => {
+    const pending = deferred<{
+      commentCount: number
+      likedCount: number
+      playCount: number
+      shareCount: number
+    }>()
+    vi.mocked(getVideoStats).mockReturnValueOnce(pending.promise)
+    const store = useVideoDetailStore()
+    await store.load('VID001')
+    store.reset()
+    pending.resolve({
+      commentCount: 18,
+      likedCount: 9,
+      playCount: 12_000,
+      shareCount: 3,
+    })
+    await settle()
+    expect(store.stats).toBeNull()
+    expect(store.playback).toBeNull()
   })
 
   it('retries detail on a cached URL when the first detail request failed', async () => {

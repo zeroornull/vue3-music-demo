@@ -34,3 +34,10 @@ export interface VideoDetail {
   title: string
   vid: string
 }
+
+export interface VideoStats {
+  commentCount: number
+  likedCount: number
+  playCount: number
+  shareCount: number
+}

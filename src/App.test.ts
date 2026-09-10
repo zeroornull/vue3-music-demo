@@ -563,6 +563,13 @@ describe('App host gate', () => {
         size: 1,
       },
     ]
+    albumStore.stats = {
+      commentCount: 24,
+      likedCount: 12,
+      shareCount: 6,
+      subCount: 40,
+    }
+    albumStore.statsError = 'stale'
     mountApp()
 
     useHostStore().clearHost()
@@ -572,6 +579,8 @@ describe('App host gate', () => {
     expect(albumStore.songs).toHaveLength(0)
     expect(albumStore.loadedId).toBeNull()
     expect(albumStore.relatedAlbums).toBeNull()
+    expect(albumStore.stats).toBeNull()
+    expect(albumStore.statsError).toBeNull()
   })
 
   it('clears music-hall top-list cache when the host gate closes', async () => {
@@ -639,6 +648,13 @@ describe('App host gate', () => {
     mvStore.commentsMoreError = 'stale'
     mvStore.commentsMoreLoading = true
     mvStore.commentOffset = 20
+    mvStore.stats = {
+      commentCount: 128,
+      likedCount: 64,
+      playCount: 3_280_000,
+      shareCount: 32,
+    }
+    mvStore.statsError = 'stale'
     mountApp()
 
     useHostStore().clearHost()
@@ -651,6 +667,8 @@ describe('App host gate', () => {
     expect(mvStore.commentsMoreError).toBeNull()
     expect(mvStore.commentsMoreLoading).toBe(false)
     expect(mvStore.commentOffset).toBe(0)
+    expect(mvStore.stats).toBeNull()
+    expect(mvStore.statsError).toBeNull()
   })
 
   it('clears video playback cache when the host gate closes', async () => {
@@ -668,6 +686,13 @@ describe('App host gate', () => {
     videoDetailStore.commentsMoreError = 'stale'
     videoDetailStore.commentsMoreLoading = true
     videoDetailStore.commentOffset = 20
+    videoDetailStore.stats = {
+      commentCount: 18,
+      likedCount: 9,
+      playCount: 12_000,
+      shareCount: 3,
+    }
+    videoDetailStore.statsError = 'stale'
     mountApp()
 
     useHostStore().clearHost()
@@ -680,6 +705,8 @@ describe('App host gate', () => {
     expect(videoDetailStore.commentsMoreError).toBeNull()
     expect(videoDetailStore.commentsMoreLoading).toBe(false)
     expect(videoDetailStore.commentOffset).toBe(0)
+    expect(videoDetailStore.stats).toBeNull()
+    expect(videoDetailStore.statsError).toBeNull()
   })
 
   it('clears playlist cache when the host gate closes', async () => {
@@ -712,6 +739,13 @@ describe('App host gate', () => {
     playlistStore.subscribersMoreError = 'stale'
     playlistStore.subscribersMoreLoading = true
     playlistStore.subscriberOffset = 20
+    playlistStore.stats = {
+      commentCount: 128,
+      playCount: 256_000,
+      shareCount: 16,
+      subscribedCount: 88,
+    }
+    playlistStore.statsError = 'stale'
     mountApp()
 
     useHostStore().clearHost()
@@ -730,6 +764,8 @@ describe('App host gate', () => {
     expect(playlistStore.subscribersMoreError).toBeNull()
     expect(playlistStore.subscribersMoreLoading).toBe(false)
     expect(playlistStore.subscriberOffset).toBe(0)
+    expect(playlistStore.stats).toBeNull()
+    expect(playlistStore.statsError).toBeNull()
   })
 
   it('clears active playback when the host gate closes', async () => {

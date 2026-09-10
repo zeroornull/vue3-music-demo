@@ -7,7 +7,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getVideoCommentPage } from '@/api/comment'
-import { getRelatedVideos, getVideoDetail, getVideoUrl } from '@/api/video'
+import { getRelatedVideos, getVideoDetail, getVideoStats, getVideoUrl } from '@/api/video'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useVideoStore } from '@/stores/video'
@@ -20,6 +20,7 @@ vi.mock('@/api/comment', () => ({
 vi.mock('@/api/video', () => ({
   getRelatedVideos: vi.fn(),
   getVideoDetail: vi.fn(),
+  getVideoStats: vi.fn(),
   getVideoUrl: vi.fn(),
 }))
 
@@ -83,6 +84,8 @@ describe('VideoDetailView', () => {
     vi.mocked(getRelatedVideos).mockRejectedValue(new Error('no related'))
     vi.mocked(getVideoCommentPage).mockReset()
     vi.mocked(getVideoCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getVideoStats).mockReset()
+    vi.mocked(getVideoStats).mockRejectedValue(new Error('no stats'))
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -204,6 +207,31 @@ describe('VideoDetailView', () => {
       name: Pages.videoDetail,
       query: { id: 'VID002' },
     })
+  })
+
+  it('loads and retries video stats without blocking playback', async () => {
+    vi.mocked(getVideoStats)
+      .mockRejectedValueOnce(new Error('stats offline'))
+      .mockResolvedValueOnce({
+        commentCount: 18,
+        likedCount: 9,
+        playCount: 12_000,
+        shareCount: 3,
+      })
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="mv-player"]').attributes('src')).toBe(
+      playback.url,
+    )
+    expect(wrapper.get('[data-testid="video-stats-error"]').text()).toContain(
+      '视频计数加载失败',
+    )
+
+    await wrapper.get('[data-testid="video-stats-retry"]').trigger('click')
+    await flushPromises()
+    expect(getVideoStats).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="video-stats-comment"]').text()).toContain('18')
+    expect(wrapper.find('[data-testid="video-stats-retry"]').exists()).toBe(false)
   })
 
   it('hides related videos when the list is empty', async () => {

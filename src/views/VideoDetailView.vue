@@ -3,6 +3,7 @@ import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
+import MediaCountRow from '@/components/media/MediaCountRow.vue'
 import MvPlayer from '@/components/mv/MvPlayer.vue'
 import VideoClipCard from '@/components/video/VideoClipCard.vue'
 import { Pages } from '@/router/pages'
@@ -22,6 +23,8 @@ const {
   commentsMore,
   commentsMoreLoading,
   commentsMoreError,
+  stats,
+  statsError,
   loading,
   error,
 } = storeToRefs(detailStore)
@@ -45,6 +48,21 @@ const creator = computed(() => related.value?.creatorName || '')
 function loadMoreComments() {
   void detailStore.loadMoreComments().catch(() => undefined)
 }
+
+function retryStats() {
+  void detailStore.loadStats(true).catch(() => undefined)
+}
+
+const extraCounts = computed(() => {
+  const next = stats.value
+  if (!next) return []
+  return [
+    { key: 'play', label: '次播放', value: next.playCount },
+    { key: 'comment', label: '条评论', value: next.commentCount },
+    { key: 'like', label: '次点赞', value: next.likedCount },
+    { key: 'share', label: '次分享', value: next.shareCount },
+  ]
+})
 
 function requestVideo(force = false) {
   const id = videoId.value
@@ -114,6 +132,13 @@ watch(
         <p class="eyebrow">Video</p>
         <h1>{{ title }}</h1>
         <p v-if="creator">{{ creator }}</p>
+        <MediaCountRow
+          error-title="视频计数加载失败"
+          testid="video-stats"
+          :counts="extraCounts"
+          :error="statsError"
+          @retry="retryStats"
+        />
       </header>
       <p v-if="error" class="notice error-notice" role="alert">{{ error }}</p>
       <MvPlayer

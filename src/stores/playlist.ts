@@ -5,6 +5,7 @@ import { getErrorMessage } from '@/api/http'
 import { COMMENT_LIMIT, getPlaylistCommentPage } from '@/api/comment'
 import {
   getPlaylistDetail,
+  getPlaylistStats,
   getPlaylistSubscriberPage,
   getPlaylistTracks,
   getRelatedPlaylists,
@@ -13,6 +14,7 @@ import {
 import type { MediaComment } from '@/models/comment'
 import type {
   PlaylistDetail,
+  PlaylistStats,
   PlaylistSubscriber,
   RelatedPlaylist,
 } from '@/models/playlist'
@@ -21,6 +23,7 @@ import type { Song } from '@/models/song'
 let requestSerial = 0
 let commentsMoreSerial = 0
 let subscribersMoreSerial = 0
+let statsSerial = 0
 
 export const usePlaylistStore = defineStore('playlist', () => {
   const playlist = ref<PlaylistDetail | null>(null)
@@ -36,6 +39,8 @@ export const usePlaylistStore = defineStore('playlist', () => {
   const subscribersMoreLoading = ref(false)
   const subscribersMoreError = ref<string | null>(null)
   const subscriberOffset = ref(0)
+  const stats = ref<PlaylistStats | null>(null)
+  const statsError = ref<string | null>(null)
   const error = ref<string | null>(null)
   const loading = ref(false)
   const loadedId = ref<number | null>(null)
@@ -52,6 +57,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
   function reset() {
     requestSerial++
     commentsMoreSerial++
+    statsSerial++
     resetSubscribersPaging()
     playlist.value = null
     songs.value = []
@@ -62,6 +68,8 @@ export const usePlaylistStore = defineStore('playlist', () => {
     commentsMoreError.value = null
     commentOffset.value = 0
     subscribers.value = null
+    stats.value = null
+    statsError.value = null
     loadedId.value = null
     error.value = null
     loading.value = false
@@ -78,6 +86,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
       if (relatedPlaylists.value === null) requestRelated(id, requestSerial)
       if (comments.value === null) requestComments(id, requestSerial)
       if (subscribers.value === null) requestSubscribers(id, requestSerial)
+      if (stats.value === null) requestStats(id, requestSerial)
       return true
     }
 
@@ -94,6 +103,8 @@ export const usePlaylistStore = defineStore('playlist', () => {
       relatedPlaylists.value = null
       comments.value = null
       subscribers.value = null
+      stats.value = null
+      statsError.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -110,6 +121,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
       requestRelated(id, serial)
       requestComments(id, serial)
       requestSubscribers(id, serial)
+      requestStats(id, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -181,6 +193,30 @@ export const usePlaylistStore = defineStore('playlist', () => {
       })
   }
 
+  function requestStats(id: number, loadSerial: number) {
+    const serial = ++statsSerial
+    statsError.value = null
+    void getPlaylistStats(id)
+      .then((next) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== statsSerial) return
+        if (loadedId.value !== id) return
+        stats.value = next
+      })
+      .catch((requestError) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== statsSerial) return
+        statsError.value = getErrorMessage(requestError)
+      })
+  }
+
+  async function loadStats(force = false) {
+    const id = loadedId.value
+    if (id === null) return
+    if (!force && stats.value && !statsError.value) return
+    requestStats(id, requestSerial)
+  }
+
   function requestSubscribers(id: number, serial: number) {
     const moreSerial = subscribersMoreSerial
     void Promise.resolve(getPlaylistSubscriberPage(id, 0))
@@ -234,6 +270,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     load,
     loadMoreComments,
     loadMoreSubscribers,
+    loadStats,
     reset,
     playlist,
     songs,
@@ -248,6 +285,8 @@ export const usePlaylistStore = defineStore('playlist', () => {
     subscribersMoreLoading,
     subscribersMoreError,
     subscriberOffset,
+    stats,
+    statsError,
     error,
     loading,
     loadedId,

@@ -7,7 +7,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getMvCommentPage } from '@/api/comment'
-import { getMvDetail, getMvUrl, getSimiMvs } from '@/api/mv'
+import { getMvDetail, getMvStats, getMvUrl, getSimiMvs } from '@/api/mv'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useMvStore } from '@/stores/mv'
@@ -20,6 +20,7 @@ vi.mock('@/api/comment', () => ({
 }))
 vi.mock('@/api/mv', () => ({
   getMvDetail: vi.fn(),
+  getMvStats: vi.fn(),
   getMvUrl: vi.fn(),
   getSimiMvs: vi.fn(),
 }))
@@ -99,6 +100,8 @@ describe('MvView', () => {
     vi.mocked(getSimiMvs).mockRejectedValue(new Error('no simi'))
     vi.mocked(getMvCommentPage).mockReset()
     vi.mocked(getMvCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getMvStats).mockReset()
+    vi.mocked(getMvStats).mockRejectedValue(new Error('no stats'))
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -349,6 +352,31 @@ describe('MvView', () => {
       name: Pages.mvDetail,
       query: { id: 702 },
     })
+  })
+
+  it('loads and retries MV stats without blocking playback', async () => {
+    vi.mocked(getMvStats)
+      .mockRejectedValueOnce(new Error('stats offline'))
+      .mockResolvedValueOnce({
+        commentCount: 128,
+        likedCount: 64,
+        playCount: 3_280_000,
+        shareCount: 32,
+      })
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="mv-player"]').attributes('src')).toBe(
+      playback.url,
+    )
+    expect(wrapper.get('[data-testid="mv-stats-error"]').text()).toContain(
+      'MV 计数加载失败',
+    )
+
+    await wrapper.get('[data-testid="mv-stats-retry"]').trigger('click')
+    await flushPromises()
+    expect(getMvStats).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="mv-stats-comment"]').text()).toContain('128')
+    expect(wrapper.find('[data-testid="mv-stats-retry"]').exists()).toBe(false)
   })
 
   it('hides related MVs when the list is empty', async () => {

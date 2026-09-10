@@ -83,4 +83,33 @@ describe('AlbumHeader', () => {
     expect(wrapper.find('[data-testid="song-artist"]').exists()).toBe(false)
     expect(wrapper.get('.artist').text()).toBe('未入驻歌手')
   })
+
+  it('renders album dynamic counts', () => {
+    const wrapper = mount(AlbumHeader, {
+      props: {
+        album,
+        playable: true,
+        stats: {
+          commentCount: 24,
+          likedCount: 12,
+          shareCount: 6,
+          subCount: 40,
+        },
+      },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.get('[data-testid="album-stats-comment"]').text()).toContain('24')
+    expect(wrapper.get('[data-testid="album-stats-subscribe"]').text()).toContain('40')
+    expect(wrapper.get('[data-testid="album-stats-like"]').text()).toContain('12')
+    expect(wrapper.get('[data-testid="album-stats-share"]').text()).toContain('6')
+  })
+
+  it('retries failed album stats', async () => {
+    const wrapper = mount(AlbumHeader, {
+      props: { album, playable: true, statsError: 'stats offline' },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    await wrapper.get('[data-testid="album-stats-retry"]').trigger('click')
+    expect(wrapper.emitted('retry-stats')).toHaveLength(1)
+  })
 })

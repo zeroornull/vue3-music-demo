@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { PlaylistDetail } from '@/models/playlist'
+import MediaCountRow from '@/components/media/MediaCountRow.vue'
+import type { PlaylistDetail, PlaylistStats } from '@/models/playlist'
 import { Pages } from '@/router/pages'
 import { formatPlayCount } from '@/utils/number'
 
@@ -10,10 +11,14 @@ const props = withDefaults(
     playable?: boolean
     playlist: PlaylistDetail
     songCount?: number | null
+    stats?: PlaylistStats | null
+    statsError?: string | null
   }>(),
   {
     playable: false,
     songCount: null,
+    stats: null,
+    statsError: null,
   },
 )
 
@@ -27,8 +32,22 @@ const tags = computed(() =>
     .filter((tag) => tag.length > 0),
 )
 
+const playCount = computed(() =>
+  props.stats ? props.stats.playCount : props.playlist.playCount,
+)
+
+const extraCounts = computed(() => {
+  if (!props.stats) return []
+  return [
+    { key: 'comment', label: '条评论', value: props.stats.commentCount },
+    { key: 'subscribe', label: '人收藏', value: props.stats.subscribedCount },
+    { key: 'share', label: '次分享', value: props.stats.shareCount },
+  ]
+})
+
 defineEmits<{
   'play-all': []
+  'retry-stats': []
 }>()
 </script>
 
@@ -67,11 +86,18 @@ defineEmits<{
       </p>
       <p v-if="playlist.description" class="description">{{ playlist.description }}</p>
       <p class="meta">
-        <span :aria-label="`播放量 ${formatPlayCount(playlist.playCount)}`">
-          {{ formatPlayCount(playlist.playCount) }} 次播放
+        <span :aria-label="`播放量 ${formatPlayCount(playCount)}`">
+          {{ formatPlayCount(playCount) }} 次播放
         </span>
         <span>{{ visibleTrackCount }} 首</span>
       </p>
+      <MediaCountRow
+        error-title="歌单计数加载失败"
+        testid="playlist-stats"
+        :counts="extraCounts"
+        :error="statsError"
+        @retry="$emit('retry-stats')"
+      />
       <button
         type="button"
         data-testid="play-all"

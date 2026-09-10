@@ -97,4 +97,38 @@ describe('PlaylistHeader', () => {
     expect(wrapper.findAll('[data-testid="playlist-tag"]')).toHaveLength(1)
     expect(wrapper.get('[data-testid="playlist-tag"]').text()).toBe('#独立')
   })
+
+  it('renders dynamic counts and prefers the live play count', async () => {
+    const wrapper = mount(PlaylistHeader, {
+      props: {
+        playable: true,
+        playlist,
+        stats: {
+          commentCount: 128,
+          playCount: 256_000,
+          shareCount: 16,
+          subscribedCount: 88,
+        },
+      },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.text()).toContain('25.6 万')
+    expect(wrapper.text()).not.toContain('12.8 万')
+    expect(wrapper.get('[data-testid="playlist-stats-comment"]').text()).toContain(
+      '128',
+    )
+    expect(wrapper.get('[data-testid="playlist-stats-subscribe"]').text()).toContain(
+      '88',
+    )
+    expect(wrapper.get('[data-testid="playlist-stats-share"]').text()).toContain('16')
+  })
+
+  it('retries failed playlist stats', async () => {
+    const wrapper = mount(PlaylistHeader, {
+      props: { playable: true, playlist, statsError: 'stats offline' },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    await wrapper.get('[data-testid="playlist-stats-retry"]').trigger('click')
+    expect(wrapper.emitted('retry-stats')).toHaveLength(1)
+  })
 })

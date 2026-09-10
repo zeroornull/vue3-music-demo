@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getAlbum } from '@/api/album'
+import { getAlbum, getAlbumStats } from '@/api/album'
 import { getArtistAlbums } from '@/api/artist'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -15,6 +15,7 @@ import AlbumView from '@/views/AlbumView.vue'
 
 vi.mock('@/api/album', () => ({
   getAlbum: vi.fn(),
+  getAlbumStats: vi.fn(),
 }))
 
 vi.mock('@/api/artist', async (importOriginal) => {
@@ -56,11 +57,17 @@ const songs = [
 
 const HeaderStub = defineComponent({
   name: 'AlbumHeader',
-  props: ['album', 'playable'],
-  emits: ['play-all'],
+  props: ['album', 'playable', 'stats', 'statsError'],
+  emits: ['play-all', 'retry-stats'],
   template: `
     <section data-testid="album-header">
       <h1>{{ album.name }}</h1>
+      <span v-if="stats" data-testid="album-stats-comment">{{ stats.commentCount }}</span>
+      <button
+        v-if="statsError"
+        data-testid="album-stats-retry"
+        @click="$emit('retry-stats')"
+      >retry stats</button>
       <button data-testid="play-all" :disabled="!playable" @click="$emit('play-all')">play all</button>
     </section>
   `,
@@ -115,6 +122,8 @@ describe('AlbumView', () => {
     vi.mocked(getAlbum).mockResolvedValue({ album, songs })
     vi.mocked(getArtistAlbums).mockReset()
     vi.mocked(getArtistAlbums).mockRejectedValue(new Error('no albums'))
+    vi.mocked(getAlbumStats).mockReset()
+    vi.mocked(getAlbumStats).mockRejectedValue(new Error('no stats'))
   })
 
   it('shows a missing-id empty state', async () => {
@@ -246,6 +255,28 @@ describe('AlbumView', () => {
     expect(related.get('[aria-label="打开专辑：晨雾"]').attributes('href')).toContain(
       'album?id=502',
     )
+  })
+
+  it('loads and retries album stats without blocking songs', async () => {
+    const counts = {
+      commentCount: 24,
+      likedCount: 12,
+      shareCount: 6,
+      subCount: 40,
+    }
+    vi.mocked(getAlbumStats)
+      .mockRejectedValueOnce(new Error('stats offline'))
+      .mockResolvedValueOnce(counts)
+    const wrapper = await mountView({ id: '501' })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="album-stats-retry"]').text()).toContain(
+      'retry stats',
+    )
+
+    await wrapper.get('[data-testid="album-stats-retry"]').trigger('click')
+    await flushPromises()
+    expect(getAlbumStats).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="album-stats-comment"]').text()).toBe('24')
   })
 
   it('hides more albums when the list is empty', async () => {

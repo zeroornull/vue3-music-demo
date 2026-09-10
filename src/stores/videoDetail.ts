@@ -3,12 +3,13 @@ import { defineStore } from 'pinia'
 
 import { COMMENT_LIMIT, getVideoCommentPage } from '@/api/comment'
 import { getErrorMessage } from '@/api/http'
-import { getRelatedVideos, getVideoDetail, getVideoUrl } from '@/api/video'
+import { getRelatedVideos, getVideoDetail, getVideoStats, getVideoUrl } from '@/api/video'
 import type { MediaComment } from '@/models/comment'
-import type { HallVideo, VideoDetail, VideoUrl } from '@/models/video'
+import type { HallVideo, VideoDetail, VideoStats, VideoUrl } from '@/models/video'
 
 let requestSerial = 0
 let commentsMoreSerial = 0
+let statsSerial = 0
 
 export const useVideoDetailStore = defineStore('videoDetail', () => {
   const playback = ref<VideoUrl | null>(null)
@@ -19,6 +20,8 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
   const commentsMoreLoading = ref(false)
   const commentsMoreError = ref<string | null>(null)
   const commentOffset = ref(0)
+  const stats = ref<VideoStats | null>(null)
+  const statsError = ref<string | null>(null)
   const error = ref<string | null>(null)
   const loading = ref(false)
   const loadedId = ref<string | null>(null)
@@ -26,6 +29,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
   function reset() {
     requestSerial++
     commentsMoreSerial++
+    statsSerial++
     playback.value = null
     detail.value = null
     relatedVideos.value = null
@@ -34,6 +38,8 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
     commentsMoreLoading.value = false
     commentsMoreError.value = null
     commentOffset.value = 0
+    stats.value = null
+    statsError.value = null
     loadedId.value = null
     error.value = null
     loading.value = false
@@ -51,6 +57,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
       if (!detail.value) requestDetail(vid, requestSerial)
       if (relatedVideos.value === null) requestRelated(vid, requestSerial)
       if (comments.value === null) requestComments(vid, requestSerial)
+      if (stats.value === null) requestStats(vid, requestSerial)
       return true
     }
 
@@ -65,6 +72,8 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
       detail.value = null
       relatedVideos.value = null
       comments.value = null
+      stats.value = null
+      statsError.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -77,6 +86,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
       requestDetail(vid, serial)
       requestRelated(vid, serial)
       requestComments(vid, serial)
+      requestStats(vid, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -97,6 +107,30 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
       .catch(() => {
         if (serial !== requestSerial) return
       })
+  }
+
+  function requestStats(id: string, loadSerial: number) {
+    const serial = ++statsSerial
+    statsError.value = null
+    void getVideoStats(id)
+      .then((next) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== statsSerial) return
+        if (loadedId.value !== id) return
+        stats.value = next
+      })
+      .catch((requestError) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== statsSerial) return
+        statsError.value = getErrorMessage(requestError)
+      })
+  }
+
+  async function loadStats(force = false) {
+    const id = loadedId.value
+    if (id === null) return
+    if (!force && stats.value && !statsError.value) return
+    requestStats(id, requestSerial)
   }
 
   function requestRelated(id: string, serial: number) {
@@ -163,6 +197,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
   return {
     load,
     loadMoreComments,
+    loadStats,
     reset,
     playback,
     detail,
@@ -172,6 +207,8 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
     commentsMoreLoading,
     commentsMoreError,
     commentOffset,
+    stats,
+    statsError,
     error,
     loading,
     loadedId,

@@ -1,28 +1,34 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { getAlbum } from '@/api/album'
+import { getAlbum, getAlbumStats } from '@/api/album'
 import { getArtistAlbums } from '@/api/artist'
 import { getErrorMessage } from '@/api/http'
-import type { AlbumDetail } from '@/models/album'
+import type { AlbumDetail, AlbumStats } from '@/models/album'
 import type { ArtistAlbum } from '@/models/artist'
 import type { Song } from '@/models/song'
 
 let requestSerial = 0
+let statsSerial = 0
 
 export const useAlbumStore = defineStore('album', () => {
   const album = ref<AlbumDetail | null>(null)
   const songs = ref<Song[]>([])
   const relatedAlbums = ref<ArtistAlbum[] | null>(null)
+  const stats = ref<AlbumStats | null>(null)
+  const statsError = ref<string | null>(null)
   const error = ref<string | null>(null)
   const loading = ref(false)
   const loadedId = ref<number | null>(null)
 
   function reset() {
     requestSerial++
+    statsSerial++
     album.value = null
     songs.value = []
     relatedAlbums.value = null
+    stats.value = null
+    statsError.value = null
     loadedId.value = null
     error.value = null
     loading.value = false
@@ -37,6 +43,7 @@ export const useAlbumStore = defineStore('album', () => {
 
     if (!force && loadedId.value === id && album.value && !error.value) {
       if (relatedAlbums.value === null) requestRelated(id, album.value)
+      if (stats.value === null) requestStats(id, requestSerial)
       return true
     }
 
@@ -45,6 +52,8 @@ export const useAlbumStore = defineStore('album', () => {
       album.value = null
       songs.value = []
       relatedAlbums.value = null
+      stats.value = null
+      statsError.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -56,6 +65,7 @@ export const useAlbumStore = defineStore('album', () => {
       songs.value = page.songs
       loadedId.value = id
       requestRelated(id, page.album)
+      requestStats(id, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -69,6 +79,30 @@ export const useAlbumStore = defineStore('album', () => {
   function artistIdOf(detail: AlbumDetail): number | null {
     const id = detail.artist.id
     return typeof id === 'number' && Number.isInteger(id) && id > 0 ? id : null
+  }
+
+  function requestStats(id: number, loadSerial: number) {
+    const serial = ++statsSerial
+    statsError.value = null
+    void getAlbumStats(id)
+      .then((next) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== statsSerial) return
+        if (loadedId.value !== id) return
+        stats.value = next
+      })
+      .catch((requestError) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== statsSerial) return
+        statsError.value = getErrorMessage(requestError)
+      })
+  }
+
+  async function loadStats(force = false) {
+    const id = loadedId.value
+    if (id === null) return
+    if (!force && stats.value && !statsError.value) return
+    requestStats(id, requestSerial)
   }
 
   function requestRelated(albumId: number, detail: AlbumDetail) {
@@ -90,5 +124,17 @@ export const useAlbumStore = defineStore('album', () => {
       .catch(() => undefined)
   }
 
-  return { load, reset, album, songs, relatedAlbums, error, loading, loadedId }
+  return {
+    load,
+    loadStats,
+    reset,
+    album,
+    songs,
+    relatedAlbums,
+    stats,
+    statsError,
+    error,
+    loading,
+    loadedId,
+  }
 })

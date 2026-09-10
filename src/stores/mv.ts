@@ -3,12 +3,13 @@ import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
 import { COMMENT_LIMIT, getMvCommentPage } from '@/api/comment'
-import { getMvDetail, getMvUrl, getSimiMvs } from '@/api/mv'
+import { getMvDetail, getMvStats, getMvUrl, getSimiMvs } from '@/api/mv'
 import type { MediaComment } from '@/models/comment'
-import type { MvDetail, MvUrl, SimiMv } from '@/models/mv'
+import type { MvDetail, MvStats, MvUrl, SimiMv } from '@/models/mv'
 
 let requestSerial = 0
 let commentsMoreSerial = 0
+let statsSerial = 0
 
 export const useMvStore = defineStore('mv', () => {
   const playback = ref<MvUrl | null>(null)
@@ -19,6 +20,8 @@ export const useMvStore = defineStore('mv', () => {
   const commentsMoreLoading = ref(false)
   const commentsMoreError = ref<string | null>(null)
   const commentOffset = ref(0)
+  const stats = ref<MvStats | null>(null)
+  const statsError = ref<string | null>(null)
   const error = ref<string | null>(null)
   const loading = ref(false)
   const loadedId = ref<number | null>(null)
@@ -26,6 +29,7 @@ export const useMvStore = defineStore('mv', () => {
   function reset() {
     requestSerial++
     commentsMoreSerial++
+    statsSerial++
     playback.value = null
     detail.value = null
     relatedMvs.value = null
@@ -34,6 +38,8 @@ export const useMvStore = defineStore('mv', () => {
     commentsMoreLoading.value = false
     commentsMoreError.value = null
     commentOffset.value = 0
+    stats.value = null
+    statsError.value = null
     loadedId.value = null
     error.value = null
     loading.value = false
@@ -50,6 +56,7 @@ export const useMvStore = defineStore('mv', () => {
       if (!detail.value) requestDetail(id, requestSerial)
       if (relatedMvs.value === null) requestRelated(id, requestSerial)
       if (comments.value === null) requestComments(id, requestSerial)
+      if (stats.value === null) requestStats(id, requestSerial)
       return true
     }
 
@@ -64,6 +71,8 @@ export const useMvStore = defineStore('mv', () => {
       detail.value = null
       relatedMvs.value = null
       comments.value = null
+      stats.value = null
+      statsError.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -76,6 +85,7 @@ export const useMvStore = defineStore('mv', () => {
       requestDetail(id, serial)
       requestRelated(id, serial)
       requestComments(id, serial)
+      requestStats(id, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -147,6 +157,30 @@ export const useMvStore = defineStore('mv', () => {
     }
   }
 
+  function requestStats(id: number, loadSerial: number) {
+    const serial = ++statsSerial
+    statsError.value = null
+    void getMvStats(id)
+      .then((next) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== statsSerial) return
+        if (loadedId.value !== id) return
+        stats.value = next
+      })
+      .catch((requestError) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== statsSerial) return
+        statsError.value = getErrorMessage(requestError)
+      })
+  }
+
+  async function loadStats(force = false) {
+    const id = loadedId.value
+    if (id === null) return
+    if (!force && stats.value && !statsError.value) return
+    requestStats(id, requestSerial)
+  }
+
   function requestRelated(id: number, serial: number) {
     void getSimiMvs(id)
       .then((list) => {
@@ -162,6 +196,7 @@ export const useMvStore = defineStore('mv', () => {
   return {
     load,
     loadMoreComments,
+    loadStats,
     reset,
     playback,
     detail,
@@ -171,6 +206,8 @@ export const useMvStore = defineStore('mv', () => {
     commentsMoreLoading,
     commentsMoreError,
     commentOffset,
+    stats,
+    statsError,
     error,
     loading,
     loadedId,

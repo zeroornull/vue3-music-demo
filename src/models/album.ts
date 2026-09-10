@@ -20,6 +20,13 @@ export interface AlbumPage {
   songs: Song[]
 }
 
+export interface AlbumStats {
+  commentCount: number
+  likedCount: number
+  shareCount: number
+  subCount: number
+}
+
 export interface NewestAlbum {
   artist: AlbumArtist
   id: number

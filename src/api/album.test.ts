@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { getAlbum, getNewestAlbums, getTopAlbums, NEWEST_ALBUM_LIMIT, TOP_ALBUM_LIMIT } from '@/api/album'
+import {
+  getAlbum,
+  getAlbumStats,
+  getNewestAlbums,
+  getTopAlbums,
+  NEWEST_ALBUM_LIMIT,
+  TOP_ALBUM_LIMIT,
+} from '@/api/album'
 
 const client = (response: unknown) => {
   const get = vi.fn(async <T>(_path: string, _params?: unknown) => response as T)
@@ -230,5 +237,47 @@ describe('Top album API', () => {
         publishTime: 0,
       },
     ])
+  })
+})
+
+describe('Album dynamic API', () => {
+  it('unwraps /album/detail/dynamic counts', async () => {
+    const request = client({
+      code: 200,
+      commentCount: 24,
+      extra: true,
+      isSub: false,
+      likedCount: 12,
+      shareCount: 6,
+      subCount: 40,
+    })
+    await expect(getAlbumStats(501, request.client)).resolves.toEqual({
+      commentCount: 24,
+      likedCount: 12,
+      shareCount: 6,
+      subCount: 40,
+    })
+    expect(request.get).toHaveBeenCalledWith('/album/detail/dynamic', { id: 501 })
+  })
+
+  it('unwraps nested data and rejects a missing id or empty body', async () => {
+    await expect(
+      getAlbumStats(
+        501,
+        client({ data: { commentCount: 1, likedCount: 2, shareCount: 3, subCount: 4 } })
+          .client,
+      ),
+    ).resolves.toEqual({
+      commentCount: 1,
+      likedCount: 2,
+      shareCount: 3,
+      subCount: 4,
+    })
+    await expect(getAlbumStats(0, client({}).client)).rejects.toThrow(
+      '缺少有效的专辑 ID',
+    )
+    await expect(getAlbumStats(501, client({ album: {} }).client)).rejects.toThrow(
+      '专辑动态响应格式不正确',
+    )
   })
 })

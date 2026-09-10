@@ -29,3 +29,10 @@ export interface PlaylistSubscriber {
   nickname: string
   avatarUrl?: string
 }
+
+export interface PlaylistStats {
+  commentCount: number
+  playCount: number
+  shareCount: number
+  subscribedCount: number
+}

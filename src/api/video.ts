@@ -1,10 +1,12 @@
 import { http, type HttpClient } from '@/api/http'
+import { readCount, unwrapStatsRecord } from '@/api/mediaStats'
 import {
   VIDEO_HALL_PAGE_SIZE,
   type HallVideo,
   type HallVideoPage,
   type VideoDetail,
   type VideoGroup,
+  type VideoStats,
   type VideoUrl,
 } from '@/models/video'
 
@@ -178,4 +180,26 @@ export async function getRelatedVideos(
   return response.data
     .map(readClip)
     .filter((item): item is HallVideo => item !== null)
+}
+
+export async function getVideoStats(
+  id: string,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<VideoStats> {
+  const vid = id.trim()
+  if (!vid) throw new Error('缺少有效的视频 ID')
+  const response = await client.get<unknown>('/video/detail/info', { vid })
+  const raw = unwrapStatsRecord(response)
+  if (!raw) {
+    throw new Error('视频计数响应格式不正确')
+  }
+  return {
+    commentCount: readCount(raw.commentCount),
+    likedCount: readCount(raw.likedCount),
+    playCount:
+      typeof raw.playCount === 'number'
+        ? readCount(raw.playCount)
+        : readCount(raw.playTime),
+    shareCount: readCount(raw.shareCount),
+  }
 }

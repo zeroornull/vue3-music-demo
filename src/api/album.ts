@@ -1,5 +1,6 @@
 import { http, type HttpClient } from '@/api/http'
-import type { AlbumDetail, AlbumPage, NewestAlbum } from '@/models/album'
+import { readCount, unwrapStatsRecord } from '@/api/mediaStats'
+import type { AlbumDetail, AlbumPage, AlbumStats, NewestAlbum } from '@/models/album'
 import { normalizeSong, type NetworkSong, type Song } from '@/models/song'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -125,4 +126,24 @@ export async function getTopAlbums(
     .map(readNewestAlbum)
     .filter((item): item is NewestAlbum => item !== null)
   return (mappedWeek.length ? mappedWeek : mappedMonth).slice(0, TOP_ALBUM_LIMIT)
+}
+
+export async function getAlbumStats(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<AlbumStats> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的专辑 ID')
+  }
+  const response = await client.get<unknown>('/album/detail/dynamic', { id })
+  const raw = unwrapStatsRecord(response)
+  if (!raw) {
+    throw new Error('专辑动态响应格式不正确')
+  }
+  return {
+    commentCount: readCount(raw.commentCount),
+    likedCount: readCount(raw.likedCount),
+    shareCount: readCount(raw.shareCount),
+    subCount: readCount(raw.subCount),
+  }
 }

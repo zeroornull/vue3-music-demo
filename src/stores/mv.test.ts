@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { COMMENT_LIMIT, getMvCommentPage } from '@/api/comment'
-import { getMvDetail, getMvUrl, getSimiMvs } from '@/api/mv'
+import { getMvDetail, getMvStats, getMvUrl, getSimiMvs } from '@/api/mv'
 import { useMvStore } from '@/stores/mv'
 
 vi.mock('@/api/comment', () => ({
@@ -11,6 +11,7 @@ vi.mock('@/api/comment', () => ({
 }))
 vi.mock('@/api/mv', () => ({
   getMvDetail: vi.fn(),
+  getMvStats: vi.fn(),
   getMvUrl: vi.fn(),
   getSimiMvs: vi.fn(),
 }))
@@ -69,6 +70,8 @@ describe('mv store', () => {
     vi.mocked(getSimiMvs).mockRejectedValue(new Error('no simi'))
     vi.mocked(getMvCommentPage).mockReset()
     vi.mocked(getMvCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getMvStats).mockReset()
+    vi.mocked(getMvStats).mockRejectedValue(new Error('no stats'))
   })
 
   it('loads an MV URL and caches the same id', async () => {
@@ -179,6 +182,88 @@ describe('mv store', () => {
     expect(store.detail).toBeNull()
     expect(store.error).toBeNull()
     expect(store.loading).toBe(false)
+  })
+
+  it('loads MV stats with the URL and keeps playback when stats fail', async () => {
+    const counts = {
+      commentCount: 128,
+      likedCount: 64,
+      playCount: 3_280_000,
+      shareCount: 32,
+    }
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvStats).mockResolvedValue(counts)
+    const store = useMvStore()
+
+    await store.load(701)
+    await settle()
+    await store.load(701)
+    expect(store.stats).toEqual(counts)
+    expect(getMvStats).toHaveBeenCalledTimes(1)
+    expect(getMvStats).toHaveBeenCalledWith(701)
+
+    vi.mocked(getMvStats).mockReset()
+    vi.mocked(getMvStats).mockRejectedValue(new Error('stats offline'))
+    store.reset()
+    await store.load(701)
+    await settle()
+    expect(store.playback).toEqual(playback)
+    expect(store.stats).toBeNull()
+    expect(store.statsError).toBe('stats offline')
+    expect(store.error).toBeNull()
+  })
+
+  it('retries MV stats on a cached URL and via loadStats', async () => {
+    const counts = {
+      commentCount: 128,
+      likedCount: 64,
+      playCount: 3_280_000,
+      shareCount: 32,
+    }
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvStats)
+      .mockRejectedValueOnce(new Error('stats offline'))
+      .mockResolvedValueOnce(counts)
+    const store = useMvStore()
+    await store.load(701)
+    await settle()
+    await store.load(701)
+    await settle()
+    expect(store.stats).toEqual(counts)
+
+    vi.mocked(getMvStats)
+      .mockRejectedValueOnce(new Error('retry offline'))
+      .mockResolvedValueOnce(counts)
+    await store.loadStats(true)
+    await settle()
+    expect(store.statsError).toBe('retry offline')
+    await store.loadStats(true)
+    await settle()
+    expect(store.stats).toEqual(counts)
+    expect(store.statsError).toBeNull()
+  })
+
+  it('drops in-flight MV stats after reset', async () => {
+    const pending = deferred<{
+      commentCount: number
+      likedCount: number
+      playCount: number
+      shareCount: number
+    }>()
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvStats).mockReturnValueOnce(pending.promise)
+    const store = useMvStore()
+    await store.load(701)
+    store.reset()
+    pending.resolve({
+      commentCount: 128,
+      likedCount: 64,
+      playCount: 3_280_000,
+      shareCount: 32,
+    })
+    await settle()
+    expect(store.stats).toBeNull()
+    expect(store.playback).toBeNull()
   })
 
   it('retries detail on a cached URL when the first detail request failed', async () => {
@@ -316,6 +401,7 @@ describe('mv store', () => {
     await expect(store.load(0)).rejects.toThrow('缺少有效的 MV ID')
     expect(getMvUrl).not.toHaveBeenCalled()
     expect(getMvCommentPage).not.toHaveBeenCalled()
+    expect(getMvStats).not.toHaveBeenCalled()
     expect(store.error).toBe('缺少有效的 MV ID')
   })
 

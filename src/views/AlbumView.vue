@@ -15,7 +15,8 @@ import { usePlayerStore } from '@/stores/player'
 const route = useRoute()
 const albumStore = useAlbumStore()
 const playerStore = usePlayerStore()
-const { album, songs, relatedAlbums, loading, error } = storeToRefs(albumStore)
+const { album, songs, relatedAlbums, stats, statsError, loading, error } =
+  storeToRefs(albumStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
 const tab = ref<'songs' | 'desc'>('songs')
@@ -31,6 +32,10 @@ const albumId = computed(() => {
 function requestAlbum(force = false) {
   if (albumId.value === null) return
   void albumStore.load(albumId.value, force).catch(() => undefined)
+}
+
+function retryStats() {
+  void albumStore.loadStats(true).catch(() => undefined)
 }
 
 function showSongs() {
@@ -129,7 +134,10 @@ watch(
         :album="album"
         :playable="songs.length > 0"
         :song-count="songs.length"
+        :stats="stats"
+        :stats-error="statsError"
         @play-all="playAll"
+        @retry-stats="retryStats"
       />
       <p v-if="notice" class="notice" role="status">{{ notice }}</p>
       <p v-if="error" class="notice error-notice" role="alert">{{ error }}</p>

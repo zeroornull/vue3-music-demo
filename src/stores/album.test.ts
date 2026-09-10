@@ -1,12 +1,13 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getAlbum } from '@/api/album'
+import { getAlbum, getAlbumStats } from '@/api/album'
 import { getArtistAlbums } from '@/api/artist'
 import { useAlbumStore } from '@/stores/album'
 
 vi.mock('@/api/album', () => ({
   getAlbum: vi.fn(),
+  getAlbumStats: vi.fn(),
 }))
 
 vi.mock('@/api/artist', async (importOriginal) => {
@@ -62,6 +63,8 @@ describe('album store', () => {
     vi.mocked(getAlbum).mockReset()
     vi.mocked(getArtistAlbums).mockReset()
     vi.mocked(getArtistAlbums).mockRejectedValue(new Error('no albums'))
+    vi.mocked(getAlbumStats).mockReset()
+    vi.mocked(getAlbumStats).mockRejectedValue(new Error('no stats'))
   })
 
   it('loads album and songs together and caches the same id', async () => {
@@ -90,6 +93,7 @@ describe('album store', () => {
     expect(store.album).toBeNull()
     expect(store.songs).toEqual([])
     await expect(store.load(0)).rejects.toThrow('缺少有效的专辑 ID')
+    expect(getAlbumStats).not.toHaveBeenCalled()
     expect(store.error).toBe('缺少有效的专辑 ID')
   })
 
@@ -143,6 +147,86 @@ describe('album store', () => {
 
     expect(store.album?.id).toBe(502)
     expect(store.songs).toEqual([])
+  })
+
+  it('loads album stats with the detail and keeps the album when stats fail', async () => {
+    const counts = {
+      commentCount: 24,
+      likedCount: 12,
+      shareCount: 6,
+      subCount: 40,
+    }
+    vi.mocked(getAlbum).mockResolvedValue({ album, songs })
+    vi.mocked(getAlbumStats).mockResolvedValue(counts)
+    const store = useAlbumStore()
+    await store.load(501)
+    await settle()
+    await store.load(501)
+    expect(store.stats).toEqual(counts)
+    expect(getAlbumStats).toHaveBeenCalledTimes(1)
+    expect(getAlbumStats).toHaveBeenCalledWith(501)
+
+    vi.mocked(getAlbumStats).mockReset()
+    vi.mocked(getAlbumStats).mockRejectedValue(new Error('stats offline'))
+    store.reset()
+    await store.load(501)
+    await settle()
+    expect(store.album).toEqual(album)
+    expect(store.stats).toBeNull()
+    expect(store.statsError).toBe('stats offline')
+    expect(store.error).toBeNull()
+  })
+
+  it('retries album stats on a cached album and via loadStats', async () => {
+    const counts = {
+      commentCount: 24,
+      likedCount: 12,
+      shareCount: 6,
+      subCount: 40,
+    }
+    vi.mocked(getAlbum).mockResolvedValue({ album, songs })
+    vi.mocked(getAlbumStats)
+      .mockRejectedValueOnce(new Error('stats offline'))
+      .mockResolvedValueOnce(counts)
+    const store = useAlbumStore()
+    await store.load(501)
+    await settle()
+    await store.load(501)
+    await settle()
+    expect(store.stats).toEqual(counts)
+
+    vi.mocked(getAlbumStats)
+      .mockRejectedValueOnce(new Error('retry offline'))
+      .mockResolvedValueOnce(counts)
+    await store.loadStats(true)
+    await settle()
+    expect(store.statsError).toBe('retry offline')
+    await store.loadStats(true)
+    await settle()
+    expect(store.statsError).toBeNull()
+  })
+
+  it('drops in-flight album stats after reset', async () => {
+    const pending = deferred<{
+      commentCount: number
+      likedCount: number
+      shareCount: number
+      subCount: number
+    }>()
+    vi.mocked(getAlbum).mockResolvedValue({ album, songs })
+    vi.mocked(getAlbumStats).mockReturnValueOnce(pending.promise)
+    const store = useAlbumStore()
+    await store.load(501)
+    store.reset()
+    pending.resolve({
+      commentCount: 24,
+      likedCount: 12,
+      shareCount: 6,
+      subCount: 40,
+    })
+    await settle()
+    expect(store.stats).toBeNull()
+    expect(store.album).toBeNull()
   })
 
   it('loads more albums with the detail and ignores a related failure', async () => {

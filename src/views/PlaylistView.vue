@@ -26,6 +26,8 @@ const {
   subscribersMore,
   subscribersMoreLoading,
   subscribersMoreError,
+  stats,
+  statsError,
   loading,
   error,
 } = storeToRefs(playlistStore)
@@ -51,6 +53,10 @@ function loadMoreComments() {
 
 function loadMoreSubscribers() {
   void playlistStore.loadMoreSubscribers().catch(() => undefined)
+}
+
+function retryStats() {
+  void playlistStore.loadStats(true).catch(() => undefined)
 }
 
 function playAll() {
@@ -144,7 +150,10 @@ watch(
         :playlist="playlist"
         :playable="songs.length > 0"
         :song-count="songs.length"
+        :stats="stats"
+        :stats-error="statsError"
         @play-all="playAll"
+        @retry-stats="retryStats"
       />
       <p v-if="notice" class="notice" role="status">{{ notice }}</p>
       <p v-if="error" class="notice error-notice" role="alert">{{ error }}</p>

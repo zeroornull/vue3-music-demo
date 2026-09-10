@@ -7,6 +7,7 @@ import {
   getExclusiveMvs,
   getFirstMvs,
   getMvDetail,
+  getMvStats,
   getMvUrl,
   getPersonalizedMvs,
   getSimiMvs,
@@ -419,5 +420,85 @@ describe('Exclusive MV API', () => {
     await expect(
       getExclusiveMvs(client({ data: many }).client),
     ).resolves.toHaveLength(EXCLUSIVE_MV_LIMIT)
+  })
+})
+
+describe('MV stats API', () => {
+  const client = (response: unknown) => {
+    const get = vi.fn(
+      async <T>(_path: string, _params?: unknown) => response as T,
+    )
+    return { client: { get } as Pick<HttpClient, 'get'>, get }
+  }
+
+  it('unwraps /mv/detail/info counts from the top level', async () => {
+    const request = client({
+      code: 200,
+      commentCount: 128,
+      extra: true,
+      likedCount: 64,
+      playCount: 3_280_000,
+      shareCount: 32,
+    })
+    await expect(getMvStats(701, request.client)).resolves.toEqual({
+      commentCount: 128,
+      likedCount: 64,
+      playCount: 3_280_000,
+      shareCount: 32,
+    })
+    expect(request.get).toHaveBeenCalledWith('/mv/detail/info', { mvid: 701 })
+  })
+
+  it('keeps top-level counts when nested data has no count fields', async () => {
+    await expect(
+      getMvStats(
+        701,
+        client({
+          commentCount: 128,
+          data: { title: '晚风来信 · Live' },
+          likedCount: 64,
+          playCount: 8,
+          shareCount: 1,
+        }).client,
+      ),
+    ).resolves.toEqual({
+      commentCount: 128,
+      likedCount: 64,
+      playCount: 8,
+      shareCount: 1,
+    })
+  })
+
+  it('unwraps nested data and floors negative counts to zero', async () => {
+    await expect(
+      getMvStats(
+        701,
+        client({
+          data: {
+            commentCount: 12.9,
+            likedCount: -4,
+            playCount: 8,
+            shareCount: 1,
+          },
+        }).client,
+      ),
+    ).resolves.toEqual({
+      commentCount: 12,
+      likedCount: 0,
+      playCount: 8,
+      shareCount: 1,
+    })
+  })
+
+  it('rejects a missing id or a body without count fields', async () => {
+    await expect(getMvStats(0, client({}).client)).rejects.toThrow(
+      '缺少有效的 MV ID',
+    )
+    await expect(getMvStats(701, client({ data: null }).client)).rejects.toThrow(
+      'MV 计数响应格式不正确',
+    )
+    await expect(getMvStats(701, client({ code: 200 }).client)).rejects.toThrow(
+      'MV 计数响应格式不正确',
+    )
   })
 })

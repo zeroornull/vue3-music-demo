@@ -1,7 +1,9 @@
 import { http, type HttpClient } from '@/api/http'
+import { readCount, unwrapStatsRecord } from '@/api/mediaStats'
 import type {
   PlaylistCreator,
   PlaylistDetail,
+  PlaylistStats,
   PlaylistSubscriber,
   RelatedPlaylist,
 } from '@/models/playlist'
@@ -212,4 +214,27 @@ export async function getPlaylistSubscribers(
 ): Promise<PlaylistSubscriber[]> {
   const page = await getPlaylistSubscriberPage(id, 0, client)
   return page.subscribers
+}
+
+export async function getPlaylistStats(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<PlaylistStats> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的歌单 ID')
+  }
+  const response = await client.get<unknown>('/playlist/detail/dynamic', { id })
+  const raw = unwrapStatsRecord(response)
+  if (!raw) {
+    throw new Error('歌单动态响应格式不正确')
+  }
+  return {
+    commentCount: readCount(raw.commentCount),
+    playCount: readCount(raw.playCount),
+    shareCount: readCount(raw.shareCount),
+    subscribedCount:
+      typeof raw.subscribedCount === 'number'
+        ? readCount(raw.subscribedCount)
+        : readCount(raw.bookedCount),
+  }
 }

@@ -6,6 +6,7 @@ import {
   getRelatedVideos,
   getVideoDetail,
   getVideoGroups,
+  getVideoStats,
   getVideoUrl,
 } from '@/api/video'
 import { VIDEO_HALL_PAGE_SIZE } from '@/models/video'
@@ -194,5 +195,50 @@ describe('Related video API', () => {
     await expect(
       getRelatedVideos('VID001', client({ data: null }).client),
     ).rejects.toThrow('相关视频响应格式不正确')
+  })
+})
+
+describe('Video stats API', () => {
+  it('unwraps /video/detail/info counts from nested data and maps playTime', async () => {
+    const request = client({
+      data: {
+        commentCount: 18,
+        extra: true,
+        likedCount: 9,
+        playTime: 12_000,
+        shareCount: 3,
+      },
+    })
+    await expect(getVideoStats('VID001', request.client)).resolves.toEqual({
+      commentCount: 18,
+      likedCount: 9,
+      playCount: 12_000,
+      shareCount: 3,
+    })
+    expect(request.get).toHaveBeenCalledWith('/video/detail/info', { vid: 'VID001' })
+  })
+
+  it('prefers playCount over playTime', async () => {
+    await expect(
+      getVideoStats(
+        'VID001',
+        client({
+          commentCount: 1,
+          likedCount: 2,
+          playCount: 99,
+          playTime: 12_000,
+          shareCount: 3,
+        }).client,
+      ),
+    ).resolves.toMatchObject({ playCount: 99 })
+  })
+
+  it('rejects a blank vid or a body without count fields', async () => {
+    await expect(getVideoStats('  ', client({}).client)).rejects.toThrow(
+      '缺少有效的视频 ID',
+    )
+    await expect(
+      getVideoStats('VID001', client({ data: { title: 'x' } }).client),
+    ).rejects.toThrow('视频计数响应格式不正确')
   })
 })
