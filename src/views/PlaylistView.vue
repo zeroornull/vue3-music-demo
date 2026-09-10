@@ -22,6 +22,10 @@ const {
   commentsMore,
   commentsMoreLoading,
   commentsMoreError,
+  subscribers,
+  subscribersMore,
+  subscribersMoreLoading,
+  subscribersMoreError,
   loading,
   error,
 } = storeToRefs(playlistStore)
@@ -43,6 +47,10 @@ function requestPlaylist(force = false) {
 
 function loadMoreComments() {
   void playlistStore.loadMoreComments().catch(() => undefined)
+}
+
+function loadMoreSubscribers() {
+  void playlistStore.loadMoreSubscribers().catch(() => undefined)
 }
 
 function playAll() {
@@ -173,6 +181,39 @@ watch(
         </button>
       </section>
       <section
+        v-if="subscribers !== null"
+        class="playlist-subscribers"
+        data-testid="playlist-subscribers"
+        aria-labelledby="playlist-subscribers-title"
+      >
+        <h2 id="playlist-subscribers-title">收藏者</h2>
+        <p v-if="!subscribers.length" class="subscribers-empty">暂无收藏者</p>
+        <ul v-else class="subscriber-list">
+          <li v-for="item in subscribers" :key="item.userId">
+            <img
+              v-if="item.avatarUrl"
+              :src="item.avatarUrl"
+              alt=""
+              width="32"
+              height="32"
+            />
+            <strong>{{ item.nickname }}</strong>
+          </li>
+        </ul>
+        <p v-if="subscribersMoreError" class="subscribers-more-error" role="alert">
+          {{ subscribersMoreError }}
+        </p>
+        <button
+          v-if="subscribers.length && subscribersMore"
+          type="button"
+          data-testid="playlist-subscribers-more"
+          :disabled="subscribersMoreLoading"
+          @click="loadMoreSubscribers"
+        >
+          {{ subscribersMoreLoading ? '正在加载收藏者' : '加载更多收藏者' }}
+        </button>
+      </section>
+      <section
         v-if="relatedPlaylists?.length"
         class="related-playlists"
         data-testid="related-playlists"
@@ -211,11 +252,13 @@ watch(
 }
 
 .playlist-comments,
+.playlist-subscribers,
 .related-playlists {
   margin-top: 36px;
 }
 
 .playlist-comments h2,
+.playlist-subscribers h2,
 .related-playlists h2 {
   margin: 0 0 16px;
   font-size: 1.05rem;
@@ -256,8 +299,53 @@ watch(
   color: var(--color-danger);
 }
 
-.playlist-comments button {
+.playlist-comments button,
+.playlist-subscribers button {
   margin-top: 16px;
+  justify-self: start;
+}
+
+.subscribers-empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.subscriber-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px 16px;
+}
+
+.subscriber-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.subscriber-list img {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--color-well);
+}
+
+.subscriber-list strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+
+.subscribers-more-error {
+  margin: 12px 0 0;
+  color: var(--color-danger);
 }
 
 .related-grid {

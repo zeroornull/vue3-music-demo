@@ -2,7 +2,14 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { COMMENT_LIMIT, getPlaylistCommentPage } from '@/api/comment'
-import { getPlaylistDetail, getPlaylistTracks, getRelatedPlaylists } from '@/api/playlist'
+import {
+  getPlaylistDetail,
+  getPlaylistSubscriberPage,
+  getPlaylistTracks,
+  getRelatedPlaylists,
+  SUBSCRIBER_LIMIT,
+} from '@/api/playlist'
+import type { PlaylistSubscriber } from '@/models/playlist'
 import { usePlaylistStore } from '@/stores/playlist'
 
 vi.mock('@/api/comment', () => ({
@@ -10,7 +17,9 @@ vi.mock('@/api/comment', () => ({
   getPlaylistCommentPage: vi.fn(),
 }))
 vi.mock('@/api/playlist', () => ({
+  SUBSCRIBER_LIMIT: 20,
   getPlaylistDetail: vi.fn(),
+  getPlaylistSubscriberPage: vi.fn(),
   getPlaylistTracks: vi.fn(),
   getRelatedPlaylists: vi.fn(),
 }))
@@ -39,6 +48,12 @@ const comment = {
   commentId: 1,
   content: '走过林间。',
   nickname: '林间电台',
+}
+
+const subscriber = {
+  avatarUrl: 'https://images.example.com/user.jpg',
+  nickname: '林间电台',
+  userId: 8,
 }
 
 async function settle() {
@@ -80,6 +95,10 @@ describe('playlist store', () => {
     vi.mocked(getRelatedPlaylists).mockRejectedValue(new Error('no related'))
     vi.mocked(getPlaylistCommentPage).mockReset()
     vi.mocked(getPlaylistCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getPlaylistSubscriberPage).mockReset()
+    vi.mocked(getPlaylistSubscriberPage).mockRejectedValue(
+      new Error('no subscribers'),
+    )
   })
 
   it('loads detail and tracks together and caches the same id', async () => {
@@ -206,6 +225,7 @@ describe('playlist store', () => {
     expect(store.songs).toHaveLength(0)
     expect(store.relatedPlaylists).toBeNull()
     expect(store.comments).toBeNull()
+    expect(store.subscribers).toBeNull()
     expect(store.loadedId).toBeNull()
     expect(store.error).toBeNull()
   })
@@ -217,6 +237,7 @@ describe('playlist store', () => {
     expect(getPlaylistDetail).not.toHaveBeenCalled()
     expect(getRelatedPlaylists).not.toHaveBeenCalled()
     expect(getPlaylistCommentPage).not.toHaveBeenCalled()
+    expect(getPlaylistSubscriberPage).not.toHaveBeenCalled()
     expect(store.error).toBe('缺少有效的歌单 ID')
     expect(store.playlist).toBeNull()
   })
@@ -478,5 +499,265 @@ describe('playlist store', () => {
     expect(store.commentsMoreLoading).toBe(false)
     expect(store.commentsMoreError).toBeNull()
     expect(store.commentOffset).toBe(0)
+  })
+
+  it('loads subscribers with the detail and ignores a subscriber failure', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistSubscriberPage).mockResolvedValue({
+      more: true,
+      subscribers: [subscriber],
+    })
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+    await store.load(101)
+
+    expect(store.subscribers).toEqual([subscriber])
+    expect(store.subscribersMore).toBe(true)
+    expect(store.subscriberOffset).toBe(SUBSCRIBER_LIMIT)
+    expect(getPlaylistDetail).toHaveBeenCalledTimes(1)
+    expect(getPlaylistSubscriberPage).toHaveBeenCalledTimes(1)
+    expect(getPlaylistSubscriberPage).toHaveBeenCalledWith(101, 0)
+  })
+
+  it('keeps the playlist when subscribers fail', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistSubscriberPage).mockRejectedValue(
+      new Error('subscribers offline'),
+    )
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+
+    expect(store.playlist).toEqual(playlist)
+    expect(store.songs).toEqual(songs)
+    expect(store.subscribers).toBeNull()
+    expect(store.error).toBeNull()
+  })
+
+  it('nulls subscribers after a same-id refetch fails so the next cache hit retries', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistSubscriberPage)
+      .mockResolvedValueOnce({ more: false, subscribers: [subscriber] })
+      .mockRejectedValueOnce(new Error('subscribers offline'))
+      .mockResolvedValueOnce({ more: false, subscribers: [subscriber] })
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+    expect(store.subscribers).toEqual([subscriber])
+
+    await store.load(101, true)
+    await settle()
+    expect(store.playlist).toEqual(playlist)
+    expect(store.subscribers).toBeNull()
+    expect(store.error).toBeNull()
+
+    await store.load(101)
+    await settle()
+
+    expect(getPlaylistDetail).toHaveBeenCalledTimes(2)
+    expect(getPlaylistSubscriberPage).toHaveBeenCalledTimes(3)
+    expect(store.subscribers).toEqual([subscriber])
+  })
+
+  it('does not drop an in-flight subscribers first page when comments load more', async () => {
+    const first = deferred<{ more: boolean; subscribers: PlaylistSubscriber[] }>()
+    const extraComment = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistCommentPage)
+      .mockResolvedValueOnce({ comments: [comment], more: true })
+      .mockResolvedValueOnce({ comments: [extraComment], more: false })
+    vi.mocked(getPlaylistSubscriberPage).mockReturnValueOnce(first.promise)
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+    await store.loadMoreComments()
+    first.resolve({ more: false, subscribers: [subscriber] })
+    await settle()
+
+    expect(store.subscribers).toEqual([subscriber])
+    expect(store.comments).toEqual([comment, extraComment])
+  })
+
+  it('retries subscribers on a cached playlist when the first request failed', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistSubscriberPage)
+      .mockRejectedValueOnce(new Error('subscribers offline'))
+      .mockResolvedValueOnce({ more: false, subscribers: [subscriber] })
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await settle()
+    expect(store.subscribers).toBeNull()
+
+    await store.load(101)
+    await settle()
+
+    expect(getPlaylistDetail).toHaveBeenCalledTimes(1)
+    expect(getPlaylistSubscriberPage).toHaveBeenCalledTimes(2)
+    expect(store.subscribers).toEqual([subscriber])
+    expect(store.subscribersMore).toBe(false)
+  })
+
+  it('does not keep stale subscribers after the playlist id changes', async () => {
+    const first = deferred<{ more: boolean; subscribers: PlaylistSubscriber[] }>()
+    const nextPlaylist = { ...playlist, id: 202, name: '下一张歌单' }
+    const nextSubscriber = { ...subscriber, userId: 9, nickname: '夜航乐队' }
+    vi.mocked(getPlaylistDetail)
+      .mockResolvedValueOnce(playlist)
+      .mockResolvedValueOnce(nextPlaylist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistSubscriberPage)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({ more: false, subscribers: [nextSubscriber] })
+    const store = usePlaylistStore()
+
+    await store.load(101)
+    await store.load(202)
+    await settle()
+    first.resolve({ more: true, subscribers: [subscriber] })
+    await settle()
+
+    expect(store.playlist?.id).toBe(202)
+    expect(store.subscribers).toEqual([nextSubscriber])
+    expect(store.subscribersMore).toBe(false)
+  })
+
+  it('appends more subscribers without dropping the first page', async () => {
+    const extra = { nickname: '夜航乐队', userId: 21 }
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistSubscriberPage)
+      .mockResolvedValueOnce({ more: true, subscribers: [subscriber] })
+      .mockResolvedValueOnce({ more: false, subscribers: [extra, subscriber] })
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    await store.loadMoreSubscribers()
+    await settle()
+
+    expect(getPlaylistSubscriberPage).toHaveBeenNthCalledWith(1, 101, 0)
+    expect(getPlaylistSubscriberPage).toHaveBeenNthCalledWith(
+      2,
+      101,
+      SUBSCRIBER_LIMIT,
+    )
+    expect(store.subscribers).toEqual([subscriber, extra])
+    expect(store.subscribersMore).toBe(false)
+    expect(store.subscribersMoreLoading).toBe(false)
+    expect(store.subscriberOffset).toBe(SUBSCRIBER_LIMIT * 2)
+  })
+
+  it('keeps loaded subscribers when load more fails', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistSubscriberPage)
+      .mockResolvedValueOnce({ more: true, subscribers: [subscriber] })
+      .mockRejectedValueOnce(new Error('more offline'))
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    await expect(store.loadMoreSubscribers()).rejects.toThrow('more offline')
+
+    expect(store.subscribers).toEqual([subscriber])
+    expect(store.subscribersMore).toBe(true)
+    expect(store.subscribersMoreError).toBe('more offline')
+    expect(store.subscribersMoreLoading).toBe(false)
+  })
+
+  it('does not request another subscriber page when more is false', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistSubscriberPage).mockResolvedValue({
+      more: false,
+      subscribers: [subscriber],
+    })
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    await store.loadMoreSubscribers()
+
+    expect(getPlaylistSubscriberPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not let a late first page overwrite appended subscribers', async () => {
+    const firstA = deferred<{ more: boolean; subscribers: PlaylistSubscriber[] }>()
+    const firstB = deferred<{ more: boolean; subscribers: PlaylistSubscriber[] }>()
+    const extra = { nickname: '夜航乐队', userId: 21 }
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistSubscriberPage)
+      .mockReturnValueOnce(firstA.promise)
+      .mockReturnValueOnce(firstB.promise)
+      .mockResolvedValueOnce({ more: false, subscribers: [extra] })
+    const store = usePlaylistStore()
+    await store.load(101)
+    await store.load(101)
+    firstA.resolve({ more: true, subscribers: [subscriber] })
+    await settle()
+    await store.loadMoreSubscribers()
+    firstB.resolve({ more: true, subscribers: [subscriber] })
+    await settle()
+
+    expect(store.subscribers).toEqual([subscriber, extra])
+    expect(store.subscribersMore).toBe(false)
+    expect(getPlaylistSubscriberPage).toHaveBeenCalledTimes(3)
+  })
+
+  it('drops in-flight more subscribers after the playlist id changes', async () => {
+    const pending = deferred<{ more: boolean; subscribers: PlaylistSubscriber[] }>()
+    const extra = { nickname: '夜航乐队', userId: 21 }
+    const nextPlaylist = { ...playlist, id: 202, name: '下一张歌单' }
+    const nextSubscriber = { ...subscriber, userId: 9, nickname: '下一张收藏' }
+    vi.mocked(getPlaylistDetail)
+      .mockResolvedValueOnce(playlist)
+      .mockResolvedValueOnce(nextPlaylist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistSubscriberPage)
+      .mockResolvedValueOnce({ more: true, subscribers: [subscriber] })
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce({ more: false, subscribers: [nextSubscriber] })
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    const more = store.loadMoreSubscribers()
+    await store.load(202)
+    pending.resolve({ more: false, subscribers: [extra] })
+    await more
+    await settle()
+
+    expect(store.playlist?.id).toBe(202)
+    expect(store.subscribers).toEqual([nextSubscriber])
+    expect(store.subscribersMore).toBe(false)
+  })
+
+  it('clears subscriber pagination after reset', async () => {
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistSubscriberPage).mockResolvedValue({
+      more: true,
+      subscribers: [subscriber],
+    })
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    store.subscribersMoreError = 'stale'
+    store.subscribersMoreLoading = true
+    store.reset()
+
+    expect(store.subscribers).toBeNull()
+    expect(store.subscribersMore).toBe(false)
+    expect(store.subscribersMoreLoading).toBe(false)
+    expect(store.subscribersMoreError).toBeNull()
+    expect(store.subscriberOffset).toBe(0)
   })
 })

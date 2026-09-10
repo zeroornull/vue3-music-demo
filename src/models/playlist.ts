@@ -23,3 +23,9 @@ export interface RelatedPlaylist {
   name: string
   playCount: number
 }
+
+export interface PlaylistSubscriber {
+  userId: number
+  nickname: string
+  avatarUrl?: string
+}

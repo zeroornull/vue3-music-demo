@@ -1,5 +1,10 @@
 import { http, type HttpClient } from '@/api/http'
-import type { PlaylistCreator, PlaylistDetail, RelatedPlaylist } from '@/models/playlist'
+import type {
+  PlaylistCreator,
+  PlaylistDetail,
+  PlaylistSubscriber,
+  RelatedPlaylist,
+} from '@/models/playlist'
 import { normalizeSong, type NetworkSong, type Song } from '@/models/song'
 
 interface PlaylistDetailResponse {
@@ -136,4 +141,75 @@ export async function getSimiPlaylists(
     .map(readRelatedPlaylist)
     .filter((item): item is RelatedPlaylist => item !== null)
     .slice(0, SIMI_PLAYLIST_LIMIT)
+}
+
+export const SUBSCRIBER_LIMIT = 20
+
+export interface PlaylistSubscriberPage {
+  more: boolean
+  subscribers: PlaylistSubscriber[]
+}
+
+function readSubscriber(value: unknown): PlaylistSubscriber | null {
+  if (
+    !isRecord(value) ||
+    typeof value.userId !== 'number' ||
+    !Number.isInteger(value.userId) ||
+    value.userId <= 0
+  ) {
+    return null
+  }
+  const nickname =
+    typeof value.nickname === 'string' ? value.nickname.trim() : ''
+  return {
+    userId: value.userId,
+    nickname: nickname || '匿名',
+    ...(typeof value.avatarUrl === 'string' && value.avatarUrl
+      ? { avatarUrl: value.avatarUrl }
+      : {}),
+  }
+}
+
+function readMore(response: {
+  more?: unknown
+  subscribers?: unknown
+}): boolean {
+  if (response.more === true) return true
+  if (response.more === false) return false
+  return (
+    Array.isArray(response.subscribers) &&
+    response.subscribers.length >= SUBSCRIBER_LIMIT
+  )
+}
+
+export async function getPlaylistSubscriberPage(
+  id: number,
+  offset = 0,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<PlaylistSubscriberPage> {
+  const response = await client.get<{ more?: unknown; subscribers?: unknown }>(
+    '/playlist/subscribers',
+    { id, limit: SUBSCRIBER_LIMIT, offset },
+  )
+  if (!Array.isArray(response.subscribers)) {
+    throw new Error('歌单收藏者响应格式不正确')
+  }
+  const seen = new Set<number>()
+  const subscribers: PlaylistSubscriber[] = []
+  for (const raw of response.subscribers) {
+    const item = readSubscriber(raw)
+    if (!item || seen.has(item.userId)) continue
+    seen.add(item.userId)
+    subscribers.push(item)
+    if (subscribers.length >= SUBSCRIBER_LIMIT) break
+  }
+  return { more: readMore(response), subscribers }
+}
+
+export async function getPlaylistSubscribers(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<PlaylistSubscriber[]> {
+  const page = await getPlaylistSubscriberPage(id, 0, client)
+  return page.subscribers
 }

@@ -7,7 +7,12 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getPlaylistCommentPage } from '@/api/comment'
-import { getPlaylistDetail, getPlaylistTracks, getRelatedPlaylists } from '@/api/playlist'
+import {
+  getPlaylistDetail,
+  getPlaylistSubscriberPage,
+  getPlaylistTracks,
+  getRelatedPlaylists,
+} from '@/api/playlist'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { usePlaylistStore } from '@/stores/playlist'
@@ -18,7 +23,9 @@ vi.mock('@/api/comment', () => ({
   getPlaylistCommentPage: vi.fn(),
 }))
 vi.mock('@/api/playlist', () => ({
+  SUBSCRIBER_LIMIT: 20,
   getPlaylistDetail: vi.fn(),
+  getPlaylistSubscriberPage: vi.fn(),
   getPlaylistTracks: vi.fn(),
   getRelatedPlaylists: vi.fn(),
 }))
@@ -138,6 +145,10 @@ describe('PlaylistView', () => {
     vi.mocked(getRelatedPlaylists).mockRejectedValue(new Error('no related'))
     vi.mocked(getPlaylistCommentPage).mockReset()
     vi.mocked(getPlaylistCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getPlaylistSubscriberPage).mockReset()
+    vi.mocked(getPlaylistSubscriberPage).mockRejectedValue(
+      new Error('no subscribers'),
+    )
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -315,5 +326,80 @@ describe('PlaylistView', () => {
     expect(comments.text()).toContain('走过林间。')
     expect(comments.text()).toContain('第二页')
     expect(wrapper.find('[data-testid="playlist-comments-more"]').exists()).toBe(false)
+  })
+
+  it('renders subscribers without blocking the song list or linking the user', async () => {
+    vi.mocked(getPlaylistSubscriberPage).mockResolvedValue({
+      more: false,
+      subscribers: [
+        {
+          avatarUrl: 'https://images.example.com/user.jpg',
+          nickname: '林间电台',
+          userId: 8,
+        },
+      ],
+    })
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="playlist-songs"]').exists()).toBe(true)
+    const section = wrapper.get('[data-testid="playlist-subscribers"]')
+    expect(section.text()).toContain('林间电台')
+    expect(section.find('a').exists()).toBe(false)
+    expect(section.get('strong').text()).toBe('林间电台')
+    expect(section.get('img').attributes('src')).toBe(
+      'https://images.example.com/user.jpg',
+    )
+  })
+
+  it('shows an empty subscribers state when the list is empty', async () => {
+    vi.mocked(getPlaylistSubscriberPage).mockResolvedValue({
+      more: false,
+      subscribers: [],
+    })
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="playlist-subscribers"]').text()).toContain(
+      '暂无收藏者',
+    )
+  })
+
+  it('hides subscribers when the request fails', async () => {
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="playlist-subscribers"]').exists()).toBe(
+      false,
+    )
+    expect(wrapper.find('[data-testid="playlist-songs"]').exists()).toBe(true)
+  })
+
+  it('loads more subscribers without dropping the first page', async () => {
+    vi.mocked(getPlaylistSubscriberPage)
+      .mockResolvedValueOnce({
+        more: true,
+        subscribers: [{ nickname: '林间电台', userId: 8 }],
+      })
+      .mockResolvedValueOnce({
+        more: false,
+        subscribers: [{ nickname: '夜航乐队', userId: 21 }],
+      })
+    const wrapper = await mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="playlist-subscribers-more"]').text()).toBe(
+      '加载更多收藏者',
+    )
+    await wrapper.get('[data-testid="playlist-subscribers-more"]').trigger('click')
+    await flushPromises()
+
+    expect(getPlaylistSubscriberPage).toHaveBeenNthCalledWith(2, 101, 20)
+    const section = wrapper.get('[data-testid="playlist-subscribers"]')
+    expect(section.text()).toContain('林间电台')
+    expect(section.text()).toContain('夜航乐队')
+    expect(wrapper.find('[data-testid="playlist-subscribers-more"]').exists()).toBe(
+      false,
+    )
   })
 })

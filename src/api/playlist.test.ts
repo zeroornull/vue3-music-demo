@@ -3,10 +3,13 @@ import { describe, expect, it, vi } from 'vitest'
 import type { HttpClient } from '@/api/http'
 import {
   getPlaylistDetail,
+  getPlaylistSubscriberPage,
+  getPlaylistSubscribers,
   getPlaylistTracks,
   getRelatedPlaylists,
   getSimiPlaylists,
   SIMI_PLAYLIST_LIMIT,
+  SUBSCRIBER_LIMIT,
 } from '@/api/playlist'
 
 const client = (response: unknown) => {
@@ -227,5 +230,99 @@ describe('Similar playlist API', () => {
     await expect(
       getSimiPlaylists(301, client({ playlists: many }).client),
     ).resolves.toHaveLength(SIMI_PLAYLIST_LIMIT)
+  })
+})
+
+describe('Playlist subscriber API', () => {
+  it('unwraps /playlist/subscribers and maps blank nicknames to 匿名', async () => {
+    const request = client({
+      more: true,
+      subscribers: [
+        {
+          avatarUrl: 'https://images.example.com/user.jpg',
+          extra: true,
+          nickname: '  林间电台  ',
+          userId: 8,
+        },
+        {
+          nickname: '   ',
+          userId: 9,
+        },
+        {
+          nickname: '无效',
+          userId: 0,
+        },
+        {
+          nickname: '重复',
+          userId: 8,
+        },
+      ],
+    })
+
+    await expect(
+      getPlaylistSubscriberPage(101, 0, request.client),
+    ).resolves.toEqual({
+      more: true,
+      subscribers: [
+        {
+          avatarUrl: 'https://images.example.com/user.jpg',
+          nickname: '林间电台',
+          userId: 8,
+        },
+        { nickname: '匿名', userId: 9 },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/playlist/subscribers', {
+      id: 101,
+      limit: SUBSCRIBER_LIMIT,
+      offset: 0,
+    })
+  })
+
+  it('uses later pages without prepending extras and infers more from page size', async () => {
+    const request = client({
+      subscribers: [
+        { nickname: '夜航乐队', userId: 21 },
+        { nickname: '海岸信号', userId: 22 },
+      ],
+    })
+
+    await expect(
+      getPlaylistSubscriberPage(101, SUBSCRIBER_LIMIT, request.client),
+    ).resolves.toEqual({
+      more: false,
+      subscribers: [
+        { nickname: '夜航乐队', userId: 21 },
+        { nickname: '海岸信号', userId: 22 },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/playlist/subscribers', {
+      id: 101,
+      limit: SUBSCRIBER_LIMIT,
+      offset: SUBSCRIBER_LIMIT,
+    })
+
+    const full = Array.from({ length: SUBSCRIBER_LIMIT }, (_, index) => ({
+      nickname: `收藏者 ${index + 1}`,
+      userId: index + 1,
+    }))
+    await expect(
+      getPlaylistSubscriberPage(101, 0, client({ subscribers: full }).client),
+    ).resolves.toEqual({ more: true, subscribers: full })
+  })
+
+  it('rejects a missing subscribers array and keeps the first-page wrapper', async () => {
+    await expect(
+      getPlaylistSubscriberPage(101, 0, client({ subscribers: null }).client),
+    ).rejects.toThrow('歌单收藏者响应格式不正确')
+    await expect(
+      getPlaylistSubscribers(
+        101,
+        client({
+          more: false,
+          subscribers: [{ nickname: '林间电台', userId: 8 }],
+        }).client,
+      ),
+    ).resolves.toEqual([{ nickname: '林间电台', userId: 8 }])
   })
 })

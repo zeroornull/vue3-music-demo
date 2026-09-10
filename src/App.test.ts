@@ -628,6 +628,13 @@ describe('App host gate', () => {
     playlistStore.commentsMoreError = 'stale'
     playlistStore.commentsMoreLoading = true
     playlistStore.commentOffset = 20
+    playlistStore.subscribers = [
+      { nickname: '林间电台', userId: 8 },
+    ]
+    playlistStore.subscribersMore = true
+    playlistStore.subscribersMoreError = 'stale'
+    playlistStore.subscribersMoreLoading = true
+    playlistStore.subscriberOffset = 20
     mountApp()
 
     useHostStore().clearHost()
@@ -641,6 +648,11 @@ describe('App host gate', () => {
     expect(playlistStore.commentsMoreError).toBeNull()
     expect(playlistStore.commentsMoreLoading).toBe(false)
     expect(playlistStore.commentOffset).toBe(0)
+    expect(playlistStore.subscribers).toBeNull()
+    expect(playlistStore.subscribersMore).toBe(false)
+    expect(playlistStore.subscribersMoreError).toBeNull()
+    expect(playlistStore.subscribersMoreLoading).toBe(false)
+    expect(playlistStore.subscriberOffset).toBe(0)
   })
 
   it('clears active playback when the host gate closes', async () => {
