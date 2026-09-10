@@ -5,6 +5,10 @@ import {
   CATEGORY_PAGE_SIZE,
   getHighqualityPlaylists,
   getHighqualityTags,
+  getHotPlaylists,
+  getHotPlaylistTags,
+  getNewPlaylists,
+  getPlaylistCatlist,
 } from '@/api/category'
 import { useCategoryStore } from '@/stores/category'
 
@@ -14,6 +18,10 @@ vi.mock('@/api/category', async (importOriginal) => {
     ...actual,
     getHighqualityPlaylists: vi.fn(),
     getHighqualityTags: vi.fn(),
+    getHotPlaylists: vi.fn(),
+    getHotPlaylistTags: vi.fn(),
+    getNewPlaylists: vi.fn(),
+    getPlaylistCatlist: vi.fn(),
   }
 })
 
@@ -39,6 +47,14 @@ describe('category store', () => {
     setActivePinia(createPinia())
     vi.mocked(getHighqualityTags).mockReset()
     vi.mocked(getHighqualityPlaylists).mockReset()
+    vi.mocked(getPlaylistCatlist).mockReset()
+    vi.mocked(getHotPlaylistTags).mockReset()
+    vi.mocked(getHotPlaylists).mockReset()
+    vi.mocked(getNewPlaylists).mockReset()
+    vi.mocked(getPlaylistCatlist).mockRejectedValue(new Error('no catlist'))
+    vi.mocked(getHotPlaylistTags).mockRejectedValue(new Error('no hot tags'))
+    vi.mocked(getHotPlaylists).mockRejectedValue(new Error('no hot playlists'))
+    vi.mocked(getNewPlaylists).mockRejectedValue(new Error('no new playlists'))
   })
 
   it('loads tags and the default 全部 page once', async () => {
@@ -171,5 +187,57 @@ describe('category store', () => {
     expect(store.playlists.map((item) => item.id)).toEqual([501])
     expect(store.playlistsError).toBe('more failed')
     expect(getHighqualityPlaylists).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads catlist and hot tags independently of highquality tags', async () => {
+    vi.mocked(getHighqualityTags).mockResolvedValue([tag])
+    vi.mocked(getPlaylistCatlist).mockResolvedValue([{ id: 12, name: '流行' }])
+    vi.mocked(getHotPlaylistTags).mockRejectedValue(new Error('hot tags offline'))
+    const store = useCategoryStore()
+    await store.loadTags()
+    await store.loadCatlist()
+    await expect(store.loadHotTags()).rejects.toThrow('hot tags offline')
+    expect(store.tags).toEqual([tag])
+    expect(store.catlist).toEqual([{ id: 12, name: '流行' }])
+    expect(store.hotTags).toEqual([])
+    expect(store.hotTagsError).toBe('hot tags offline')
+    expect(store.catlistError).toBeNull()
+  })
+
+  it('loads hot and new net playlists with offset pagination', async () => {
+    const next = { ...playlist, id: 502, name: '下一页' }
+    vi.mocked(getHotPlaylists)
+      .mockResolvedValueOnce({ lasttime: 0, more: true, playlists: [playlist] })
+      .mockResolvedValueOnce({ lasttime: 0, more: false, playlists: [next] })
+    vi.mocked(getNewPlaylists).mockResolvedValue({
+      lasttime: 0,
+      more: false,
+      playlists: [{ ...playlist, id: 503, name: '最新民谣' }],
+    })
+    const store = useCategoryStore()
+    await store.setSort('hot')
+    expect(store.sort).toBe('hot')
+    expect(store.playlists).toEqual([playlist])
+    expect(getHotPlaylists).toHaveBeenCalledWith({
+      cat: '全部',
+      limit: CATEGORY_PAGE_SIZE,
+      offset: 0,
+    })
+    await store.loadMore()
+    expect(store.playlists.map((item) => item.id)).toEqual([501, 502])
+    expect(getHotPlaylists).toHaveBeenNthCalledWith(2, {
+      cat: '全部',
+      limit: CATEGORY_PAGE_SIZE,
+      offset: CATEGORY_PAGE_SIZE,
+    })
+    await store.setSort('new')
+    expect(store.sort).toBe('new')
+    expect(store.playlists[0]?.name).toBe('最新民谣')
+    expect(getNewPlaylists).toHaveBeenCalledWith({
+      cat: '全部',
+      limit: CATEGORY_PAGE_SIZE,
+      offset: 0,
+    })
+    expect(getHighqualityPlaylists).not.toHaveBeenCalled()
   })
 })

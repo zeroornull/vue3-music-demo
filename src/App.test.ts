@@ -121,6 +121,9 @@ describe('App host gate', () => {
       },
     ]
     categoryStore.cat = '华语'
+    categoryStore.sort = 'hot'
+    categoryStore.catlist = [{ id: 12, name: '流行' }]
+    categoryStore.hotTags = [{ id: 5001, name: '华语' }]
     mountApp()
 
     useHostStore().clearHost()
@@ -128,6 +131,9 @@ describe('App host gate', () => {
 
     expect(categoryStore.playlists).toEqual([])
     expect(categoryStore.cat).toBe('全部')
+    expect(categoryStore.sort).toBe('hq')
+    expect(categoryStore.catlist).toEqual([])
+    expect(categoryStore.hotTags).toEqual([])
   })
 
   it('clears artist detail cache when the host gate closes', async () => {

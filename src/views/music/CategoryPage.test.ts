@@ -10,6 +10,10 @@ import {
   CATEGORY_PAGE_SIZE,
   getHighqualityPlaylists,
   getHighqualityTags,
+  getHotPlaylists,
+  getHotPlaylistTags,
+  getNewPlaylists,
+  getPlaylistCatlist,
 } from '@/api/category'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -21,13 +25,17 @@ vi.mock('@/api/category', async (importOriginal) => {
     ...actual,
     getHighqualityPlaylists: vi.fn(),
     getHighqualityTags: vi.fn(),
+    getHotPlaylists: vi.fn(),
+    getHotPlaylistTags: vi.fn(),
+    getNewPlaylists: vi.fn(),
+    getPlaylistCatlist: vi.fn(),
   }
 })
 
 const CategoryViewStub = defineComponent({
   name: 'CategoryView',
-  props: ['cat', 'error', 'loading', 'more', 'playlists', 'tags'],
-  emits: ['load-more', 'retry', 'select-cat'],
+  props: ['cat', 'error', 'loading', 'more', 'playlists', 'sort', 'tags'],
+  emits: ['load-more', 'retry', 'select-cat', 'select-sort'],
   template: `
     <section>
       <span data-testid="cat-count">{{ playlists.length }}</span>
@@ -35,6 +43,7 @@ const CategoryViewStub = defineComponent({
       <button data-testid="page-retry" @click="$emit('retry')">retry</button>
       <button data-testid="page-cat" @click="$emit('select-cat', '华语')">cat</button>
       <button data-testid="page-more" @click="$emit('load-more')">more</button>
+      <button data-testid="page-sort-hot" @click="$emit('select-sort', 'hot')">hot</button>
     </section>
   `,
 })
@@ -45,6 +54,22 @@ describe('CategoryPage', () => {
     vi.mocked(getHighqualityTags).mockReset()
     vi.mocked(getHighqualityPlaylists).mockReset()
     vi.mocked(getHighqualityTags).mockResolvedValue([{ id: 1, name: '华语' }])
+    vi.mocked(getPlaylistCatlist).mockReset()
+    vi.mocked(getHotPlaylistTags).mockReset()
+    vi.mocked(getHotPlaylists).mockReset()
+    vi.mocked(getNewPlaylists).mockReset()
+    vi.mocked(getPlaylistCatlist).mockResolvedValue([])
+    vi.mocked(getHotPlaylistTags).mockResolvedValue([])
+    vi.mocked(getHotPlaylists).mockResolvedValue({
+      lasttime: 0,
+      more: false,
+      playlists: [],
+    })
+    vi.mocked(getNewPlaylists).mockResolvedValue({
+      lasttime: 0,
+      more: false,
+      playlists: [],
+    })
     vi.mocked(getHighqualityPlaylists).mockResolvedValue({
       lasttime: 1,
       more: false,
@@ -177,5 +202,43 @@ describe('CategoryPage', () => {
       cat: '独立',
       limit: CATEGORY_PAGE_SIZE,
     })
+  })
+
+  it('loads hot net playlists from the sort query and keeps the cat', async () => {
+    vi.mocked(getHotPlaylists).mockResolvedValue({
+      lasttime: 0,
+      more: false,
+      playlists: [
+        {
+          coverImgUrl: 'https://images.example.com/cat.jpg',
+          creator: { nickname: '林间电台' },
+          id: 601,
+          name: '热门民谣',
+          playCount: 9,
+        },
+      ],
+    })
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const router = createAppRouter(createMemoryHistory())
+    await router.push({ name: Pages.category, query: { cat: '华语', sort: 'hot' } })
+    const wrapper = mount(CategoryPage, {
+      global: {
+        plugins: [pinia, router],
+        stubs: { CategoryView: CategoryViewStub },
+      },
+    })
+    await flushPromises()
+    expect(getHotPlaylists).toHaveBeenCalledWith({
+      cat: '华语',
+      limit: CATEGORY_PAGE_SIZE,
+      offset: 0,
+    })
+    expect(getHighqualityPlaylists).not.toHaveBeenCalled()
+    expect(wrapper.get('[data-testid="cat-count"]').text()).toBe('1')
+
+    await wrapper.get('[data-testid="page-sort-hot"]').trigger('click')
+    await flushPromises()
+    expect(getHotPlaylists).toHaveBeenCalledTimes(1)
   })
 })

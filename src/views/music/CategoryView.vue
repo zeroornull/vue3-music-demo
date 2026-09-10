@@ -1,21 +1,25 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import CategoryPlaylistCard from '@/components/music/CategoryPlaylistCard.vue'
 import CategoryTagBar from '@/components/music/CategoryTagBar.vue'
-import type { CategoryPlaylist, CategoryTag } from '@/models/category'
+import type { CategoryPlaylist, CategorySort, CategoryTag } from '@/models/category'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     cat: string
     error?: string | null
     loading?: boolean
     more?: boolean
     playlists: CategoryPlaylist[]
+    sort?: CategorySort
     tags: CategoryTag[]
   }>(),
   {
     error: null,
     loading: false,
     more: false,
+    sort: 'hq',
   },
 )
 
@@ -23,12 +27,48 @@ defineEmits<{
   'load-more': []
   retry: []
   'select-cat': [cat: string]
+  'select-sort': [sort: CategorySort]
 }>()
+
+const heading = computed(() => {
+  const kind = props.sort === 'hot' ? '热门' : props.sort === 'new' ? '最新' : ''
+  return `${props.cat}${kind}歌单`
+})
+
+const loadingLabel = computed(() =>
+  props.sort === 'hot' ? '热门歌单' : props.sort === 'new' ? '最新歌单' : '精品歌单',
+)
 </script>
 
 <template>
   <section class="category" aria-labelledby="category-title">
-    <h2 id="category-title">{{ cat }}歌单</h2>
+    <h2 id="category-title">{{ heading }}</h2>
+    <div class="sort-bar" role="group" aria-label="歌单排序">
+      <button
+        type="button"
+        data-testid="category-sort-hq"
+        :aria-pressed="sort === 'hq' ? 'true' : 'false'"
+        @click="$emit('select-sort', 'hq')"
+      >
+        精品
+      </button>
+      <button
+        type="button"
+        data-testid="category-sort-hot"
+        :aria-pressed="sort === 'hot' ? 'true' : 'false'"
+        @click="$emit('select-sort', 'hot')"
+      >
+        热门
+      </button>
+      <button
+        type="button"
+        data-testid="category-sort-new"
+        :aria-pressed="sort === 'new' ? 'true' : 'false'"
+        @click="$emit('select-sort', 'new')"
+      >
+        最新
+      </button>
+    </div>
     <CategoryTagBar :selected="cat" :tags="tags" @select="$emit('select-cat', $event)" />
 
     <div
@@ -39,7 +79,7 @@ defineEmits<{
       aria-label="正在加载分类歌单"
     >
       <strong>正在加载分类歌单</strong>
-      <p>正在读取 {{ cat }} 下的精品歌单。</p>
+      <p>正在读取 {{ cat }} 下的{{ loadingLabel }}。</p>
     </div>
 
     <div
@@ -104,6 +144,29 @@ defineEmits<{
 .category {
   display: grid;
   gap: 18px;
+}
+
+.sort-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sort-bar button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--color-nav-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-nav);
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.sort-bar button[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
 }
 
 h2 {

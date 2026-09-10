@@ -35,6 +35,7 @@ function mountView(
     loading: boolean
     more: boolean
     playlists: typeof playlist[]
+    sort: 'hq' | 'hot' | 'new'
     tags: { id: number; name: string }[]
   }> = {},
 ) {
@@ -93,5 +94,15 @@ describe('CategoryView', () => {
 
     await data.get('[data-testid="tag"]').trigger('click')
     expect(data.emitted('select-cat')?.[0]).toEqual(['华语'])
+  })
+
+  it('emits sort changes and titles hot lists', async () => {
+    const wrapper = mountView({ cat: '华语', sort: 'hot', playlists: [playlist] })
+    expect(wrapper.get('#category-title').text()).toBe('华语热门歌单')
+    expect(wrapper.get('[data-testid="category-sort-hot"]').attributes('aria-pressed')).toBe(
+      'true',
+    )
+    await wrapper.get('[data-testid="category-sort-new"]').trigger('click')
+    expect(wrapper.emitted('select-sort')?.[0]).toEqual(['new'])
   })
 })
