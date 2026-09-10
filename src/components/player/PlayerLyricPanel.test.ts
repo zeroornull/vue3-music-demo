@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getSongCommentPage } from '@/api/comment'
+import { getSongCommentPage, getSongHotComments } from '@/api/comment'
 import PlayerLyricPanel from '@/components/player/PlayerLyricPanel.vue'
 import { useLyricStore } from '@/stores/lyric'
 import { usePlayerStore } from '@/stores/player'
@@ -11,6 +11,7 @@ import { usePlayerStore } from '@/stores/player'
 vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getSongCommentPage: vi.fn(),
+  getSongHotComments: vi.fn(),
 }))
 
 describe('PlayerLyricPanel', () => {
@@ -18,6 +19,8 @@ describe('PlayerLyricPanel', () => {
     setActivePinia(createPinia())
     vi.mocked(getSongCommentPage).mockReset()
     vi.mocked(getSongCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getSongHotComments).mockReset()
+    vi.mocked(getSongHotComments).mockRejectedValue(new Error('no hot'))
   })
 
   function mountPanel() {
@@ -175,6 +178,31 @@ describe('PlayerLyricPanel', () => {
     expect(bodyEl('[data-testid="player-lyric-line-0"]').textContent).toContain(
       '走过林间。',
     )
+    wrapper.unmount()
+  })
+
+  it('retries song hot comments in the lyric panel', async () => {
+    vi.mocked(getSongHotComments).mockResolvedValue([
+      { commentId: 9, content: '林间热评', nickname: '林间电台' },
+    ])
+    const lyrics = useLyricStore()
+    const player = usePlayerStore()
+    lyrics.lines = [{ text: '走过林间。', time: 12 }]
+    player.current = { id: 301, name: '晚风来信', artists: [] }
+    player.hotCommentsError = 'hot offline'
+    player.comments = [
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ]
+    lyrics.open()
+    const wrapper = mountPanel()
+    await wrapper.vm.$nextTick()
+    expect(bodyEl('[data-testid="song-hot-comments-error"]').textContent).toContain(
+      '歌曲热门评论加载失败',
+    )
+    bodyEl('[data-testid="song-hot-comments-retry"]').click()
+    await flushPromises()
+    expect(getSongHotComments).toHaveBeenCalledWith(301)
+    expect(bodyEl('[data-testid="song-hot-comments"]').textContent).toContain('林间热评')
     wrapper.unmount()
   })
 

@@ -1,13 +1,18 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { COMMENT_LIMIT, getVideoCommentPage } from '@/api/comment'
+import {
+  COMMENT_LIMIT,
+  getVideoCommentPage,
+  getVideoHotComments,
+} from '@/api/comment'
 import { getRelatedVideos, getVideoDetail, getVideoStats, getVideoUrl } from '@/api/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
 
 vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getVideoCommentPage: vi.fn(),
+  getVideoHotComments: vi.fn(),
 }))
 vi.mock('@/api/video', () => ({
   getRelatedVideos: vi.fn(),
@@ -67,6 +72,8 @@ describe('video detail store', () => {
     vi.mocked(getRelatedVideos).mockRejectedValue(new Error('no related'))
     vi.mocked(getVideoCommentPage).mockReset()
     vi.mocked(getVideoCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getVideoHotComments).mockReset()
+    vi.mocked(getVideoHotComments).mockRejectedValue(new Error('no hot'))
     vi.mocked(getVideoStats).mockReset()
     vi.mocked(getVideoStats).mockRejectedValue(new Error('no stats'))
   })
@@ -313,6 +320,25 @@ describe('video detail store', () => {
 
     expect(store.comments).toEqual([])
     expect(getVideoCommentPage).toHaveBeenCalledTimes(1)
+  })
+
+  it('loads hot comments with the URL and keeps playback when they fail', async () => {
+    const hot = { commentId: 9, content: '林间热评', nickname: '林间电台' }
+    vi.mocked(getVideoHotComments).mockResolvedValue([hot])
+    const store = useVideoDetailStore()
+    await store.load('VID001')
+    await settle()
+    await store.load('VID001')
+    expect(store.hotComments).toEqual([hot])
+    expect(getVideoHotComments).toHaveBeenCalledTimes(1)
+
+    vi.mocked(getVideoHotComments).mockReset()
+    vi.mocked(getVideoHotComments).mockRejectedValue(new Error('hot offline'))
+    store.reset()
+    await store.load('VID001')
+    await settle()
+    expect(store.playback).toEqual(playback)
+    expect(store.hotCommentsError).toBe('hot offline')
   })
 
   it('keeps playback when comments fail', async () => {

@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
-import { COMMENT_LIMIT, getMvCommentPage } from '@/api/comment'
+import { COMMENT_LIMIT, getMvCommentPage, getMvHotComments } from '@/api/comment'
 import { getMvDetail, getMvStats, getMvUrl, getSimiMvs } from '@/api/mv'
 import type { MediaComment } from '@/models/comment'
 import type { MvDetail, MvStats, MvUrl, SimiMv } from '@/models/mv'
@@ -10,6 +10,7 @@ import type { MvDetail, MvStats, MvUrl, SimiMv } from '@/models/mv'
 let requestSerial = 0
 let commentsMoreSerial = 0
 let statsSerial = 0
+let hotCommentSerial = 0
 
 export const useMvStore = defineStore('mv', () => {
   const playback = ref<MvUrl | null>(null)
@@ -20,6 +21,8 @@ export const useMvStore = defineStore('mv', () => {
   const commentsMoreLoading = ref(false)
   const commentsMoreError = ref<string | null>(null)
   const commentOffset = ref(0)
+  const hotComments = ref<MediaComment[] | null>(null)
+  const hotCommentsError = ref<string | null>(null)
   const stats = ref<MvStats | null>(null)
   const statsError = ref<string | null>(null)
   const error = ref<string | null>(null)
@@ -30,6 +33,7 @@ export const useMvStore = defineStore('mv', () => {
     requestSerial++
     commentsMoreSerial++
     statsSerial++
+    hotCommentSerial++
     playback.value = null
     detail.value = null
     relatedMvs.value = null
@@ -38,6 +42,8 @@ export const useMvStore = defineStore('mv', () => {
     commentsMoreLoading.value = false
     commentsMoreError.value = null
     commentOffset.value = 0
+    hotComments.value = null
+    hotCommentsError.value = null
     stats.value = null
     statsError.value = null
     loadedId.value = null
@@ -57,6 +63,7 @@ export const useMvStore = defineStore('mv', () => {
       if (relatedMvs.value === null) requestRelated(id, requestSerial)
       if (comments.value === null) requestComments(id, requestSerial)
       if (stats.value === null) requestStats(id, requestSerial)
+      if (hotComments.value === null) requestHotComments(id, requestSerial)
       return true
     }
 
@@ -73,6 +80,8 @@ export const useMvStore = defineStore('mv', () => {
       comments.value = null
       stats.value = null
       statsError.value = null
+      hotComments.value = null
+      hotCommentsError.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -86,6 +95,7 @@ export const useMvStore = defineStore('mv', () => {
       requestRelated(id, serial)
       requestComments(id, serial)
       requestStats(id, serial)
+      requestHotComments(id, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -106,6 +116,31 @@ export const useMvStore = defineStore('mv', () => {
       .catch(() => {
         if (serial !== requestSerial) return
       })
+  }
+
+  function requestHotComments(id: number, loadSerial: number) {
+    const serial = ++hotCommentSerial
+    hotCommentsError.value = null
+    void getMvHotComments(id)
+      .then((next) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== hotCommentSerial) return
+        if (loadedId.value !== id) return
+        hotComments.value = next
+      })
+      .catch((requestError) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== hotCommentSerial) return
+        hotComments.value = null
+        hotCommentsError.value = getErrorMessage(requestError)
+      })
+  }
+
+  async function loadHotComments(force = false) {
+    const id = loadedId.value
+    if (id === null) return
+    if (!force && hotComments.value && !hotCommentsError.value) return
+    requestHotComments(id, requestSerial)
   }
 
   function requestComments(id: number, serial: number) {
@@ -197,6 +232,7 @@ export const useMvStore = defineStore('mv', () => {
     load,
     loadMoreComments,
     loadStats,
+    loadHotComments,
     reset,
     playback,
     detail,
@@ -206,6 +242,8 @@ export const useMvStore = defineStore('mv', () => {
     commentsMoreLoading,
     commentsMoreError,
     commentOffset,
+    hotComments,
+    hotCommentsError,
     stats,
     statsError,
     error,

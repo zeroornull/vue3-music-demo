@@ -1,7 +1,11 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { COMMENT_LIMIT, getVideoCommentPage } from '@/api/comment'
+import {
+  COMMENT_LIMIT,
+  getVideoCommentPage,
+  getVideoHotComments,
+} from '@/api/comment'
 import { getErrorMessage } from '@/api/http'
 import { getRelatedVideos, getVideoDetail, getVideoStats, getVideoUrl } from '@/api/video'
 import type { MediaComment } from '@/models/comment'
@@ -10,6 +14,7 @@ import type { HallVideo, VideoDetail, VideoStats, VideoUrl } from '@/models/vide
 let requestSerial = 0
 let commentsMoreSerial = 0
 let statsSerial = 0
+let hotCommentSerial = 0
 
 export const useVideoDetailStore = defineStore('videoDetail', () => {
   const playback = ref<VideoUrl | null>(null)
@@ -20,6 +25,8 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
   const commentsMoreLoading = ref(false)
   const commentsMoreError = ref<string | null>(null)
   const commentOffset = ref(0)
+  const hotComments = ref<MediaComment[] | null>(null)
+  const hotCommentsError = ref<string | null>(null)
   const stats = ref<VideoStats | null>(null)
   const statsError = ref<string | null>(null)
   const error = ref<string | null>(null)
@@ -30,6 +37,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
     requestSerial++
     commentsMoreSerial++
     statsSerial++
+    hotCommentSerial++
     playback.value = null
     detail.value = null
     relatedVideos.value = null
@@ -38,6 +46,8 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
     commentsMoreLoading.value = false
     commentsMoreError.value = null
     commentOffset.value = 0
+    hotComments.value = null
+    hotCommentsError.value = null
     stats.value = null
     statsError.value = null
     loadedId.value = null
@@ -58,6 +68,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
       if (relatedVideos.value === null) requestRelated(vid, requestSerial)
       if (comments.value === null) requestComments(vid, requestSerial)
       if (stats.value === null) requestStats(vid, requestSerial)
+      if (hotComments.value === null) requestHotComments(vid, requestSerial)
       return true
     }
 
@@ -74,6 +85,8 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
       comments.value = null
       stats.value = null
       statsError.value = null
+      hotComments.value = null
+      hotCommentsError.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -87,6 +100,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
       requestRelated(vid, serial)
       requestComments(vid, serial)
       requestStats(vid, serial)
+      requestHotComments(vid, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -145,6 +159,31 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
       })
   }
 
+  function requestHotComments(id: string, loadSerial: number) {
+    const serial = ++hotCommentSerial
+    hotCommentsError.value = null
+    void getVideoHotComments(id)
+      .then((next) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== hotCommentSerial) return
+        if (loadedId.value !== id) return
+        hotComments.value = next
+      })
+      .catch((requestError) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== hotCommentSerial) return
+        hotComments.value = null
+        hotCommentsError.value = getErrorMessage(requestError)
+      })
+  }
+
+  async function loadHotComments(force = false) {
+    const id = loadedId.value
+    if (id === null) return
+    if (!force && hotComments.value && !hotCommentsError.value) return
+    requestHotComments(id, requestSerial)
+  }
+
   function requestComments(id: string, serial: number) {
     const moreSerial = commentsMoreSerial
     void Promise.resolve(getVideoCommentPage(id, 0))
@@ -198,6 +237,7 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
     load,
     loadMoreComments,
     loadStats,
+    loadHotComments,
     reset,
     playback,
     detail,
@@ -207,6 +247,8 @@ export const useVideoDetailStore = defineStore('videoDetail', () => {
     commentsMoreLoading,
     commentsMoreError,
     commentOffset,
+    hotComments,
+    hotCommentsError,
     stats,
     statsError,
     error,

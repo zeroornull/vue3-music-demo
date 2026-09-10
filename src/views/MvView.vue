@@ -3,9 +3,11 @@ import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
+import CommentHotSection from '@/components/comment/CommentHotSection.vue'
 import MvCard from '@/components/discover/MvCard.vue'
 import MediaCountRow from '@/components/media/MediaCountRow.vue'
 import MvPlayer from '@/components/mv/MvPlayer.vue'
+import { excludeSeenComments } from '@/models/comment'
 import { Pages } from '@/router/pages'
 import { useMvStore } from '@/stores/mv'
 import { usePlayerStore } from '@/stores/player'
@@ -23,6 +25,8 @@ const {
   commentsMore,
   commentsMoreLoading,
   commentsMoreError,
+  hotComments,
+  hotCommentsError,
   stats,
   statsError,
   loading,
@@ -65,6 +69,14 @@ function loadMoreComments() {
 function retryStats() {
   void mvStore.loadStats(true).catch(() => undefined)
 }
+
+function retryHotComments() {
+  void mvStore.loadHotComments(true).catch(() => undefined)
+}
+
+const latestComments = computed(() =>
+  excludeSeenComments(comments.value, hotComments.value),
+)
 
 const extraCounts = computed(() => {
   const next = stats.value
@@ -184,6 +196,13 @@ watch(
       </header>
       <p v-if="error" class="notice error-notice" role="alert">{{ error }}</p>
       <MvPlayer :src="playback.url" :poster="related?.picUrl" :title="title" />
+      <CommentHotSection
+        error-title="MV 热门评论加载失败"
+        testid="mv-hot-comments"
+        :comments="hotComments"
+        :error="hotCommentsError"
+        @retry="retryHotComments"
+      />
       <section
         v-if="comments !== null"
         class="mv-comments"
@@ -191,9 +210,9 @@ watch(
         aria-labelledby="mv-comments-title"
       >
         <h2 id="mv-comments-title">评论</h2>
-        <p v-if="!comments.length" class="comments-empty">暂无评论</p>
+        <p v-if="!latestComments?.length" class="comments-empty">暂无评论</p>
         <ul v-else class="comment-list">
-          <li v-for="item in comments" :key="item.commentId">
+          <li v-for="item in latestComments" :key="item.commentId">
             <strong>{{ item.nickname }}</strong>
             <p>{{ item.content }}</p>
           </li>

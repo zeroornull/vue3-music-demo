@@ -2,6 +2,8 @@
 import { computed, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 
+import CommentHotSection from '@/components/comment/CommentHotSection.vue'
+import { excludeSeenComments } from '@/models/comment'
 import { useLyricStore } from '@/stores/lyric'
 import { usePlayerStore } from '@/stores/player'
 
@@ -17,8 +19,14 @@ const {
   commentsMore,
   commentsMoreLoading,
   commentsMoreError,
+  hotComments,
+  hotCommentsError,
   currentTime,
 } = storeToRefs(player)
+
+const latestComments = computed(() =>
+  excludeSeenComments(comments.value, hotComments.value),
+)
 
 const activeIndex = computed(() => {
   const time = currentTime.value
@@ -158,6 +166,14 @@ onUnmounted(() => {
             </li>
           </ol>
 
+          <CommentHotSection
+            error-title="歌曲热门评论加载失败"
+            heading="h3"
+            testid="song-hot-comments"
+            :comments="hotComments"
+            :error="hotCommentsError"
+            @retry="player.loadHotComments(true).catch(() => undefined)"
+          />
           <section
             v-if="comments !== null"
             class="song-comments"
@@ -165,9 +181,9 @@ onUnmounted(() => {
             aria-labelledby="song-comments-title"
           >
             <h3 id="song-comments-title">评论</h3>
-            <p v-if="!comments.length" class="comments-empty">暂无评论</p>
+            <p v-if="!latestComments?.length" class="comments-empty">暂无评论</p>
             <ul v-else class="comment-list">
-              <li v-for="item in comments" :key="item.commentId">
+              <li v-for="item in latestComments" :key="item.commentId">
                 <strong>{{ item.nickname }}</strong>
                 <p>{{ item.content }}</p>
               </li>

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
-import { COMMENT_LIMIT, getSongCommentPage } from '@/api/comment'
+import { COMMENT_LIMIT, getSongCommentPage, getSongHotComments } from '@/api/comment'
 import { getPersonalFm, trashPersonalFm } from '@/api/fm'
 import { getSimiPlaylists } from '@/api/playlist'
 import {
@@ -21,6 +21,7 @@ import {
 vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getSongCommentPage: vi.fn(),
+  getSongHotComments: vi.fn(),
 }))
 vi.mock('@/api/fm', () => ({
   getPersonalFm: vi.fn(),
@@ -104,6 +105,8 @@ describe('Player store', () => {
     vi.mocked(getSimiPlaylists).mockRejectedValue(new Error('no playlists'))
     vi.mocked(getSongCommentPage).mockReset()
     vi.mocked(getSongCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getSongHotComments).mockReset()
+    vi.mocked(getSongHotComments).mockRejectedValue(new Error('no hot'))
     vi.mocked(getPersonalFm).mockReset()
     vi.mocked(getPersonalFm).mockRejectedValue(new Error('no fm'))
     vi.mocked(trashPersonalFm).mockReset()
@@ -1131,6 +1134,28 @@ describe('Player store', () => {
     expect(player.comments).toBeNull()
     expect(player.error).toBeNull()
     expect(player.isPlaying).toBe(true)
+  })
+
+  it('loads song hot comments with playback and keeps playback when they fail', async () => {
+    const hot = { commentId: 9, content: '林间热评', nickname: '林间电台' }
+    vi.mocked(getSongHotComments).mockResolvedValue([hot])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    await flushPromises()
+    await player.play(song(1))
+    await flushPromises()
+    expect(player.hotComments).toEqual([hot])
+    expect(getSongHotComments).toHaveBeenCalledTimes(1)
+
+    vi.mocked(getSongHotComments).mockReset()
+    vi.mocked(getSongHotComments).mockRejectedValue(new Error('hot offline'))
+    player.clear()
+    await player.play(song(1))
+    await flushPromises()
+    expect(player.current).toEqual(song(1))
+    expect(player.hotComments).toBeNull()
+    expect(player.hotCommentsError).toBe('hot offline')
   })
 
   it('retries comments on a cached current when the first comment request failed', async () => {

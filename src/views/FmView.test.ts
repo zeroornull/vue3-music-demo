@@ -23,6 +23,7 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getSongComments: vi.fn(),
   getSongCommentPage: vi.fn(),
+  getSongHotComments: vi.fn(),
 }))
 vi.mock('@/api/fm', () => ({
   getPersonalFm: vi.fn(),

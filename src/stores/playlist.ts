@@ -2,7 +2,11 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
-import { COMMENT_LIMIT, getPlaylistCommentPage } from '@/api/comment'
+import {
+  COMMENT_LIMIT,
+  getPlaylistCommentPage,
+  getPlaylistHotComments,
+} from '@/api/comment'
 import {
   getPlaylistDetail,
   getPlaylistStats,
@@ -24,6 +28,7 @@ let requestSerial = 0
 let commentsMoreSerial = 0
 let subscribersMoreSerial = 0
 let statsSerial = 0
+let hotCommentSerial = 0
 
 export const usePlaylistStore = defineStore('playlist', () => {
   const playlist = ref<PlaylistDetail | null>(null)
@@ -34,6 +39,8 @@ export const usePlaylistStore = defineStore('playlist', () => {
   const commentsMoreLoading = ref(false)
   const commentsMoreError = ref<string | null>(null)
   const commentOffset = ref(0)
+  const hotComments = ref<MediaComment[] | null>(null)
+  const hotCommentsError = ref<string | null>(null)
   const subscribers = ref<PlaylistSubscriber[] | null>(null)
   const subscribersMore = ref(false)
   const subscribersMoreLoading = ref(false)
@@ -58,6 +65,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     requestSerial++
     commentsMoreSerial++
     statsSerial++
+    hotCommentSerial++
     resetSubscribersPaging()
     playlist.value = null
     songs.value = []
@@ -67,6 +75,8 @@ export const usePlaylistStore = defineStore('playlist', () => {
     commentsMoreLoading.value = false
     commentsMoreError.value = null
     commentOffset.value = 0
+    hotComments.value = null
+    hotCommentsError.value = null
     subscribers.value = null
     stats.value = null
     statsError.value = null
@@ -87,6 +97,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
       if (comments.value === null) requestComments(id, requestSerial)
       if (subscribers.value === null) requestSubscribers(id, requestSerial)
       if (stats.value === null) requestStats(id, requestSerial)
+      if (hotComments.value === null) requestHotComments(id, requestSerial)
       return true
     }
 
@@ -105,6 +116,8 @@ export const usePlaylistStore = defineStore('playlist', () => {
       subscribers.value = null
       stats.value = null
       statsError.value = null
+      hotComments.value = null
+      hotCommentsError.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -122,6 +135,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
       requestComments(id, serial)
       requestSubscribers(id, serial)
       requestStats(id, serial)
+      requestHotComments(id, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -130,6 +144,31 @@ export const usePlaylistStore = defineStore('playlist', () => {
     } finally {
       if (serial === requestSerial) loading.value = false
     }
+  }
+
+  function requestHotComments(id: number, loadSerial: number) {
+    const serial = ++hotCommentSerial
+    hotCommentsError.value = null
+    void getPlaylistHotComments(id)
+      .then((next) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== hotCommentSerial) return
+        if (loadedId.value !== id) return
+        hotComments.value = next
+      })
+      .catch((requestError) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== hotCommentSerial) return
+        hotComments.value = null
+        hotCommentsError.value = getErrorMessage(requestError)
+      })
+  }
+
+  async function loadHotComments(force = false) {
+    const id = loadedId.value
+    if (id === null) return
+    if (!force && hotComments.value && !hotCommentsError.value) return
+    requestHotComments(id, requestSerial)
   }
 
   function requestComments(id: number, serial: number) {
@@ -271,6 +310,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     loadMoreComments,
     loadMoreSubscribers,
     loadStats,
+    loadHotComments,
     reset,
     playlist,
     songs,
@@ -280,6 +320,8 @@ export const usePlaylistStore = defineStore('playlist', () => {
     commentsMoreLoading,
     commentsMoreError,
     commentOffset,
+    hotComments,
+    hotCommentsError,
     subscribers,
     subscribersMore,
     subscribersMoreLoading,

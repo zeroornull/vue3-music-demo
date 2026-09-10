@@ -3,9 +3,11 @@ import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
+import CommentHotSection from '@/components/comment/CommentHotSection.vue'
 import CategoryPlaylistCard from '@/components/music/CategoryPlaylistCard.vue'
 import PlaylistHeader from '@/components/playlist/PlaylistHeader.vue'
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
+import { excludeSeenComments } from '@/models/comment'
 import type { Song } from '@/models/song'
 import { Pages } from '@/router/pages'
 import { usePlayerStore } from '@/stores/player'
@@ -22,6 +24,8 @@ const {
   commentsMore,
   commentsMoreLoading,
   commentsMoreError,
+  hotComments,
+  hotCommentsError,
   subscribers,
   subscribersMore,
   subscribersMoreLoading,
@@ -58,6 +62,14 @@ function loadMoreSubscribers() {
 function retryStats() {
   void playlistStore.loadStats(true).catch(() => undefined)
 }
+
+function retryHotComments() {
+  void playlistStore.loadHotComments(true).catch(() => undefined)
+}
+
+const latestComments = computed(() =>
+  excludeSeenComments(comments.value, hotComments.value),
+)
 
 function playAll() {
   const serial = ++playSerial
@@ -162,6 +174,13 @@ watch(
         :current-id="current?.id ?? null"
         @play="playSong"
       />
+      <CommentHotSection
+        error-title="歌单热门评论加载失败"
+        testid="playlist-hot-comments"
+        :comments="hotComments"
+        :error="hotCommentsError"
+        @retry="retryHotComments"
+      />
       <section
         v-if="comments !== null"
         class="playlist-comments"
@@ -169,9 +188,9 @@ watch(
         aria-labelledby="playlist-comments-title"
       >
         <h2 id="playlist-comments-title">评论</h2>
-        <p v-if="!comments.length" class="comments-empty">暂无评论</p>
+        <p v-if="!latestComments?.length" class="comments-empty">暂无评论</p>
         <ul v-else class="comment-list">
-          <li v-for="item in comments" :key="item.commentId">
+          <li v-for="item in latestComments" :key="item.commentId">
             <strong>{{ item.nickname }}</strong>
             <p>{{ item.content }}</p>
           </li>

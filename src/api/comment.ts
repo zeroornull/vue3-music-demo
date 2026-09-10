@@ -2,6 +2,13 @@ import { http, type HttpClient } from '@/api/http'
 import type { MediaComment } from '@/models/comment'
 
 export const COMMENT_LIMIT = 20
+export const COMMENT_HOT_LIMIT = 10
+export const COMMENT_HOT_TYPE = {
+  mv: 1,
+  playlist: 2,
+  song: 0,
+  video: 5,
+} as const
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -224,4 +231,98 @@ export async function getSongComments(
 ): Promise<MediaComment[]> {
   const page = await getSongCommentPage(id, 0, client)
   return page.comments
+}
+
+function unwrapHotComments(response: unknown): unknown[] | null {
+  if (!isRecord(response)) return null
+  if (Array.isArray(response.hotComments)) return response.hotComments
+  const nested = isRecord(response.data) ? response.data : null
+  if (nested && Array.isArray(nested.hotComments)) return nested.hotComments
+  return null
+}
+
+async function getHotCommentList(
+  type: number,
+  id: number | string,
+  errorMessage: string,
+  client: Pick<HttpClient, 'get'>,
+): Promise<MediaComment[]> {
+  const response = await client.get<unknown>('/comment/hot', {
+    id,
+    limit: COMMENT_HOT_LIMIT,
+    type,
+  })
+  const raw = unwrapHotComments(response)
+  if (!raw) {
+    throw new Error(errorMessage)
+  }
+  const seen = new Set<number>()
+  const list: MediaComment[] = []
+  for (const entry of raw) {
+    const item = readComment(entry)
+    if (!item || seen.has(item.commentId)) continue
+    seen.add(item.commentId)
+    list.push(item)
+    if (list.length >= COMMENT_HOT_LIMIT) break
+  }
+  return list
+}
+
+export async function getPlaylistHotComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的歌单 ID')
+  }
+  return getHotCommentList(
+    COMMENT_HOT_TYPE.playlist,
+    id,
+    '歌单热门评论响应格式不正确',
+    client,
+  )
+}
+
+export async function getMvHotComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的 MV ID')
+  }
+  return getHotCommentList(
+    COMMENT_HOT_TYPE.mv,
+    id,
+    'MV 热门评论响应格式不正确',
+    client,
+  )
+}
+
+export async function getVideoHotComments(
+  id: string,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  const vid = id.trim()
+  if (!vid) throw new Error('缺少有效的视频 ID')
+  return getHotCommentList(
+    COMMENT_HOT_TYPE.video,
+    vid,
+    '视频热门评论响应格式不正确',
+    client,
+  )
+}
+
+export async function getSongHotComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的歌曲 ID')
+  }
+  return getHotCommentList(
+    COMMENT_HOT_TYPE.song,
+    id,
+    '歌曲热门评论响应格式不正确',
+    client,
+  )
 }

@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
 import {
+  COMMENT_HOT_LIMIT,
+  COMMENT_HOT_TYPE,
   COMMENT_LIMIT,
   getDjCommentPage,
   getDjComments,
@@ -9,12 +11,16 @@ import {
   getDjRadioComments,
   getMvCommentPage,
   getMvComments,
+  getMvHotComments,
   getPlaylistCommentPage,
   getPlaylistComments,
+  getPlaylistHotComments,
   getSongCommentPage,
   getSongComments,
+  getSongHotComments,
   getVideoCommentPage,
   getVideoComments,
+  getVideoHotComments,
 } from '@/api/comment'
 
 const client = (response: unknown) => {
@@ -622,5 +628,90 @@ describe('Song comment API', () => {
     await expect(
       getSongCommentPage(301, COMMENT_LIMIT, client({ comments: full }).client),
     ).resolves.toMatchObject({ more: true })
+  })
+})
+
+describe('Hot comment API', () => {
+  const hot = {
+    commentId: 1,
+    content: '走过林间。',
+    extra: true,
+    user: { extra: true, nickname: '林间电台' },
+  }
+
+  it('unwraps /comment/hot playlist comments and drops invalid ids', async () => {
+    const request = client({
+      hotComments: [hot, { commentId: 0, content: '无效', user: { nickname: 'x' } }],
+    })
+    await expect(getPlaylistHotComments(101, request.client)).resolves.toEqual([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/comment/hot', {
+      id: 101,
+      limit: COMMENT_HOT_LIMIT,
+      type: COMMENT_HOT_TYPE.playlist,
+    })
+  })
+
+  it('unwraps nested MV hot comments and slices the list', async () => {
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      commentId: index + 1,
+      content: `热评${index + 1}`,
+      user: { nickname: '热评用户' },
+    }))
+    const request = client({ data: { hotComments: many } })
+    await expect(getMvHotComments(701, request.client)).resolves.toHaveLength(
+      COMMENT_HOT_LIMIT,
+    )
+    expect(request.get).toHaveBeenCalledWith('/comment/hot', {
+      id: 701,
+      limit: COMMENT_HOT_LIMIT,
+      type: COMMENT_HOT_TYPE.mv,
+    })
+  })
+
+  it('unwraps video hot comments by vid', async () => {
+    const request = client({ hotComments: [hot] })
+    await expect(getVideoHotComments('VID001', request.client)).resolves.toEqual([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/comment/hot', {
+      id: 'VID001',
+      limit: COMMENT_HOT_LIMIT,
+      type: COMMENT_HOT_TYPE.video,
+    })
+  })
+
+  it('unwraps song hot comments', async () => {
+    const request = client({ hotComments: [hot] })
+    await expect(getSongHotComments(301, request.client)).resolves.toEqual([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/comment/hot', {
+      id: 301,
+      limit: COMMENT_HOT_LIMIT,
+      type: COMMENT_HOT_TYPE.song,
+    })
+  })
+
+  it('rejects missing ids or a body without hotComments', async () => {
+    await expect(getPlaylistHotComments(0, client({}).client)).rejects.toThrow(
+      '缺少有效的歌单 ID',
+    )
+    await expect(getMvHotComments(0, client({}).client)).rejects.toThrow(
+      '缺少有效的 MV ID',
+    )
+    await expect(getVideoHotComments('  ', client({}).client)).rejects.toThrow(
+      '缺少有效的视频 ID',
+    )
+    await expect(getSongHotComments(0, client({}).client)).rejects.toThrow(
+      '缺少有效的歌曲 ID',
+    )
+    await expect(
+      getPlaylistHotComments(101, client({ comments: [] }).client),
+    ).rejects.toThrow('歌单热门评论响应格式不正确')
+    await expect(getMvHotComments(701, client({ data: {} }).client)).rejects.toThrow(
+      'MV 热门评论响应格式不正确',
+    )
   })
 })

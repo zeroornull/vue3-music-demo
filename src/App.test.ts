@@ -31,6 +31,7 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getSongComments: vi.fn(),
   getSongCommentPage: vi.fn(),
+  getSongHotComments: vi.fn(),
 }))
 vi.mock('@/api/playlist', () => ({
   getSimiPlaylists: vi.fn(),
@@ -648,6 +649,8 @@ describe('App host gate', () => {
     mvStore.commentsMoreError = 'stale'
     mvStore.commentsMoreLoading = true
     mvStore.commentOffset = 20
+    mvStore.hotComments = [{ commentId: 9, content: '林间热评', nickname: '林间电台' }]
+    mvStore.hotCommentsError = 'stale'
     mvStore.stats = {
       commentCount: 128,
       likedCount: 64,
@@ -667,6 +670,8 @@ describe('App host gate', () => {
     expect(mvStore.commentsMoreError).toBeNull()
     expect(mvStore.commentsMoreLoading).toBe(false)
     expect(mvStore.commentOffset).toBe(0)
+    expect(mvStore.hotComments).toBeNull()
+    expect(mvStore.hotCommentsError).toBeNull()
     expect(mvStore.stats).toBeNull()
     expect(mvStore.statsError).toBeNull()
   })
@@ -686,6 +691,10 @@ describe('App host gate', () => {
     videoDetailStore.commentsMoreError = 'stale'
     videoDetailStore.commentsMoreLoading = true
     videoDetailStore.commentOffset = 20
+    videoDetailStore.hotComments = [
+      { commentId: 9, content: '林间热评', nickname: '林间电台' },
+    ]
+    videoDetailStore.hotCommentsError = 'stale'
     videoDetailStore.stats = {
       commentCount: 18,
       likedCount: 9,
@@ -705,6 +714,8 @@ describe('App host gate', () => {
     expect(videoDetailStore.commentsMoreError).toBeNull()
     expect(videoDetailStore.commentsMoreLoading).toBe(false)
     expect(videoDetailStore.commentOffset).toBe(0)
+    expect(videoDetailStore.hotComments).toBeNull()
+    expect(videoDetailStore.hotCommentsError).toBeNull()
     expect(videoDetailStore.stats).toBeNull()
     expect(videoDetailStore.statsError).toBeNull()
   })
@@ -732,6 +743,10 @@ describe('App host gate', () => {
     playlistStore.commentsMoreError = 'stale'
     playlistStore.commentsMoreLoading = true
     playlistStore.commentOffset = 20
+    playlistStore.hotComments = [
+      { commentId: 9, content: '林间热评', nickname: '林间电台' },
+    ]
+    playlistStore.hotCommentsError = 'stale'
     playlistStore.subscribers = [
       { nickname: '林间电台', userId: 8 },
     ]
@@ -759,6 +774,8 @@ describe('App host gate', () => {
     expect(playlistStore.commentsMoreError).toBeNull()
     expect(playlistStore.commentsMoreLoading).toBe(false)
     expect(playlistStore.commentOffset).toBe(0)
+    expect(playlistStore.hotComments).toBeNull()
+    expect(playlistStore.hotCommentsError).toBeNull()
     expect(playlistStore.subscribers).toBeNull()
     expect(playlistStore.subscribersMore).toBe(false)
     expect(playlistStore.subscribersMoreError).toBeNull()
@@ -803,6 +820,10 @@ describe('App host gate', () => {
         playCount: 12_000,
       },
     ]
+    player.hotComments = [
+      { commentId: 9, content: '林间热评', nickname: '林间电台' },
+    ]
+    player.hotCommentsError = 'stale'
     player.comments = [
       { commentId: 1, content: '走过林间。', nickname: '林间电台' },
     ]
@@ -824,6 +845,8 @@ describe('App host gate', () => {
     expect(player.relatedSongs).toBeNull()
     expect(player.relatedPlaylists).toBeNull()
     expect(player.comments).toBeNull()
+    expect(player.hotComments).toBeNull()
+    expect(player.hotCommentsError).toBeNull()
     expect(player.commentsMore).toBe(false)
     expect(player.commentsMoreError).toBeNull()
     expect(player.commentsMoreLoading).toBe(false)

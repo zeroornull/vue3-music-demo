@@ -1,7 +1,11 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { COMMENT_LIMIT, getPlaylistCommentPage } from '@/api/comment'
+import {
+  COMMENT_LIMIT,
+  getPlaylistCommentPage,
+  getPlaylistHotComments,
+} from '@/api/comment'
 import {
   getPlaylistDetail,
   getPlaylistStats,
@@ -16,6 +20,7 @@ import { usePlaylistStore } from '@/stores/playlist'
 vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getPlaylistCommentPage: vi.fn(),
+  getPlaylistHotComments: vi.fn(),
 }))
 vi.mock('@/api/playlist', () => ({
   SUBSCRIBER_LIMIT: 20,
@@ -97,6 +102,8 @@ describe('playlist store', () => {
     vi.mocked(getRelatedPlaylists).mockRejectedValue(new Error('no related'))
     vi.mocked(getPlaylistCommentPage).mockReset()
     vi.mocked(getPlaylistCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getPlaylistHotComments).mockReset()
+    vi.mocked(getPlaylistHotComments).mockRejectedValue(new Error('no hot'))
     vi.mocked(getPlaylistSubscriberPage).mockReset()
     vi.mocked(getPlaylistSubscriberPage).mockRejectedValue(
       new Error('no subscribers'),
@@ -450,6 +457,47 @@ describe('playlist store', () => {
     expect(store.songs).toEqual(songs)
     expect(store.comments).toBeNull()
     expect(store.error).toBeNull()
+  })
+
+  it('loads hot comments with the detail and keeps the playlist when hot comments fail', async () => {
+    const hot = { commentId: 9, content: '林间热评', nickname: '林间电台' }
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistHotComments).mockResolvedValue([hot])
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    await store.load(101)
+    expect(store.hotComments).toEqual([hot])
+    expect(getPlaylistHotComments).toHaveBeenCalledTimes(1)
+    expect(getPlaylistHotComments).toHaveBeenCalledWith(101)
+
+    vi.mocked(getPlaylistHotComments).mockReset()
+    vi.mocked(getPlaylistHotComments).mockRejectedValue(new Error('hot offline'))
+    store.reset()
+    await store.load(101)
+    await settle()
+    expect(store.playlist).toEqual(playlist)
+    expect(store.hotComments).toBeNull()
+    expect(store.hotCommentsError).toBe('hot offline')
+    expect(store.error).toBeNull()
+  })
+
+  it('retries playlist hot comments via loadHotComments', async () => {
+    const hot = { commentId: 9, content: '林间热评', nickname: '林间电台' }
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistHotComments)
+      .mockRejectedValueOnce(new Error('hot offline'))
+      .mockResolvedValueOnce([hot])
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    expect(store.hotCommentsError).toBe('hot offline')
+    await store.loadHotComments(true)
+    await settle()
+    expect(store.hotComments).toEqual([hot])
+    expect(store.hotCommentsError).toBeNull()
   })
 
   it('retries comments on a cached playlist when the first comment request failed', async () => {

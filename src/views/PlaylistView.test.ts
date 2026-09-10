@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getPlaylistCommentPage } from '@/api/comment'
+import { getPlaylistCommentPage, getPlaylistHotComments } from '@/api/comment'
 import {
   getPlaylistDetail,
   getPlaylistStats,
@@ -22,6 +22,7 @@ import PlaylistView from '@/views/PlaylistView.vue'
 vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getPlaylistCommentPage: vi.fn(),
+  getPlaylistHotComments: vi.fn(),
 }))
 vi.mock('@/api/playlist', () => ({
   SUBSCRIBER_LIMIT: 20,
@@ -153,6 +154,8 @@ describe('PlaylistView', () => {
     vi.mocked(getRelatedPlaylists).mockRejectedValue(new Error('no related'))
     vi.mocked(getPlaylistCommentPage).mockReset()
     vi.mocked(getPlaylistCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getPlaylistHotComments).mockReset()
+    vi.mocked(getPlaylistHotComments).mockRejectedValue(new Error('no hot'))
     vi.mocked(getPlaylistSubscriberPage).mockReset()
     vi.mocked(getPlaylistSubscriberPage).mockRejectedValue(
       new Error('no subscribers'),
@@ -320,6 +323,42 @@ describe('PlaylistView', () => {
     expect(comments.text()).toContain('走过林间。')
     expect(comments.text()).toContain('林间电台')
     expect(comments.find('a').exists()).toBe(false)
+  })
+
+  it('does not repeat a hot comment in the latest list', async () => {
+    const shared = { commentId: 1, content: '林间热评', nickname: '林间电台' }
+    vi.mocked(getPlaylistCommentPage).mockResolvedValue({
+      comments: [shared, { commentId: 2, content: '夜色刚好', nickname: '海岸信号' }],
+      more: false,
+    })
+    vi.mocked(getPlaylistHotComments).mockResolvedValue([shared])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="playlist-hot-comments"]').text()).toContain(
+      '林间热评',
+    )
+    const latest = wrapper.get('[data-testid="playlist-comments"]')
+    expect(latest.text()).toContain('夜色刚好')
+    expect(latest.text()).not.toContain('林间热评')
+  })
+
+  it('loads and retries playlist hot comments without blocking songs', async () => {
+    vi.mocked(getPlaylistHotComments)
+      .mockRejectedValueOnce(new Error('hot offline'))
+      .mockResolvedValueOnce([
+        { commentId: 9, content: '林间热评', nickname: '林间电台' },
+      ])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="playlist-hot-comments-error"]').text()).toContain(
+      '歌单热门评论加载失败',
+    )
+    await wrapper.get('[data-testid="playlist-hot-comments-retry"]').trigger('click')
+    await flushPromises()
+    expect(getPlaylistHotComments).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="playlist-hot-comments"]').text()).toContain(
+      '林间热评',
+    )
   })
 
   it('shows an empty comments state when the list is empty', async () => {

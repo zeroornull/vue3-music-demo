@@ -1,5 +1,10 @@
 import { defineStore } from 'pinia'
-import { COMMENT_LIMIT, getSongCommentPage } from '@/api/comment'
+import {
+  COMMENT_LIMIT,
+  getSongCommentPage,
+  getSongHotComments,
+} from '@/api/comment'
+import { getErrorMessage } from '@/api/http'
 import { getPersonalFm, trashPersonalFm } from '@/api/fm'
 import { getSimiPlaylists } from '@/api/playlist'
 import {
@@ -32,6 +37,7 @@ const LOOP_MODE_NEXT: Record<LoopMode, LoopMode> = {
 let injectedAdapter: AudioAdapter | undefined
 let requestSerial = 0
 let commentsMoreSerial = 0
+let hotCommentSerial = 0
 let fmSerial = 0
 let pauseGeneration = 0
 let unbindAudio: (() => void) | undefined
@@ -129,6 +135,8 @@ export const usePlayerStore = defineStore('player', {
     commentsMoreLoading: false,
     commentsMoreError: null as string | null,
     commentOffset: 0,
+    hotComments: null as MediaComment[] | null,
+    hotCommentsError: null as string | null,
     isFm: false,
   }),
   getters: {
@@ -185,6 +193,7 @@ export const usePlayerStore = defineStore('player', {
         if (this.relatedSongs === null) this.requestRelated(song.id)
         if (this.relatedPlaylists === null) this.requestSimiPlaylists(song.id)
         if (this.comments === null) this.requestComments(song.id)
+        if (this.hotComments === null) this.requestHotComments(song.id)
         let url
         try {
           url = await getSongUrl(song.id)
@@ -543,11 +552,14 @@ export const usePlayerStore = defineStore('player', {
     },
     resetCommentsPaging() {
       commentsMoreSerial++
+      hotCommentSerial++
       this.comments = null
       this.commentsMore = false
       this.commentsMoreLoading = false
       this.commentsMoreError = null
       this.commentOffset = 0
+      this.hotComments = null
+      this.hotCommentsError = null
     },
     requestComments(songId: number) {
       if (!Number.isInteger(songId) || songId <= 0) {
@@ -568,6 +580,33 @@ export const usePlayerStore = defineStore('player', {
           this.commentOffset = COMMENT_LIMIT
         })
         .catch(() => undefined)
+    },
+    requestHotComments(songId: number) {
+      if (!Number.isInteger(songId) || songId <= 0) {
+        this.hotComments = []
+        this.hotCommentsError = null
+        return
+      }
+      const serial = ++hotCommentSerial
+      this.hotCommentsError = null
+      void Promise.resolve(getSongHotComments(songId))
+        .then((next) => {
+          if (this.current?.id !== songId) return
+          if (serial !== hotCommentSerial) return
+          this.hotComments = next
+        })
+        .catch((requestError) => {
+          if (this.current?.id !== songId) return
+          if (serial !== hotCommentSerial) return
+          this.hotComments = null
+          this.hotCommentsError = getErrorMessage(requestError)
+        })
+    },
+    async loadHotComments(force = false) {
+      const id = this.current?.id
+      if (id == null) return
+      if (!force && this.hotComments && !this.hotCommentsError) return
+      this.requestHotComments(id)
     },
     async loadMoreComments() {
       const id = this.current?.id

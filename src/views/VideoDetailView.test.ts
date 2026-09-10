@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getVideoCommentPage } from '@/api/comment'
+import { getVideoCommentPage, getVideoHotComments } from '@/api/comment'
 import { getRelatedVideos, getVideoDetail, getVideoStats, getVideoUrl } from '@/api/video'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -16,6 +16,7 @@ import VideoDetailView from '@/views/VideoDetailView.vue'
 vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getVideoCommentPage: vi.fn(),
+  getVideoHotComments: vi.fn(),
 }))
 vi.mock('@/api/video', () => ({
   getRelatedVideos: vi.fn(),
@@ -84,6 +85,8 @@ describe('VideoDetailView', () => {
     vi.mocked(getRelatedVideos).mockRejectedValue(new Error('no related'))
     vi.mocked(getVideoCommentPage).mockReset()
     vi.mocked(getVideoCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getVideoHotComments).mockReset()
+    vi.mocked(getVideoHotComments).mockRejectedValue(new Error('no hot'))
     vi.mocked(getVideoStats).mockReset()
     vi.mocked(getVideoStats).mockRejectedValue(new Error('no stats'))
   })
@@ -257,6 +260,42 @@ describe('VideoDetailView', () => {
     expect(comments.text()).toContain('走过林间。')
     expect(comments.get('strong').text()).toBe('林间电台')
     expect(comments.find('a').exists()).toBe(false)
+  })
+
+  it('loads and retries video hot comments without blocking playback', async () => {
+    vi.mocked(getVideoHotComments)
+      .mockRejectedValueOnce(new Error('hot offline'))
+      .mockResolvedValueOnce([
+        { commentId: 9, content: '林间热评', nickname: '林间电台' },
+      ])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="video-hot-comments-error"]').text()).toContain(
+      '视频热门评论加载失败',
+    )
+    await wrapper.get('[data-testid="video-hot-comments-retry"]').trigger('click')
+    await flushPromises()
+    expect(getVideoHotComments).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="video-hot-comments"]').text()).toContain(
+      '林间热评',
+    )
+  })
+
+  it('does not repeat a hot comment in the latest video list', async () => {
+    const shared = { commentId: 1, content: '林间热评', nickname: '林间电台' }
+    vi.mocked(getVideoCommentPage).mockResolvedValue({
+      comments: [shared, { commentId: 2, content: '夜色刚好', nickname: '海岸信号' }],
+      more: false,
+    })
+    vi.mocked(getVideoHotComments).mockResolvedValue([shared])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="video-hot-comments"]').text()).toContain(
+      '林间热评',
+    )
+    const latest = wrapper.get('[data-testid="video-comments"]')
+    expect(latest.text()).toContain('夜色刚好')
+    expect(latest.text()).not.toContain('林间热评')
   })
 
   it('shows an empty comments state when the list is empty', async () => {
