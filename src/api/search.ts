@@ -4,6 +4,8 @@ import type {
   SearchAlbumPage,
   SearchArtist,
   SearchArtistPage,
+  SearchBestMatch,
+  SearchDefaultKeyword,
   SearchHot,
   SearchMv,
   SearchMvPage,
@@ -180,6 +182,58 @@ export async function getSearchHotDetail(
     .map(readHot)
     .filter((item): item is SearchHot => item !== null)
     .slice(0, SEARCH_HOT_LIMIT)
+}
+
+function firstMatch<T>(
+  value: unknown,
+  read: (item: unknown) => T | null,
+): T | null {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const next = read(item)
+      if (next) return next
+    }
+    return null
+  }
+  return read(value)
+}
+
+export async function getSearchDefaultKeyword(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SearchDefaultKeyword> {
+  const response = await client.get<{ data?: unknown }>('/search/default')
+  const data = isRecord(response.data) ? response.data : null
+  if (!data) {
+    throw new Error('默认搜索词响应格式不正确')
+  }
+  const realKeyword =
+    typeof data.realkeyword === 'string' ? data.realkeyword.trim() : ''
+  const showKeyword =
+    typeof data.showKeyword === 'string' ? data.showKeyword.trim() : ''
+  const real = realKeyword || showKeyword
+  const show = showKeyword || realKeyword
+  if (!real) {
+    throw new Error('默认搜索词不存在')
+  }
+  return { realKeyword: real, showKeyword: show }
+}
+
+export async function getSearchMultimatch(
+  keywords: string,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SearchBestMatch> {
+  const response = await client.get<{ result?: unknown }>('/search/multimatch', {
+    keywords,
+  })
+  const result = isRecord(response.result) ? response.result : null
+  if (!result) {
+    throw new Error('搜索最佳匹配响应格式不正确')
+  }
+  return {
+    album: firstMatch(result.album, readAlbum),
+    artist: firstMatch(result.artist, readArtist),
+    playlist: firstMatch(result.playlist, readPlaylist),
+  }
 }
 
 export async function getSearchSuggest(

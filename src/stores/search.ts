@@ -10,11 +10,15 @@ import {
   getCloudSearchRadios,
   getCloudSearchSongs,
   getCloudSearchVideos,
+  getSearchDefaultKeyword,
   getSearchHotDetail,
+  getSearchMultimatch,
 } from '@/api/search'
 import type {
   SearchAlbum,
   SearchArtist,
+  SearchBestMatch,
+  SearchDefaultKeyword,
   SearchHot,
   SearchMv,
   SearchPlaylist,
@@ -24,6 +28,7 @@ import type {
 import type { Song } from '@/models/song'
 
 let hotSerial = 0
+let defaultSerial = 0
 let searchSerial = 0
 let songMoreSerial = 0
 let playlistMoreSerial = 0
@@ -38,6 +43,10 @@ export const useSearchStore = defineStore('search', () => {
   const hots = ref<SearchHot[]>([])
   const hotsError = ref<string | null>(null)
   const hotsLoading = ref(false)
+  const defaultKeyword = ref<SearchDefaultKeyword | null>(null)
+  const defaultError = ref<string | null>(null)
+  const defaultLoading = ref(false)
+  const bestMatch = ref<SearchBestMatch | null>(null)
   const songs = ref<Song[]>([])
   const playlists = ref<SearchPlaylist[]>([])
   const artists = ref<SearchArtist[]>([])
@@ -96,10 +105,12 @@ export const useSearchStore = defineStore('search', () => {
     videosError.value = null
     videosLoading.value = false
     videosMore.value = false
+    bestMatch.value = null
   }
 
   function reset() {
     hotSerial++
+    defaultSerial++
     searchSerial++
     songMoreSerial++
     playlistMoreSerial++
@@ -112,6 +123,9 @@ export const useSearchStore = defineStore('search', () => {
     hots.value = []
     hotsError.value = null
     hotsLoading.value = false
+    defaultKeyword.value = null
+    defaultError.value = null
+    defaultLoading.value = false
     clearHits()
   }
 
@@ -133,6 +147,27 @@ export const useSearchStore = defineStore('search', () => {
       throw requestError
     } finally {
       if (serial === hotSerial) hotsLoading.value = false
+    }
+  }
+
+  async function loadDefault(force = false) {
+    if (defaultKeyword.value && !force && !defaultError.value) {
+      return
+    }
+
+    const serial = ++defaultSerial
+    defaultLoading.value = true
+    defaultError.value = null
+    try {
+      const next = await getSearchDefaultKeyword()
+      if (serial !== defaultSerial) return
+      defaultKeyword.value = next
+    } catch (requestError) {
+      if (serial !== defaultSerial) return
+      defaultError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === defaultSerial) defaultLoading.value = false
     }
   }
 
@@ -163,6 +198,7 @@ export const useSearchStore = defineStore('search', () => {
       radiosError.value === null &&
       videosError.value === null
     ) {
+      if (bestMatch.value === null) requestBestMatch(next, searchSerial)
       return
     }
 
@@ -175,6 +211,7 @@ export const useSearchStore = defineStore('search', () => {
     ++radioMoreSerial
     ++videoMoreSerial
     keyword.value = next
+    bestMatch.value = null
     songs.value = []
     playlists.value = []
     artists.value = []
@@ -236,6 +273,7 @@ export const useSearchStore = defineStore('search', () => {
       radiosMore.value = radioPage.more
       videos.value = videoPage.videos
       videosMore.value = videoPage.more
+      requestBestMatch(next, serial)
     } catch (requestError) {
       if (serial !== searchSerial) return
       songsError.value = getErrorMessage(requestError)
@@ -243,6 +281,16 @@ export const useSearchStore = defineStore('search', () => {
     } finally {
       if (serial === searchSerial) songsLoading.value = false
     }
+  }
+
+  function requestBestMatch(next: string, serial: number) {
+    void Promise.resolve(getSearchMultimatch(next))
+      .then((match) => {
+        if (serial !== searchSerial) return
+        if (keyword.value !== next) return
+        bestMatch.value = match
+      })
+      .catch(() => undefined)
   }
 
   async function loadMoreSongs() {
@@ -454,6 +502,7 @@ export const useSearchStore = defineStore('search', () => {
 
   return {
     loadHots,
+    loadDefault,
     search,
     loadMoreSongs,
     loadMorePlaylists,
@@ -467,6 +516,10 @@ export const useSearchStore = defineStore('search', () => {
     hots,
     hotsError,
     hotsLoading,
+    defaultKeyword,
+    defaultError,
+    defaultLoading,
+    bestMatch,
     songs,
     playlists,
     artists,

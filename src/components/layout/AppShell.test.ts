@@ -3,9 +3,20 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { getSearchDefaultKeyword, getSearchHotDetail } from '@/api/search'
 import AppShell from '@/components/layout/AppShell.vue'
+
+vi.mock('@/api/search', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/search')>()
+  return {
+    ...actual,
+    getSearchDefaultKeyword: vi.fn(),
+    getSearchHotDetail: vi.fn(),
+    getSearchSuggest: vi.fn(),
+  }
+})
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useHostStore } from '@/stores/host'
@@ -27,6 +38,10 @@ describe('AppShell', () => {
     localStorage.clear()
     document.documentElement.removeAttribute('data-theme')
     setActivePinia(createPinia())
+    vi.mocked(getSearchDefaultKeyword).mockReset()
+    vi.mocked(getSearchDefaultKeyword).mockRejectedValue(new Error('no default'))
+    vi.mocked(getSearchHotDetail).mockReset()
+    vi.mocked(getSearchHotDetail).mockResolvedValue([])
   })
 
   it('renders primary navigation and marks the current section', async () => {

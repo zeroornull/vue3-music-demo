@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import type { PageName } from '@/router/pages'
 
 export interface SearchHit {
@@ -7,17 +9,20 @@ export interface SearchHit {
   cover: string
 }
 
-defineProps<{
+const props = defineProps<{
+  headingId?: string
   hits: SearchHit[]
   kind: string
   title: string
   toName: PageName
 }>()
+
+const headingId = computed(() => props.headingId || `${props.kind}-title`)
 </script>
 
 <template>
-  <section class="hit-list" :aria-labelledby="`${kind}-title`">
-    <h2 :id="`${kind}-title`">{{ title }}</h2>
+  <section class="hit-list" :aria-labelledby="headingId">
+    <h2 :id="headingId">{{ title }}</h2>
     <ul>
       <li v-for="item in hits" :key="item.id">
         <RouterLink

@@ -464,6 +464,13 @@ describe('App host gate', () => {
     searchStore.mvsMore = true
     searchStore.radiosMore = true
     searchStore.videosMore = true
+    searchStore.defaultKeyword = { realKeyword: '夜航', showKeyword: '海阔天空' }
+    searchStore.defaultError = 'stale'
+    searchStore.bestMatch = {
+      album: { id: 501, name: '夜航', picUrl: '' },
+      artist: null,
+      playlist: null,
+    }
     mountApp()
 
     useHostStore().clearHost()
@@ -485,6 +492,9 @@ describe('App host gate', () => {
     expect(searchStore.radiosMore).toBe(false)
     expect(searchStore.videosMore).toBe(false)
     expect(searchStore.keyword).toBe('')
+    expect(searchStore.defaultKeyword).toBeNull()
+    expect(searchStore.defaultError).toBeNull()
+    expect(searchStore.bestMatch).toBeNull()
   })
 
   it('clears album cache when the host gate closes', async () => {

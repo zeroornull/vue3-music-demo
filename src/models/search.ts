@@ -6,6 +6,17 @@ export interface SearchHot {
   content: string
 }
 
+export interface SearchDefaultKeyword {
+  realKeyword: string
+  showKeyword: string
+}
+
+export interface SearchBestMatch {
+  album: SearchAlbum | null
+  artist: SearchArtist | null
+  playlist: SearchPlaylist | null
+}
+
 export interface SearchPlaylist {
   id: number
   name: string

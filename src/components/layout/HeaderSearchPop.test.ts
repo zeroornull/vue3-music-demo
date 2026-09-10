@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getSearchHotDetail, getSearchSuggest } from '@/api/search'
+import { getSearchDefaultKeyword, getSearchHotDetail, getSearchSuggest } from '@/api/search'
 import HeaderSearchPop from '@/components/layout/HeaderSearchPop.vue'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -15,6 +15,7 @@ vi.mock('@/api/search', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/search')>()
   return {
     ...actual,
+    getSearchDefaultKeyword: vi.fn(),
     getSearchHotDetail: vi.fn(),
     getSearchSuggest: vi.fn(),
   }
@@ -82,13 +83,28 @@ describe('HeaderSearchPop', () => {
     playSong.mockClear()
     vi.mocked(getSearchHotDetail).mockReset()
     vi.mocked(getSearchSuggest).mockReset()
+    vi.mocked(getSearchDefaultKeyword).mockReset()
     vi.mocked(getSearchHotDetail).mockResolvedValue([hot])
     vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getSearchDefaultKeyword).mockResolvedValue({
+      realKeyword: '夜航',
+      showKeyword: '海阔天空',
+    })
     vi.useFakeTimers()
   })
 
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  it('loads the default keyword placeholder on mount without waiting for focus', async () => {
+    const { wrapper } = await mountPop()
+    await flushPromises()
+    expect(getSearchDefaultKeyword).toHaveBeenCalledTimes(1)
+    expect(wrapper.get('[data-testid="header-search-input"]').attributes('placeholder')).toBe(
+      '海阔天空',
+    )
+    wrapper.unmount()
   })
 
   it('opens hot words on focus and searches from a typed keyword', async () => {
@@ -100,6 +116,10 @@ describe('HeaderSearchPop', () => {
       '深夜民谣',
     )
     expect(getSearchHotDetail).toHaveBeenCalledTimes(1)
+    expect(getSearchDefaultKeyword).toHaveBeenCalledTimes(1)
+    expect(wrapper.get('[data-testid="header-search-input"]').attributes('placeholder')).toBe(
+      '海阔天空',
+    )
 
     await input.setValue('夜航')
     await input.trigger('input')

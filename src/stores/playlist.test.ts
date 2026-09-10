@@ -376,6 +376,30 @@ describe('playlist store', () => {
     expect(store.commentsMore).toBe(false)
   })
 
+  it('does not let a late first page overwrite appended comments', async () => {
+    const firstA = deferred<{ comments: typeof comment[]; more: boolean }>()
+    const firstB = deferred<{ comments: typeof comment[]; more: boolean }>()
+    const extra = { commentId: 21, content: '第二页', nickname: '夜航乐队' }
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistCommentPage)
+      .mockReturnValueOnce(firstA.promise)
+      .mockReturnValueOnce(firstB.promise)
+      .mockResolvedValueOnce({ comments: [extra], more: false })
+    const store = usePlaylistStore()
+    await store.load(101)
+    await store.load(101)
+    firstA.resolve({ comments: [comment], more: true })
+    await settle()
+    await store.loadMoreComments()
+    firstB.resolve({ comments: [comment], more: true })
+    await settle()
+
+    expect(store.comments).toEqual([comment, extra])
+    expect(store.commentsMore).toBe(false)
+    expect(getPlaylistCommentPage).toHaveBeenCalledTimes(3)
+  })
+
   it('does not keep stale comments after the playlist id changes', async () => {
     const first = deferred<{ comments: typeof comment[]; more: boolean }>()
     const nextPlaylist = { ...playlist, id: 202, name: '下一张歌单' }

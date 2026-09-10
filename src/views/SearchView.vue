@@ -16,6 +16,8 @@ const router = useRouter()
 const searchStore = useSearchStore()
 const playerStore = usePlayerStore()
 const {
+  bestMatch,
+  defaultKeyword,
   hots,
   hotsError,
   hotsLoading,
@@ -64,6 +66,15 @@ const hasHits = computed(
       radios.value.length +
       videos.value.length >
     0,
+)
+
+const hasBestMatch = computed(
+  () =>
+    Boolean(
+      bestMatch.value?.artist ||
+        bestMatch.value?.album ||
+        bestMatch.value?.playlist,
+    ),
 )
 
 const playlistHits = computed(() =>
@@ -162,7 +173,7 @@ function requestMoreVideos() {
 }
 
 function goSearch(word: string) {
-  const next = word.trim()
+  const next = word.trim() || defaultKeyword.value?.realKeyword || ''
   if (!next) return
   if (queryKeyword.value === next) {
     requestSearch(true)
@@ -202,6 +213,7 @@ watch(
 
 onMounted(() => {
   requestHots()
+  void searchStore.loadDefault().catch(() => undefined)
 })
 </script>
 
@@ -222,7 +234,7 @@ onMounted(() => {
           name="q"
           type="search"
           autocomplete="off"
-          placeholder="搜索歌曲、歌单、歌手、专辑、MV、电台或视频"
+          :placeholder="defaultKeyword?.showKeyword || '搜索歌曲、歌单、歌手、专辑、MV、电台或视频'"
         />
         <button type="submit">搜索</button>
       </div>
@@ -255,7 +267,57 @@ onMounted(() => {
       </button>
     </div>
 
-    <div v-else-if="keyword && hasHits" class="result-stack">
+    <div v-else-if="keyword && (hasHits || hasBestMatch)" class="result-stack">
+      <section
+        v-if="bestMatch && (bestMatch.artist || bestMatch.album || bestMatch.playlist)"
+        class="best-match"
+        data-testid="search-best-match"
+        aria-labelledby="search-best-match-title"
+      >
+        <h2 id="search-best-match-title">最佳匹配</h2>
+        <SearchHitList
+          v-if="bestMatch.artist"
+          heading-id="search-best-artist-title"
+          kind="歌手"
+          title="歌手"
+          :hits="[
+            {
+              cover: bestMatch.artist.img1v1Url,
+              id: bestMatch.artist.id,
+              name: bestMatch.artist.name,
+            },
+          ]"
+          :to-name="Pages.artistDetail"
+        />
+        <SearchHitList
+          v-if="bestMatch.album"
+          heading-id="search-best-album-title"
+          kind="专辑"
+          title="专辑"
+          :hits="[
+            {
+              cover: bestMatch.album.picUrl,
+              id: bestMatch.album.id,
+              name: bestMatch.album.name,
+            },
+          ]"
+          :to-name="Pages.album"
+        />
+        <SearchHitList
+          v-if="bestMatch.playlist"
+          heading-id="search-best-playlist-title"
+          kind="歌单"
+          title="歌单"
+          :hits="[
+            {
+              cover: bestMatch.playlist.coverImgUrl,
+              id: bestMatch.playlist.id,
+              name: bestMatch.playlist.name,
+            },
+          ]"
+          :to-name="Pages.playlist"
+        />
+      </section>
       <PlaylistSongList
         v-if="songs.length"
         :songs="songs"
@@ -611,7 +673,16 @@ button {
   min-width: 0;
 }
 
+.best-match {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
 
+.best-match > h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
 
 .state-card {
   display: flex;

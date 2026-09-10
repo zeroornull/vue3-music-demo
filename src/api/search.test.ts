@@ -30,7 +30,9 @@ import {
   getCloudSearchRadios,
   getCloudSearchSongs,
   getCloudSearchVideos,
+  getSearchDefaultKeyword,
   getSearchHotDetail,
+  getSearchMultimatch,
   getSearchSuggest,
 } from '@/api/search'
 
@@ -69,6 +71,89 @@ describe('Search API', () => {
     await expect(
       getSearchHotDetail(client({ data: null }).client),
     ).rejects.toThrow('热门搜索响应格式不正确')
+  })
+
+  it('unwraps /search/default show and real keywords', async () => {
+    const request = client({
+      data: {
+        extra: true,
+        realkeyword: '  夜航  ',
+        showKeyword: '  海阔天空  ',
+      },
+    })
+    await expect(getSearchDefaultKeyword(request.client)).resolves.toEqual({
+      realKeyword: '夜航',
+      showKeyword: '海阔天空',
+    })
+    expect(request.get).toHaveBeenCalledWith('/search/default')
+  })
+
+  it('fills a missing default keyword from the other field', async () => {
+    await expect(
+      getSearchDefaultKeyword(
+        client({ data: { realkeyword: '夜航' } }).client,
+      ),
+    ).resolves.toEqual({ realKeyword: '夜航', showKeyword: '夜航' })
+    await expect(
+      getSearchDefaultKeyword(client({ data: null }).client),
+    ).rejects.toThrow('默认搜索词响应格式不正确')
+    await expect(
+      getSearchDefaultKeyword(client({ data: { showKeyword: '   ' } }).client),
+    ).rejects.toThrow('默认搜索词不存在')
+  })
+
+  it('unwraps /search/multimatch artist album and playlist from arrays or objects', async () => {
+    const request = client({
+      result: {
+        album: {
+          extra: true,
+          id: 501,
+          name: '夜航',
+          picUrl: 'https://images.example.com/album.jpg',
+        },
+        artist: [
+          { extra: true, name: '无效' },
+          { id: 401, img1v1Url: 'https://images.example.com/a.jpg', name: '林间电台' },
+        ],
+        playlist: [
+          {
+            coverImgUrl: 'https://images.example.com/p.jpg',
+            extra: true,
+            id: 101,
+            name: '深夜民谣',
+          },
+        ],
+      },
+    })
+    await expect(getSearchMultimatch('夜航', request.client)).resolves.toEqual({
+      album: {
+        id: 501,
+        name: '夜航',
+        picUrl: 'https://images.example.com/album.jpg',
+      },
+      artist: {
+        id: 401,
+        img1v1Url: 'https://images.example.com/a.jpg',
+        name: '林间电台',
+      },
+      playlist: {
+        coverImgUrl: 'https://images.example.com/p.jpg',
+        id: 101,
+        name: '深夜民谣',
+      },
+    })
+    expect(request.get).toHaveBeenCalledWith('/search/multimatch', {
+      keywords: '夜航',
+    })
+  })
+
+  it('rejects a missing multimatch result and keeps empty matches', async () => {
+    await expect(
+      getSearchMultimatch('无结果', client({ result: null }).client),
+    ).rejects.toThrow('搜索最佳匹配响应格式不正确')
+    await expect(
+      getSearchMultimatch('无结果', client({ result: {} }).client),
+    ).resolves.toEqual({ album: null, artist: null, playlist: null })
   })
 
   it('unwraps /search/suggest songs, playlists, artists and albums', async () => {

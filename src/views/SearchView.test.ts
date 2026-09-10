@@ -14,7 +14,9 @@ import {
   getCloudSearchRadios,
   getCloudSearchSongs,
   getCloudSearchVideos,
+  getSearchDefaultKeyword,
   getSearchHotDetail,
+  getSearchMultimatch,
   getSearchSuggest,
 } from '@/api/search'
 import { createAppRouter } from '@/router'
@@ -32,7 +34,9 @@ vi.mock('@/api/search', async (importOriginal) => {
     getCloudSearchRadios: vi.fn(),
     getCloudSearchSongs: vi.fn(),
     getCloudSearchVideos: vi.fn(),
+    getSearchDefaultKeyword: vi.fn(),
     getSearchHotDetail: vi.fn(),
+    getSearchMultimatch: vi.fn(),
     getSearchSuggest: vi.fn(),
   }
 })
@@ -151,6 +155,12 @@ describe('SearchView', () => {
     playSong.mockClear()
     vi.mocked(getSearchHotDetail).mockReset()
     vi.mocked(getSearchSuggest).mockReset()
+    vi.mocked(getSearchDefaultKeyword).mockReset()
+    vi.mocked(getSearchDefaultKeyword).mockRejectedValue(
+      new Error('no default keyword'),
+    )
+    vi.mocked(getSearchMultimatch).mockReset()
+    vi.mocked(getSearchMultimatch).mockRejectedValue(new Error('no multimatch'))
     vi.mocked(getCloudSearchSongs).mockReset()
     vi.mocked(getCloudSearchPlaylists).mockReset()
     vi.mocked(getSearchHotDetail).mockResolvedValue([hot])
@@ -240,6 +250,67 @@ describe('SearchView', () => {
     expect(
       wrapper.get('[aria-label="打开视频：夜航现场"]').attributes('href'),
     ).toContain('videoDetail?id=VID001')
+  })
+
+  it('uses the default keyword as placeholder and empty submit', async () => {
+    vi.mocked(getSearchDefaultKeyword).mockResolvedValue({
+      realKeyword: '夜航',
+      showKeyword: '海阔天空',
+    })
+    const { router, wrapper } = await mountView()
+    await flushPromises()
+
+    expect(wrapper.get('#search-keyword').attributes('placeholder')).toBe(
+      '海阔天空',
+    )
+    await wrapper.get('[data-testid="search-submit"]').trigger('submit')
+    await flushPromises()
+    expect(router.currentRoute.value.query.q).toBe('夜航')
+    expect(getCloudSearchSongs).toHaveBeenCalledWith('夜航', { offset: 0 })
+  })
+
+  it('renders best match cards above cloudsearch hits', async () => {
+    vi.mocked(getSearchMultimatch).mockResolvedValue({
+      album: { id: 501, name: '夜航', picUrl: '' },
+      artist: { id: 401, img1v1Url: '', name: '林间电台' },
+      playlist: { coverImgUrl: '', id: 101, name: '深夜民谣' },
+    })
+    const { wrapper } = await mountView({ q: '夜航' })
+    await flushPromises()
+
+    const section = wrapper.get('[data-testid="search-best-match"]')
+    expect(section.text()).toContain('最佳匹配')
+    expect(section.get('[aria-label="打开歌手：林间电台"]').attributes('href')).toContain(
+      'artistDetail',
+    )
+    expect(section.get('[aria-label="打开专辑：夜航"]').attributes('href')).toContain(
+      'album?id=501',
+    )
+    expect(section.get('[aria-label="打开歌单：深夜民谣"]').attributes('href')).toContain(
+      'playlist',
+    )
+    expect(wrapper.get('[data-testid="search-song-301"]').text()).toBe('晚风来信')
+  })
+
+  it('shows best match when cloudsearch is empty', async () => {
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
+    vi.mocked(getCloudSearchPlaylists).mockResolvedValue({ more: false, playlists: [] })
+    vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
+    vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
+    vi.mocked(getCloudSearchMvs).mockResolvedValue({ more: false, mvs: [] })
+    vi.mocked(getCloudSearchRadios).mockResolvedValue({ more: false, radios: [] })
+    vi.mocked(getCloudSearchVideos).mockResolvedValue({ more: false, videos: [] })
+    vi.mocked(getSearchMultimatch).mockResolvedValue({
+      album: null,
+      artist: { id: 401, img1v1Url: '', name: '林间电台' },
+      playlist: null,
+    })
+    const { wrapper } = await mountView({ q: '夜航' })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="search-best-match"]').text()).toContain('林间电台')
+    expect(wrapper.get('#search-best-artist-title').text()).toBe('歌手')
   })
 
   it('retries a failed song search and plays a result', async () => {

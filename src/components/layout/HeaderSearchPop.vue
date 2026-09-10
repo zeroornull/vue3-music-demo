@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -17,7 +17,12 @@ const route = useRoute()
 const router = useRouter()
 const searchStore = useSearchStore()
 const playerStore = usePlayerStore()
-const { hots, hotsError, hotsLoading } = storeToRefs(searchStore)
+const { defaultKeyword, hots, hotsError, hotsLoading } = storeToRefs(searchStore)
+
+const fallbackPlaceholder = '搜索歌曲、歌单、歌手、专辑、MV、电台或视频'
+const placeholder = computed(
+  () => defaultKeyword.value?.showKeyword || fallbackPlaceholder,
+)
 
 const draft = ref('')
 const open = ref(false)
@@ -117,6 +122,7 @@ function close() {
 function openPanel() {
   open.value = true
   void searchStore.loadHots().catch(() => undefined)
+  void searchStore.loadDefault().catch(() => undefined)
 }
 
 function runSearch(word: string) {
@@ -170,7 +176,7 @@ function pickHot(word: string) {
 }
 
 function goSearchPage() {
-  const next = draft.value.trim()
+  const next = draft.value.trim() || defaultKeyword.value?.realKeyword || ''
   if (!next) return
   close()
   void router.push({ name: Pages.search, query: { q: next } })
@@ -221,6 +227,10 @@ watch(open, (next) => {
   }
 })
 
+onMounted(() => {
+  void searchStore.loadDefault().catch(() => undefined)
+})
+
 onUnmounted(() => {
   window.clearTimeout(debounceId)
   document.removeEventListener('keydown', onKeydown)
@@ -237,7 +247,7 @@ onUnmounted(() => {
         v-model="draft"
         type="search"
         autocomplete="off"
-        placeholder="搜索歌曲、歌单、歌手、专辑、MV、电台或视频"
+        :placeholder="placeholder"
         data-testid="header-search-input"
         role="combobox"
         aria-autocomplete="list"

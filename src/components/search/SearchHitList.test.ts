@@ -32,6 +32,7 @@ describe('SearchHitList', () => {
     })
 
     expect(wrapper.get('h2').text()).toBe('歌单')
+    expect(wrapper.get('h2').attributes('id')).toBe('歌单-title')
     const link = wrapper.get('a')
     expect(link.attributes('aria-label')).toBe('打开歌单：深夜民谣')
     expect(link.attributes('href')).toContain('"name":"playlist"')
@@ -81,5 +82,22 @@ describe('SearchHitList', () => {
     expect(wrapper.get('a').attributes('href')).toContain('"name":"videoDetail"')
     expect(wrapper.get('a').attributes('href')).toContain('"id":"VID001"')
     expect(wrapper.get('a').attributes('aria-label')).toBe('打开视频：夜航现场')
+  })
+
+  it('uses an explicit heading id when provided', () => {
+    const wrapper = mount(SearchHitList, {
+      props: {
+        headingId: 'search-best-playlist-title',
+        hits: [{ cover: '', id: 101, name: '深夜民谣' }],
+        kind: '歌单',
+        title: '歌单',
+        toName: Pages.playlist,
+      },
+      global: { stubs: { RouterLink: LinkStub } },
+    })
+    expect(wrapper.get('h2').attributes('id')).toBe('search-best-playlist-title')
+    expect(wrapper.get('section').attributes('aria-labelledby')).toBe(
+      'search-best-playlist-title',
+    )
   })
 })

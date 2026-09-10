@@ -121,10 +121,12 @@ export const usePlaylistStore = defineStore('playlist', () => {
   }
 
   function requestComments(id: number, serial: number) {
+    const moreSerial = commentsMoreSerial
     void Promise.resolve(getPlaylistCommentPage(id, 0))
       .then((page) => {
         if (serial !== requestSerial) return
         if (loadedId.value !== id) return
+        if (moreSerial !== commentsMoreSerial) return
         comments.value = page.comments
         commentsMore.value = page.more
         commentsMoreError.value = null

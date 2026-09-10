@@ -9,7 +9,9 @@ import {
   getCloudSearchRadios,
   getCloudSearchSongs,
   getCloudSearchVideos,
+  getSearchDefaultKeyword,
   getSearchHotDetail,
+  getSearchMultimatch,
   getSearchSuggest,
 } from '@/api/search'
 import { useSearchStore } from '@/stores/search'
@@ -25,7 +27,9 @@ vi.mock('@/api/search', async (importOriginal) => {
     getCloudSearchRadios: vi.fn(),
     getCloudSearchSongs: vi.fn(),
     getCloudSearchVideos: vi.fn(),
+    getSearchDefaultKeyword: vi.fn(),
     getSearchHotDetail: vi.fn(),
+    getSearchMultimatch: vi.fn(),
     getSearchSuggest: vi.fn(),
   }
 })
@@ -103,6 +107,12 @@ describe('search store', () => {
     vi.mocked(getSearchHotDetail).mockReset()
     vi.mocked(getSearchSuggest).mockReset()
     vi.mocked(getSearchSuggest).mockRejectedValue(new Error('suggest offline'))
+    vi.mocked(getSearchDefaultKeyword).mockReset()
+    vi.mocked(getSearchDefaultKeyword).mockRejectedValue(
+      new Error('no default keyword'),
+    )
+    vi.mocked(getSearchMultimatch).mockReset()
+    vi.mocked(getSearchMultimatch).mockRejectedValue(new Error('no multimatch'))
     vi.mocked(getCloudSearchSongs).mockReset()
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getCloudSearchPlaylists).mockReset()
@@ -150,6 +160,112 @@ describe('search store', () => {
     expect(store.hots).toEqual([hot])
     expect(store.hotsError).toBeNull()
     expect(getSearchHotDetail).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads the default search keyword once and treats a failed page as a cache miss', async () => {
+    const keyword = { realKeyword: '夜航', showKeyword: '海阔天空' }
+    vi.mocked(getSearchDefaultKeyword)
+      .mockRejectedValueOnce(new Error('default offline'))
+      .mockResolvedValueOnce(keyword)
+    const store = useSearchStore()
+
+    await expect(store.loadDefault()).rejects.toThrow('default offline')
+    await store.loadDefault()
+    await store.loadDefault()
+
+    expect(store.defaultKeyword).toEqual(keyword)
+    expect(store.defaultError).toBeNull()
+    expect(getSearchDefaultKeyword).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads best match after cloudsearch and ignores a multimatch failure', async () => {
+    const match = {
+      album: album,
+      artist: artist,
+      playlist: playlist,
+    }
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getSearchMultimatch).mockResolvedValue(match)
+    const store = useSearchStore()
+    await store.search('夜航')
+    await Promise.resolve()
+    await Promise.resolve()
+    await store.search('夜航')
+
+    expect(store.bestMatch).toEqual(match)
+    expect(getSearchMultimatch).toHaveBeenCalledTimes(1)
+    expect(getSearchMultimatch).toHaveBeenCalledWith('夜航')
+    expect(store.songs).toEqual([song])
+  })
+
+  it('retries best match on a cached keyword when the first request failed', async () => {
+    const match = { album: null, artist: artist, playlist: null }
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getSearchMultimatch)
+      .mockRejectedValueOnce(new Error('multimatch offline'))
+      .mockResolvedValueOnce(match)
+    const store = useSearchStore()
+    await store.search('夜航')
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(store.bestMatch).toBeNull()
+
+    await store.search('夜航')
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(getCloudSearchSongs).toHaveBeenCalledTimes(1)
+    expect(getSearchMultimatch).toHaveBeenCalledTimes(2)
+    expect(store.bestMatch).toEqual(match)
+  })
+
+  it('does not keep stale best match after the keyword changes', async () => {
+    const first = deferred<{
+      album: typeof album | null
+      artist: typeof artist | null
+      playlist: typeof playlist | null
+    }>()
+    const nextMatch = { album: null, artist: null, playlist: playlist }
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getSearchMultimatch)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce(nextMatch)
+    const store = useSearchStore()
+    await store.search('夜航')
+    await store.search('秋日')
+    await Promise.resolve()
+    first.resolve({ album, artist, playlist })
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(store.keyword).toBe('秋日')
+    expect(store.bestMatch).toEqual(nextMatch)
+  })
+
+  it('clears applied best match when the keyword changes and retries after a miss', async () => {
+    const match = { album: null, artist: artist, playlist: null }
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getSearchMultimatch)
+      .mockResolvedValueOnce(match)
+      .mockRejectedValueOnce(new Error('multimatch offline'))
+      .mockResolvedValueOnce(match)
+    const store = useSearchStore()
+    await store.search('夜航')
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(store.bestMatch).toEqual(match)
+
+    await store.search('秋日')
+    expect(store.bestMatch).toBeNull()
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(store.bestMatch).toBeNull()
+
+    await store.search('秋日')
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(getSearchMultimatch).toHaveBeenCalledTimes(3)
+    expect(store.bestMatch).toEqual(match)
   })
 
   it('searches songs, playlists, artists, albums, mvs, radios and videos once per keyword', async () => {
