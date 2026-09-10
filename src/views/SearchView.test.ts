@@ -154,7 +154,7 @@ describe('SearchView', () => {
     vi.mocked(getCloudSearchSongs).mockReset()
     vi.mocked(getCloudSearchPlaylists).mockReset()
     vi.mocked(getSearchHotDetail).mockResolvedValue([hot])
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
+    vi.mocked(getSearchSuggest).mockRejectedValue(new Error('suggest offline'))
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchPlaylists).mockResolvedValue({
       more: false,
@@ -197,13 +197,15 @@ describe('SearchView', () => {
     await wrapper.get('[data-testid="search-hot-word"]').trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.query.q).toBe('深夜民谣')
-    expect(getSearchSuggest).toHaveBeenCalledWith('深夜民谣')
+    expect(getSearchSuggest).not.toHaveBeenCalled()
+    expect(getCloudSearchSongs).toHaveBeenCalledWith('深夜民谣', { offset: 0 })
 
     await wrapper.get('#search-keyword').setValue('晚风')
     await wrapper.get('[data-testid="search-submit"]').trigger('submit')
     await flushPromises()
     expect(router.currentRoute.value.query.q).toBe('晚风')
-    expect(getSearchSuggest).toHaveBeenLastCalledWith('晚风')
+    expect(getSearchSuggest).not.toHaveBeenCalled()
+    expect(getCloudSearchSongs).toHaveBeenLastCalledWith('晚风', { offset: 0 })
     expect(wrapper.get('[data-testid="search-playlists"]').text()).toContain(
       '深夜民谣',
     )
@@ -241,9 +243,9 @@ describe('SearchView', () => {
   })
 
   it('retries a failed song search and plays a result', async () => {
-    vi.mocked(getSearchSuggest)
+    vi.mocked(getCloudSearchSongs)
       .mockRejectedValueOnce(new Error('search offline'))
-      .mockResolvedValueOnce(suggest)
+      .mockResolvedValueOnce({ more: false, songs: [song] })
 
     const { wrapper } = await mountView({ q: '深夜' })
     await flushPromises()
@@ -251,13 +253,14 @@ describe('SearchView', () => {
 
     await wrapper.get('[data-testid="search-retry"]').trigger('click')
     await flushPromises()
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     await wrapper.get('[data-testid="play-song"]').trigger('click')
     await flushPromises()
     expect(playSong).toHaveBeenCalledWith(song)
     expect(wrapper.get('[role="status"]').text()).toContain('正在播放“晚风来信”。')
   })
 
-  it('shows an empty card when suggest has no songs, playlists, artists, albums, MVs, radios or videos', async () => {
+  it('shows an empty card when cloudsearch has no songs, playlists, artists, albums, MVs, radios or videos', async () => {
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getCloudSearchPlaylists).mockResolvedValue({ more: false, playlists: [] })
     vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
@@ -265,17 +268,9 @@ describe('SearchView', () => {
     vi.mocked(getCloudSearchMvs).mockResolvedValue({ more: false, mvs: [] })
     vi.mocked(getCloudSearchRadios).mockResolvedValue({ more: false, radios: [] })
     vi.mocked(getCloudSearchVideos).mockResolvedValue({ more: false, videos: [] })
-    vi.mocked(getSearchSuggest).mockResolvedValue({
-      albums: [],
-      artists: [],
-      mvs: [],
-      playlists: [],
-      radios: [],
-      songs: [],
-      videos: [],
-    })
     const { wrapper } = await mountView({ q: '无结果' })
     await flushPromises()
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(wrapper.get('[data-testid="search-empty"]').text()).toContain(
       '没有找到结果',
     )
@@ -303,6 +298,7 @@ describe('SearchView', () => {
     })
     const { wrapper } = await mountView({ q: '夜航' })
     await flushPromises()
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
     expect(wrapper.get('[aria-label="打开专辑：夜航"]').attributes('href')).toContain(
       'album?id=501',
@@ -329,6 +325,7 @@ describe('SearchView', () => {
     })
     const { wrapper } = await mountView({ q: '夜航' })
     await flushPromises()
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(wrapper.get('[data-testid="search-empty"]').text()).toContain('没有找到结果')
     expect(wrapper.find('[aria-label="打开专辑：夜航"]').exists()).toBe(false)
   })
@@ -355,6 +352,7 @@ describe('SearchView', () => {
     })
     const { wrapper } = await mountView({ q: '现场' })
     await flushPromises()
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
     expect(
       wrapper.get('[aria-label="打开MV：晚风来信 · Live"]').attributes('href'),
@@ -387,6 +385,7 @@ describe('SearchView', () => {
     })
     const { wrapper } = await mountView({ q: '现场' })
     await flushPromises()
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(wrapper.get('[data-testid="search-empty"]').text()).toContain('没有找到结果')
     expect(wrapper.find('[aria-label="打开MV：晚风来信 · Live"]').exists()).toBe(false)
   })
@@ -413,6 +412,7 @@ describe('SearchView', () => {
     })
     const { wrapper } = await mountView({ q: '夜航' })
     await flushPromises()
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
     expect(
       wrapper.get('[aria-label="打开电台：夜航电台"]').attributes('href'),
@@ -445,6 +445,7 @@ describe('SearchView', () => {
     })
     const { wrapper } = await mountView({ q: '夜航' })
     await flushPromises()
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(wrapper.get('[data-testid="search-empty"]').text()).toContain('没有找到结果')
     expect(wrapper.find('[aria-label="打开电台：夜航电台"]').exists()).toBe(false)
   })
@@ -471,6 +472,7 @@ describe('SearchView', () => {
     })
     const { wrapper } = await mountView({ q: '现场' })
     await flushPromises()
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
     expect(wrapper.get('[aria-label="打开视频：夜航现场"]').attributes('href')).toContain(
       'videoDetail?id=VID001',
@@ -503,6 +505,7 @@ describe('SearchView', () => {
     })
     const { wrapper } = await mountView({ q: '现场' })
     await flushPromises()
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(wrapper.get('[data-testid="search-empty"]').text()).toContain('没有找到结果')
     expect(wrapper.find('[aria-label="打开视频：夜航现场"]').exists()).toBe(false)
   })

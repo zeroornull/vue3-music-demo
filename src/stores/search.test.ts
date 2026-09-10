@@ -102,6 +102,7 @@ describe('search store', () => {
     setActivePinia(createPinia())
     vi.mocked(getSearchHotDetail).mockReset()
     vi.mocked(getSearchSuggest).mockReset()
+    vi.mocked(getSearchSuggest).mockRejectedValue(new Error('suggest offline'))
     vi.mocked(getCloudSearchSongs).mockReset()
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
     vi.mocked(getCloudSearchPlaylists).mockReset()
@@ -153,7 +154,6 @@ describe('search store', () => {
 
   it('searches songs, playlists, artists, albums, mvs, radios and videos once per keyword', async () => {
     vi.mocked(getSearchHotDetail).mockResolvedValue([hot])
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: true, songs: [song] })
     vi.mocked(getCloudSearchPlaylists).mockResolvedValue({
       more: true,
@@ -195,7 +195,7 @@ describe('search store', () => {
     expect(store.radios).toEqual([{ ...radio, id: 899, name: '云搜电台' }])
     expect(store.videos).toEqual([{ ...video, vid: 'VID099', name: '云搜视频' }])
     expect(store.hots).toEqual([hot])
-    expect(getSearchSuggest).toHaveBeenCalledTimes(1)
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(getCloudSearchSongs).toHaveBeenCalledTimes(1)
     expect(getCloudSearchSongs).toHaveBeenCalledWith('深夜', { offset: 0 })
     expect(getCloudSearchPlaylists).toHaveBeenCalledTimes(1)
@@ -218,11 +218,23 @@ describe('search store', () => {
     expect(store.videosMore).toBe(true)
   })
 
+  it('does not call suggest and keeps cloudsearch hits if suggest is offline', async () => {
+    vi.mocked(getSearchSuggest).mockRejectedValue(new Error('suggest offline'))
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    const store = useSearchStore()
+
+    await store.search('深夜')
+
+    expect(getSearchSuggest).not.toHaveBeenCalled()
+    expect(store.songs).toEqual([song])
+    expect(store.playlists).toEqual([playlist])
+    expect(store.songsError).toBeNull()
+  })
+
   it('clears previous hits when a new keyword fails', async () => {
-    vi.mocked(getSearchSuggest)
-      .mockResolvedValueOnce(suggest)
+    vi.mocked(getCloudSearchSongs)
+      .mockResolvedValueOnce({ more: true, songs: [song] })
       .mockRejectedValueOnce(new Error('search offline'))
-    vi.mocked(getCloudSearchSongs).mockResolvedValueOnce({ more: true, songs: [song] })
     const store = useSearchStore()
     await store.search('深夜')
     expect(store.songs).toEqual([song])
@@ -240,16 +252,15 @@ describe('search store', () => {
     expect(store.songsError).toBe('search offline')
   })
 
-  it('does not call suggest for a blank keyword and keeps hot search', async () => {
+  it('does not search for a blank keyword and keeps hot search', async () => {
     vi.mocked(getSearchHotDetail).mockResolvedValue([hot])
     const store = useSearchStore()
     await store.loadHots()
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     await store.search('深夜')
 
     await store.search('   ')
 
-    expect(getSearchSuggest).toHaveBeenCalledTimes(1)
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(getCloudSearchSongs).toHaveBeenCalledTimes(1)
     expect(getCloudSearchPlaylists).toHaveBeenCalledTimes(1)
     expect(getCloudSearchArtists).toHaveBeenCalledTimes(1)
@@ -269,7 +280,7 @@ describe('search store', () => {
   })
 
   it('drops an in-flight first keyword when a second search starts', async () => {
-    const pendingFirst = deferred<typeof suggest>()
+    const pendingFirst = deferred<{ more: boolean; songs: typeof song[] }>()
     const second = {
       albums: [{ ...album, id: 502, name: '秋日' }],
       artists: [{ ...artist, id: 402, name: '城市电台' }],
@@ -279,11 +290,8 @@ describe('search store', () => {
       songs: [{ ...song, id: 302, name: '下一首' }],
       videos: [{ cover: '', name: '秋日现场', vid: 'VID002' }],
     }
-    vi.mocked(getSearchSuggest)
-      .mockReturnValueOnce(pendingFirst.promise)
-      .mockResolvedValueOnce(second)
     vi.mocked(getCloudSearchSongs)
-      .mockResolvedValueOnce({ more: false, songs: suggest.songs })
+      .mockReturnValueOnce(pendingFirst.promise)
       .mockResolvedValueOnce({ more: false, songs: second.songs })
     vi.mocked(getCloudSearchPlaylists)
       .mockResolvedValueOnce({ more: false, playlists: suggest.playlists })
@@ -306,7 +314,7 @@ describe('search store', () => {
     const store = useSearchStore()
     const first = store.search('深夜')
     const later = store.search('秋日')
-    pendingFirst.resolve(suggest)
+    pendingFirst.resolve({ more: false, songs: suggest.songs })
     await first
     await later
 
@@ -334,12 +342,12 @@ describe('search store', () => {
   })
 
   it('drops in-flight song search after reset', async () => {
-    const pendingSongs = deferred<typeof suggest>()
-    vi.mocked(getSearchSuggest).mockReturnValueOnce(pendingSongs.promise)
+    const pendingSongs = deferred<{ more: boolean; songs: typeof song[] }>()
+    vi.mocked(getCloudSearchSongs).mockReturnValueOnce(pendingSongs.promise)
     const store = useSearchStore()
     const pending = store.search('深夜')
     store.reset()
-    pendingSongs.resolve(suggest)
+    pendingSongs.resolve({ more: false, songs: suggest.songs })
     await pending
 
     expect(store.songs).toEqual([])
@@ -354,9 +362,8 @@ describe('search store', () => {
     expect(store.hots).toEqual([])
   })
 
-  it('appends the next cloudsearch page and keeps suggest hits', async () => {
+  it('appends the next cloudsearch page and keeps other hits', async () => {
     const nextSong = { ...song, id: 302, name: '下一首' }
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs)
       .mockResolvedValueOnce({ more: true, songs: [song] })
       .mockResolvedValueOnce({ more: false, songs: [nextSong] })
@@ -370,11 +377,10 @@ describe('search store', () => {
     expect(store.playlists).toEqual([playlist])
     expect(getCloudSearchSongs).toHaveBeenNthCalledWith(1, '深夜', { offset: 0 })
     expect(getCloudSearchSongs).toHaveBeenNthCalledWith(2, '深夜', { offset: 1 })
-    expect(getSearchSuggest).toHaveBeenCalledTimes(1)
+    expect(getSearchSuggest).not.toHaveBeenCalled()
   })
 
   it('does not request another song page when more is false', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     const store = useSearchStore()
     await store.search('深夜')
@@ -383,7 +389,6 @@ describe('search store', () => {
   })
 
   it('keeps loaded songs when load more fails', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs)
       .mockResolvedValueOnce({ more: true, songs: [song] })
       .mockRejectedValueOnce(new Error('more failed'))
@@ -399,7 +404,6 @@ describe('search store', () => {
   it('does not restart a cached keyword while load more is in flight', async () => {
     const nextSong = { ...song, id: 302, name: '下一首' }
     const pending = deferred<{ more: boolean; songs: typeof song[] }>()
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs)
       .mockResolvedValueOnce({ more: true, songs: [song] })
       .mockReturnValueOnce(pending.promise)
@@ -407,7 +411,7 @@ describe('search store', () => {
     await store.search('深夜')
     const more = store.loadMoreSongs()
     await store.search('深夜')
-    expect(getSearchSuggest).toHaveBeenCalledTimes(1)
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(getCloudSearchSongs).toHaveBeenCalledTimes(2)
     pending.resolve({ more: false, songs: [nextSong] })
     await more
@@ -416,7 +420,6 @@ describe('search store', () => {
   })
 
   it('treats a load-more error as a cache miss for the same keyword', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs)
       .mockResolvedValueOnce({ more: true, songs: [song] })
       .mockRejectedValueOnce(new Error('more failed'))
@@ -426,13 +429,12 @@ describe('search store', () => {
     await expect(store.loadMoreSongs()).rejects.toThrow('more failed')
     await store.search('深夜')
     expect(getCloudSearchSongs).toHaveBeenLastCalledWith('深夜', { offset: 0 })
-    expect(getSearchSuggest).toHaveBeenCalledTimes(2)
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(store.songs).toEqual([song])
     expect(store.songsError).toBeNull()
   })
 
   it('treats a playlist load-more error as a cache miss for the same keyword', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchPlaylists)
       .mockResolvedValueOnce({ more: true, playlists: [playlist] })
@@ -443,7 +445,7 @@ describe('search store', () => {
     await expect(store.loadMorePlaylists()).rejects.toThrow('playlist more failed')
     await store.search('深夜')
     expect(getCloudSearchPlaylists).toHaveBeenLastCalledWith('深夜', { offset: 0 })
-    expect(getSearchSuggest).toHaveBeenCalledTimes(2)
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(store.playlists).toEqual([playlist])
     expect(store.playlistsError).toBeNull()
   })
@@ -451,7 +453,6 @@ describe('search store', () => {
   it('drops a stale load-more after a new keyword search', async () => {
     const nextSong = { ...song, id: 302, name: '下一首' }
     const pending = deferred<{ more: boolean; songs: typeof song[] }>()
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs)
       .mockResolvedValueOnce({ more: true, songs: [song] })
       .mockReturnValueOnce(pending.promise)
@@ -473,7 +474,6 @@ describe('search store', () => {
 
   it('appends the next cloudsearch playlist page and keeps songs', async () => {
     const nextPlaylist = { ...playlist, id: 102, name: '秋日歌单' }
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchPlaylists)
       .mockResolvedValueOnce({ more: true, playlists: [playlist] })
@@ -488,11 +488,10 @@ describe('search store', () => {
     expect(store.songs).toEqual([song])
     expect(getCloudSearchPlaylists).toHaveBeenNthCalledWith(1, '深夜', { offset: 0 })
     expect(getCloudSearchPlaylists).toHaveBeenNthCalledWith(2, '深夜', { offset: 1 })
-    expect(getSearchSuggest).toHaveBeenCalledTimes(1)
+    expect(getSearchSuggest).not.toHaveBeenCalled()
   })
 
   it('does not request another playlist page when more is false', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     const store = useSearchStore()
     await store.search('深夜')
@@ -501,7 +500,6 @@ describe('search store', () => {
   })
 
   it('keeps loaded playlists when playlist load more fails', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchPlaylists)
       .mockResolvedValueOnce({ more: true, playlists: [playlist] })
@@ -520,7 +518,6 @@ describe('search store', () => {
     const nextSong = { ...song, id: 302, name: '下一首' }
     const nextPlaylist = { ...playlist, id: 102, name: '秋日歌单' }
     const pendingSongs = deferred<{ more: boolean; songs: typeof song[] }>()
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs)
       .mockResolvedValueOnce({ more: true, songs: [song] })
       .mockReturnValueOnce(pendingSongs.promise)
@@ -540,7 +537,6 @@ describe('search store', () => {
 
   it('appends the next cloudsearch artist page and keeps songs', async () => {
     const nextArtist = { ...artist, id: 402, name: '海岸信号' }
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchArtists)
       .mockResolvedValueOnce({ more: true, artists: [artist] })
@@ -558,7 +554,6 @@ describe('search store', () => {
   })
 
   it('does not request another artist page when more is false', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     const store = useSearchStore()
     await store.search('深夜')
@@ -567,7 +562,6 @@ describe('search store', () => {
   })
 
   it('keeps loaded artists when artist load more fails', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchArtists)
       .mockResolvedValueOnce({ more: true, artists: [artist] })
@@ -586,7 +580,6 @@ describe('search store', () => {
     const nextPlaylist = { ...playlist, id: 102, name: '秋日歌单' }
     const nextArtist = { ...artist, id: 402, name: '海岸信号' }
     const pendingPlaylists = deferred<{ more: boolean; playlists: typeof playlist[] }>()
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchPlaylists)
       .mockResolvedValueOnce({ more: true, playlists: [playlist] })
@@ -606,7 +599,6 @@ describe('search store', () => {
   })
 
   it('treats an artist load-more error as a cache miss for the same keyword', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchArtists)
       .mockResolvedValueOnce({ more: true, artists: [artist] })
@@ -617,14 +609,13 @@ describe('search store', () => {
     await expect(store.loadMoreArtists()).rejects.toThrow('artist more failed')
     await store.search('深夜')
     expect(getCloudSearchArtists).toHaveBeenLastCalledWith('深夜', { offset: 0 })
-    expect(getSearchSuggest).toHaveBeenCalledTimes(2)
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(store.artists).toEqual([artist])
     expect(store.artistsError).toBeNull()
   })
 
   it('appends the next cloudsearch album page and keeps songs', async () => {
     const nextAlbum = { ...album, id: 502, name: '潮汐' }
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchAlbums)
       .mockResolvedValueOnce({ more: true, albums: [album] })
@@ -642,7 +633,6 @@ describe('search store', () => {
   })
 
   it('does not request another album page when more is false', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     const store = useSearchStore()
     await store.search('深夜')
@@ -651,7 +641,6 @@ describe('search store', () => {
   })
 
   it('keeps loaded albums when album load more fails', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchAlbums)
       .mockResolvedValueOnce({ more: true, albums: [album] })
@@ -670,7 +659,6 @@ describe('search store', () => {
     const nextArtist = { ...artist, id: 402, name: '海岸信号' }
     const nextAlbum = { ...album, id: 502, name: '潮汐' }
     const pendingArtists = deferred<{ more: boolean; artists: typeof artist[] }>()
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchArtists)
       .mockResolvedValueOnce({ more: true, artists: [artist] })
@@ -690,7 +678,6 @@ describe('search store', () => {
   })
 
   it('treats an album load-more error as a cache miss for the same keyword', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchAlbums)
       .mockResolvedValueOnce({ more: true, albums: [album] })
@@ -701,14 +688,13 @@ describe('search store', () => {
     await expect(store.loadMoreAlbums()).rejects.toThrow('album more failed')
     await store.search('深夜')
     expect(getCloudSearchAlbums).toHaveBeenLastCalledWith('深夜', { offset: 0 })
-    expect(getSearchSuggest).toHaveBeenCalledTimes(2)
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(store.albums).toEqual([album])
     expect(store.albumsError).toBeNull()
   })
 
   it('appends the next cloudsearch mv page and keeps songs', async () => {
     const nextMv = { ...mv, id: 702, name: '潮汐现场' }
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchMvs)
       .mockResolvedValueOnce({ more: true, mvs: [mv] })
@@ -726,7 +712,6 @@ describe('search store', () => {
   })
 
   it('does not request another mv page when more is false', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     const store = useSearchStore()
     await store.search('深夜')
@@ -735,7 +720,6 @@ describe('search store', () => {
   })
 
   it('keeps loaded mvs when mv load more fails', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchMvs)
       .mockResolvedValueOnce({ more: true, mvs: [mv] })
@@ -754,7 +738,6 @@ describe('search store', () => {
     const nextAlbum = { ...album, id: 502, name: '潮汐' }
     const nextMv = { ...mv, id: 702, name: '潮汐现场' }
     const pendingAlbums = deferred<{ more: boolean; albums: typeof album[] }>()
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchAlbums)
       .mockResolvedValueOnce({ more: true, albums: [album] })
@@ -774,7 +757,6 @@ describe('search store', () => {
   })
 
   it('treats an mv load-more error as a cache miss for the same keyword', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchMvs)
       .mockResolvedValueOnce({ more: true, mvs: [mv] })
@@ -785,14 +767,13 @@ describe('search store', () => {
     await expect(store.loadMoreMvs()).rejects.toThrow('mv more failed')
     await store.search('深夜')
     expect(getCloudSearchMvs).toHaveBeenLastCalledWith('深夜', { offset: 0 })
-    expect(getSearchSuggest).toHaveBeenCalledTimes(2)
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(store.mvs).toEqual([mv])
     expect(store.mvsError).toBeNull()
   })
 
   it('appends the next cloudsearch radio page and keeps songs', async () => {
     const nextRadio = { ...radio, id: 802, name: '潮汐电台' }
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchRadios)
       .mockResolvedValueOnce({ more: true, radios: [radio] })
@@ -810,7 +791,6 @@ describe('search store', () => {
   })
 
   it('does not request another radio page when more is false', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     const store = useSearchStore()
     await store.search('深夜')
@@ -819,7 +799,6 @@ describe('search store', () => {
   })
 
   it('keeps loaded radios when radio load more fails', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchRadios)
       .mockResolvedValueOnce({ more: true, radios: [radio] })
@@ -838,7 +817,6 @@ describe('search store', () => {
     const nextMv = { ...mv, id: 702, name: '潮汐现场' }
     const nextRadio = { ...radio, id: 802, name: '潮汐电台' }
     const pendingMvs = deferred<{ more: boolean; mvs: typeof mv[] }>()
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchMvs)
       .mockResolvedValueOnce({ more: true, mvs: [mv] })
@@ -858,7 +836,6 @@ describe('search store', () => {
   })
 
   it('treats a radio load-more error as a cache miss for the same keyword', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchRadios)
       .mockResolvedValueOnce({ more: true, radios: [radio] })
@@ -869,14 +846,13 @@ describe('search store', () => {
     await expect(store.loadMoreRadios()).rejects.toThrow('radio more failed')
     await store.search('深夜')
     expect(getCloudSearchRadios).toHaveBeenLastCalledWith('深夜', { offset: 0 })
-    expect(getSearchSuggest).toHaveBeenCalledTimes(2)
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(store.radios).toEqual([radio])
     expect(store.radiosError).toBeNull()
   })
 
   it('appends the next cloudsearch video page and keeps songs', async () => {
     const nextVideo = { ...video, vid: 'VID002', name: '潮汐现场' }
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchVideos)
       .mockResolvedValueOnce({ more: true, videos: [video] })
@@ -894,7 +870,6 @@ describe('search store', () => {
   })
 
   it('does not request another video page when more is false', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     const store = useSearchStore()
     await store.search('深夜')
@@ -903,7 +878,6 @@ describe('search store', () => {
   })
 
   it('keeps loaded videos when video load more fails', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchVideos)
       .mockResolvedValueOnce({ more: true, videos: [video] })
@@ -922,7 +896,6 @@ describe('search store', () => {
     const nextRadio = { ...radio, id: 802, name: '潮汐电台' }
     const nextVideo = { ...video, vid: 'VID002', name: '潮汐现场' }
     const pendingRadios = deferred<{ more: boolean; radios: typeof radio[] }>()
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchRadios)
       .mockResolvedValueOnce({ more: true, radios: [radio] })
@@ -942,7 +915,6 @@ describe('search store', () => {
   })
 
   it('treats a video load-more error as a cache miss for the same keyword', async () => {
-    vi.mocked(getSearchSuggest).mockResolvedValue(suggest)
     vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
     vi.mocked(getCloudSearchVideos)
       .mockResolvedValueOnce({ more: true, videos: [video] })
@@ -953,7 +925,7 @@ describe('search store', () => {
     await expect(store.loadMoreVideos()).rejects.toThrow('video more failed')
     await store.search('深夜')
     expect(getCloudSearchVideos).toHaveBeenLastCalledWith('深夜', { offset: 0 })
-    expect(getSearchSuggest).toHaveBeenCalledTimes(2)
+    expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(store.videos).toEqual([video])
     expect(store.videosError).toBeNull()
   })

@@ -11,7 +11,6 @@ import {
   getCloudSearchSongs,
   getCloudSearchVideos,
   getSearchHotDetail,
-  getSearchSuggest,
 } from '@/api/search'
 import type {
   SearchAlbum,
@@ -206,7 +205,6 @@ export const useSearchStore = defineStore('search', () => {
     songsError.value = null
     try {
       const [
-        ,
         songPage,
         playlistPage,
         artistPage,
@@ -215,7 +213,6 @@ export const useSearchStore = defineStore('search', () => {
         radioPage,
         videoPage,
       ] = await Promise.all([
-        getSearchSuggest(next),
         getCloudSearchSongs(next, { offset: 0 }),
         getCloudSearchPlaylists(next, { offset: 0 }),
         getCloudSearchArtists(next, { offset: 0 }),
