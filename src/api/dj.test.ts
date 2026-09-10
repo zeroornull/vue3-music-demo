@@ -14,9 +14,16 @@ import {
   getDjRadioToplist,
   getHotDjRadios,
   getPersonalizedDjPrograms,
+  getDjRecommendRadios,
+  getDjTodayPrograms,
+  getDjProgramHoursToplist,
+  getDjRadioHoursToplist,
   DJ_PROGRAM_TOPLIST_LIMIT,
   DJ_RADIO_TOPLIST_LIMIT,
   DJ_RADIO_TOPLIST_TYPE,
+  DJ_RECOMMEND_LIMIT,
+  DJ_TODAY_LIMIT,
+  DJ_HOURS_LIMIT,
 } from '@/api/dj'
 
 const client = (response: unknown) => {
@@ -399,6 +406,174 @@ describe('DJ API', () => {
     const list = await getDjRadioToplist(client({ djRadios: many }).client)
     expect(list).toHaveLength(DJ_RADIO_TOPLIST_LIMIT)
     expect(list.map((item) => item.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+  })
+
+  it('unwraps /dj/recommend radios and drops invalid ids', async () => {
+    const request = client({
+      djRadios: [
+        {
+          dj: { extra: true, nickname: '林间主播' },
+          extra: true,
+          id: 801,
+          name: '夜航电台',
+          picUrl: 'https://images.example.com/radio.jpg',
+          playCount: 12_000,
+          rcmdText: '睡前故事',
+        },
+        { id: 0, name: '无效' },
+      ],
+    })
+    await expect(getDjRecommendRadios(request.client)).resolves.toEqual([
+      {
+        djName: '林间主播',
+        id: 801,
+        name: '夜航电台',
+        paid: false,
+        picUrl: 'https://images.example.com/radio.jpg',
+        playCount: 12_000,
+        rcmdText: '睡前故事',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/recommend')
+  })
+
+  it('rejects a missing recommended radios array and slices the list', async () => {
+    await expect(
+      getDjRecommendRadios(client({ djRadios: null }).client),
+    ).rejects.toThrow('精选电台响应格式不正确')
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `电台 ${index + 1}`,
+    }))
+    await expect(
+      getDjRecommendRadios(client({ djRadios: many }).client),
+    ).resolves.toHaveLength(DJ_RECOMMEND_LIMIT)
+  })
+
+  it('unwraps /dj/today/perfered programs from data', async () => {
+    const request = client({
+      data: [
+        {
+          coverUrl: 'https://images.example.com/today.jpg',
+          extra: true,
+          id: 911,
+          name: '今日夜航',
+          radio: { id: 801, name: '夜航电台' },
+        },
+        { id: 0, name: '无效' },
+      ],
+    })
+    await expect(getDjTodayPrograms(request.client)).resolves.toEqual([
+      {
+        copywriter: '夜航电台',
+        id: 911,
+        name: '今日夜航',
+        paid: false,
+        picUrl: 'https://images.example.com/today.jpg',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/today/perfered')
+  })
+
+  it('rejects a missing today-preferred list and slices the list', async () => {
+    await expect(
+      getDjTodayPrograms(client({ data: null }).client),
+    ).rejects.toThrow('今日优选响应格式不正确')
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `优选 ${index + 1}`,
+    }))
+    await expect(
+      getDjTodayPrograms(client({ data: many }).client),
+    ).resolves.toHaveLength(DJ_TODAY_LIMIT)
+  })
+
+  it('unwraps /dj/program/toplist/hours nested list', async () => {
+    const request = client({
+      data: {
+        list: [
+          {
+            extra: true,
+            program: {
+              coverUrl: 'https://images.example.com/hours.jpg',
+              id: 921,
+              name: '整点夜话',
+              radio: { id: 801, name: '夜航电台' },
+            },
+            rank: 1,
+          },
+          { program: { id: 0, name: '无效' } },
+        ],
+      },
+    })
+    await expect(getDjProgramHoursToplist(request.client)).resolves.toEqual([
+      {
+        copywriter: '夜航电台',
+        id: 921,
+        name: '整点夜话',
+        paid: false,
+        picUrl: 'https://images.example.com/hours.jpg',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/program/toplist/hours', {
+      limit: DJ_HOURS_LIMIT,
+    })
+  })
+
+  it('rejects a missing 24-hour program list and slices the list', async () => {
+    await expect(
+      getDjProgramHoursToplist(client({ data: null }).client),
+    ).rejects.toThrow('24小时节目榜响应格式不正确')
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      program: { id: index + 1, name: `小时 ${index + 1}` },
+    }))
+    await expect(
+      getDjProgramHoursToplist(client({ data: { list: many } }).client),
+    ).resolves.toHaveLength(DJ_HOURS_LIMIT)
+  })
+
+  it('unwraps /dj/toplist/hours radios from data.list', async () => {
+    const request = client({
+      data: {
+        list: [
+          {
+            extra: true,
+            id: 831,
+            name: '整点电台',
+            picUrl: 'https://images.example.com/hours-radio.jpg',
+            playCount: 8_800,
+          },
+          { id: 0, name: '无效' },
+        ],
+      },
+    })
+    await expect(getDjRadioHoursToplist(request.client)).resolves.toEqual([
+      {
+        djName: '',
+        id: 831,
+        name: '整点电台',
+        paid: false,
+        picUrl: 'https://images.example.com/hours-radio.jpg',
+        playCount: 8_800,
+        rcmdText: '',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/toplist/hours', {
+      limit: DJ_HOURS_LIMIT,
+    })
+  })
+
+  it('rejects a missing 24-hour radio list and slices the list', async () => {
+    await expect(
+      getDjRadioHoursToplist(client({ data: null }).client),
+    ).rejects.toThrow('24小时电台榜响应格式不正确')
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `小时电台 ${index + 1}`,
+    }))
+    await expect(
+      getDjRadioHoursToplist(client({ data: { list: many } }).client),
+    ).resolves.toHaveLength(DJ_HOURS_LIMIT)
   })
 
   it('unwraps a radio detail and its program page as text-safe rows', async () => {

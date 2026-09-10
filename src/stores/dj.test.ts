@@ -11,6 +11,10 @@ import {
   getDjRadioPrograms,
   getDjProgramToplist,
   getDjRadioToplist,
+  getDjRecommendRadios,
+  getDjTodayPrograms,
+  getDjProgramHoursToplist,
+  getDjRadioHoursToplist,
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
@@ -38,6 +42,10 @@ vi.mock('@/api/dj', async (importOriginal) => {
     getDjRadioPrograms: vi.fn(),
     getDjProgramToplist: vi.fn(),
     getDjRadioToplist: vi.fn(),
+    getDjRecommendRadios: vi.fn(),
+    getDjTodayPrograms: vi.fn(),
+    getDjProgramHoursToplist: vi.fn(),
+    getDjRadioHoursToplist: vi.fn(),
     getHotDjRadios: vi.fn(),
     getPersonalizedDjPrograms: vi.fn(),
   }
@@ -138,6 +146,10 @@ describe('dj store', () => {
     vi.mocked(getPersonalizedDjPrograms).mockReset()
     vi.mocked(getDjProgramToplist).mockReset()
     vi.mocked(getDjRadioToplist).mockReset()
+    vi.mocked(getDjRecommendRadios).mockReset()
+    vi.mocked(getDjTodayPrograms).mockReset()
+    vi.mocked(getDjProgramHoursToplist).mockReset()
+    vi.mocked(getDjRadioHoursToplist).mockReset()
     vi.mocked(getDjCommentPage).mockReset()
     vi.mocked(getDjCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getDjRadioCommentPage).mockReset()
@@ -291,6 +303,63 @@ describe('dj store', () => {
 
     expect(store.radioToplist).toEqual([])
     expect(store.radioToplistLoading).toBe(false)
+  })
+
+  it('loads recommend radios, today programs and hour charts independently', async () => {
+    const today = { ...program, id: 911, name: '今日夜航' }
+    const hourProgram = { ...program, id: 921, name: '整点夜话' }
+    const hourRadio = { ...radio, id: 831, name: '整点电台' }
+    vi.mocked(getDjRecommendRadios).mockResolvedValue([radio])
+    vi.mocked(getDjTodayPrograms).mockResolvedValue([today])
+    vi.mocked(getDjProgramHoursToplist).mockResolvedValue([hourProgram])
+    vi.mocked(getDjRadioHoursToplist).mockResolvedValue([hourRadio])
+    vi.mocked(getDjRadioToplist).mockResolvedValue([])
+    const store = useDjStore()
+
+    await store.loadRecommendRadios()
+    await store.loadRecommendRadios()
+    await store.loadTodayPrograms()
+    await store.loadProgramHours()
+    await store.loadRadioHours()
+    await store.loadRadioToplist()
+
+    expect(store.recommendRadios).toEqual([radio])
+    expect(store.todayPrograms).toEqual([today])
+    expect(store.programHours).toEqual([hourProgram])
+    expect(store.radioHours).toEqual([hourRadio])
+    expect(getDjRecommendRadios).toHaveBeenCalledTimes(1)
+    expect(getDjTodayPrograms).toHaveBeenCalledTimes(1)
+    expect(getDjProgramHoursToplist).toHaveBeenCalledTimes(1)
+    expect(getDjRadioHoursToplist).toHaveBeenCalledTimes(1)
+    expect(store.radioToplist).toEqual([])
+  })
+
+  it('keeps other hall lists when today preferred fails', async () => {
+    vi.mocked(getDjRecommendRadios).mockResolvedValue([radio])
+    vi.mocked(getDjTodayPrograms).mockRejectedValue(new Error('today offline'))
+    const store = useDjStore()
+
+    await store.loadRecommendRadios()
+    await expect(store.loadTodayPrograms()).rejects.toThrow('today offline')
+
+    expect(store.recommendRadios).toEqual([radio])
+    expect(store.todayPrograms).toEqual([])
+    expect(store.todayProgramsError).toBe('today offline')
+  })
+
+  it('drops in-flight hall extras after reset', async () => {
+    const pending = deferred<typeof radio[]>()
+    vi.mocked(getDjRecommendRadios).mockReturnValueOnce(pending.promise)
+    const store = useDjStore()
+    const loading = store.loadRecommendRadios()
+    store.reset()
+    pending.resolve([radio])
+    await loading
+
+    expect(store.recommendRadios).toEqual([])
+    expect(store.todayPrograms).toEqual([])
+    expect(store.programHours).toEqual([])
+    expect(store.radioHours).toEqual([])
   })
 
   it('loads program detail and caches by id', async () => {

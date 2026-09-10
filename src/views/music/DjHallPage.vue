@@ -35,6 +35,18 @@ const {
   radioToplist,
   radioToplistError,
   radioToplistLoading,
+  recommendRadios,
+  recommendRadiosError,
+  recommendRadiosLoading,
+  todayPrograms,
+  todayProgramsError,
+  todayProgramsLoading,
+  programHours,
+  programHoursError,
+  programHoursLoading,
+  radioHours,
+  radioHoursError,
+  radioHoursLoading,
 } = storeToRefs(djStore)
 const notice = ref<string | null>(null)
 let playSerial = 0
@@ -60,6 +72,22 @@ function requestToplist(force = false) {
 
 function requestRadioToplist(force = false) {
   void djStore.loadRadioToplist(force).catch(() => undefined)
+}
+
+function requestRecommendRadios(force = false) {
+  void djStore.loadRecommendRadios(force).catch(() => undefined)
+}
+
+function requestTodayPrograms(force = false) {
+  void djStore.loadTodayPrograms(force).catch(() => undefined)
+}
+
+function requestProgramHours(force = false) {
+  void djStore.loadProgramHours(force).catch(() => undefined)
+}
+
+function requestRadioHours(force = false) {
+  void djStore.loadRadioHours(force).catch(() => undefined)
 }
 
 async function requestCategories(force = false) {
@@ -142,6 +170,10 @@ onMounted(() => {
   requestPrograms()
   requestToplist()
   requestRadioToplist()
+  requestRecommendRadios()
+  requestTodayPrograms()
+  requestProgramHours()
+  requestRadioHours()
   void requestCategories()
 })
 </script>
@@ -168,12 +200,28 @@ onMounted(() => {
       :radio-toplist="radioToplist"
       :radio-toplist-error="radioToplistError"
       :radio-toplist-loading="radioToplistLoading"
+      :recommend-radios="recommendRadios"
+      :recommend-radios-error="recommendRadiosError"
+      :recommend-radios-loading="recommendRadiosLoading"
+      :today-programs="todayPrograms"
+      :today-programs-error="todayProgramsError"
+      :today-programs-loading="todayProgramsLoading"
+      :program-hours="programHours"
+      :program-hours-error="programHoursError"
+      :program-hours-loading="programHoursLoading"
+      :radio-hours="radioHours"
+      :radio-hours-error="radioHoursError"
+      :radio-hours-loading="radioHoursLoading"
       @load-more-radios="loadMoreRadios"
       @retry-banners="requestBanners(true)"
       @retry-programs="requestPrograms(true)"
       @retry-toplist="requestToplist(true)"
       @retry-radios="retryRadios"
       @retry-radio-toplist="requestRadioToplist(true)"
+      @retry-recommend-radios="requestRecommendRadios(true)"
+      @retry-today-programs="requestTodayPrograms(true)"
+      @retry-program-hours="requestProgramHours(true)"
+      @retry-radio-hours="requestRadioHours(true)"
       @select-banner="selectBanner"
       @select-cat="selectCat"
     />

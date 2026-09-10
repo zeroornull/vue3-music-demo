@@ -11,6 +11,10 @@ import {
   getDjRadioPrograms,
   getDjProgramToplist,
   getDjRadioToplist,
+  getDjRecommendRadios,
+  getDjTodayPrograms,
+  getDjProgramHoursToplist,
+  getDjRadioHoursToplist,
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
@@ -38,6 +42,10 @@ let bannerSerial = 0
 let categorySerial = 0
 let radioSerial = 0
 let radioToplistSerial = 0
+let recommendRadioSerial = 0
+let todayProgramSerial = 0
+let programHoursSerial = 0
+let radioHoursSerial = 0
 let radioDetailSerial = 0
 let radioProgramSerial = 0
 let radioCommentsMoreSerial = 0
@@ -67,6 +75,18 @@ export const useDjStore = defineStore('dj', () => {
   const radioToplist = ref<HallRadio[]>([])
   const radioToplistError = ref<string | null>(null)
   const radioToplistLoading = ref(false)
+  const recommendRadios = ref<HallRadio[]>([])
+  const recommendRadiosError = ref<string | null>(null)
+  const recommendRadiosLoading = ref(false)
+  const todayPrograms = ref<DjProgram[]>([])
+  const todayProgramsError = ref<string | null>(null)
+  const todayProgramsLoading = ref(false)
+  const programHours = ref<DjProgram[]>([])
+  const programHoursError = ref<string | null>(null)
+  const programHoursLoading = ref(false)
+  const radioHours = ref<HallRadio[]>([])
+  const radioHoursError = ref<string | null>(null)
+  const radioHoursLoading = ref(false)
   const radio = ref<DjRadioDetail | null>(null)
   const radioError = ref<string | null>(null)
   const radioLoading = ref(false)
@@ -132,6 +152,10 @@ export const useDjStore = defineStore('dj', () => {
     categorySerial++
     radioSerial++
     radioToplistSerial++
+    recommendRadioSerial++
+    todayProgramSerial++
+    programHoursSerial++
+    radioHoursSerial++
     programs.value = []
     programsError.value = null
     programsLoading.value = false
@@ -152,6 +176,18 @@ export const useDjStore = defineStore('dj', () => {
     radioToplist.value = []
     radioToplistError.value = null
     radioToplistLoading.value = false
+    recommendRadios.value = []
+    recommendRadiosError.value = null
+    recommendRadiosLoading.value = false
+    todayPrograms.value = []
+    todayProgramsError.value = null
+    todayProgramsLoading.value = false
+    programHours.value = []
+    programHoursError.value = null
+    programHoursLoading.value = false
+    radioHours.value = []
+    radioHoursError.value = null
+    radioHoursLoading.value = false
   }
 
   async function loadBanners(force = false) {
@@ -235,6 +271,86 @@ export const useDjStore = defineStore('dj', () => {
       throw requestError
     } finally {
       if (serial === radioToplistSerial) radioToplistLoading.value = false
+    }
+  }
+
+  async function loadRecommendRadios(force = false) {
+    if (recommendRadios.value.length && !force && !recommendRadiosError.value) {
+      return
+    }
+    const serial = ++recommendRadioSerial
+    recommendRadiosLoading.value = true
+    recommendRadiosError.value = null
+    try {
+      const next = await getDjRecommendRadios()
+      if (serial !== recommendRadioSerial) return
+      recommendRadios.value = next
+    } catch (requestError) {
+      if (serial !== recommendRadioSerial) return
+      recommendRadiosError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === recommendRadioSerial) recommendRadiosLoading.value = false
+    }
+  }
+
+  async function loadTodayPrograms(force = false) {
+    if (todayPrograms.value.length && !force && !todayProgramsError.value) {
+      return
+    }
+    const serial = ++todayProgramSerial
+    todayProgramsLoading.value = true
+    todayProgramsError.value = null
+    try {
+      const next = await getDjTodayPrograms()
+      if (serial !== todayProgramSerial) return
+      todayPrograms.value = next
+    } catch (requestError) {
+      if (serial !== todayProgramSerial) return
+      todayProgramsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === todayProgramSerial) todayProgramsLoading.value = false
+    }
+  }
+
+  async function loadProgramHours(force = false) {
+    if (programHours.value.length && !force && !programHoursError.value) {
+      return
+    }
+    const serial = ++programHoursSerial
+    programHoursLoading.value = true
+    programHoursError.value = null
+    try {
+      const next = await getDjProgramHoursToplist()
+      if (serial !== programHoursSerial) return
+      programHours.value = next
+    } catch (requestError) {
+      if (serial !== programHoursSerial) return
+      programHoursError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === programHoursSerial) programHoursLoading.value = false
+    }
+  }
+
+  async function loadRadioHours(force = false) {
+    if (radioHours.value.length && !force && !radioHoursError.value) {
+      return
+    }
+    const serial = ++radioHoursSerial
+    radioHoursLoading.value = true
+    radioHoursError.value = null
+    try {
+      const next = await getDjRadioHoursToplist()
+      if (serial !== radioHoursSerial) return
+      radioHours.value = next
+    } catch (requestError) {
+      if (serial !== radioHoursSerial) return
+      radioHoursError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === radioHoursSerial) radioHoursLoading.value = false
     }
   }
 
@@ -607,6 +723,10 @@ export const useDjStore = defineStore('dj', () => {
     loadPrograms,
     loadToplist,
     loadRadioToplist,
+    loadRecommendRadios,
+    loadTodayPrograms,
+    loadProgramHours,
+    loadRadioHours,
     loadCategories,
     loadRadios,
     loadMoreRadios,
@@ -642,6 +762,18 @@ export const useDjStore = defineStore('dj', () => {
     radioToplist,
     radioToplistError,
     radioToplistLoading,
+    recommendRadios,
+    recommendRadiosError,
+    recommendRadiosLoading,
+    todayPrograms,
+    todayProgramsError,
+    todayProgramsLoading,
+    programHours,
+    programHoursError,
+    programHoursLoading,
+    radioHours,
+    radioHoursError,
+    radioHoursLoading,
     radio,
     radioError,
     radioLoading,

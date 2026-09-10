@@ -26,6 +26,18 @@ withDefaults(
     radioToplist?: HallRadio[]
     radioToplistError?: string | null
     radioToplistLoading?: boolean
+    recommendRadios?: HallRadio[]
+    recommendRadiosError?: string | null
+    recommendRadiosLoading?: boolean
+    todayPrograms?: DjProgram[]
+    todayProgramsError?: string | null
+    todayProgramsLoading?: boolean
+    programHours?: DjProgram[]
+    programHoursError?: string | null
+    programHoursLoading?: boolean
+    radioHours?: HallRadio[]
+    radioHoursError?: string | null
+    radioHoursLoading?: boolean
   }>(),
   {
     bannersError: null,
@@ -44,6 +56,18 @@ withDefaults(
     radioToplist: () => [],
     radioToplistError: null,
     radioToplistLoading: false,
+    recommendRadios: () => [],
+    recommendRadiosError: null,
+    recommendRadiosLoading: false,
+    todayPrograms: () => [],
+    todayProgramsError: null,
+    todayProgramsLoading: false,
+    programHours: () => [],
+    programHoursError: null,
+    programHoursLoading: false,
+    radioHours: () => [],
+    radioHoursError: null,
+    radioHoursLoading: false,
   },
 )
 
@@ -54,6 +78,10 @@ defineEmits<{
   'retry-toplist': []
   'retry-radios': []
   'retry-radio-toplist': []
+  'retry-recommend-radios': []
+  'retry-today-programs': []
+  'retry-program-hours': []
+  'retry-radio-hours': []
   'select-banner': [banner: Banner]
   'select-cat': [id: number]
 }>()
@@ -84,16 +112,46 @@ defineEmits<{
       @select-cat="$emit('select-cat', $event)"
     />
     <DjRadioRankSection
+      empty-title="暂无精选电台"
+      error-title="精选电台加载失败"
+      testid="dj-recommend"
+      title="精选电台"
+      :error="recommendRadiosError"
+      :loading="recommendRadiosLoading"
+      :radios="recommendRadios"
+      @retry="$emit('retry-recommend-radios')"
+    />
+    <DjRadioRankSection
       :error="radioToplistError"
       :loading="radioToplistLoading"
       :radios="radioToplist"
       @retry="$emit('retry-radio-toplist')"
+    />
+    <DjRadioRankSection
+      empty-title="暂无24小时电台榜"
+      error-title="24小时电台榜加载失败"
+      testid="dj-radio-hours"
+      title="24小时电台榜"
+      :error="radioHoursError"
+      :loading="radioHoursLoading"
+      :radios="radioHours"
+      @retry="$emit('retry-radio-hours')"
     />
     <DjProgramSection
       :error="programsError"
       :loading="programsLoading"
       :programs="programs"
       @retry="$emit('retry-programs')"
+    />
+    <DjProgramSection
+      empty-title="暂无今日优选"
+      error-title="今日优选加载失败"
+      testid="dj-today"
+      title="今日优选"
+      :error="todayProgramsError"
+      :loading="todayProgramsLoading"
+      :programs="todayPrograms"
+      @retry="$emit('retry-today-programs')"
     />
     <DjProgramSection
       empty-title="暂无节目榜"
@@ -104,6 +162,16 @@ defineEmits<{
       :loading="toplistLoading"
       :programs="toplistPrograms"
       @retry="$emit('retry-toplist')"
+    />
+    <DjProgramSection
+      empty-title="暂无24小时节目榜"
+      error-title="24小时节目榜加载失败"
+      testid="dj-program-hours"
+      title="24小时节目榜"
+      :error="programHoursError"
+      :loading="programHoursLoading"
+      :programs="programHours"
+      @retry="$emit('retry-program-hours')"
     />
   </div>
 </template>

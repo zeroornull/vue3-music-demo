@@ -4,13 +4,21 @@ import type { HallRadio } from '@/models/dj'
 
 withDefaults(
   defineProps<{
+    emptyTitle?: string
     error?: string | null
+    errorTitle?: string
     loading?: boolean
     radios: HallRadio[]
+    testid?: string
+    title?: string
   }>(),
   {
+    emptyTitle: '暂无电台榜',
     error: null,
+    errorTitle: '电台榜加载失败',
     loading: false,
+    testid: 'dj-radio-toplist',
+    title: '电台榜',
   },
 )
 
@@ -20,11 +28,11 @@ defineEmits<{
 </script>
 
 <template>
-  <section class="radio-rank" aria-labelledby="dj-radio-toplist-title">
+  <section class="radio-rank" :aria-labelledby="`${testid}-title`">
     <div class="section-heading">
       <div>
         <p class="eyebrow">Radio</p>
-        <h2 id="dj-radio-toplist-title">电台榜</h2>
+        <h2 :id="`${testid}-title`">{{ title }}</h2>
       </div>
       <p>点击封面即可打开电台</p>
     </div>
@@ -32,20 +40,20 @@ defineEmits<{
     <div
       v-if="loading"
       class="radio-grid"
-      data-testid="dj-radio-toplist-loading"
+      :data-testid="`${testid}-loading`"
       role="status"
       aria-busy="true"
-      aria-label="正在加载电台榜"
+      :aria-label="`正在加载${title}`"
     >
       <div v-for="index in 6" :key="index" class="radio-skeleton" />
     </div>
 
     <div v-else-if="error" class="state-card error-state" role="alert">
       <div>
-        <strong>电台榜加载失败</strong>
+        <strong>{{ errorTitle }}</strong>
         <p>{{ error }}</p>
       </div>
-      <button type="button" data-testid="dj-radio-toplist-retry" @click="$emit('retry')">
+      <button type="button" :data-testid="`${testid}-retry`" @click="$emit('retry')">
         重新加载
       </button>
     </div>
@@ -53,9 +61,9 @@ defineEmits<{
     <div
       v-else-if="!radios.length"
       class="state-card"
-      data-testid="dj-radio-toplist-empty"
+      :data-testid="`${testid}-empty`"
     >
-      <strong>暂无电台榜</strong>
+      <strong>{{ emptyTitle }}</strong>
       <p>API 已连接，但本次没有返回热门电台。</p>
     </div>
 

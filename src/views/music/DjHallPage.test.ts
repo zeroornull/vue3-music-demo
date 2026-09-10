@@ -14,6 +14,10 @@ import {
   getDjRadioToplist,
   getHotDjRadios,
   getPersonalizedDjPrograms,
+  getDjRecommendRadios,
+  getDjTodayPrograms,
+  getDjProgramHoursToplist,
+  getDjRadioHoursToplist,
 } from '@/api/dj'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -40,6 +44,10 @@ vi.mock('@/api/dj', async (importOriginal) => {
     getDjRadioToplist: vi.fn(),
     getHotDjRadios: vi.fn(),
     getPersonalizedDjPrograms: vi.fn(),
+    getDjRecommendRadios: vi.fn(),
+    getDjTodayPrograms: vi.fn(),
+    getDjProgramHoursToplist: vi.fn(),
+    getDjRadioHoursToplist: vi.fn(),
   }
 })
 
@@ -79,6 +87,18 @@ const HallStub = defineComponent({
     'radioToplist',
     'radioToplistError',
     'radioToplistLoading',
+    'recommendRadios',
+    'recommendRadiosError',
+    'recommendRadiosLoading',
+    'todayPrograms',
+    'todayProgramsError',
+    'todayProgramsLoading',
+    'programHours',
+    'programHoursError',
+    'programHoursLoading',
+    'radioHours',
+    'radioHoursError',
+    'radioHoursLoading',
     'categories',
     'cateId',
   ],
@@ -88,6 +108,10 @@ const HallStub = defineComponent({
     'retry-toplist',
     'retry-radios',
     'retry-radio-toplist',
+    'retry-recommend-radios',
+    'retry-today-programs',
+    'retry-program-hours',
+    'retry-radio-hours',
     'select-banner',
     'select-cat',
     'load-more-radios',
@@ -125,12 +149,24 @@ const HallStub = defineComponent({
       <span v-if="radiosError" data-testid="radio-error">{{ radiosError }}</span>
       <span data-testid="radio-toplist-count">{{ radioToplist.length }}</span>
       <span v-if="radioToplistError" data-testid="radio-toplist-error">{{ radioToplistError }}</span>
+      <span data-testid="recommend-count">{{ recommendRadios.length }}</span>
+      <span v-if="recommendRadiosError" data-testid="recommend-error">{{ recommendRadiosError }}</span>
+      <span data-testid="today-count">{{ todayPrograms.length }}</span>
+      <span v-if="todayProgramsError" data-testid="today-error">{{ todayProgramsError }}</span>
+      <span data-testid="program-hours-count">{{ programHours.length }}</span>
+      <span v-if="programHoursError" data-testid="program-hours-error">{{ programHoursError }}</span>
+      <span data-testid="radio-hours-count">{{ radioHours.length }}</span>
+      <span v-if="radioHoursError" data-testid="radio-hours-error">{{ radioHoursError }}</span>
       <button data-testid="page-cat" @click="$emit('select-cat', 6)">cat</button>
       <button data-testid="page-radio-retry" @click="$emit('retry-radios')">retry radios</button>
       <button data-testid="page-banner-retry" @click="$emit('retry-banners')">retry banners</button>
       <button data-testid="page-program-retry" @click="$emit('retry-programs')">retry programs</button>
       <button data-testid="page-toplist-retry" @click="$emit('retry-toplist')">retry toplist</button>
       <button data-testid="page-radio-toplist-retry" @click="$emit('retry-radio-toplist')">retry radio rank</button>
+      <button data-testid="page-recommend-retry" @click="$emit('retry-recommend-radios')">retry recommend</button>
+      <button data-testid="page-today-retry" @click="$emit('retry-today-programs')">retry today</button>
+      <button data-testid="page-program-hours-retry" @click="$emit('retry-program-hours')">retry program hours</button>
+      <button data-testid="page-radio-hours-retry" @click="$emit('retry-radio-hours')">retry radio hours</button>
       <button
         data-testid="select-song-banner"
         @click="$emit('select-banner', banners[0])"
@@ -183,10 +219,18 @@ describe('DjHallPage', () => {
     vi.mocked(getPersonalizedDjPrograms).mockReset()
     vi.mocked(getDjProgramToplist).mockReset()
     vi.mocked(getDjRadioToplist).mockReset()
+    vi.mocked(getDjRecommendRadios).mockReset()
+    vi.mocked(getDjTodayPrograms).mockReset()
+    vi.mocked(getDjProgramHoursToplist).mockReset()
+    vi.mocked(getDjRadioHoursToplist).mockReset()
     vi.mocked(getDjBanners).mockResolvedValue([banner])
     vi.mocked(getPersonalizedDjPrograms).mockResolvedValue([program])
     vi.mocked(getDjProgramToplist).mockResolvedValue([])
     vi.mocked(getDjRadioToplist).mockResolvedValue([])
+    vi.mocked(getDjRecommendRadios).mockResolvedValue([])
+    vi.mocked(getDjTodayPrograms).mockResolvedValue([])
+    vi.mocked(getDjProgramHoursToplist).mockResolvedValue([])
+    vi.mocked(getDjRadioHoursToplist).mockResolvedValue([])
     vi.mocked(getDjCategories).mockResolvedValue([{ id: 2, name: '音乐故事' }])
     vi.mocked(getHotDjRadios).mockResolvedValue({
       more: false,
@@ -222,6 +266,71 @@ describe('DjHallPage', () => {
     expect(wrapper.get('[data-testid="banner-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="program-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="radio-count"]').text()).toBe('1')
+  })
+
+  it('loads and retries hall extras independently', async () => {
+    vi.mocked(getDjRecommendRadios)
+      .mockRejectedValueOnce(new Error('recommend offline'))
+      .mockResolvedValueOnce([
+        {
+          djName: '林间主播',
+          id: 801,
+          name: '夜航电台',
+          picUrl: '',
+          playCount: 1,
+          rcmdText: '',
+        },
+      ])
+    vi.mocked(getDjTodayPrograms)
+      .mockRejectedValueOnce(new Error('today offline'))
+      .mockResolvedValueOnce([
+        { copywriter: '', id: 911, name: '今日夜航', picUrl: '' },
+      ])
+    vi.mocked(getDjProgramHoursToplist)
+      .mockRejectedValueOnce(new Error('program hours offline'))
+      .mockResolvedValueOnce([
+        { copywriter: '', id: 921, name: '整点夜话', picUrl: '' },
+      ])
+    vi.mocked(getDjRadioHoursToplist)
+      .mockRejectedValueOnce(new Error('radio hours offline'))
+      .mockResolvedValueOnce([
+        {
+          djName: '',
+          id: 831,
+          name: '整点电台',
+          picUrl: '',
+          playCount: 1,
+          rcmdText: '',
+        },
+      ])
+
+    const { wrapper } = await mountPage()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="recommend-error"]').text()).toBe(
+      'recommend offline',
+    )
+    expect(wrapper.get('[data-testid="today-error"]').text()).toBe('today offline')
+    expect(wrapper.get('[data-testid="program-hours-error"]').text()).toBe(
+      'program hours offline',
+    )
+    expect(wrapper.get('[data-testid="radio-hours-error"]').text()).toBe(
+      'radio hours offline',
+    )
+    expect(wrapper.get('[data-testid="program-count"]').text()).toBe('1')
+
+    await wrapper.get('[data-testid="page-recommend-retry"]').trigger('click')
+    await wrapper.get('[data-testid="page-today-retry"]').trigger('click')
+    await wrapper.get('[data-testid="page-program-hours-retry"]').trigger('click')
+    await wrapper.get('[data-testid="page-radio-hours-retry"]').trigger('click')
+    await flushPromises()
+    expect(getDjRecommendRadios).toHaveBeenCalledTimes(2)
+    expect(getDjTodayPrograms).toHaveBeenCalledTimes(2)
+    expect(getDjProgramHoursToplist).toHaveBeenCalledTimes(2)
+    expect(getDjRadioHoursToplist).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="recommend-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="today-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="program-hours-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="radio-hours-count"]').text()).toBe('1')
   })
 
   it('loads and retries the program toplist independently', async () => {

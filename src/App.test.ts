@@ -357,6 +357,32 @@ describe('App host gate', () => {
         rcmdText: '睡前故事',
       },
     ]
+    djStore.recommendRadios = [
+      {
+        djName: '林间主播',
+        id: 801,
+        name: '夜航电台',
+        picUrl: '',
+        playCount: 1,
+        rcmdText: '',
+      },
+    ]
+    djStore.todayPrograms = [
+      { copywriter: '', id: 911, name: '今日夜航', picUrl: '' },
+    ]
+    djStore.programHours = [
+      { copywriter: '', id: 921, name: '整点夜话', picUrl: '' },
+    ]
+    djStore.radioHours = [
+      {
+        djName: '',
+        id: 831,
+        name: '整点电台',
+        picUrl: '',
+        playCount: 1,
+        rcmdText: '',
+      },
+    ]
     djStore.cateId = 2
     djStore.radio = {
       category: '音乐故事',
@@ -420,6 +446,10 @@ describe('App host gate', () => {
     expect(djStore.categories).toEqual([])
     expect(djStore.radios).toEqual([])
     expect(djStore.radioToplist).toEqual([])
+    expect(djStore.recommendRadios).toEqual([])
+    expect(djStore.todayPrograms).toEqual([])
+    expect(djStore.programHours).toEqual([])
+    expect(djStore.radioHours).toEqual([])
     expect(djStore.cateId).toBe(0)
     expect(djStore.radio).toBeNull()
     expect(djStore.radioPrograms).toEqual([])
