@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
 import {
+  PRIVATE_CONTENT_BRIEF_LIMIT,
   PRIVATE_CONTENT_LIMIT,
+  getPrivateContentBrief,
   getPrivateContents,
 } from '@/api/privateContent'
 
@@ -70,4 +72,36 @@ describe('Private content API', () => {
       getPrivateContents(client({ result: null }).client),
     ).rejects.toThrow('独家放送响应格式不正确')
   })
+
+  it('unwraps /personalized/privatecontent without pagination', async () => {
+    const request = client({
+      result: [
+        {
+          extra: true,
+          id: 803,
+          name: '短列表现场',
+          sPicUrl: 'https://images.example.com/brief.jpg',
+        },
+      ],
+    })
+    await expect(getPrivateContentBrief(request.client)).resolves.toEqual([
+      {
+        id: 803,
+        name: '短列表现场',
+        sPicUrl: 'https://images.example.com/brief.jpg',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/personalized/privatecontent')
+    await expect(
+      getPrivateContentBrief(client({ result: null }).client),
+    ).rejects.toThrow('独家放送短列表响应格式不正确')
+    const many = Array.from({ length: 6 }, (_, index) => ({
+      id: index + 1,
+      name: `独家 ${index + 1}`,
+    }))
+    await expect(
+      getPrivateContentBrief(client({ result: many }).client),
+    ).resolves.toHaveLength(PRIVATE_CONTENT_BRIEF_LIMIT)
+  })
 })
+

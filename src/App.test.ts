@@ -232,12 +232,32 @@ describe('App host gate', () => {
         typeTitle: '新歌首发',
       },
     ]
+    commonStore.dragonBalls = [
+      { iconUrl: '', id: 1, name: '私人 FM', url: 'orpheus://nm/personalFM' },
+    ]
+    commonStore.hotTopics = [
+      { id: 21, name: '林间话题', participateCount: 12, picUrl: '' },
+    ]
+    commonStore.calendarEvents = [
+      {
+        id: 31,
+        picUrl: '',
+        resourceId: 301,
+        resourceType: 'SONG',
+        title: '夜航首发',
+      },
+    ]
+    commonStore.privateBrief = [{ id: 803, name: '短列表现场', sPicUrl: '' }]
     mountApp()
 
     useHostStore().clearHost()
     await flushPromises()
 
     expect(commonStore.banners).toEqual([])
+    expect(commonStore.dragonBalls).toEqual([])
+    expect(commonStore.hotTopics).toEqual([])
+    expect(commonStore.calendarEvents).toEqual([])
+    expect(commonStore.privateBrief).toEqual([])
   })
 
   it('clears exclusive video cache when the host gate closes', async () => {

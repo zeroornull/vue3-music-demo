@@ -4,13 +4,21 @@ import type { PrivateContent } from '@/models/privateContent'
 
 withDefaults(
   defineProps<{
+    emptyTitle?: string
     error?: string | null
+    errorTitle?: string
     items: PrivateContent[]
     loading?: boolean
+    testid?: string
+    title?: string
   }>(),
   {
+    emptyTitle: '暂无独家放送',
     error: null,
+    errorTitle: '独家放送加载失败',
     loading: false,
+    testid: 'private',
+    title: '独家放送',
   },
 )
 
@@ -20,11 +28,11 @@ defineEmits<{
 </script>
 
 <template>
-  <section class="private-section" aria-labelledby="private-title">
+  <section class="private-section" :aria-labelledby="`${testid}-title`">
     <div class="section-heading">
       <div>
         <p class="eyebrow">Exclusive</p>
-        <h2 id="private-title">独家放送</h2>
+        <h2 :id="`${testid}-title`">{{ title }}</h2>
       </div>
       <p>点击封面即可打开视频并播放</p>
     </div>
@@ -32,10 +40,10 @@ defineEmits<{
     <div
       v-if="loading"
       class="private-grid"
-      data-testid="private-loading"
+      :data-testid="`${testid}-loading`"
       role="status"
       aria-busy="true"
-      aria-label="正在加载独家放送"
+      :aria-label="`正在加载${title}`"
     >
       <div v-for="index in 4" :key="index" class="private-skeleton" />
     </div>
@@ -46,10 +54,10 @@ defineEmits<{
       role="alert"
     >
       <div>
-        <strong>独家放送加载失败</strong>
+        <strong>{{ errorTitle }}</strong>
         <p>{{ error }}</p>
       </div>
-      <button type="button" data-testid="private-retry" @click="$emit('retry')">
+      <button type="button" :data-testid="`${testid}-retry`" @click="$emit('retry')">
         重新加载
       </button>
     </div>
@@ -57,13 +65,13 @@ defineEmits<{
     <div
       v-else-if="!items.length"
       class="state-card"
-      data-testid="private-empty"
+      :data-testid="`${testid}-empty`"
     >
-      <strong>暂无独家放送</strong>
-      <p>API 已连接，但本次没有返回独家视频。</p>
+      <strong>{{ emptyTitle }}</strong>
+      <p>API 已连接，但本次没有返回{{ title }}。</p>
     </div>
 
-    <div v-else class="private-grid">
+    <div v-else class="private-grid" :data-testid="testid">
       <PrivateContentCard v-for="item in items" :key="item.id" :item="item" />
     </div>
   </section>

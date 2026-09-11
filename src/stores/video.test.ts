@@ -28,6 +28,7 @@ vi.mock('@/api/mv', () => ({
 }))
 
 vi.mock('@/api/privateContent', () => ({
+  getPrivateContentBrief: vi.fn(),
   getPrivateContents: vi.fn(),
 }))
 

@@ -2,6 +2,7 @@ import { http, type HttpClient } from '@/api/http'
 import type { PrivateContent } from '@/models/privateContent'
 
 export const PRIVATE_CONTENT_LIMIT = 4
+export const PRIVATE_CONTENT_BRIEF_LIMIT = 4
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -36,4 +37,17 @@ export async function getPrivateContents(
   return response.result
     .map(readPrivateContent)
     .filter((item): item is PrivateContent => item !== null)
+}
+
+export async function getPrivateContentBrief(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<PrivateContent[]> {
+  const response = await client.get<{ result?: unknown }>('/personalized/privatecontent')
+  if (!Array.isArray(response.result)) {
+    throw new Error('独家放送短列表响应格式不正确')
+  }
+  return response.result
+    .map(readPrivateContent)
+    .filter((item): item is PrivateContent => item !== null)
+    .slice(0, PRIVATE_CONTENT_BRIEF_LIMIT)
 }

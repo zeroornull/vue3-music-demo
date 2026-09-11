@@ -9,6 +9,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getNewestAlbums, getTopAlbums } from '@/api/album'
 import { getTopArtists } from '@/api/artist'
 import { getBanners } from '@/api/banner'
+import {
+  getHomepageDragonBalls,
+  getHotTopics,
+  getMusicCalendar,
+} from '@/api/homepage'
+import { getPrivateContentBrief } from '@/api/privateContent'
 import { getPersonalizedPlaylists } from '@/api/personalized'
 import { getPersonalizedNewSongs, getTopSongs } from '@/api/newSong'
 import { getPersonalizedMvs } from '@/api/mv'
@@ -26,13 +32,27 @@ vi.mock('@/views/PlaylistView.vue', () => ({
 vi.mock('@/views/MvView.vue', () => ({
   default: { name: 'MvView', template: '<div data-testid="mv-stub" />' },
 }))
+vi.mock('@/views/FmView.vue', () => ({
+  default: { name: 'FmView', template: '<div data-testid="fm-stub" />' },
+}))
 
 vi.mock('@/api/album', () => ({
+  getNewAlbums: vi.fn(),
   getNewestAlbums: vi.fn(),
   getTopAlbums: vi.fn(),
 }))
 vi.mock('@/api/artist', () => ({
+  getToplistArtists: vi.fn(),
   getTopArtists: vi.fn(),
+}))
+vi.mock('@/api/homepage', () => ({
+  getHomepageDragonBalls: vi.fn(),
+  getHotTopics: vi.fn(),
+  getMusicCalendar: vi.fn(),
+}))
+vi.mock('@/api/privateContent', () => ({
+  getPrivateContentBrief: vi.fn(),
+  getPrivateContents: vi.fn(),
 }))
 vi.mock('@/api/banner', () => ({
   getBanners: vi.fn(),
@@ -164,6 +184,83 @@ const HotArtistSectionStub = defineComponent({
   `,
 })
 
+const DragonBallSectionStub = defineComponent({
+  name: 'DragonBallSection',
+  props: {
+    balls: { type: Array, required: true },
+    error: { type: String, default: null },
+    loading: { type: Boolean, required: true },
+  },
+  emits: ['retry', 'select'],
+  template: `
+    <section data-testid="dragon-ball-stub">
+      <h2>圆形入口</h2>
+      <span data-testid="dragon-ball-count">{{ balls.length }}</span>
+      <span v-if="error" data-testid="dragon-ball-error">{{ error }}</span>
+      <button data-testid="dragon-ball-retry" @click="$emit('retry')">retry</button>
+      <button v-if="balls[0]" data-testid="dragon-ball-select" @click="$emit('select', balls[0])">select</button>
+    </section>
+  `,
+})
+
+const HotTopicSectionStub = defineComponent({
+  name: 'HotTopicSection',
+  props: {
+    error: { type: String, default: null },
+    loading: { type: Boolean, required: true },
+    topics: { type: Array, required: true },
+  },
+  emits: ['retry', 'select'],
+  template: `
+    <section data-testid="hot-topic-stub">
+      <h2>热门话题</h2>
+      <span data-testid="hot-topic-count">{{ topics.length }}</span>
+      <span v-if="error" data-testid="hot-topic-error">{{ error }}</span>
+      <button data-testid="hot-topic-retry" @click="$emit('retry')">retry</button>
+      <button v-if="topics[0]" data-testid="hot-topic-select" @click="$emit('select', topics[0])">select</button>
+    </section>
+  `,
+})
+
+const CalendarSectionStub = defineComponent({
+  name: 'CalendarSection',
+  props: {
+    error: { type: String, default: null },
+    events: { type: Array, required: true },
+    loading: { type: Boolean, required: true },
+  },
+  emits: ['retry', 'select'],
+  template: `
+    <section data-testid="calendar-stub">
+      <h2>音乐日历</h2>
+      <span data-testid="calendar-count">{{ events.length }}</span>
+      <span v-if="error" data-testid="calendar-error">{{ error }}</span>
+      <button data-testid="calendar-retry" @click="$emit('retry')">retry</button>
+      <button v-if="events[0]" data-testid="calendar-select" @click="$emit('select', events[0])">select</button>
+    </section>
+  `,
+})
+
+const PrivateContentSectionStub = defineComponent({
+  name: 'PrivateContentSection',
+  props: {
+    error: { type: String, default: null },
+    items: { type: Array, required: true },
+    loading: { type: Boolean, required: true },
+    testid: { type: String, default: 'private' },
+    title: { type: String, default: '独家放送' },
+  },
+  emits: ['retry'],
+  template: `
+    <section :data-testid="testid + '-stub'">
+      <h2>{{ title }}</h2>
+      <span :data-testid="testid + '-count'">{{ items.length }}</span>
+      <span v-if="error" :data-testid="testid + '-error'">{{ error }}</span>
+      <button :data-testid="testid + '-retry'" @click="$emit('retry')">retry</button>
+    </section>
+  `,
+})
+
 const MvSectionStub = defineComponent({
   name: 'MvSection',
   props: {
@@ -193,11 +290,15 @@ async function mountView() {
       plugins: [pinia, router],
       stubs: {
         BannerCarousel: BannerCarouselStub,
+        CalendarSection: CalendarSectionStub,
+        DragonBallSection: DragonBallSectionStub,
+        HotTopicSection: HotTopicSectionStub,
         NewSongSection: NewSongSectionStub,
         NewestAlbumSection: NewestAlbumSectionStub,
         HotArtistSection: HotArtistSectionStub,
         MvSection: MvSectionStub,
         PersonalizedSection: PersonalizedSectionStub,
+        PrivateContentSection: PrivateContentSectionStub,
         RouterLink: defineComponent({
           props: ['to'],
           computed: {
@@ -242,6 +343,14 @@ describe('DiscoverView', () => {
     vi.mocked(getTopAlbums).mockResolvedValue([])
     vi.mocked(getPersonalizedMvs).mockReset()
     vi.mocked(getPersonalizedMvs).mockResolvedValue([])
+    vi.mocked(getHomepageDragonBalls).mockReset()
+    vi.mocked(getHomepageDragonBalls).mockResolvedValue([])
+    vi.mocked(getHotTopics).mockReset()
+    vi.mocked(getHotTopics).mockResolvedValue([])
+    vi.mocked(getMusicCalendar).mockReset()
+    vi.mocked(getMusicCalendar).mockResolvedValue([])
+    vi.mocked(getPrivateContentBrief).mockReset()
+    vi.mocked(getPrivateContentBrief).mockResolvedValue([])
   })
 
   it('loads banners when mounted', async () => {
@@ -252,7 +361,7 @@ describe('DiscoverView', () => {
 
     expect(wrapper.get('h1').text()).toBe('推荐')
     expect(wrapper.get('.summary').text()).toBe(
-      '五个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转、顶栏视频入口、Host 文案、主题已接入、内容卡片主题、歌曲 MV、队列和新歌 MV、顶栏搜索 MV、歌曲行专辑、播放条封面、新歌卡片专辑、播放条封面进专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、歌曲行歌手、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类、电台页头分类、相似歌曲、视频大厅分类、歌手馆筛选、搜索视频、相似歌曲露出、歌词露出、队列删歌、音量记住、歌单评论、MV 评论、视频评论、搜索分页、私人 FM、歌单搜索分页、歌手搜索分页、专辑搜索分页、MV 搜索分页、电台搜索分页、视频搜索分页、私人 FM 垃圾桶、私人 FM 页、电台节目评论、电台评论、歌曲评论、相似歌单、新碟上架、电台节目榜、MV 排行、电台榜、最新 MV、版权检查、歌单评论分页、MV 评论分页、视频评论分页、电台节目评论分页、电台评论分页、歌曲评论分页、歌单收藏者、搜索页不走建议、搜索默认词、搜索最佳匹配、歌单评论分页锁、新歌榜、热门歌手、专辑榜、独家 MV、精选电台、今日优选、24小时节目榜、24小时电台榜、MV 计数、视频计数、歌单动态、专辑动态、歌单热评、MV 热评、视频热评、歌曲热评、歌单分类、热门标签、热门歌单、最新歌单、推荐视频、视频分类、热门全部 MV、最新全部 MV、歌手热门50、歌手最新歌曲、歌手最新 MV、歌单评论楼层、歌曲评论楼层、MV 评论楼层、视频评论楼层、推荐节目、热门电台、分类精选电台、分类推荐、电台节目热评、电台节目评论楼层、电台订阅者、全部新碟、歌手榜、新晋电台、付费精品。',
+      '五个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转、顶栏视频入口、Host 文案、主题已接入、内容卡片主题、歌曲 MV、队列和新歌 MV、顶栏搜索 MV、歌曲行专辑、播放条封面、新歌卡片专辑、播放条封面进专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、歌曲行歌手、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类、电台页头分类、相似歌曲、视频大厅分类、歌手馆筛选、搜索视频、相似歌曲露出、歌词露出、队列删歌、音量记住、歌单评论、MV 评论、视频评论、搜索分页、私人 FM、歌单搜索分页、歌手搜索分页、专辑搜索分页、MV 搜索分页、电台搜索分页、视频搜索分页、私人 FM 垃圾桶、私人 FM 页、电台节目评论、电台评论、歌曲评论、相似歌单、新碟上架、电台节目榜、MV 排行、电台榜、最新 MV、版权检查、歌单评论分页、MV 评论分页、视频评论分页、电台节目评论分页、电台评论分页、歌曲评论分页、歌单收藏者、搜索页不走建议、搜索默认词、搜索最佳匹配、歌单评论分页锁、新歌榜、热门歌手、专辑榜、独家 MV、精选电台、今日优选、24小时节目榜、24小时电台榜、MV 计数、视频计数、歌单动态、专辑动态、歌单热评、MV 热评、视频热评、歌曲热评、歌单分类、热门标签、热门歌单、最新歌单、推荐视频、视频分类、热门全部 MV、最新全部 MV、歌手热门50、歌手最新歌曲、歌手最新 MV、歌单评论楼层、歌曲评论楼层、MV 评论楼层、视频评论楼层、推荐节目、热门电台、分类精选电台、分类推荐、电台节目热评、电台节目评论楼层、电台订阅者、全部新碟、歌手榜、新晋电台、付费精品、圆形入口、热门话题、音乐日历、独家放送短列表。',
     )
     expect(wrapper.find('.next-slices').exists()).toBe(false)
     expect(wrapper.text()).toContain('打开视频大厅')
@@ -267,6 +376,10 @@ describe('DiscoverView', () => {
     expect(wrapper.get('[data-testid="top-song-stub"]').text()).toContain('新歌榜')
     expect(wrapper.get('[data-testid="top-artists-stub"]').text()).toContain('热门歌手')
     expect(wrapper.get('[data-testid="top-album-stub"]').text()).toContain('专辑榜')
+    expect(getHomepageDragonBalls).toHaveBeenCalledTimes(1)
+    expect(getHotTopics).toHaveBeenCalledTimes(1)
+    expect(getMusicCalendar).toHaveBeenCalledTimes(1)
+    expect(getPrivateContentBrief).toHaveBeenCalledTimes(1)
   })
 
   it('plays song banners and opens album, playlist and MV pages', async () => {
@@ -598,5 +711,76 @@ describe('DiscoverView', () => {
 
     expect(wrapper.get('[role="status"]').text()).toContain('fm offline')
     expect(wrapper.get('[data-testid="banner-count"]').text()).toBe('1')
+  })
+
+  it('loads and retries homepage extras independently', async () => {
+    vi.mocked(getBanners).mockResolvedValue([])
+    vi.mocked(getHomepageDragonBalls)
+      .mockRejectedValueOnce(new Error('balls offline'))
+      .mockResolvedValueOnce([
+        {
+          iconUrl: '',
+          id: 1,
+          name: '私人 FM',
+          url: 'orpheus://nm/personalFM',
+        },
+      ])
+    vi.mocked(getHotTopics)
+      .mockRejectedValueOnce(new Error('topics offline'))
+      .mockResolvedValueOnce([
+        { id: 21, name: '林间话题', participateCount: 12, picUrl: '' },
+      ])
+    vi.mocked(getMusicCalendar)
+      .mockRejectedValueOnce(new Error('calendar offline'))
+      .mockResolvedValueOnce([
+        {
+          id: 31,
+          picUrl: '',
+          resourceId: 301,
+          resourceType: 'SONG',
+          title: '夜航首发',
+        },
+      ])
+    vi.mocked(getPrivateContentBrief)
+      .mockRejectedValueOnce(new Error('brief offline'))
+      .mockResolvedValueOnce([
+        { id: 803, name: '短列表现场', sPicUrl: '' },
+      ])
+
+    const { router, wrapper } = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="dragon-ball-error"]').text()).toBe('balls offline')
+    expect(wrapper.get('[data-testid="hot-topic-error"]').text()).toBe('topics offline')
+    expect(wrapper.get('[data-testid="calendar-error"]').text()).toBe('calendar offline')
+    expect(wrapper.get('[data-testid="discover-private-error"]').text()).toBe(
+      'brief offline',
+    )
+
+    await wrapper.get('[data-testid="dragon-ball-retry"]').trigger('click')
+    await wrapper.get('[data-testid="hot-topic-retry"]').trigger('click')
+    await wrapper.get('[data-testid="calendar-retry"]').trigger('click')
+    await wrapper.get('[data-testid="discover-private-retry"]').trigger('click')
+    await flushPromises()
+
+    expect(getHomepageDragonBalls).toHaveBeenCalledTimes(2)
+    expect(getHotTopics).toHaveBeenCalledTimes(2)
+    expect(getMusicCalendar).toHaveBeenCalledTimes(2)
+    expect(getPrivateContentBrief).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="dragon-ball-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="hot-topic-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="calendar-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="discover-private-count"]').text()).toBe('1')
+
+    await wrapper.get('[data-testid="dragon-ball-select"]').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe(Pages.fm)
+
+    await router.replace({ name: Pages.discover })
+    await wrapper.get('[data-testid="calendar-select"]').trigger('click')
+    await flushPromises()
+    expect(playSong).toHaveBeenCalledWith(301)
+
+    await wrapper.get('[data-testid="hot-topic-select"]').trigger('click')
+    expect(wrapper.get('[role="status"]').text()).toContain('林间话题')
   })
 })

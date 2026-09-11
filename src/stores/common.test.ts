@@ -2,10 +2,25 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getBanners } from '@/api/banner'
+import {
+  getHomepageDragonBalls,
+  getHotTopics,
+  getMusicCalendar,
+} from '@/api/homepage'
+import { getPrivateContentBrief } from '@/api/privateContent'
 import { useCommonStore } from '@/stores/common'
 
 vi.mock('@/api/banner', () => ({
   getBanners: vi.fn(),
+}))
+vi.mock('@/api/homepage', () => ({
+  getHomepageDragonBalls: vi.fn(),
+  getHotTopics: vi.fn(),
+  getMusicCalendar: vi.fn(),
+}))
+vi.mock('@/api/privateContent', () => ({
+  getPrivateContentBrief: vi.fn(),
+  getPrivateContents: vi.fn(),
 }))
 
 const banner = {
@@ -20,6 +35,10 @@ describe('common store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.mocked(getBanners).mockReset()
+    vi.mocked(getHomepageDragonBalls).mockReset()
+    vi.mocked(getHotTopics).mockReset()
+    vi.mocked(getMusicCalendar).mockReset()
+    vi.mocked(getPrivateContentBrief).mockReset()
   })
 
   it('loads banners once and reuses the cached result', async () => {
@@ -61,5 +80,87 @@ describe('common store', () => {
 
     expect(store.banners).toEqual([])
     expect(store.loading).toBe(false)
+  })
+
+  it('loads homepage extras independently', async () => {
+    const ball = {
+      iconUrl: '',
+      id: 1,
+      name: '私人 FM',
+      url: 'orpheus://nm/personalFM',
+    }
+    const topic = { id: 21, name: '林间话题', participateCount: 12, picUrl: '' }
+    const event = {
+      id: 31,
+      picUrl: '',
+      resourceId: 301,
+      resourceType: 'SONG',
+      title: '夜航首发',
+    }
+    const brief = { id: 803, name: '短列表现场', sPicUrl: '' }
+    vi.mocked(getHomepageDragonBalls).mockResolvedValue([ball])
+    vi.mocked(getHotTopics).mockResolvedValue([topic])
+    vi.mocked(getMusicCalendar).mockResolvedValue([event])
+    vi.mocked(getPrivateContentBrief).mockResolvedValue([brief])
+    const store = useCommonStore()
+
+    await store.loadDragonBalls()
+    await store.loadDragonBalls()
+    await store.loadHotTopics()
+    await store.loadCalendar()
+    await store.loadPrivateBrief()
+
+    expect(store.dragonBalls).toEqual([ball])
+    expect(store.hotTopics).toEqual([topic])
+    expect(store.calendarEvents).toEqual([event])
+    expect(store.privateBrief).toEqual([brief])
+    expect(getHomepageDragonBalls).toHaveBeenCalledTimes(1)
+    expect(getHotTopics).toHaveBeenCalledTimes(1)
+    expect(getMusicCalendar).toHaveBeenCalledTimes(1)
+    expect(getPrivateContentBrief).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps other extras when hot topics fail', async () => {
+    const ball = {
+      iconUrl: '',
+      id: 1,
+      name: '私人 FM',
+      url: 'orpheus://nm/personalFM',
+    }
+    vi.mocked(getHomepageDragonBalls).mockResolvedValue([ball])
+    vi.mocked(getHotTopics).mockRejectedValue(new Error('topics offline'))
+    const store = useCommonStore()
+
+    await store.loadDragonBalls()
+    await expect(store.loadHotTopics()).rejects.toThrow('topics offline')
+
+    expect(store.dragonBalls).toEqual([ball])
+    expect(store.hotTopics).toEqual([])
+    expect(store.hotTopicsError).toBe('topics offline')
+  })
+
+  it('drops in-flight homepage extras after reset', async () => {
+    const ball = {
+      iconUrl: '',
+      id: 1,
+      name: '私人 FM',
+      url: 'orpheus://nm/personalFM',
+    }
+    let resolveBalls!: (value: typeof ball[]) => void
+    vi.mocked(getHomepageDragonBalls).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveBalls = resolve
+      }),
+    )
+    const store = useCommonStore()
+    const pending = store.loadDragonBalls()
+    store.reset()
+    resolveBalls([ball])
+    await pending
+
+    expect(store.dragonBalls).toEqual([])
+    expect(store.hotTopics).toEqual([])
+    expect(store.calendarEvents).toEqual([])
+    expect(store.privateBrief).toEqual([])
   })
 })
