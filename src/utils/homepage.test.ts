@@ -47,6 +47,16 @@ describe('homepage targets', () => {
       kind: 'route',
       name: Pages.digital,
     })
+    expect(resolveDragonBallTarget('https://music.163.com/topic?actId=21')).toEqual({
+      kind: 'route',
+      id: 21,
+      name: Pages.topic,
+    })
+    expect(resolveDragonBallTarget('https://music.163.com/#/topic?actId=21')).toEqual({
+      kind: 'route',
+      id: 21,
+      name: Pages.topic,
+    })
     expect(
       resolveDragonBallTarget('https://music.163.com/store/digitalalbum/detail?id=511'),
     ).toEqual({

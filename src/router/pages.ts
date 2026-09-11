@@ -18,6 +18,7 @@ export const Pages = {
   playlist: 'playlist',
   search: 'search',
   style: 'style',
+  topic: 'topic',
   toplist: 'toplist',
   voice: 'voice',
   video: 'video',

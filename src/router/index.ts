@@ -40,6 +40,16 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/topic',
+    name: Pages.topic,
+    component: () => import('@/views/TopicPage.vue'),
+    meta: {
+      menu: 'discover',
+      requiresApiHost: true,
+      title: '话题',
+    },
+  },
+  {
     path: '/playlist',
     name: Pages.playlist,
     component: () => import('@/views/PlaylistView.vue'),

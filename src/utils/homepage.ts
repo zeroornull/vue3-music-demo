@@ -23,6 +23,15 @@ function queryId(url: URL, keys: string[]): number | null {
     const id = positiveId(url.searchParams.get(key))
     if (id) return id
   }
+  const hash = url.hash.replace(/^#/, '')
+  const qIndex = hash.indexOf('?')
+  if (qIndex >= 0) {
+    const params = new URLSearchParams(hash.slice(qIndex + 1))
+    for (const key of keys) {
+      const id = positiveId(params.get(key))
+      if (id) return id
+    }
+  }
   return null
 }
 
@@ -113,6 +122,14 @@ export function resolveDragonBallTarget(url: string): HomeTarget {
   }
   if (lower.includes('catalog') || lower.includes('category')) {
     return { kind: 'route', name: Pages.category }
+  }
+  if (lower.includes('topic') || lower.includes('actid') || /\/act(?:\/|\?|$)/.test(lower)) {
+    const actId =
+      (parsed ? queryId(parsed, ['actId', 'actid', 'id']) : null) ??
+      pathId(pathname, ['topic', 'act'])
+    return actId
+      ? { kind: 'route', name: Pages.topic, id: actId }
+      : { kind: 'unknown' }
   }
   if (lower.includes('nm/style') || /\/style(?:\/|\?|$)/.test(lower)) {
     const tagId = parsed ? queryId(parsed, ['tagId', 'id']) : null

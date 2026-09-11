@@ -28,6 +28,7 @@ import { useVideoStore } from '@/stores/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
 import { useLyricStore } from '@/stores/lyric'
 import { useSongExtraStore } from '@/stores/songExtra'
+import { useTopicStore } from '@/stores/topic'
 import { THEME_STORAGE_KEY } from '@/config/theme'
 import { useCommentFloorStore } from '@/stores/commentFloor'
 import { useHostStore } from '@/stores/host'
@@ -1205,6 +1206,30 @@ describe('App host gate', () => {
     expect(extraStore.sheetId).toBe(0)
     expect(extraStore.preview).toBeNull()
     expect(extraStore.mlogs).toEqual([])
+  })
+
+  it('clears topic cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const topicStore = useTopicStore()
+    topicStore.actId = 21
+    topicStore.detail = {
+      coverUrl: '',
+      desc: '林间夜谈',
+      id: 21,
+      name: '林间话题',
+      participateCount: 12,
+    }
+    topicStore.events = [{ content: '走过林间。', id: 31, picUrl: '', userName: '林间电台' }]
+    topicStore.wall = [{ content: '云村热评', id: 41, likedCount: 8, nickname: '海岸信号' }]
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(topicStore.actId).toBe(0)
+    expect(topicStore.detail).toBeNull()
+    expect(topicStore.events).toEqual([])
+    expect(topicStore.wall).toEqual([])
   })
 
   it('invalidates a pending play when the host gate closes', async () => {

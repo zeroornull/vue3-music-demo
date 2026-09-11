@@ -23,6 +23,7 @@ import { useVideoStore } from '@/stores/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
 import { useLyricStore } from '@/stores/lyric'
 import { useSongExtraStore } from '@/stores/songExtra'
+import { useTopicStore } from '@/stores/topic'
 import { useThemeStore } from '@/stores/theme'
 import { useCommentFloorStore } from '@/stores/commentFloor'
 
@@ -45,6 +46,7 @@ const djStore = useDjStore()
 const searchStore = useSearchStore()
 const lyricStore = useLyricStore()
 const songExtraStore = useSongExtraStore()
+const topicStore = useTopicStore()
 const commentFloorStore = useCommentFloorStore()
 const { isConfigured } = storeToRefs(hostStore)
 
@@ -67,6 +69,7 @@ watch(isConfigured, (configured) => {
     searchStore.reset()
     lyricStore.reset()
     songExtraStore.reset()
+    topicStore.reset()
     commentFloorStore.reset()
   }
 })

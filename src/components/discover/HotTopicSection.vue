@@ -34,7 +34,7 @@ defineEmits<{
         <p class="eyebrow">Topics</p>
         <h2 :id="`${testid}-title`">{{ title }}</h2>
       </div>
-      <p>点击卡片查看话题名称</p>
+      <p>点击卡片打开话题</p>
     </div>
 
     <div

@@ -36,6 +36,14 @@ describe('router contract', () => {
     expect(router.resolve('/does-not-exist').name).toBe(Pages.notFound)
   })
 
+  it('resolves the topic detail route', () => {
+    const router = createAppRouter(createMemoryHistory())
+    const route = router.resolve({ name: Pages.topic, query: { actId: 21 } })
+    expect(route.path).toBe('/topic')
+    expect(route.query.actId).toBe('21')
+    expect(route.meta.title).toBe('话题')
+  })
+
   it('preserves the legacy playlist route name and query id', () => {
     const router = createAppRouter(createMemoryHistory())
     const route = router.resolve({ name: Pages.playlist, query: { id: 101 } })
