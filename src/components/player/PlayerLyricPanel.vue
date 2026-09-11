@@ -4,9 +4,13 @@ import { storeToRefs } from 'pinia'
 
 import CommentHotSection from '@/components/comment/CommentHotSection.vue'
 import CommentThread from '@/components/comment/CommentThread.vue'
+import SongMlogSection from '@/components/player/SongMlogSection.vue'
+import SongSheetSection from '@/components/player/SongSheetSection.vue'
+import SongWikiSection from '@/components/player/SongWikiSection.vue'
 import { excludeSeenComments } from '@/models/comment'
 import { useLyricStore } from '@/stores/lyric'
 import { usePlayerStore } from '@/stores/player'
+import { useSongExtraStore } from '@/stores/songExtra'
 
 const emit = defineEmits<{
   retry: []
@@ -14,7 +18,23 @@ const emit = defineEmits<{
 
 const lyrics = useLyricStore()
 const player = usePlayerStore()
+const extras = useSongExtraStore()
 const { error, lines, loading, showLyric } = storeToRefs(lyrics)
+const {
+  mlogs,
+  mlogsError,
+  mlogsLoading,
+  preview,
+  previewError,
+  previewLoading,
+  sheetId,
+  sheets,
+  sheetsError,
+  sheetsLoading,
+  wiki,
+  wikiError,
+  wikiLoading,
+} = storeToRefs(extras)
 const {
   comments,
   commentsMore,
@@ -64,6 +84,22 @@ watch(
     else document.removeEventListener('keydown', onKeydown)
   },
   { flush: 'sync', immediate: true },
+)
+
+watch(
+  [showLyric, () => player.current?.id],
+  ([open, id]) => {
+    if (typeof id !== 'number' || id <= 0) {
+      if (extras.songId) extras.reset()
+      return
+    }
+    if (!open) {
+      if (extras.songId && extras.songId !== id) extras.reset()
+      return
+    }
+    void extras.load(id).catch(() => undefined)
+  },
+  { immediate: true },
 )
 
 onUnmounted(() => {
@@ -167,6 +203,33 @@ onUnmounted(() => {
               >{{ line.romanization }}</small>
             </li>
           </ol>
+
+          <div class="song-extras">
+          <SongWikiSection
+            :blocks="wiki"
+            :error="wikiError"
+            :loading="wikiLoading"
+            @retry="extras.loadWiki(true).catch(() => undefined)"
+          />
+          <SongSheetSection
+            :error="sheetsError"
+            :loading="sheetsLoading"
+            :preview="preview"
+            :preview-error="previewError"
+            :preview-loading="previewLoading"
+            :sheet-id="sheetId"
+            :sheets="sheets"
+            @retry="extras.loadSheets(true).catch(() => undefined)"
+            @retry-preview="extras.loadPreview(sheetId, true).catch(() => undefined)"
+            @select="extras.setSheet"
+          />
+          <SongMlogSection
+            :error="mlogsError"
+            :loading="mlogsLoading"
+            :mlogs="mlogs"
+            @retry="extras.loadMlogs(true).catch(() => undefined)"
+          />
+          </div>
 
           <CommentHotSection
             error-title="歌曲热门评论加载失败"
@@ -308,6 +371,13 @@ onUnmounted(() => {
   margin: 0;
   padding: 0 16px 16px;
   list-style: none;
+}
+
+.song-extras {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  padding: 8px 16px 16px;
 }
 
 .song-comments {

@@ -4,6 +4,12 @@ import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getLyric } from '@/api/lyric'
+import {
+  getSheetPreview,
+  getSongMlogs,
+  getSongSheets,
+  getSongWiki,
+} from '@/api/songExtra'
 import type { AudioAdapter } from '@/audio/audioAdapter'
 import PlayerBar from '@/components/player/PlayerBar.vue'
 import { Pages } from '@/router/pages'
@@ -17,6 +23,16 @@ import {
 vi.mock('@/api/lyric', () => ({
   getLyric: vi.fn(),
 }))
+vi.mock('@/api/songExtra', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/songExtra')>()
+  return {
+    ...actual,
+    getSheetPreview: vi.fn(),
+    getSongMlogs: vi.fn(),
+    getSongSheets: vi.fn(),
+    getSongWiki: vi.fn(),
+  }
+})
 
 const RouterLinkStub = defineComponent({
   name: 'RouterLink',
@@ -55,6 +71,14 @@ describe('PlayerBar', () => {
     vi.mocked(getLyric).mockResolvedValue({
       lines: [{ text: '走过林间。', time: 12 }],
     })
+    vi.mocked(getSongWiki).mockReset()
+    vi.mocked(getSongWiki).mockResolvedValue([])
+    vi.mocked(getSongSheets).mockReset()
+    vi.mocked(getSongSheets).mockResolvedValue([])
+    vi.mocked(getSheetPreview).mockReset()
+    vi.mocked(getSheetPreview).mockRejectedValue(new Error('no preview'))
+    vi.mocked(getSongMlogs).mockReset()
+    vi.mocked(getSongMlogs).mockResolvedValue([])
   })
 
   it('shows song, artist and accessible toggle', async () => {

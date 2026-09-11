@@ -5,6 +5,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getSongCommentPage, getSongHotComments } from '@/api/comment'
 import { getSongCommentFloor } from '@/api/commentFloor'
+import {
+  getSheetPreview,
+  getSongMlogs,
+  getSongSheets,
+  getSongWiki,
+} from '@/api/songExtra'
 import PlayerLyricPanel from '@/components/player/PlayerLyricPanel.vue'
 import { useLyricStore } from '@/stores/lyric'
 import { usePlayerStore } from '@/stores/player'
@@ -22,6 +28,16 @@ vi.mock('@/api/commentFloor', () => ({
   getSongCommentFloor: vi.fn(),
   getVideoCommentFloor: vi.fn(),
 }))
+vi.mock('@/api/songExtra', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/songExtra')>()
+  return {
+    ...actual,
+    getSheetPreview: vi.fn(),
+    getSongMlogs: vi.fn(),
+    getSongSheets: vi.fn(),
+    getSongWiki: vi.fn(),
+  }
+})
 
 describe('PlayerLyricPanel', () => {
   beforeEach(() => {
@@ -32,10 +48,28 @@ describe('PlayerLyricPanel', () => {
     vi.mocked(getSongHotComments).mockRejectedValue(new Error('no hot'))
     vi.mocked(getSongCommentFloor).mockReset()
     vi.mocked(getSongCommentFloor).mockRejectedValue(new Error('no floor'))
+    vi.mocked(getSongWiki).mockReset()
+    vi.mocked(getSongWiki).mockResolvedValue([])
+    vi.mocked(getSongSheets).mockReset()
+    vi.mocked(getSongSheets).mockResolvedValue([])
+    vi.mocked(getSheetPreview).mockReset()
+    vi.mocked(getSheetPreview).mockRejectedValue(new Error('no preview'))
+    vi.mocked(getSongMlogs).mockReset()
+    vi.mocked(getSongMlogs).mockResolvedValue([])
   })
 
   function mountPanel() {
-    return mount(PlayerLyricPanel, { attachTo: document.body })
+    return mount(PlayerLyricPanel, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a><slot /></a>',
+          },
+        },
+      },
+    })
   }
 
   function bodyEl(selector: string) {
@@ -281,6 +315,70 @@ describe('PlayerLyricPanel', () => {
     expect(comments.textContent).toContain('走过林间。')
     expect(comments.textContent).toContain('第二页')
     expect(document.querySelector('[data-testid="song-comments-more"]')).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('does not load extras while the lyric panel is closed', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 301, name: '晚风来信', artists: [] }
+    const wrapper = mountPanel()
+    await flushPromises()
+    expect(getSongWiki).not.toHaveBeenCalled()
+    expect(getSongSheets).not.toHaveBeenCalled()
+    expect(getSongMlogs).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('drops in-flight extras when the song changes while the panel is closed', async () => {
+    vi.mocked(getSongWiki).mockImplementation(
+      () => new Promise(() => undefined),
+    )
+    const lyrics = useLyricStore()
+    const player = usePlayerStore()
+    player.current = { id: 301, name: '晚风来信', artists: [] }
+    lyrics.open()
+    const wrapper = mountPanel()
+    await flushPromises()
+    expect(getSongWiki).toHaveBeenCalledWith(301)
+    lyrics.close()
+    player.current = { id: 302, name: '浩室夜航', artists: [] }
+    await flushPromises()
+    vi.mocked(getSongWiki).mockClear()
+    lyrics.open()
+    await flushPromises()
+    expect(getSongWiki).toHaveBeenCalledWith(302)
+    wrapper.unmount()
+  })
+
+  it('loads wiki, sheets, preview and mlogs for the current song', async () => {
+    vi.mocked(getSongWiki).mockResolvedValue([
+      { title: '歌曲简介', text: '林间夜谈。' },
+    ])
+    vi.mocked(getSongSheets).mockResolvedValue([
+      { coverUrl: '', id: 21, name: '夜航谱', userName: '林间电台' },
+    ])
+    vi.mocked(getSheetPreview).mockResolvedValue({
+      id: 21,
+      imageUrl: 'https://images.example.com/p.jpg',
+      text: '简谱',
+    })
+    vi.mocked(getSongMlogs).mockResolvedValue([
+      { coverUrl: '', id: 'ml-9', name: '林间现场', videoId: 'VID001' },
+    ])
+    const lyrics = useLyricStore()
+    const player = usePlayerStore()
+    player.current = { id: 301, name: '晚风来信', artists: [] }
+    lyrics.open()
+    const wrapper = mountPanel()
+    await flushPromises()
+    expect(getSongWiki).toHaveBeenCalledWith(301)
+    expect(getSongSheets).toHaveBeenCalledWith(301)
+    expect(getSheetPreview).toHaveBeenCalledWith(21)
+    expect(getSongMlogs).toHaveBeenCalledWith(301)
+    expect(bodyEl('[data-testid="song-wiki"]').textContent).toContain('歌曲简介')
+    expect(bodyEl('[data-testid="song-sheets"]').textContent).toContain('夜航谱')
+    expect(bodyEl('[data-testid="song-sheet-preview"]').textContent).toContain('简谱')
+    expect(bodyEl('[data-testid="song-mlogs"]').textContent).toContain('林间现场')
     wrapper.unmount()
   })
 })

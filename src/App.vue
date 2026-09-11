@@ -22,6 +22,7 @@ import { usePlaylistStore } from '@/stores/playlist'
 import { useVideoStore } from '@/stores/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
 import { useLyricStore } from '@/stores/lyric'
+import { useSongExtraStore } from '@/stores/songExtra'
 import { useThemeStore } from '@/stores/theme'
 import { useCommentFloorStore } from '@/stores/commentFloor'
 
@@ -43,6 +44,7 @@ const artistStore = useArtistStore()
 const djStore = useDjStore()
 const searchStore = useSearchStore()
 const lyricStore = useLyricStore()
+const songExtraStore = useSongExtraStore()
 const commentFloorStore = useCommentFloorStore()
 const { isConfigured } = storeToRefs(hostStore)
 
@@ -64,6 +66,7 @@ watch(isConfigured, (configured) => {
     djStore.reset()
     searchStore.reset()
     lyricStore.reset()
+    songExtraStore.reset()
     commentFloorStore.reset()
   }
 })

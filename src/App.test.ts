@@ -27,6 +27,7 @@ import { useSearchStore } from '@/stores/search'
 import { useVideoStore } from '@/stores/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
 import { useLyricStore } from '@/stores/lyric'
+import { useSongExtraStore } from '@/stores/songExtra'
 import { THEME_STORAGE_KEY } from '@/config/theme'
 import { useCommentFloorStore } from '@/stores/commentFloor'
 import { useHostStore } from '@/stores/host'
@@ -1182,6 +1183,28 @@ describe('App host gate', () => {
     expect(lyricStore.showLyric).toBe(false)
     expect(lyricStore.lines).toEqual([])
     expect(lyricStore.loadedId).toBeNull()
+  })
+
+  it('clears song extras when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const extraStore = useSongExtraStore()
+    extraStore.songId = 301
+    extraStore.wiki = [{ title: '歌曲简介', text: '林间夜谈。' }]
+    extraStore.sheets = [{ coverUrl: '', id: 21, name: '夜航谱', userName: '' }]
+    extraStore.sheetId = 21
+    extraStore.preview = { id: 21, imageUrl: '', text: '简谱' }
+    extraStore.mlogs = [{ coverUrl: '', id: 'ml-9', name: '林间现场', videoId: '' }]
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(extraStore.songId).toBe(0)
+    expect(extraStore.wiki).toEqual([])
+    expect(extraStore.sheets).toEqual([])
+    expect(extraStore.sheetId).toBe(0)
+    expect(extraStore.preview).toBeNull()
+    expect(extraStore.mlogs).toEqual([])
   })
 
   it('invalidates a pending play when the host gate closes', async () => {
