@@ -20,6 +20,8 @@ import {
   getDjProgramHoursToplist,
   getDjRadioHoursToplist,
   getDjRadioSubscriberPage,
+  getDjNewcomerRadios,
+  getDjPayRadios,
   DJ_SUBSCRIBER_TIME_START,
   getHotDjRadios,
   getPersonalizedDjPrograms,
@@ -61,6 +63,8 @@ vi.mock('@/api/dj', async (importOriginal) => {
     getHotDjRadios: vi.fn(),
     getPersonalizedDjPrograms: vi.fn(),
     getDjRadioSubscriberPage: vi.fn(),
+    getDjNewcomerRadios: vi.fn(),
+    getDjPayRadios: vi.fn(),
   }
 })
 
@@ -178,6 +182,8 @@ describe('dj store', () => {
     vi.mocked(getDjRadioSubscriberPage).mockRejectedValue(
       new Error('no subscribers'),
     )
+    vi.mocked(getDjNewcomerRadios).mockReset()
+    vi.mocked(getDjPayRadios).mockReset()
   })
 
   it('loads hall banners once and treats a failed page as a cache miss', async () => {
@@ -1611,5 +1617,50 @@ describe('dj store', () => {
     await settle()
     expect(store.radioSubscribers).toEqual([next])
     expect(store.radioSubscribersMore).toBe(false)
+  })
+
+  it('loads newcomer and pay radios independently', async () => {
+    const newcomer = { ...radio, id: 861, name: '新晋夜航' }
+    const paid = { ...radio, id: 871, name: '付费夜航', paid: true }
+    vi.mocked(getDjNewcomerRadios).mockResolvedValue([newcomer])
+    vi.mocked(getDjPayRadios).mockResolvedValue([paid])
+    const store = useDjStore()
+
+    await store.loadNewcomerRadios()
+    await store.loadNewcomerRadios()
+    await store.loadPayRadios()
+    await store.loadPayRadios()
+
+    expect(store.newcomerRadios).toEqual([newcomer])
+    expect(store.payRadios).toEqual([paid])
+    expect(getDjNewcomerRadios).toHaveBeenCalledTimes(1)
+    expect(getDjPayRadios).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps newcomer radios when pay radios fail', async () => {
+    const newcomer = { ...radio, id: 861, name: '新晋夜航' }
+    vi.mocked(getDjNewcomerRadios).mockResolvedValue([newcomer])
+    vi.mocked(getDjPayRadios).mockRejectedValue(new Error('pay offline'))
+    const store = useDjStore()
+
+    await store.loadNewcomerRadios()
+    await expect(store.loadPayRadios()).rejects.toThrow('pay offline')
+
+    expect(store.newcomerRadios).toEqual([newcomer])
+    expect(store.payRadios).toEqual([])
+    expect(store.payRadiosError).toBe('pay offline')
+  })
+
+  it('drops in-flight newcomer radios after reset', async () => {
+    const pending = deferred<typeof radio[]>()
+    vi.mocked(getDjNewcomerRadios).mockReturnValueOnce(pending.promise)
+    const store = useDjStore()
+    const loading = store.loadNewcomerRadios()
+    store.reset()
+    pending.resolve([radio])
+    await loading
+
+    expect(store.newcomerRadios).toEqual([])
+    expect(store.payRadios).toEqual([])
   })
 })

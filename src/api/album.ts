@@ -60,6 +60,8 @@ export async function getAlbum(
 
 export const NEWEST_ALBUM_LIMIT = 10
 export const TOP_ALBUM_LIMIT = 10
+export const NEW_ALBUM_LIMIT = 10
+export const NEW_ALBUM_AREA = 'ALL'
 
 function readNewestAlbum(value: unknown): NewestAlbum | null {
   if (
@@ -105,6 +107,28 @@ export async function getNewestAlbums(
     .map(readNewestAlbum)
     .filter((item): item is NewestAlbum => item !== null)
     .slice(0, NEWEST_ALBUM_LIMIT)
+}
+
+export async function getNewAlbums(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<NewestAlbum[]> {
+  const response = await client.get<{ albums?: unknown; data?: unknown }>(
+    '/album/new',
+    { area: NEW_ALBUM_AREA, limit: NEW_ALBUM_LIMIT },
+  )
+  const nested = isRecord(response.data) ? response.data : null
+  const raw = Array.isArray(response.albums)
+    ? response.albums
+    : nested && Array.isArray(nested.albums)
+      ? nested.albums
+      : null
+  if (!raw) {
+    throw new Error('全部新碟响应格式不正确')
+  }
+  return raw
+    .map(readNewestAlbum)
+    .filter((item): item is NewestAlbum => item !== null)
+    .slice(0, NEW_ALBUM_LIMIT)
 }
 
 export async function getTopAlbums(

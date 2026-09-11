@@ -4,8 +4,11 @@ import type { HttpClient } from '@/api/http'
 import {
   getAlbum,
   getAlbumStats,
+  getNewAlbums,
   getNewestAlbums,
   getTopAlbums,
+  NEW_ALBUM_AREA,
+  NEW_ALBUM_LIMIT,
   NEWEST_ALBUM_LIMIT,
   TOP_ALBUM_LIMIT,
 } from '@/api/album'
@@ -132,6 +135,56 @@ describe('Newest album API', () => {
     expect(request.get).toHaveBeenCalledWith('/album/newest', {
       limit: NEWEST_ALBUM_LIMIT,
     })
+  })
+
+  it('unwraps /album/new albums for all areas', async () => {
+    const request = client({
+      albums: [
+        {
+          artist: { extra: true, id: 401, name: '林间电台' },
+          extra: true,
+          id: 511,
+          name: '  全部新碟  ',
+          picUrl: 'https://images.example.com/new.jpg',
+          publishTime: 1_609_459_200_000,
+        },
+        { id: 0, name: '无效' },
+      ],
+    })
+    await expect(getNewAlbums(request.client)).resolves.toEqual([
+      {
+        artist: { id: 401, name: '林间电台' },
+        id: 511,
+        name: '全部新碟',
+        picUrl: 'https://images.example.com/new.jpg',
+        publishTime: 1_609_459_200_000,
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/album/new', {
+      area: NEW_ALBUM_AREA,
+      limit: NEW_ALBUM_LIMIT,
+    })
+    await expect(getNewAlbums(client({ albums: null }).client)).rejects.toThrow(
+      '全部新碟响应格式不正确',
+    )
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `新碟 ${index + 1}`,
+    }))
+    await expect(
+      getNewAlbums(client({ albums: many }).client),
+    ).resolves.toHaveLength(NEW_ALBUM_LIMIT)
+    await expect(
+      getNewAlbums(client({ data: { albums: [{ id: 512, name: '嵌套新碟' }] } }).client),
+    ).resolves.toEqual([
+      {
+        artist: { id: 0, name: '未知歌手' },
+        id: 512,
+        name: '嵌套新碟',
+        picUrl: '',
+        publishTime: 0,
+      },
+    ])
   })
 
   it('rejects a missing albums array and slices the list', async () => {

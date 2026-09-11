@@ -18,6 +18,8 @@ export const ARTIST_LIST_PAGE_SIZE = 30
 export const ARTIST_MV_PAGE_SIZE = 12
 export const ARTIST_ALBUM_PAGE_SIZE = 12
 export const TOP_ARTIST_LIMIT = 10
+export const TOPLIST_ARTIST_LIMIT = 10
+export const TOPLIST_ARTIST_TYPE = 1
 export const ARTIST_TOP_SONG_LIMIT = 10
 export const ARTIST_NEW_MV_LIMIT = 10
 
@@ -370,6 +372,36 @@ export async function getTopArtists(
     .filter((item) => Number.isInteger(item.id) && item.id > 0 && item.name.trim())
     .map((item) => ({ ...item, name: item.name.trim() }))
     .slice(0, TOP_ARTIST_LIMIT)
+}
+
+function unwrapToplistArtists(response: unknown): unknown[] | null {
+  if (!isRecord(response)) return null
+  if (Array.isArray(response.artists)) return response.artists
+  const list = isRecord(response.list) ? response.list : null
+  if (list && Array.isArray(list.artists)) return list.artists
+  const data = isRecord(response.data) ? response.data : null
+  if (data && Array.isArray(data.artists)) return data.artists
+  const nestedList = data && isRecord(data.list) ? data.list : null
+  if (nestedList && Array.isArray(nestedList.artists)) return nestedList.artists
+  return null
+}
+
+export async function getToplistArtists(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallArtist[]> {
+  const response = await client.get<unknown>('/toplist/artist', {
+    type: TOPLIST_ARTIST_TYPE,
+  })
+  const raw = unwrapToplistArtists(response)
+  if (!raw) {
+    throw new Error('歌手榜响应格式不正确')
+  }
+  return raw
+    .map(readHallArtist)
+    .filter((item): item is HallArtist => item !== null)
+    .filter((item) => Number.isInteger(item.id) && item.id > 0 && item.name.trim())
+    .map((item) => ({ ...item, name: item.name.trim() }))
+    .slice(0, TOPLIST_ARTIST_LIMIT)
 }
 
 export async function getSimiArtists(

@@ -15,10 +15,13 @@ import {
   getArtistSongs,
   getArtistTopSongs,
   getSimiArtists,
+  getToplistArtists,
   getTopArtists,
   ARTIST_NEW_MV_LIMIT,
   ARTIST_TOP_SONG_LIMIT,
   TOP_ARTIST_LIMIT,
+  TOPLIST_ARTIST_LIMIT,
+  TOPLIST_ARTIST_TYPE,
 } from '@/api/artist'
 
 const client = (response: unknown) => {
@@ -484,6 +487,43 @@ describe('Top artist API', () => {
       limit: TOP_ARTIST_LIMIT,
       offset: 0,
     })
+  })
+
+  it('unwraps /toplist/artist from list.artists', async () => {
+    const request = client({
+      list: {
+        artists: [
+          {
+            extra: true,
+            id: 401,
+            img1v1Url: 'https://images.example.com/a.jpg',
+            name: '  林间电台  ',
+          },
+          { id: 0, name: '无效' },
+        ],
+        extra: true,
+      },
+    })
+    await expect(getToplistArtists(request.client)).resolves.toEqual([
+      {
+        id: 401,
+        img1v1Url: 'https://images.example.com/a.jpg',
+        name: '林间电台',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/toplist/artist', {
+      type: TOPLIST_ARTIST_TYPE,
+    })
+    await expect(getToplistArtists(client({ artists: null }).client)).rejects.toThrow(
+      '歌手榜响应格式不正确',
+    )
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `歌手 ${index + 1}`,
+    }))
+    await expect(
+      getToplistArtists(client({ list: { artists: many } }).client),
+    ).resolves.toHaveLength(TOPLIST_ARTIST_LIMIT)
   })
 
   it('rejects a missing artists array and slices the list', async () => {

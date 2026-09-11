@@ -27,6 +27,8 @@ export const DJ_HOT_RADIO_LIMIT = 10
 export const DJ_TYPE_RECOMMEND_LIMIT = 10
 export const DJ_CATEGORY_RECOMMEND_LIMIT = 10
 export const DJ_SUBSCRIBER_LIMIT = 20
+export const DJ_NEWCOMER_LIMIT = 10
+export const DJ_PAY_RADIO_LIMIT = 10
 export const DJ_SUBSCRIBER_TIME_START = -1
 
 export interface HotDjRadioQuery {
@@ -415,6 +417,39 @@ export async function getDjRadioHoursToplist(
     .map(readToplistRadio)
     .filter((item): item is HallRadio => item !== null)
     .slice(0, DJ_HOURS_LIMIT)
+}
+
+export async function getDjNewcomerRadios(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallRadio[]> {
+  const response = await client.get<Record<string, unknown>>(
+    '/dj/toplist/newcomer',
+    { limit: DJ_NEWCOMER_LIMIT },
+  )
+  const raw = unwrapList(response, ['djRadios', 'toplist'])
+  if (!raw) {
+    throw new Error('新晋电台响应格式不正确')
+  }
+  return raw
+    .map(readToplistRadio)
+    .filter((item): item is HallRadio => item !== null)
+    .slice(0, DJ_NEWCOMER_LIMIT)
+}
+
+export async function getDjPayRadios(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallRadio[]> {
+  const response = await client.get<Record<string, unknown>>('/dj/toplist/pay', {
+    limit: DJ_PAY_RADIO_LIMIT,
+  })
+  const raw = unwrapList(response, ['djRadios', 'toplist'])
+  if (!raw) {
+    throw new Error('付费精品电台响应格式不正确')
+  }
+  return raw
+    .map(readToplistRadio)
+    .filter((item): item is HallRadio => item !== null)
+    .slice(0, DJ_PAY_RADIO_LIMIT)
 }
 
 export async function getDjRecommendPrograms(

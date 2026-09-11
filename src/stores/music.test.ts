@@ -1,18 +1,20 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getNewestAlbums, getTopAlbums } from '@/api/album'
-import { getTopArtists } from '@/api/artist'
+import { getNewAlbums, getNewestAlbums, getTopAlbums } from '@/api/album'
+import { getToplistArtists, getTopArtists } from '@/api/artist'
 import { getPersonalizedPlaylists } from '@/api/personalized'
 import { getPersonalizedNewSongs, getTopSongs } from '@/api/newSong'
 import { getTopLists } from '@/api/toplist'
 import { useMusicStore } from '@/stores/music'
 
 vi.mock('@/api/album', () => ({
+  getNewAlbums: vi.fn(),
   getNewestAlbums: vi.fn(),
   getTopAlbums: vi.fn(),
 }))
 vi.mock('@/api/artist', () => ({
+  getToplistArtists: vi.fn(),
   getTopArtists: vi.fn(),
 }))
 vi.mock('@/api/personalized', () => ({
@@ -64,6 +66,8 @@ describe('music store', () => {
     vi.mocked(getTopSongs).mockReset()
     vi.mocked(getTopArtists).mockReset()
     vi.mocked(getTopAlbums).mockReset()
+    vi.mocked(getNewAlbums).mockReset()
+    vi.mocked(getToplistArtists).mockReset()
     vi.mocked(getTopLists).mockReset()
   })
 
@@ -373,5 +377,72 @@ describe('music store', () => {
     expect(store.topSongs).toEqual([])
     expect(store.topArtists).toEqual([])
     expect(store.topAlbums).toEqual([])
+  })
+
+  it('loads new albums and toplist artists independently', async () => {
+    const newAlbum = {
+      artist: { id: 401, name: '林间电台' },
+      id: 511,
+      name: '全部新碟',
+      picUrl: '',
+      publishTime: 0,
+    }
+    vi.mocked(getNewAlbums).mockResolvedValue([newAlbum])
+    vi.mocked(getToplistArtists).mockResolvedValue([topArtist])
+    const store = useMusicStore()
+
+    await store.loadNewAlbums()
+    await store.loadNewAlbums()
+    await store.loadToplistArtists()
+    await store.loadToplistArtists()
+
+    expect(store.newAlbums).toEqual([newAlbum])
+    expect(store.toplistArtists).toEqual([topArtist])
+    expect(getNewAlbums).toHaveBeenCalledTimes(1)
+    expect(getToplistArtists).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps new albums when the artist chart fails', async () => {
+    const newAlbum = {
+      artist: { id: 401, name: '林间电台' },
+      id: 511,
+      name: '全部新碟',
+      picUrl: '',
+      publishTime: 0,
+    }
+    vi.mocked(getNewAlbums).mockResolvedValue([newAlbum])
+    vi.mocked(getToplistArtists).mockRejectedValue(new Error('chart offline'))
+    const store = useMusicStore()
+
+    await store.loadNewAlbums()
+    await expect(store.loadToplistArtists()).rejects.toThrow('chart offline')
+
+    expect(store.newAlbums).toEqual([newAlbum])
+    expect(store.toplistArtists).toEqual([])
+    expect(store.toplistArtistsError).toBe('chart offline')
+  })
+
+  it('drops in-flight new albums after reset', async () => {
+    const newAlbum = {
+      artist: { id: 401, name: '林间电台' },
+      id: 511,
+      name: '全部新碟',
+      picUrl: '',
+      publishTime: 0,
+    }
+    let resolveAlbums!: (value: typeof newAlbum[]) => void
+    vi.mocked(getNewAlbums).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveAlbums = resolve
+      }),
+    )
+    const store = useMusicStore()
+    const pending = store.loadNewAlbums()
+    store.reset()
+    resolveAlbums([newAlbum])
+    await pending
+
+    expect(store.newAlbums).toEqual([])
+    expect(store.toplistArtists).toEqual([])
   })
 })

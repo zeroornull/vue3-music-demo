@@ -488,6 +488,27 @@ describe('App host gate', () => {
         rcmdText: '',
       },
     ]
+    djStore.newcomerRadios = [
+      {
+        djName: '',
+        id: 861,
+        name: '新晋夜航',
+        picUrl: '',
+        playCount: 1,
+        rcmdText: '',
+      },
+    ]
+    djStore.payRadios = [
+      {
+        djName: '',
+        id: 871,
+        name: '付费夜航',
+        paid: true,
+        picUrl: '',
+        playCount: 1,
+        rcmdText: '',
+      },
+    ]
     djStore.cateId = 2
     djStore.radio = {
       category: '音乐故事',
@@ -570,6 +591,8 @@ describe('App host gate', () => {
     expect(djStore.hotRadios).toEqual([])
     expect(djStore.typeRecommendRadios).toEqual([])
     expect(djStore.categoryRecommendRadios).toEqual([])
+    expect(djStore.newcomerRadios).toEqual([])
+    expect(djStore.payRadios).toEqual([])
     expect(djStore.cateId).toBe(0)
     expect(djStore.radio).toBeNull()
     expect(djStore.radioPrograms).toEqual([])
@@ -753,6 +776,16 @@ describe('App host gate', () => {
         publishTime: 0,
       },
     ]
+    musicStore.newAlbums = [
+      {
+        artist: { id: 401, name: '林间电台' },
+        id: 511,
+        name: '全部新碟',
+        picUrl: '',
+        publishTime: 0,
+      },
+    ]
+    musicStore.toplistArtists = [{ id: 401, img1v1Url: '', name: '林间电台' }]
     mountApp()
 
     useHostStore().clearHost()
@@ -763,6 +796,8 @@ describe('App host gate', () => {
     expect(musicStore.topSongs).toEqual([])
     expect(musicStore.topArtists).toEqual([])
     expect(musicStore.topAlbums).toEqual([])
+    expect(musicStore.newAlbums).toEqual([])
+    expect(musicStore.toplistArtists).toEqual([])
   })
 
   it('clears MV playback cache when the host gate closes', async () => {

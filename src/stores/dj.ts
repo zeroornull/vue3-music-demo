@@ -16,6 +16,8 @@ import {
   getDjHotRadios,
   getDjRecommendByType,
   getDjCategoryRecommend,
+  getDjNewcomerRadios,
+  getDjPayRadios,
   getDjTodayPrograms,
   getDjProgramHoursToplist,
   getDjRadioHoursToplist,
@@ -63,6 +65,8 @@ let radioProgramSerial = 0
 let radioCommentsMoreSerial = 0
 let hotCommentSerial = 0
 let radioSubscribersMoreSerial = 0
+let newcomerRadioSerial = 0
+let payRadioSerial = 0
 
 export const useDjStore = defineStore('dj', () => {
   const program = ref<DjProgramDetail | null>(null)
@@ -114,6 +118,12 @@ export const useDjStore = defineStore('dj', () => {
   const categoryRecommendRadios = ref<HallRadio[]>([])
   const categoryRecommendRadiosError = ref<string | null>(null)
   const categoryRecommendRadiosLoading = ref(false)
+  const newcomerRadios = ref<HallRadio[]>([])
+  const newcomerRadiosError = ref<string | null>(null)
+  const newcomerRadiosLoading = ref(false)
+  const payRadios = ref<HallRadio[]>([])
+  const payRadiosError = ref<string | null>(null)
+  const payRadiosLoading = ref(false)
   const radio = ref<DjRadioDetail | null>(null)
   const radioError = ref<string | null>(null)
   const radioLoading = ref(false)
@@ -203,6 +213,8 @@ export const useDjStore = defineStore('dj', () => {
     hotRadioSerial++
     typeRecommendSerial++
     categoryRecommendSerial++
+    newcomerRadioSerial++
+    payRadioSerial++
     programs.value = []
     programsError.value = null
     programsLoading.value = false
@@ -248,6 +260,12 @@ export const useDjStore = defineStore('dj', () => {
     categoryRecommendRadios.value = []
     categoryRecommendRadiosError.value = null
     categoryRecommendRadiosLoading.value = false
+    newcomerRadios.value = []
+    newcomerRadiosError.value = null
+    newcomerRadiosLoading.value = false
+    payRadios.value = []
+    payRadiosError.value = null
+    payRadiosLoading.value = false
   }
 
   async function loadBanners(force = false) {
@@ -509,6 +527,46 @@ export const useDjStore = defineStore('dj', () => {
       if (serial === categoryRecommendSerial) {
         categoryRecommendRadiosLoading.value = false
       }
+    }
+  }
+
+  async function loadNewcomerRadios(force = false) {
+    if (newcomerRadios.value.length && !force && !newcomerRadiosError.value) {
+      return
+    }
+    const serial = ++newcomerRadioSerial
+    newcomerRadiosLoading.value = true
+    newcomerRadiosError.value = null
+    try {
+      const next = await getDjNewcomerRadios()
+      if (serial !== newcomerRadioSerial) return
+      newcomerRadios.value = next
+    } catch (requestError) {
+      if (serial !== newcomerRadioSerial) return
+      newcomerRadiosError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === newcomerRadioSerial) newcomerRadiosLoading.value = false
+    }
+  }
+
+  async function loadPayRadios(force = false) {
+    if (payRadios.value.length && !force && !payRadiosError.value) {
+      return
+    }
+    const serial = ++payRadioSerial
+    payRadiosLoading.value = true
+    payRadiosError.value = null
+    try {
+      const next = await getDjPayRadios()
+      if (serial !== payRadioSerial) return
+      payRadios.value = next
+    } catch (requestError) {
+      if (serial !== payRadioSerial) return
+      payRadiosError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === payRadioSerial) payRadiosLoading.value = false
     }
   }
 
@@ -992,6 +1050,8 @@ export const useDjStore = defineStore('dj', () => {
     loadHotRadios,
     loadRecommendByType,
     loadCategoryRecommend,
+    loadNewcomerRadios,
+    loadPayRadios,
     loadCategories,
     loadRadios,
     loadMoreRadios,
@@ -1053,6 +1113,12 @@ export const useDjStore = defineStore('dj', () => {
     categoryRecommendRadios,
     categoryRecommendRadiosError,
     categoryRecommendRadiosLoading,
+    newcomerRadios,
+    newcomerRadiosError,
+    newcomerRadiosLoading,
+    payRadios,
+    payRadiosError,
+    payRadiosLoading,
     radio,
     radioError,
     radioLoading,

@@ -2,8 +2,8 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
-import { getNewestAlbums, getTopAlbums } from '@/api/album'
-import { getTopArtists } from '@/api/artist'
+import { getNewAlbums, getNewestAlbums, getTopAlbums } from '@/api/album'
+import { getToplistArtists, getTopArtists } from '@/api/artist'
 import { getPersonalizedNewSongs, getTopSongs } from '@/api/newSong'
 import { getPersonalizedPlaylists } from '@/api/personalized'
 import { getTopLists } from '@/api/toplist'
@@ -20,6 +20,8 @@ let topSongSerial = 0
 let topArtistSerial = 0
 let topAlbumSerial = 0
 let topListSerial = 0
+let newAlbumSerial = 0
+let toplistArtistSerial = 0
 
 export const useMusicStore = defineStore('music', () => {
   const personalized = ref<PersonalizedPlaylist[]>([])
@@ -43,6 +45,12 @@ export const useMusicStore = defineStore('music', () => {
   const topLists = ref<TopList[]>([])
   const topListsError = ref<string | null>(null)
   const topListsLoading = ref(false)
+  const newAlbums = ref<NewestAlbum[]>([])
+  const newAlbumsError = ref<string | null>(null)
+  const newAlbumsLoading = ref(false)
+  const toplistArtists = ref<HallArtist[]>([])
+  const toplistArtistsError = ref<string | null>(null)
+  const toplistArtistsLoading = ref(false)
 
   async function loadPersonalized(force = false) {
     if (personalized.value.length && !force && !personalizedError.value) return
@@ -95,6 +103,8 @@ export const useMusicStore = defineStore('music', () => {
     topArtistSerial++
     topAlbumSerial++
     topListSerial++
+    newAlbumSerial++
+    toplistArtistSerial++
     personalized.value = []
     personalizedError.value = null
     personalizedLoading.value = false
@@ -116,6 +126,12 @@ export const useMusicStore = defineStore('music', () => {
     topLists.value = []
     topListsError.value = null
     topListsLoading.value = false
+    newAlbums.value = []
+    newAlbumsError.value = null
+    newAlbumsLoading.value = false
+    toplistArtists.value = []
+    toplistArtistsError.value = null
+    toplistArtistsLoading.value = false
   }
 
   async function loadNewSongs(force = false) {
@@ -213,6 +229,46 @@ export const useMusicStore = defineStore('music', () => {
     }
   }
 
+  async function loadNewAlbums(force = false) {
+    if (newAlbums.value.length && !force && !newAlbumsError.value) return
+
+    const serial = ++newAlbumSerial
+    newAlbumsLoading.value = true
+    newAlbumsError.value = null
+    try {
+      const next = await getNewAlbums()
+      if (serial !== newAlbumSerial) return
+      newAlbums.value = next
+    } catch (requestError) {
+      if (serial !== newAlbumSerial) return
+      newAlbumsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === newAlbumSerial) newAlbumsLoading.value = false
+    }
+  }
+
+  async function loadToplistArtists(force = false) {
+    if (toplistArtists.value.length && !force && !toplistArtistsError.value) {
+      return
+    }
+
+    const serial = ++toplistArtistSerial
+    toplistArtistsLoading.value = true
+    toplistArtistsError.value = null
+    try {
+      const next = await getToplistArtists()
+      if (serial !== toplistArtistSerial) return
+      toplistArtists.value = next
+    } catch (requestError) {
+      if (serial !== toplistArtistSerial) return
+      toplistArtistsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === toplistArtistSerial) toplistArtistsLoading.value = false
+    }
+  }
+
   return {
     loadPersonalized,
     loadNewSongs,
@@ -221,6 +277,8 @@ export const useMusicStore = defineStore('music', () => {
     loadTopArtists,
     loadTopAlbums,
     loadTopLists,
+    loadNewAlbums,
+    loadToplistArtists,
     reset,
     newSongs,
     newSongsError,
@@ -243,5 +301,11 @@ export const useMusicStore = defineStore('music', () => {
     topLists,
     topListsError,
     topListsLoading,
+    newAlbums,
+    newAlbumsError,
+    newAlbumsLoading,
+    toplistArtists,
+    toplistArtistsError,
+    toplistArtistsLoading,
   }
 })

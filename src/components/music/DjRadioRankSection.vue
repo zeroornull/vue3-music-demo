@@ -64,7 +64,7 @@ defineEmits<{
       :data-testid="`${testid}-empty`"
     >
       <strong>{{ emptyTitle }}</strong>
-      <p>API 已连接，但本次没有返回热门电台。</p>
+      <p>API 已连接，但本次没有返回{{ title }}。</p>
     </div>
 
     <div v-else class="radio-grid">

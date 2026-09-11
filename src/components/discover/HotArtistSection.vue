@@ -7,12 +7,22 @@ import type { HallArtist } from '@/models/artist'
 const props = withDefaults(
   defineProps<{
     artists: HallArtist[]
+    emptyTitle?: string
     error?: string | null
+    errorTitle?: string
+    eyebrow?: string
     loading?: boolean
+    testid?: string
+    title?: string
   }>(),
   {
+    emptyTitle: '暂无热门歌手',
     error: null,
+    errorTitle: '热门歌手加载失败',
+    eyebrow: 'Popular artists',
     loading: false,
+    testid: 'top-artists',
+    title: '热门歌手',
   },
 )
 
@@ -24,11 +34,11 @@ const visibleArtists = computed(() => props.artists.slice(0, 10))
 </script>
 
 <template>
-  <section class="hot-artist-section" aria-labelledby="top-artists-title">
+  <section class="hot-artist-section" :aria-labelledby="`${testid}-title`">
     <div class="section-heading">
       <div>
-        <p class="eyebrow">Popular artists</p>
-        <h2 id="top-artists-title">热门歌手</h2>
+        <p class="eyebrow">{{ eyebrow }}</p>
+        <h2 :id="`${testid}-title`">{{ title }}</h2>
       </div>
       <p>点击封面即可打开歌手</p>
     </div>
@@ -36,15 +46,15 @@ const visibleArtists = computed(() => props.artists.slice(0, 10))
     <div
       v-if="loading"
       class="artist-grid"
-      data-testid="top-artists-loading"
+      :data-testid="`${testid}-loading`"
       aria-busy="true"
-      aria-label="正在加载热门歌手"
+      :aria-label="`正在加载${title}`"
     >
       <div
         v-for="index in 6"
         :key="index"
         class="artist-skeleton"
-        data-testid="top-artists-skeleton"
+        :data-testid="`${testid}-skeleton`"
       >
         <div /><span />
       </div>
@@ -52,22 +62,22 @@ const visibleArtists = computed(() => props.artists.slice(0, 10))
 
     <div v-else-if="error" class="state-card error-state" role="alert">
       <div>
-        <strong>热门歌手加载失败</strong>
+        <strong>{{ errorTitle }}</strong>
         <p>{{ error }}</p>
       </div>
-      <button type="button" data-testid="top-artists-retry" @click="emit('retry')">
+      <button type="button" :data-testid="`${testid}-retry`" @click="emit('retry')">
         重新加载
       </button>
     </div>
 
-    <div v-else-if="!visibleArtists.length" class="state-card" data-testid="top-artists-empty">
+    <div v-else-if="!visibleArtists.length" class="state-card" :data-testid="`${testid}-empty`">
       <div>
-        <strong>暂无热门歌手</strong>
-        <p>API 已连接，但本次没有返回热门歌手。</p>
+        <strong>{{ emptyTitle }}</strong>
+        <p>API 已连接，但本次没有返回{{ title }}。</p>
       </div>
     </div>
 
-    <div v-else class="artist-grid" data-testid="top-artists">
+    <div v-else class="artist-grid" :data-testid="testid">
       <ArtistHallCard v-for="artist in visibleArtists" :key="artist.id" :artist="artist" />
     </div>
   </section>

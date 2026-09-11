@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import type { Banner } from '@/models/banner'
 import { useCommonStore } from '@/stores/common'
 import { useDjStore } from '@/stores/dj'
+import { useMusicStore } from '@/stores/music'
 import { usePlayerStore } from '@/stores/player'
 import { useVideoStore } from '@/stores/video'
 import { resolveBannerTarget } from '@/utils/banner'
@@ -16,6 +17,7 @@ const commonStore = useCommonStore()
 const playerStore = usePlayerStore()
 const videoStore = useVideoStore()
 const djStore = useDjStore()
+const musicStore = useMusicStore()
 const { banners, error, loading } = storeToRefs(commonStore)
 const {
   mvs,
@@ -34,7 +36,25 @@ const {
   privateContentsError,
   privateContentsLoading,
 } = storeToRefs(videoStore)
-const { programs, programsError, programsLoading } = storeToRefs(djStore)
+const {
+  programs,
+  programsError,
+  programsLoading,
+  newcomerRadios,
+  newcomerRadiosError,
+  newcomerRadiosLoading,
+  payRadios,
+  payRadiosError,
+  payRadiosLoading,
+} = storeToRefs(djStore)
+const {
+  newAlbums,
+  newAlbumsError,
+  newAlbumsLoading,
+  toplistArtists,
+  toplistArtistsError,
+  toplistArtistsLoading,
+} = storeToRefs(musicStore)
 const notice = ref<string | null>(null)
 let playSerial = 0
 
@@ -64,6 +84,22 @@ function requestExclusiveMvs(force = false) {
 
 function requestDjPrograms(force = false) {
   void djStore.loadPrograms(force).catch(() => undefined)
+}
+
+function requestNewAlbums(force = false) {
+  void musicStore.loadNewAlbums(force).catch(() => undefined)
+}
+
+function requestToplistArtists(force = false) {
+  void musicStore.loadToplistArtists(force).catch(() => undefined)
+}
+
+function requestNewcomerRadios(force = false) {
+  void djStore.loadNewcomerRadios(force).catch(() => undefined)
+}
+
+function requestPayRadios(force = false) {
+  void djStore.loadPayRadios(force).catch(() => undefined)
 }
 
 function selectBanner(banner: Banner) {
@@ -99,6 +135,10 @@ onMounted(() => {
   requestTopMvs()
   requestFirstMvs()
   requestExclusiveMvs()
+  requestNewAlbums()
+  requestToplistArtists()
+  requestNewcomerRadios()
+  requestPayRadios()
 })
 </script>
 
@@ -127,6 +167,18 @@ onMounted(() => {
       :private-contents="privateContents"
       :private-error="privateContentsError"
       :private-loading="privateContentsLoading"
+      :new-albums="newAlbums"
+      :new-albums-error="newAlbumsError"
+      :new-albums-loading="newAlbumsLoading"
+      :toplist-artists="toplistArtists"
+      :toplist-artists-error="toplistArtistsError"
+      :toplist-artists-loading="toplistArtistsLoading"
+      :newcomer-radios="newcomerRadios"
+      :newcomer-radios-error="newcomerRadiosError"
+      :newcomer-radios-loading="newcomerRadiosLoading"
+      :pay-radios="payRadios"
+      :pay-radios-error="payRadiosError"
+      :pay-radios-loading="payRadiosLoading"
       @retry-banners="requestBanners(true)"
       @retry-dj="requestDjPrograms(true)"
       @retry-mvs="requestMvs(true)"
@@ -134,6 +186,10 @@ onMounted(() => {
       @retry-first-mvs="requestFirstMvs(true)"
       @retry-exclusive-mvs="requestExclusiveMvs(true)"
       @retry-private="requestPrivateContents(true)"
+      @retry-new-albums="requestNewAlbums(true)"
+      @retry-toplist-artists="requestToplistArtists(true)"
+      @retry-newcomer-radios="requestNewcomerRadios(true)"
+      @retry-pay-radios="requestPayRadios(true)"
       @select-banner="selectBanner"
     />
   </div>

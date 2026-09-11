@@ -7,7 +7,13 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getBanners } from '@/api/banner'
-import { getPersonalizedDjPrograms } from '@/api/dj'
+import { getNewAlbums } from '@/api/album'
+import { getToplistArtists } from '@/api/artist'
+import {
+  getDjNewcomerRadios,
+  getDjPayRadios,
+  getPersonalizedDjPrograms,
+} from '@/api/dj'
 import { getExclusiveMvs, getFirstMvs, getPersonalizedMvs, getTopMvs } from '@/api/mv'
 import { getPrivateContents } from '@/api/privateContent'
 import { createAppRouter } from '@/router'
@@ -40,12 +46,28 @@ vi.mock('@/api/privateContent', () => ({
   getPrivateContents: vi.fn(),
 }))
 
+vi.mock('@/api/album', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/album')>()
+  return {
+    ...actual,
+    getNewAlbums: vi.fn(),
+  }
+})
+vi.mock('@/api/artist', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/artist')>()
+  return {
+    ...actual,
+    getToplistArtists: vi.fn(),
+  }
+})
 vi.mock('@/api/dj', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/dj')>()
   return {
     ...actual,
     getPersonalizedDjPrograms: vi.fn(),
     getDjProgramDetail: vi.fn(),
+    getDjNewcomerRadios: vi.fn(),
+    getDjPayRadios: vi.fn(),
   }
 })
 
@@ -73,6 +95,18 @@ const PickedViewStub = defineComponent({
     'privateContents',
     'privateError',
     'privateLoading',
+    'newAlbums',
+    'newAlbumsError',
+    'newAlbumsLoading',
+    'toplistArtists',
+    'toplistArtistsError',
+    'toplistArtistsLoading',
+    'newcomerRadios',
+    'newcomerRadiosError',
+    'newcomerRadiosLoading',
+    'payRadios',
+    'payRadiosError',
+    'payRadiosLoading',
   ],
   emits: [
     'retry-banners',
@@ -82,6 +116,10 @@ const PickedViewStub = defineComponent({
     'retry-first-mvs',
     'retry-exclusive-mvs',
     'retry-private',
+    'retry-new-albums',
+    'retry-toplist-artists',
+    'retry-newcomer-radios',
+    'retry-pay-radios',
     'select-banner',
   ],
   template: `
@@ -97,11 +135,23 @@ const PickedViewStub = defineComponent({
       <span v-if="firstMvsError" data-testid="first-mv-error">{{ firstMvsError }}</span>
       <span data-testid="exclusive-mv-count">{{ exclusiveMvs.length }}</span>
       <span v-if="exclusiveMvsError" data-testid="exclusive-mv-error">{{ exclusiveMvsError }}</span>
+      <span data-testid="new-album-count">{{ newAlbums.length }}</span>
+      <span v-if="newAlbumsError" data-testid="new-album-error">{{ newAlbumsError }}</span>
+      <span data-testid="toplist-artists-count">{{ toplistArtists.length }}</span>
+      <span v-if="toplistArtistsError" data-testid="toplist-artists-error">{{ toplistArtistsError }}</span>
+      <span data-testid="newcomer-count">{{ newcomerRadios.length }}</span>
+      <span v-if="newcomerRadiosError" data-testid="newcomer-error">{{ newcomerRadiosError }}</span>
+      <span data-testid="pay-count">{{ payRadios.length }}</span>
+      <span v-if="payRadiosError" data-testid="pay-error">{{ payRadiosError }}</span>
       <button data-testid="page-private-retry" @click="$emit('retry-private')">retry</button>
       <button data-testid="page-dj-retry" @click="$emit('retry-dj')">retry dj</button>
       <button data-testid="page-top-mv-retry" @click="$emit('retry-top-mvs')">retry top mvs</button>
       <button data-testid="page-first-mv-retry" @click="$emit('retry-first-mvs')">retry first mvs</button>
       <button data-testid="page-exclusive-mv-retry" @click="$emit('retry-exclusive-mvs')">retry exclusive mvs</button>
+      <button data-testid="page-new-album-retry" @click="$emit('retry-new-albums')">retry albums</button>
+      <button data-testid="page-toplist-artists-retry" @click="$emit('retry-toplist-artists')">retry artists</button>
+      <button data-testid="page-newcomer-retry" @click="$emit('retry-newcomer-radios')">retry newcomer</button>
+      <button data-testid="page-pay-retry" @click="$emit('retry-pay-radios')">retry pay</button>
       <button
         data-testid="select-album-banner"
         @click="$emit('select-banner', { bannerId: 2, pic: 'x', targetId: 501, targetType: 10, typeTitle: '专辑' })"
@@ -134,7 +184,15 @@ describe('PickedPage', () => {
     vi.mocked(getExclusiveMvs).mockReset()
     vi.mocked(getPrivateContents).mockReset()
     vi.mocked(getPersonalizedDjPrograms).mockReset()
+    vi.mocked(getNewAlbums).mockReset()
+    vi.mocked(getToplistArtists).mockReset()
+    vi.mocked(getDjNewcomerRadios).mockReset()
+    vi.mocked(getDjPayRadios).mockReset()
     vi.mocked(getBanners).mockResolvedValue([])
+    vi.mocked(getNewAlbums).mockResolvedValue([])
+    vi.mocked(getToplistArtists).mockResolvedValue([])
+    vi.mocked(getDjNewcomerRadios).mockResolvedValue([])
+    vi.mocked(getDjPayRadios).mockResolvedValue([])
     vi.mocked(getTopMvs).mockResolvedValue([])
     vi.mocked(getFirstMvs).mockResolvedValue([])
     vi.mocked(getExclusiveMvs).mockResolvedValue([])
@@ -316,6 +374,78 @@ describe('PickedPage', () => {
 
     expect(getExclusiveMvs).toHaveBeenCalledTimes(2)
     expect(wrapper.get('[data-testid="exclusive-mv-count"]').text()).toBe('1')
+  })
+
+  it('loads and retries new albums, artist chart and extra radios independently', async () => {
+    vi.mocked(getNewAlbums)
+      .mockRejectedValueOnce(new Error('albums offline'))
+      .mockResolvedValueOnce([
+        {
+          artist: { id: 401, name: '林间电台' },
+          id: 511,
+          name: '全部新碟',
+          picUrl: '',
+          publishTime: 0,
+        },
+      ])
+    vi.mocked(getToplistArtists)
+      .mockRejectedValueOnce(new Error('artists offline'))
+      .mockResolvedValueOnce([{ id: 401, img1v1Url: '', name: '林间电台' }])
+    vi.mocked(getDjNewcomerRadios)
+      .mockRejectedValueOnce(new Error('newcomer offline'))
+      .mockResolvedValueOnce([
+        {
+          djName: '',
+          id: 861,
+          name: '新晋夜航',
+          picUrl: '',
+          playCount: 1,
+          rcmdText: '',
+        },
+      ])
+    vi.mocked(getDjPayRadios)
+      .mockRejectedValueOnce(new Error('pay offline'))
+      .mockResolvedValueOnce([
+        {
+          djName: '',
+          id: 871,
+          name: '付费夜航',
+          paid: true,
+          picUrl: '',
+          playCount: 1,
+          rcmdText: '',
+        },
+      ])
+
+    const wrapper = mount(PickedPage, {
+      global: {
+        plugins: [createAppRouter(createMemoryHistory())],
+        stubs: { PickedView: PickedViewStub },
+      },
+    })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="new-album-error"]').text()).toBe('albums offline')
+    expect(wrapper.get('[data-testid="toplist-artists-error"]').text()).toBe(
+      'artists offline',
+    )
+    expect(wrapper.get('[data-testid="newcomer-error"]').text()).toBe('newcomer offline')
+    expect(wrapper.get('[data-testid="pay-error"]').text()).toBe('pay offline')
+    expect(wrapper.get('[data-testid="mv-count"]').text()).toBe('1')
+
+    await wrapper.get('[data-testid="page-new-album-retry"]').trigger('click')
+    await wrapper.get('[data-testid="page-toplist-artists-retry"]').trigger('click')
+    await wrapper.get('[data-testid="page-newcomer-retry"]').trigger('click')
+    await wrapper.get('[data-testid="page-pay-retry"]').trigger('click')
+    await flushPromises()
+
+    expect(getNewAlbums).toHaveBeenCalledTimes(2)
+    expect(getToplistArtists).toHaveBeenCalledTimes(2)
+    expect(getDjNewcomerRadios).toHaveBeenCalledTimes(2)
+    expect(getDjPayRadios).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="new-album-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="toplist-artists-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="newcomer-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="pay-count"]').text()).toBe('1')
   })
 
   it('opens album, playlist and MV banners', async () => {

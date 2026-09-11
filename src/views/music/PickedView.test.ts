@@ -30,6 +30,48 @@ const DjStub = defineComponent({
     '<section data-testid="picked-dj"><h2>推荐电台</h2><span>{{ programs.length }}</span><button data-testid="dj-retry" @click="$emit(\'retry\')" /></section>',
 })
 
+const AlbumStub = defineComponent({
+  name: 'NewestAlbumSection',
+  props: ['albums', 'emptyTitle', 'error', 'errorTitle', 'loading', 'testid', 'title'],
+  emits: ['retry'],
+  template: `
+    <section data-testid="picked-new-albums">
+      <h2>{{ title }}</h2>
+      <span>{{ albums.length }}</span>
+      <button data-testid="new-album-retry" @click="$emit('retry')" />
+    </section>
+  `,
+})
+
+const ArtistStub = defineComponent({
+  name: 'HotArtistSection',
+  props: ['artists', 'emptyTitle', 'error', 'errorTitle', 'loading', 'testid', 'title'],
+  emits: ['retry'],
+  template: `
+    <section data-testid="picked-toplist-artists">
+      <h2>{{ title }}</h2>
+      <span>{{ artists.length }}</span>
+      <button data-testid="toplist-artists-retry" @click="$emit('retry')" />
+    </section>
+  `,
+})
+
+const RankStub = defineComponent({
+  name: 'DjRadioRankSection',
+  props: ['error', 'loading', 'radios', 'testid', 'title'],
+  emits: ['retry'],
+  template: `
+    <section :data-testid="testid === 'dj-newcomer' ? 'picked-newcomer' : 'picked-pay'">
+      <h2>{{ title }}</h2>
+      <span>{{ radios.length }}</span>
+      <button
+        :data-testid="testid === 'dj-newcomer' ? 'dj-newcomer-retry' : 'dj-pay-retry'"
+        @click="$emit('retry')"
+      />
+    </section>
+  `,
+})
+
 const MvStub = defineComponent({
   name: 'MvSection',
   props: ['emptyTitle', 'error', 'errorTitle', 'limit', 'loading', 'mvs', 'testid', 'title'],
@@ -125,12 +167,46 @@ describe('PickedView', () => {
         privateContents: [privateContent],
         privateError: null,
         privateLoading: false,
+        newAlbums: [
+          {
+            artist: { id: 401, name: '林间电台' },
+            id: 511,
+            name: '全部新碟',
+            picUrl: '',
+            publishTime: 0,
+          },
+        ],
+        toplistArtists: [{ id: 401, img1v1Url: '', name: '林间电台' }],
+        newcomerRadios: [
+          {
+            djName: '',
+            id: 861,
+            name: '新晋夜航',
+            picUrl: '',
+            playCount: 1,
+            rcmdText: '',
+          },
+        ],
+        payRadios: [
+          {
+            djName: '',
+            id: 871,
+            name: '付费夜航',
+            paid: true,
+            picUrl: '',
+            playCount: 1,
+            rcmdText: '',
+          },
+        ],
       },
       global: {
         stubs: {
           BannerCarousel: BannerStub,
           DjProgramSection: DjStub,
+          DjRadioRankSection: RankStub,
+          HotArtistSection: ArtistStub,
           MvSection: MvStub,
+          NewestAlbumSection: AlbumStub,
           PrivateContentSection: PrivateStub,
         },
       },
@@ -139,6 +215,10 @@ describe('PickedView', () => {
     expect(wrapper.findAll('section').map((node) => node.attributes('data-testid'))).toEqual([
       'picked-banners',
       'picked-private',
+      'picked-new-albums',
+      'picked-toplist-artists',
+      'picked-newcomer',
+      'picked-pay',
       'picked-dj',
       'picked-mvs',
       'picked-top-mvs',
@@ -146,6 +226,10 @@ describe('PickedView', () => {
       'picked-exclusive-mvs',
     ])
     expect(wrapper.findAll('h2').map((node) => node.text())).toEqual([
+      '全部新碟',
+      '歌手榜',
+      '新晋电台',
+      '付费精品',
       '推荐电台',
       '推荐 MV',
       'MV 排行',
@@ -187,6 +271,10 @@ describe('PickedView', () => {
 
     await wrapper.get('[data-testid="banner-retry"]').trigger('click')
     await wrapper.get('[data-testid="private-retry"]').trigger('click')
+    await wrapper.get('[data-testid="new-album-retry"]').trigger('click')
+    await wrapper.get('[data-testid="toplist-artists-retry"]').trigger('click')
+    await wrapper.get('[data-testid="dj-newcomer-retry"]').trigger('click')
+    await wrapper.get('[data-testid="dj-pay-retry"]').trigger('click')
     await wrapper.get('[data-testid="dj-retry"]').trigger('click')
     await wrapper.get('[data-testid="mv-retry"]').trigger('click')
     await wrapper.get('[data-testid="mv-toplist-retry"]').trigger('click')
@@ -194,6 +282,10 @@ describe('PickedView', () => {
     await wrapper.get('[data-testid="mv-exclusive-retry"]').trigger('click')
     expect(wrapper.emitted('retry-banners')).toHaveLength(1)
     expect(wrapper.emitted('retry-private')).toHaveLength(1)
+    expect(wrapper.emitted('retry-new-albums')).toHaveLength(1)
+    expect(wrapper.emitted('retry-toplist-artists')).toHaveLength(1)
+    expect(wrapper.emitted('retry-newcomer-radios')).toHaveLength(1)
+    expect(wrapper.emitted('retry-pay-radios')).toHaveLength(1)
     expect(wrapper.emitted('retry-dj')).toHaveLength(1)
     expect(wrapper.emitted('retry-mvs')).toHaveLength(1)
     expect(wrapper.emitted('retry-top-mvs')).toHaveLength(1)

@@ -36,4 +36,19 @@ describe('HotArtistSection', () => {
     await wrapper.get('[data-testid="top-artists-retry"]').trigger('click')
     expect(wrapper.emitted('retry')).toHaveLength(1)
   })
+
+  it('uses a custom title and testid', () => {
+    const wrapper = mount(HotArtistSection, {
+      props: {
+        artists: [artist],
+        error: null,
+        loading: false,
+        testid: 'toplist-artists',
+        title: '歌手榜',
+      },
+      global: { stubs: { ArtistHallCard: CardStub } },
+    })
+    expect(wrapper.get('#toplist-artists-title').text()).toBe('歌手榜')
+    expect(wrapper.get('[data-testid="toplist-artists"]').text()).toContain('林间电台')
+  })
 })

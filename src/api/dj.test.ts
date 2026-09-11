@@ -36,6 +36,10 @@ import {
   DJ_SUBSCRIBER_TIME_START,
   getDjRadioSubscriberPage,
   getDjRadioSubscribers,
+  getDjNewcomerRadios,
+  getDjPayRadios,
+  DJ_NEWCOMER_LIMIT,
+  DJ_PAY_RADIO_LIMIT,
 } from '@/api/dj'
 
 const client = (response: unknown) => {
@@ -943,5 +947,77 @@ describe('DJ API', () => {
       subscribers: full,
       time: 12,
     })
+  })
+
+  it('unwraps /dj/toplist/newcomer radios', async () => {
+    const request = client({
+      data: {
+        list: [
+          {
+            extra: true,
+            radio: {
+              extra: true,
+              id: 861,
+              name: '新晋夜航',
+              picUrl: 'https://images.example.com/newcomer.jpg',
+            },
+          },
+          { id: 0, name: '无效' },
+        ],
+      },
+    })
+    await expect(getDjNewcomerRadios(request.client)).resolves.toEqual([
+      {
+        djName: '',
+        id: 861,
+        name: '新晋夜航',
+        paid: false,
+        picUrl: 'https://images.example.com/newcomer.jpg',
+        playCount: 0,
+        rcmdText: '',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/toplist/newcomer', {
+      limit: DJ_NEWCOMER_LIMIT,
+    })
+    await expect(
+      getDjNewcomerRadios(client({ data: null }).client),
+    ).rejects.toThrow('新晋电台响应格式不正确')
+  })
+
+  it('unwraps /dj/toplist/pay radios', async () => {
+    const request = client({
+      data: {
+        list: [
+          {
+            feeScope: 1,
+            id: 871,
+            name: '付费夜航',
+            picUrl: 'https://images.example.com/pay.jpg',
+          },
+        ],
+      },
+    })
+    await expect(getDjPayRadios(request.client)).resolves.toEqual([
+      {
+        djName: '',
+        id: 871,
+        name: '付费夜航',
+        paid: true,
+        picUrl: 'https://images.example.com/pay.jpg',
+        playCount: 0,
+        rcmdText: '',
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/dj/toplist/pay', {
+      limit: DJ_PAY_RADIO_LIMIT,
+    })
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `付费 ${index + 1}`,
+    }))
+    await expect(
+      getDjPayRadios(client({ data: { list: many } }).client),
+    ).resolves.toHaveLength(DJ_PAY_RADIO_LIMIT)
   })
 })
