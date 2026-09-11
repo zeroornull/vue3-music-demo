@@ -16,6 +16,7 @@ import { useAlbumStore } from '@/stores/album'
 import { useArtistStore } from '@/stores/artist'
 import { useCategoryStore } from '@/stores/category'
 import { useStyleStore } from '@/stores/style'
+import { useVoiceStore } from '@/stores/voice'
 import { useCommonStore } from '@/stores/common'
 import { useMusicStore } from '@/stores/music'
 import { useMvStore } from '@/stores/mv'
@@ -193,6 +194,44 @@ describe('App host gate', () => {
     expect(styleStore.playlists).toEqual([])
     expect(styleStore.albums).toEqual([])
     expect(styleStore.artists).toEqual([])
+  })
+
+  it('clears voice hall cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const voiceStore = useVoiceStore()
+    voiceStore.podcasts = [
+      {
+        coverUrl: '',
+        desc: '林间夜谈',
+        djName: '林间电台',
+        id: 801,
+        name: '深夜播客',
+      },
+    ]
+    voiceStore.listId = 801
+    voiceStore.detail = voiceStore.podcasts[0] ?? null
+    voiceStore.voices = [
+      {
+        copywriter: '林间电台',
+        id: 901,
+        name: '第一期',
+        paid: false,
+        picUrl: '',
+      },
+    ]
+    voiceStore.lyric = '走过林间。'
+    voiceStore.voiceId = 901
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(voiceStore.podcasts).toEqual([])
+    expect(voiceStore.listId).toBe(0)
+    expect(voiceStore.detail).toBeNull()
+    expect(voiceStore.voices).toEqual([])
+    expect(voiceStore.lyric).toBe('')
+    expect(voiceStore.voiceId).toBe(0)
   })
 
   it('clears artist detail cache when the host gate closes', async () => {

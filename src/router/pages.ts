@@ -18,6 +18,7 @@ export const Pages = {
   search: 'search',
   style: 'style',
   toplist: 'toplist',
+  voice: 'voice',
   video: 'video',
   videoDetail: 'videoDetail',
 } as const

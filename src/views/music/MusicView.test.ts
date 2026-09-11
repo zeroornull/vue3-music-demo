@@ -38,13 +38,15 @@ describe('MusicView', () => {
       '歌手',
       '分类歌单',
       '曲风',
+      '声音',
     ])
     expect(links[1]?.attributes('href')).toContain('/music/dj')
     expect(links[5]?.attributes('href')).toContain('/music/style')
+    expect(links[6]?.attributes('href')).toContain('/music/voice')
     expect(wrapper.get('[aria-current="page"]').text()).toBe('排行')
     expect(wrapper.find('nav[aria-label="页面导航"]').exists()).toBe(false)
     expect(wrapper.get('.summary').text()).toBe(
-      '精选、电台大厅、排行榜、分类歌单、曲风馆、歌手详情、歌手馆分类字母、电台节目和电台分类已接入。',
+      '精选、电台大厅、排行榜、分类歌单、曲风馆、声音馆、歌手详情、歌手馆分类字母、电台节目和电台分类已接入。',
     )
   })
 })

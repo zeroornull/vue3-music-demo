@@ -10,6 +10,7 @@ import { useAlbumStore } from '@/stores/album'
 import { useArtistStore } from '@/stores/artist'
 import { useCategoryStore } from '@/stores/category'
 import { useStyleStore } from '@/stores/style'
+import { useVoiceStore } from '@/stores/voice'
 import { useDjStore } from '@/stores/dj'
 import { useCommonStore } from '@/stores/common'
 import { useSearchStore } from '@/stores/search'
@@ -32,6 +33,7 @@ const mvStore = useMvStore()
 const musicStore = useMusicStore()
 const categoryStore = useCategoryStore()
 const styleStore = useStyleStore()
+const voiceStore = useVoiceStore()
 const videoStore = useVideoStore()
 const videoDetailStore = useVideoDetailStore()
 const commonStore = useCommonStore()
@@ -51,6 +53,7 @@ watch(isConfigured, (configured) => {
     musicStore.reset()
     categoryStore.reset()
     styleStore.reset()
+    voiceStore.reset()
     videoStore.reset()
     videoDetailStore.reset()
     commonStore.reset()

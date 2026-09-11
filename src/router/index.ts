@@ -136,6 +136,17 @@ export const routes: RouteRecordRaw[] = [
           title: '曲风',
         },
       },
+      {
+        path: 'voice',
+        name: Pages.voice,
+        component: () => import('@/views/music/VoiceHallPage.vue'),
+        meta: {
+          keepAlive: true,
+          menu: 'music',
+          requiresApiHost: true,
+          title: '声音',
+        },
+      },
     ],
   },
   {

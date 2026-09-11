@@ -113,6 +113,17 @@ export function resolveDragonBallTarget(url: string): HomeTarget {
       ? { kind: 'route', name: Pages.style, id: tagId }
       : { kind: 'route', name: Pages.style }
   }
+  if (
+    lower.includes('nm/voice') ||
+    lower.includes('voicelist') ||
+    lower.includes('podcast') ||
+    /\/voice(?:\/|\?|$)/.test(lower)
+  ) {
+    const listId = parsed ? queryId(parsed, ['listId', 'id', 'voiceListId']) : null
+    return listId
+      ? { kind: 'route', name: Pages.voice, id: listId }
+      : { kind: 'route', name: Pages.voice }
+  }
   const songMatch = raw.match(/songId=(\d+)/i)
   if (songMatch) {
     const id = Number(songMatch[1])
