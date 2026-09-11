@@ -29,6 +29,8 @@ export const DJ_CATEGORY_RECOMMEND_LIMIT = 10
 export const DJ_SUBSCRIBER_LIMIT = 20
 export const DJ_NEWCOMER_LIMIT = 10
 export const DJ_PAY_RADIO_LIMIT = 10
+export const DJ_PAYGIFT_LIMIT = 10
+export const DJ_POPULAR_LIMIT = 10
 export const DJ_SUBSCRIBER_TIME_START = -1
 
 export interface HotDjRadioQuery {
@@ -51,7 +53,10 @@ function isPaidRecord(value: Record<string, unknown>): boolean {
   return (
     (typeof value.feeScope === 'number' && value.feeScope > 0) ||
     (typeof value.fee === 'number' && value.fee > 0) ||
-    (typeof value.programFeeType === 'number' && value.programFeeType > 0)
+    (typeof value.programFeeType === 'number' && value.programFeeType > 0) ||
+    (typeof value.radioFeeType === 'number' && value.radioFeeType > 0) ||
+    (typeof value.originalPrice === 'number' && value.originalPrice > 0) ||
+    (typeof value.price === 'number' && value.price > 0)
   )
 }
 
@@ -106,6 +111,7 @@ function readDjCategory(value: unknown): DjCategory | null {
   if (!isRecord(value) || typeof value.id !== 'number' || typeof value.name !== 'string') {
     return null
   }
+  if (!Number.isInteger(value.id) || value.id <= 0) return null
   const name = value.name.trim()
   if (!name) return null
   return { id: value.id, name }
@@ -345,7 +351,7 @@ function unwrapList(
   const data = response.data
   if (Array.isArray(data)) return data
   if (isRecord(data)) {
-    for (const key of ['list', 'djRadios', 'programs', 'toplist']) {
+    for (const key of ['list', 'djRadios', 'programs', 'toplist', 'products', 'categories']) {
       if (Array.isArray(data[key])) return data[key] as unknown[]
     }
   }
@@ -450,6 +456,53 @@ export async function getDjPayRadios(
     .map(readToplistRadio)
     .filter((item): item is HallRadio => item !== null)
     .slice(0, DJ_PAY_RADIO_LIMIT)
+}
+
+export async function getDjPaygiftRadios(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallRadio[]> {
+  const response = await client.get<Record<string, unknown>>('/dj/paygift', {
+    limit: DJ_PAYGIFT_LIMIT,
+    offset: 0,
+  })
+  const raw = unwrapList(response, ['djRadios', 'list', 'products', 'toplist'])
+  if (!raw) {
+    throw new Error('付费精选电台响应格式不正确')
+  }
+  return raw
+    .map(readToplistRadio)
+    .filter((item): item is HallRadio => item !== null)
+    .slice(0, DJ_PAYGIFT_LIMIT)
+    .map((item) => ({ ...item, paid: true }))
+}
+
+export async function getDjExcludehotCategories(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<DjCategory[]> {
+  const response = await client.get<Record<string, unknown>>('/dj/category/excludehot')
+  const raw = unwrapList(response, ['categories', 'data', 'list'])
+  if (!raw) {
+    throw new Error('非热门电台分类响应格式不正确')
+  }
+  return raw
+    .map(readDjCategory)
+    .filter((item): item is DjCategory => item !== null)
+}
+
+export async function getDjPopularRadios(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallRadio[]> {
+  const response = await client.get<Record<string, unknown>>('/dj/toplist/popular', {
+    limit: DJ_POPULAR_LIMIT,
+  })
+  const raw = unwrapList(response, ['djRadios', 'toplist', 'list'])
+  if (!raw) {
+    throw new Error('热门电台榜响应格式不正确')
+  }
+  return raw
+    .map(readToplistRadio)
+    .filter((item): item is HallRadio => item !== null)
+    .slice(0, DJ_POPULAR_LIMIT)
 }
 
 export async function getDjRecommendPrograms(

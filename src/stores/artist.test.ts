@@ -12,6 +12,10 @@ import {
   getArtistList,
   getArtistMvs,
   getArtistNewMvs,
+  getArtistNewSongs,
+  getArtistFans,
+  getArtistFollowCount,
+  getArtistVideos,
   getArtistSongs,
   getArtistTopSongs,
   getSimiArtists,
@@ -28,6 +32,10 @@ vi.mock('@/api/artist', async (importOriginal) => {
     getArtistList: vi.fn(),
     getArtistMvs: vi.fn(),
     getArtistNewMvs: vi.fn(),
+    getArtistNewSongs: vi.fn(),
+    getArtistFans: vi.fn(),
+    getArtistFollowCount: vi.fn(),
+    getArtistVideos: vi.fn(),
     getArtistSongs: vi.fn(),
     getArtistTopSongs: vi.fn(),
     getSimiArtists: vi.fn(),
@@ -94,10 +102,18 @@ describe('artist store', () => {
     vi.mocked(getArtistSongs).mockReset()
     vi.mocked(getArtistTopSongs).mockReset()
     vi.mocked(getArtistNewMvs).mockReset()
+    vi.mocked(getArtistNewSongs).mockReset()
+    vi.mocked(getArtistFans).mockReset()
+    vi.mocked(getArtistFollowCount).mockReset()
+    vi.mocked(getArtistVideos).mockReset()
     vi.mocked(getSimiArtists).mockReset()
     vi.mocked(getSimiArtists).mockRejectedValue(new Error('no similar'))
     vi.mocked(getArtistTopSongs).mockResolvedValue([])
     vi.mocked(getArtistNewMvs).mockResolvedValue([])
+    vi.mocked(getArtistNewSongs).mockResolvedValue([])
+    vi.mocked(getArtistFans).mockResolvedValue([])
+    vi.mocked(getArtistFollowCount).mockResolvedValue(0)
+    vi.mocked(getArtistVideos).mockResolvedValue([])
   })
 
   it('loads detail and the first hot page once', async () => {
@@ -724,5 +740,103 @@ describe('artist store', () => {
     await inflight
     expect(store.newMvs).toEqual([])
     expect(store.newMvsLoadedId).toBeNull()
+  })
+
+  it('loads new songs, fans, follow count and videos independently', async () => {
+    const fresh = { ...song, id: 321, name: '最新单曲' }
+    const fan = {
+      avatarUrl: 'https://images.example.com/fan.jpg',
+      nickname: '林间听众',
+      userId: 8,
+    }
+    const clip = {
+      coverUrl: 'https://images.example.com/v.jpg',
+      creatorName: '林间电台',
+      durationms: 12_000,
+      playTime: 88,
+      title: '林间现场',
+      vid: 'VID401',
+    }
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getArtistNewSongs).mockResolvedValue([fresh])
+    vi.mocked(getArtistFollowCount).mockResolvedValue(1280)
+    vi.mocked(getArtistFans).mockResolvedValue([fan])
+    vi.mocked(getArtistVideos).mockResolvedValue([clip])
+    const store = useArtistStore()
+    await store.load(401)
+    await settle()
+    await store.loadFans(401)
+    await store.loadFans(401)
+    await store.loadVideos(401)
+    await store.loadVideos(401)
+    expect(store.newSongs).toEqual([fresh])
+    expect(store.followCount).toBe(1280)
+    expect(store.fans).toEqual([fan])
+    expect(store.videos).toEqual([clip])
+    expect(getArtistNewSongs).toHaveBeenCalledTimes(1)
+    expect(getArtistFollowCount).toHaveBeenCalledTimes(1)
+    expect(getArtistFans).toHaveBeenCalledTimes(1)
+    expect(getArtistVideos).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps new songs when follow count fails', async () => {
+    const fresh = { ...song, id: 321, name: '最新单曲' }
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getArtistNewSongs).mockResolvedValue([fresh])
+    vi.mocked(getArtistFollowCount).mockRejectedValue(new Error('count offline'))
+    const store = useArtistStore()
+    await store.load(401)
+    await settle()
+    expect(store.newSongs).toEqual([fresh])
+    expect(store.followCount).toBeNull()
+    expect(store.followCountError).toBe('count offline')
+  })
+
+  it('drops in-flight new songs, fans and videos after reset', async () => {
+    const pendingSongs = deferred<typeof song[]>()
+    const pendingFans = deferred<{ nickname: string; userId: number; avatarUrl: string }[]>()
+    const pendingVideos = deferred<
+      {
+        coverUrl: string
+        creatorName: string
+        durationms: number
+        playTime: number
+        title: string
+        vid: string
+      }[]
+    >()
+    vi.mocked(getArtistNewSongs).mockReturnValueOnce(pendingSongs.promise)
+    vi.mocked(getArtistFans).mockReturnValueOnce(pendingFans.promise)
+    vi.mocked(getArtistVideos).mockReturnValueOnce(pendingVideos.promise)
+    const store = useArtistStore()
+    store.requestNewSongs(401)
+    const fans = store.loadFans(401)
+    const videos = store.loadVideos(401)
+    store.reset()
+    pendingSongs.resolve([{ ...song, id: 321, name: '最新单曲' }])
+    pendingFans.resolve([
+      { avatarUrl: '', nickname: '林间听众', userId: 8 },
+    ])
+    pendingVideos.resolve([
+      {
+        coverUrl: '',
+        creatorName: '',
+        durationms: 0,
+        playTime: 0,
+        title: '林间现场',
+        vid: 'VID401',
+      },
+    ])
+    await settle()
+    await fans
+    await videos
+    expect(store.newSongs).toEqual([])
+    expect(store.fans).toEqual([])
+    expect(store.videos).toEqual([])
+    expect(store.newSongsLoading).toBe(false)
+    expect(store.fansLoading).toBe(false)
+    expect(store.videosLoading).toBe(false)
   })
 })

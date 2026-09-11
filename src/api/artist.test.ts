@@ -12,12 +12,19 @@ import {
   getArtistList,
   getArtistMvs,
   getArtistNewMvs,
+  getArtistNewSongs,
+  getArtistFans,
+  getArtistFollowCount,
+  getArtistVideos,
   getArtistSongs,
   getArtistTopSongs,
   getSimiArtists,
   getToplistArtists,
   getTopArtists,
   ARTIST_NEW_MV_LIMIT,
+  ARTIST_NEW_SONG_LIMIT,
+  ARTIST_FAN_LIMIT,
+  ARTIST_VIDEO_LIMIT,
   ARTIST_TOP_SONG_LIMIT,
   TOP_ARTIST_LIMIT,
   TOPLIST_ARTIST_LIMIT,
@@ -537,5 +544,130 @@ describe('Top artist API', () => {
     await expect(
       getTopArtists(client({ artists: many }).client),
     ).resolves.toHaveLength(TOP_ARTIST_LIMIT)
+  })
+
+  it('unwraps new songs, fans, follow count and artist videos', async () => {
+    const songs = client({
+      data: {
+        extra: true,
+        newWorks: {
+          songList: [
+            {
+              extra: true,
+              song: {
+                ar: [{ id: 401, name: '林间电台' }],
+                dt: 180_000,
+                id: 321,
+                name: '最新单曲',
+              },
+            },
+            { song: { id: 0, name: '无效' } },
+          ],
+        },
+      },
+    })
+    await expect(getArtistNewSongs(401, songs.client)).resolves.toMatchObject([
+      {
+        artists: [{ id: 401, name: '林间电台' }],
+        duration: 180_000,
+        id: 321,
+        name: '最新单曲',
+      },
+    ])
+    expect(songs.get).toHaveBeenCalledWith('/artist/new/song', {
+      id: 401,
+      limit: ARTIST_NEW_SONG_LIMIT,
+    })
+    await expect(getArtistNewSongs(0, client({}).client)).rejects.toThrow(
+      '缺少有效的歌手 ID',
+    )
+    await expect(
+      getArtistNewSongs(401, client({ data: null }).client),
+    ).rejects.toThrow('歌手最新单曲响应格式不正确')
+    const manySongs = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `新歌 ${index + 1}`,
+    }))
+    await expect(
+      getArtistNewSongs(401, client({ data: { songs: manySongs } }).client),
+    ).resolves.toHaveLength(ARTIST_NEW_SONG_LIMIT)
+
+    const fans = client({
+      data: [
+        {
+          extra: true,
+          userProfile: {
+            avatarUrl: 'https://images.example.com/fan.jpg',
+            extra: true,
+            nickname: '  林间听众  ',
+            userId: 8,
+          },
+        },
+        { userId: 0, nickname: '无效' },
+      ],
+    })
+    await expect(getArtistFans(401, fans.client)).resolves.toEqual([
+      {
+        avatarUrl: 'https://images.example.com/fan.jpg',
+        nickname: '林间听众',
+        userId: 8,
+      },
+    ])
+    expect(fans.get).toHaveBeenCalledWith('/artist/fans', {
+      id: 401,
+      limit: ARTIST_FAN_LIMIT,
+      offset: 0,
+    })
+    await expect(
+      getArtistFans(401, client({ data: null }).client),
+    ).rejects.toThrow('歌手粉丝响应格式不正确')
+
+    const count = client({ data: { extra: true, fansCnt: 1280 } })
+    await expect(getArtistFollowCount(401, count.client)).resolves.toBe(1280)
+    expect(count.get).toHaveBeenCalledWith('/artist/follow/count', { id: 401 })
+    await expect(
+      getArtistFollowCount(401, client({ data: { fansCnt: -1 } }).client),
+    ).rejects.toThrow('歌手关注数响应格式不正确')
+
+    const videos = client({
+      data: {
+        records: [
+          {
+            extra: true,
+            resource: {
+              mlogBaseData: {
+                coverUrl: 'https://images.example.com/v.jpg',
+                duration: 12_000,
+                extra: true,
+                id: 'VID401',
+                text: '林间现场',
+              },
+              mlogExtVO: { playCount: 88 },
+              userProfile: { nickname: '林间电台' },
+            },
+          },
+          { id: '', name: '无效' },
+        ],
+      },
+    })
+    await expect(getArtistVideos(401, videos.client)).resolves.toEqual([
+      {
+        coverUrl: 'https://images.example.com/v.jpg',
+        creatorName: '林间电台',
+        durationms: 12_000,
+        playTime: 88,
+        title: '林间现场',
+        vid: 'VID401',
+      },
+    ])
+    expect(videos.get).toHaveBeenCalledWith('/artist/video', {
+      cursor: 0,
+      id: 401,
+      order: 0,
+      size: ARTIST_VIDEO_LIMIT,
+    })
+    await expect(
+      getArtistVideos(401, client({ data: { records: null } }).client),
+    ).rejects.toThrow('歌手视频响应格式不正确')
   })
 })

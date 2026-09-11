@@ -5,6 +5,7 @@ import type {
   ArtistDesc,
   ArtistDescSection,
   ArtistDetail,
+  ArtistFan,
   ArtistListPage,
   ArtistMv,
   ArtistMvPage,
@@ -12,6 +13,7 @@ import type {
   HallArtist,
 } from '@/models/artist'
 import { normalizeSong, type NetworkSong, type Song } from '@/models/song'
+import type { HallVideo } from '@/models/video'
 
 export const ARTIST_SONG_PAGE_SIZE = 10
 export const ARTIST_LIST_PAGE_SIZE = 30
@@ -22,6 +24,9 @@ export const TOPLIST_ARTIST_LIMIT = 10
 export const TOPLIST_ARTIST_TYPE = 1
 export const ARTIST_TOP_SONG_LIMIT = 10
 export const ARTIST_NEW_MV_LIMIT = 10
+export const ARTIST_NEW_SONG_LIMIT = 10
+export const ARTIST_FAN_LIMIT = 10
+export const ARTIST_VIDEO_LIMIT = 10
 
 export interface ArtistListQuery {
   area?: number
@@ -415,4 +420,206 @@ export async function getSimiArtists(
   return response.artists
     .map(readSimiArtist)
     .filter((item): item is HallArtist => item !== null)
+}
+
+function requireArtistId(id: number) {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的歌手 ID')
+  }
+}
+
+function unwrapArtistList(response: unknown, keys: string[]): unknown[] | null {
+  if (!isRecord(response)) return null
+  for (const key of keys) {
+    if (Array.isArray(response[key])) return response[key] as unknown[]
+  }
+  const data = response.data
+  if (Array.isArray(data)) return data
+  if (!isRecord(data)) return null
+  for (const key of keys) {
+    if (Array.isArray(data[key])) return data[key] as unknown[]
+  }
+  for (const nestedKey of ['newWorks', 'page']) {
+    const nested = isRecord(data[nestedKey]) ? data[nestedKey] : null
+    if (!nested) continue
+    for (const key of keys) {
+      if (Array.isArray(nested[key])) return nested[key] as unknown[]
+    }
+  }
+  return null
+}
+
+function readNewSong(value: unknown): Song | null {
+  const raw = isRecord(value) && isNetworkSong(value.song) ? value.song : value
+  if (!isNetworkSong(raw)) return null
+  const song = normalizeSong(raw)
+  if (!Number.isInteger(song.id) || song.id <= 0 || !song.name.trim()) return null
+  return song
+}
+
+export async function getArtistNewSongs(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<Song[]> {
+  requireArtistId(id)
+  const response = await client.get<unknown>('/artist/new/song', {
+    id,
+    limit: ARTIST_NEW_SONG_LIMIT,
+  })
+  const raw = unwrapArtistList(response, [
+    'songs',
+    'newSongs',
+    'newSongList',
+    'songList',
+    'records',
+  ])
+  if (!raw) {
+    throw new Error('歌手最新单曲响应格式不正确')
+  }
+  return raw
+    .map(readNewSong)
+    .filter((item): item is Song => item !== null)
+    .slice(0, ARTIST_NEW_SONG_LIMIT)
+}
+
+function readArtistFan(value: unknown): ArtistFan | null {
+  if (!isRecord(value)) return null
+  const profile = isRecord(value.userProfile) ? value.userProfile : value
+  const userIdRaw = profile.userId ?? profile.id
+  const userId =
+    typeof userIdRaw === 'number'
+      ? userIdRaw
+      : typeof userIdRaw === 'string'
+        ? Number(userIdRaw)
+        : NaN
+  const nickname =
+    typeof profile.nickname === 'string'
+      ? profile.nickname.trim()
+      : typeof profile.name === 'string'
+        ? profile.name.trim()
+        : ''
+  if (!Number.isInteger(userId) || userId <= 0 || !nickname) return null
+  const avatarUrl =
+    typeof profile.avatarUrl === 'string'
+      ? profile.avatarUrl
+      : typeof profile.avatar === 'string'
+        ? profile.avatar
+        : ''
+  return { avatarUrl, nickname, userId }
+}
+
+export async function getArtistFans(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<ArtistFan[]> {
+  requireArtistId(id)
+  const response = await client.get<unknown>('/artist/fans', {
+    id,
+    limit: ARTIST_FAN_LIMIT,
+    offset: 0,
+  })
+  const raw = unwrapArtistList(response, ['fans', 'list', 'records'])
+  if (!raw) {
+    throw new Error('歌手粉丝响应格式不正确')
+  }
+  return raw
+    .map(readArtistFan)
+    .filter((item): item is ArtistFan => item !== null)
+    .slice(0, ARTIST_FAN_LIMIT)
+}
+
+export async function getArtistFollowCount(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<number> {
+  requireArtistId(id)
+  const response = await client.get<unknown>('/artist/follow/count', { id })
+  const data =
+    isRecord(response) && isRecord(response.data) ? response.data : isRecord(response) ? response : null
+  const raw = data
+    ? (data.fansCnt ?? data.fans ?? data.followCount ?? data.count)
+    : null
+  const fans =
+    typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
+  if (!Number.isInteger(fans) || fans < 0) {
+    throw new Error('歌手关注数响应格式不正确')
+  }
+  return fans
+}
+
+function readArtistVideo(value: unknown): HallVideo | null {
+  if (!isRecord(value)) return null
+  const resource = isRecord(value.resource) ? value.resource : value
+  const base = isRecord(resource.mlogBaseData) ? resource.mlogBaseData : resource
+  const ext = isRecord(resource.mlogExtVO) ? resource.mlogExtVO : null
+  const user = isRecord(resource.userProfile) ? resource.userProfile : null
+  const idRaw = base.id ?? value.vid ?? value.id
+  const vid =
+    typeof idRaw === 'string' && idRaw.trim()
+      ? idRaw.trim()
+      : typeof idRaw === 'number' && Number.isInteger(idRaw) && idRaw > 0
+        ? String(idRaw)
+        : ''
+  const titleRaw =
+    (typeof base.text === 'string' && base.text) ||
+    (typeof base.title === 'string' && base.title) ||
+    (typeof value.name === 'string' && value.name) ||
+    ''
+  const title = titleRaw.trim()
+  if (!vid || !title) return null
+  const coverUrl =
+    typeof base.coverUrl === 'string'
+      ? base.coverUrl
+      : typeof base.cover === 'string'
+        ? base.cover
+        : typeof value.coverUrl === 'string'
+          ? value.coverUrl
+          : ''
+  const durationms =
+    typeof base.duration === 'number'
+      ? base.duration
+      : typeof base.durationms === 'number'
+        ? base.durationms
+        : 0
+  const playTime =
+    ext && typeof ext.playCount === 'number'
+      ? ext.playCount
+      : typeof resource.playCount === 'number'
+        ? resource.playCount
+        : 0
+  const creatorName =
+    user && typeof user.nickname === 'string'
+      ? user.nickname.trim()
+      : typeof value.creatorName === 'string'
+        ? value.creatorName.trim()
+        : ''
+  return {
+    coverUrl,
+    creatorName,
+    durationms,
+    playTime,
+    title,
+    vid,
+  }
+}
+
+export async function getArtistVideos(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallVideo[]> {
+  requireArtistId(id)
+  const response = await client.get<unknown>('/artist/video', {
+    cursor: 0,
+    id,
+    order: 0,
+    size: ARTIST_VIDEO_LIMIT,
+  })
+  const raw = unwrapArtistList(response, ['records', 'videos', 'list'])
+  if (!raw) {
+    throw new Error('歌手视频响应格式不正确')
+  }
+  return raw
+    .map(readArtistVideo)
+    .filter((item): item is HallVideo => item !== null)
+    .slice(0, ARTIST_VIDEO_LIMIT)
 }

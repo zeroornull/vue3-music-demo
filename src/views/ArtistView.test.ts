@@ -12,6 +12,10 @@ import {
   getArtistDetail,
   getArtistMvs,
   getArtistNewMvs,
+  getArtistNewSongs,
+  getArtistFans,
+  getArtistFollowCount,
+  getArtistVideos,
   getArtistSongs,
   getArtistTopSongs,
   getSimiArtists,
@@ -30,6 +34,10 @@ vi.mock('@/api/artist', async (importOriginal) => {
     getArtistDetail: vi.fn(),
     getArtistMvs: vi.fn(),
     getArtistNewMvs: vi.fn(),
+    getArtistNewSongs: vi.fn(),
+    getArtistFans: vi.fn(),
+    getArtistFollowCount: vi.fn(),
+    getArtistVideos: vi.fn(),
     getArtistSongs: vi.fn(),
     getArtistTopSongs: vi.fn(),
     getSimiArtists: vi.fn(),
@@ -68,11 +76,12 @@ const songs = [
 
 const HeaderStub = defineComponent({
   name: 'ArtistHeader',
-  props: ['artist', 'playable', 'songCount'],
+  props: ['artist', 'fansCount', 'playable', 'songCount'],
   emits: ['play-all'],
   template: `
     <header>
       <h1>{{ artist.name }}</h1>
+      <span v-if="typeof fansCount === 'number'" data-testid="header-fans">{{ fansCount }}</span>
       <button data-testid="play-all" @click="$emit('play-all')">play all</button>
     </header>
   `,
@@ -154,6 +163,11 @@ async function mountView(query: Record<string, string> = { id: '401' }) {
           props: ['mv'],
           template: '<article>{{ mv.name }}</article>',
         }),
+        VideoClipCard: defineComponent({
+          name: 'VideoClipCard',
+          props: ['clip'],
+          template: '<article>{{ clip.title }}</article>',
+        }),
         PlaylistSongList: SongListStub,
         RouterLink: defineComponent({
           props: ['to'],
@@ -176,9 +190,17 @@ describe('ArtistView', () => {
     vi.mocked(getArtistSongs).mockReset()
     vi.mocked(getArtistTopSongs).mockReset()
     vi.mocked(getArtistNewMvs).mockReset()
+    vi.mocked(getArtistNewSongs).mockReset()
+    vi.mocked(getArtistFans).mockReset()
+    vi.mocked(getArtistFollowCount).mockReset()
+    vi.mocked(getArtistVideos).mockReset()
     vi.mocked(getSimiArtists).mockReset()
     vi.mocked(getArtistTopSongs).mockResolvedValue([])
     vi.mocked(getArtistNewMvs).mockResolvedValue([])
+    vi.mocked(getArtistNewSongs).mockResolvedValue([])
+    vi.mocked(getArtistFans).mockResolvedValue([])
+    vi.mocked(getArtistFollowCount).mockResolvedValue(0)
+    vi.mocked(getArtistVideos).mockResolvedValue([])
     vi.mocked(getArtistDetail).mockResolvedValue(artist)
     vi.mocked(getArtistSongs).mockResolvedValue({ more: true, songs })
     vi.mocked(getArtistMvs).mockResolvedValue({
@@ -542,5 +564,79 @@ describe('ArtistView', () => {
     await flushPromises()
     expect(wrapper.get('[data-testid="artist-new-mvs"]').text()).toContain('最新现场')
     expect(getArtistNewMvs).toHaveBeenCalledWith(401)
+  })
+
+  it('loads new songs and follow count with the artist', async () => {
+    vi.mocked(getArtistNewSongs).mockResolvedValue([
+      { ...songs[0]!, id: 321, name: '最新单曲' },
+    ])
+    vi.mocked(getArtistFollowCount).mockResolvedValue(1280)
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('#artist-new-songs-title').text()).toBe('最新单曲')
+    expect(wrapper.get('[data-testid="artist-new-songs"]').text()).toContain('play')
+    expect(wrapper.get('[data-testid="header-fans"]').text()).toBe('1280')
+    expect(getArtistNewSongs).toHaveBeenCalledWith(401)
+    expect(getArtistFollowCount).toHaveBeenCalledWith(401)
+  })
+
+  it('retries new songs after an error', async () => {
+    vi.mocked(getArtistNewSongs)
+      .mockRejectedValueOnce(new Error('new songs offline'))
+      .mockResolvedValueOnce([{ ...songs[0]!, id: 321, name: '最新单曲' }])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.find('[data-testid="artist-new-songs-retry"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="artist-new-songs-retry"]').trigger('click')
+    await flushPromises()
+    expect(getArtistNewSongs).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="artist-new-songs"]').text()).toContain('play')
+  })
+
+  it('loads fans with the desc tab and retries', async () => {
+    vi.mocked(getArtistFans)
+      .mockRejectedValueOnce(new Error('fans offline'))
+      .mockResolvedValueOnce([
+        {
+          avatarUrl: 'https://images.example.com/fan.jpg',
+          nickname: '林间听众',
+          userId: 8,
+        },
+      ])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(getArtistFans).not.toHaveBeenCalled()
+    await wrapper.get('[data-testid="artist-tab-desc"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="artist-fans-retry"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="artist-fans-retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-fans"]').text()).toContain('林间听众')
+    expect(getArtistFans).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads artist videos with the video tab and retries', async () => {
+    vi.mocked(getArtistVideos)
+      .mockRejectedValueOnce(new Error('videos offline'))
+      .mockResolvedValueOnce([
+        {
+          coverUrl: '',
+          creatorName: '林间电台',
+          durationms: 12_000,
+          playTime: 1,
+          title: '林间现场',
+          vid: 'VID401',
+        },
+      ])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(getArtistVideos).not.toHaveBeenCalled()
+    await wrapper.get('[data-testid="artist-tab-mvs"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="artist-videos-retry"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="artist-videos-retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-videos"]').text()).toContain('林间现场')
+    expect(getArtistVideos).toHaveBeenCalledTimes(2)
   })
 })

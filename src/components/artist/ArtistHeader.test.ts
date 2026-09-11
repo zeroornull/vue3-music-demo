@@ -27,7 +27,15 @@ describe('ArtistHeader', () => {
     expect(wrapper.text()).toContain('88 首')
     expect(wrapper.text()).toContain('12 张专辑')
     expect(wrapper.text()).toContain('4 支 MV')
+    expect(wrapper.find('[data-testid="artist-fans-count"]').exists()).toBe(false)
     await wrapper.get('[data-testid="artist-play-all"]').trigger('click')
     expect(wrapper.emitted('play-all')).toHaveLength(1)
+  })
+
+  it('shows the follow count when loaded', () => {
+    const wrapper = mount(ArtistHeader, {
+      props: { artist, fansCount: 1280 },
+    })
+    expect(wrapper.get('[data-testid="artist-fans-count"]').text()).toBe('1280 粉丝')
   })
 })

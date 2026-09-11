@@ -12,6 +12,10 @@ import {
   getArtistList,
   getArtistMvs,
   getArtistNewMvs,
+  getArtistNewSongs,
+  getArtistFans,
+  getArtistFollowCount,
+  getArtistVideos,
   getArtistSongs,
   getArtistTopSongs,
   getSimiArtists,
@@ -21,11 +25,13 @@ import type {
   ArtistAlbum,
   ArtistDesc,
   ArtistDetail,
+  ArtistFan,
   ArtistMv,
   ArtistSongSort,
   HallArtist,
 } from '@/models/artist'
 import type { Song } from '@/models/song'
+import type { HallVideo } from '@/models/video'
 
 let requestSerial = 0
 let listSerial = 0
@@ -34,6 +40,10 @@ let albumSerial = 0
 let descSerial = 0
 let topSongSerial = 0
 let newMvSerial = 0
+let newSongSerial = 0
+let fanSerial = 0
+let followCountSerial = 0
+let videoSerial = 0
 
 export const useArtistStore = defineStore('artist', () => {
   const artist = ref<ArtistDetail | null>(null)
@@ -66,6 +76,22 @@ export const useArtistStore = defineStore('artist', () => {
   const newMvsError = ref<string | null>(null)
   const newMvsLoading = ref(false)
   const newMvsLoadedId = ref<number | null>(null)
+  const newSongs = ref<Song[]>([])
+  const newSongsError = ref<string | null>(null)
+  const newSongsLoading = ref(false)
+  const newSongsLoadedId = ref<number | null>(null)
+  const fans = ref<ArtistFan[]>([])
+  const fansError = ref<string | null>(null)
+  const fansLoading = ref(false)
+  const fansLoadedId = ref<number | null>(null)
+  const followCount = ref<number | null>(null)
+  const followCountError = ref<string | null>(null)
+  const followCountLoading = ref(false)
+  const followCountLoadedId = ref<number | null>(null)
+  const videos = ref<HallVideo[]>([])
+  const videosError = ref<string | null>(null)
+  const videosLoading = ref(false)
+  const videosLoadedId = ref<number | null>(null)
   const artists = ref<HallArtist[]>([])
   const artistsError = ref<string | null>(null)
   const artistsLoading = ref(false)
@@ -108,6 +134,38 @@ export const useArtistStore = defineStore('artist', () => {
     newMvsLoadedId.value = null
   }
 
+  function clearNewSongs() {
+    newSongSerial++
+    newSongs.value = []
+    newSongsError.value = null
+    newSongsLoading.value = false
+    newSongsLoadedId.value = null
+  }
+
+  function clearFans() {
+    fanSerial++
+    fans.value = []
+    fansError.value = null
+    fansLoading.value = false
+    fansLoadedId.value = null
+  }
+
+  function clearFollowCount() {
+    followCountSerial++
+    followCount.value = null
+    followCountError.value = null
+    followCountLoading.value = false
+    followCountLoadedId.value = null
+  }
+
+  function clearVideos() {
+    videoSerial++
+    videos.value = []
+    videosError.value = null
+    videosLoading.value = false
+    videosLoadedId.value = null
+  }
+
   function clearDesc() {
     descSerial++
     desc.value = null
@@ -132,6 +190,10 @@ export const useArtistStore = defineStore('artist', () => {
     songSort.value = 'hot'
     clearTopSongs()
     clearNewMvs()
+    clearNewSongs()
+    clearFans()
+    clearFollowCount()
+    clearVideos()
     clearMvs()
     clearAlbums()
     clearDesc()
@@ -170,6 +232,10 @@ export const useArtistStore = defineStore('artist', () => {
       relatedArtists.value = null
       clearTopSongs()
       clearNewMvs()
+      clearNewSongs()
+      clearFans()
+      clearFollowCount()
+      clearVideos()
       clearMvs()
       clearAlbums()
       clearDesc()
@@ -193,6 +259,8 @@ export const useArtistStore = defineStore('artist', () => {
       loadedId.value = id
       requestRelated(id)
       requestTopSongs(id)
+      requestNewSongs(id)
+      requestFollowCount(id)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -229,6 +297,8 @@ export const useArtistStore = defineStore('artist', () => {
     const sameArtist = loadedId.value === id && artist.value && !error.value
     if (sameArtist && songSort.value === nextSort) {
       requestTopSongs(id)
+      requestNewSongs(id)
+      requestFollowCount(id)
       return true
     }
     songSort.value = nextSort
@@ -258,6 +328,94 @@ export const useArtistStore = defineStore('artist', () => {
       }
     }
     return load(id)
+  }
+
+  function requestNewSongs(id: number, force = false) {
+    if (!Number.isInteger(id) || id <= 0) return
+    if (!force && newSongsLoadedId.value === id && !newSongsError.value) return
+    const serial = ++newSongSerial
+    newSongsLoading.value = true
+    newSongsError.value = null
+    void Promise.resolve(getArtistNewSongs(id))
+      .then((list) => {
+        if (serial !== newSongSerial || loadedId.value !== id) return
+        newSongs.value = list
+        newSongsLoadedId.value = id
+      })
+      .catch((requestError) => {
+        if (serial !== newSongSerial || loadedId.value !== id) return
+        newSongsError.value = getErrorMessage(requestError)
+      })
+      .finally(() => {
+        if (serial === newSongSerial) newSongsLoading.value = false
+      })
+  }
+
+  function requestFollowCount(id: number, force = false) {
+    if (!Number.isInteger(id) || id <= 0) return
+    if (!force && followCountLoadedId.value === id && !followCountError.value) return
+    const serial = ++followCountSerial
+    followCountLoading.value = true
+    followCountError.value = null
+    void Promise.resolve(getArtistFollowCount(id))
+      .then((count) => {
+        if (serial !== followCountSerial || loadedId.value !== id) return
+        followCount.value = count
+        followCountLoadedId.value = id
+      })
+      .catch((requestError) => {
+        if (serial !== followCountSerial || loadedId.value !== id) return
+        followCountError.value = getErrorMessage(requestError)
+      })
+      .finally(() => {
+        if (serial === followCountSerial) followCountLoading.value = false
+      })
+  }
+
+  async function loadFans(id: number, force = false) {
+    if (!Number.isInteger(id) || id <= 0) return
+    if (!force && fansLoading.value) return
+    if (!force && fansLoadedId.value === id && !fansError.value) return
+    const serial = ++fanSerial
+    fansLoading.value = true
+    fansError.value = null
+    try {
+      const next = await getArtistFans(id)
+      if (serial !== fanSerial) return
+      if (loadedId.value !== null && loadedId.value !== id) return
+      fans.value = next
+      fansLoadedId.value = id
+    } catch (requestError) {
+      if (serial !== fanSerial) return
+      if (loadedId.value !== null && loadedId.value !== id) return
+      fansError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === fanSerial) fansLoading.value = false
+    }
+  }
+
+  async function loadVideos(id: number, force = false) {
+    if (!Number.isInteger(id) || id <= 0) return
+    if (!force && videosLoading.value) return
+    if (!force && videosLoadedId.value === id && !videosError.value) return
+    const serial = ++videoSerial
+    videosLoading.value = true
+    videosError.value = null
+    try {
+      const next = await getArtistVideos(id)
+      if (serial !== videoSerial) return
+      if (loadedId.value !== null && loadedId.value !== id) return
+      videos.value = next
+      videosLoadedId.value = id
+    } catch (requestError) {
+      if (serial !== videoSerial) return
+      if (loadedId.value !== null && loadedId.value !== id) return
+      videosError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === videoSerial) videosLoading.value = false
+    }
   }
 
   async function loadNewMvs(id: number, force = false) {
@@ -561,6 +719,10 @@ export const useArtistStore = defineStore('artist', () => {
     loadMvs,
     loadNewMvs,
     requestTopSongs,
+    requestNewSongs,
+    requestFollowCount,
+    loadFans,
+    loadVideos,
     loadMoreMvs,
     loadAlbums,
     loadMoreAlbums,
@@ -588,6 +750,18 @@ export const useArtistStore = defineStore('artist', () => {
     newMvsError,
     newMvsLoading,
     newMvsLoadedId,
+    newSongs,
+    newSongsError,
+    newSongsLoading,
+    fans,
+    fansError,
+    fansLoading,
+    followCount,
+    followCountError,
+    followCountLoading,
+    videos,
+    videosError,
+    videosLoading,
     mvs,
     mvsError,
     mvsLoading,

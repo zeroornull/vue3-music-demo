@@ -62,6 +62,12 @@ export interface HallArtist {
   img1v1Url: string
 }
 
+export interface ArtistFan {
+  userId: number
+  nickname: string
+  avatarUrl: string
+}
+
 export interface ArtistListPage {
   artists: HallArtist[]
   more: boolean

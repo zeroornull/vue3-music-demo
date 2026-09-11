@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import type { DjCategory } from '@/models/dj'
 
-defineProps<{
-  categories: DjCategory[]
-  selected: number
-}>()
+withDefaults(
+  defineProps<{
+    categories: DjCategory[]
+    label?: string
+    selected: number
+  }>(),
+  { label: '电台分类' },
+)
 
 defineEmits<{
   select: [id: number]
@@ -12,7 +16,7 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="category-bar" role="group" aria-label="电台分类">
+  <div class="category-bar" role="group" :aria-label="label">
     <button
       v-for="item in categories"
       :key="item.id"

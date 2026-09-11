@@ -10,6 +10,7 @@ import ArtistMvSection from '@/components/artist/ArtistMvSection.vue'
 import MvCard from '@/components/discover/MvCard.vue'
 import ArtistHallCard from '@/components/music/ArtistHallCard.vue'
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
+import VideoClipCard from '@/components/video/VideoClipCard.vue'
 import type { ArtistSongSort } from '@/models/artist'
 import type { Song } from '@/models/song'
 import { Pages } from '@/router/pages'
@@ -45,6 +46,16 @@ const {
   newMvs,
   newMvsError,
   newMvsLoading,
+  newSongs,
+  newSongsError,
+  newSongsLoading,
+  fans,
+  fansError,
+  fansLoading,
+  followCount,
+  videos,
+  videosError,
+  videosLoading,
 } = storeToRefs(artistStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
@@ -108,6 +119,7 @@ function showMvs() {
   if (artistId.value === null) return
   void artistStore.loadMvs(artistId.value).catch(() => undefined)
   void artistStore.loadNewMvs(artistId.value).catch(() => undefined)
+  void artistStore.loadVideos(artistId.value).catch(() => undefined)
 }
 
 function retryMvs() {
@@ -125,6 +137,21 @@ function retryTopSongs() {
   artistStore.requestTopSongs(artistId.value, true)
 }
 
+function retryNewSongs() {
+  if (artistId.value === null) return
+  artistStore.requestNewSongs(artistId.value, true)
+}
+
+function retryVideos() {
+  if (artistId.value === null) return
+  void artistStore.loadVideos(artistId.value, true).catch(() => undefined)
+}
+
+function retryFans() {
+  if (artistId.value === null) return
+  void artistStore.loadFans(artistId.value, true).catch(() => undefined)
+}
+
 function loadMoreMvs() {
   void Promise.resolve(artistStore.loadMoreMvs()).catch(() => undefined)
 }
@@ -133,6 +160,7 @@ function showDesc() {
   tab.value = 'desc'
   if (artistId.value === null) return
   void artistStore.loadDesc(artistId.value).catch(() => undefined)
+  void artistStore.loadFans(artistId.value).catch(() => undefined)
 }
 
 function retryDesc() {
@@ -236,6 +264,7 @@ watch(
     <template v-else-if="artist">
       <ArtistHeader
         :artist="artist"
+        :fans-count="followCount"
         :playable="songs.length > 0"
         :song-count="songs.length"
         @play-all="playAll"
@@ -335,6 +364,29 @@ watch(
             />
           </div>
         </section>
+        <section
+          v-if="newSongsLoading || newSongsError || newSongs.length"
+          class="artist-new-songs"
+          aria-labelledby="artist-new-songs-title"
+        >
+          <h2 id="artist-new-songs-title">最新单曲</h2>
+          <p v-if="newSongsLoading && !newSongs.length">正在加载最新单曲。</p>
+          <div v-else-if="newSongsError && !newSongs.length" role="alert">
+            <p>{{ newSongsError }}</p>
+            <button type="button" data-testid="artist-new-songs-retry" @click="retryNewSongs">
+              重新加载
+            </button>
+          </div>
+          <div v-else data-testid="artist-new-songs">
+            <PlaylistSongList
+              :songs="newSongs"
+              :current-id="current?.id ?? null"
+              :paginate="false"
+              empty-description="暂时没有最新单曲。"
+              @play="playSong"
+            />
+          </div>
+        </section>
         <PlaylistSongList
           :songs="songs"
           :current-id="current?.id ?? null"
@@ -397,6 +449,25 @@ watch(
             <MvCard v-for="item in newMvs" :key="item.id" :mv="item" />
           </div>
         </section>
+        <section
+          class="artist-videos"
+          aria-labelledby="artist-videos-title"
+        >
+          <h2 id="artist-videos-title">歌手视频</h2>
+          <p v-if="videosLoading && !videos.length">正在加载歌手视频。</p>
+          <div v-else-if="videosError && !videos.length" role="alert">
+            <p>{{ videosError }}</p>
+            <button type="button" data-testid="artist-videos-retry" @click="retryVideos">
+              重新加载
+            </button>
+          </div>
+          <div v-else-if="!videos.length" data-testid="artist-videos-empty">
+            暂无歌手视频
+          </div>
+          <div v-else data-testid="artist-videos" class="artist-video-grid">
+            <VideoClipCard v-for="item in videos" :key="item.vid" :clip="item" />
+          </div>
+        </section>
         <ArtistMvSection
           :error="mvsError"
           :loading="mvsLoading"
@@ -418,6 +489,32 @@ watch(
           :loading="descLoading"
           @retry="retryDesc"
         />
+        <section
+          class="artist-fans"
+          aria-labelledby="artist-fans-title"
+        >
+          <h2 id="artist-fans-title">粉丝</h2>
+          <p v-if="fansLoading && !fans.length">正在加载粉丝。</p>
+          <div v-else-if="fansError && !fans.length" role="alert">
+            <p>{{ fansError }}</p>
+            <button type="button" data-testid="artist-fans-retry" @click="retryFans">
+              重新加载
+            </button>
+          </div>
+          <p v-else-if="!fans.length" data-testid="artist-fans-empty">暂无粉丝</p>
+          <ul v-else data-testid="artist-fans" class="artist-fan-list">
+            <li v-for="item in fans" :key="item.userId">
+              <img
+                v-if="item.avatarUrl"
+                :src="item.avatarUrl"
+                alt=""
+                width="32"
+                height="32"
+              />
+              <strong>{{ item.nickname }}</strong>
+            </li>
+          </ul>
+        </section>
       </div>
       <section
         v-if="relatedArtists?.length"
@@ -482,24 +579,62 @@ watch(
 }
 
 .artist-top-songs,
-.artist-new-mvs {
+.artist-new-songs,
+.artist-new-mvs,
+.artist-videos,
+.artist-fans {
   margin: 0 0 24px;
 }
 
 .artist-top-songs h2,
-.artist-new-mvs h2 {
+.artist-new-songs h2,
+.artist-new-mvs h2,
+.artist-videos h2,
+.artist-fans h2 {
   margin: 0 0 12px;
   font-size: 1.05rem;
 }
 
-.new-mv-grid {
+.new-mv-grid,
+.artist-video-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(14px, 2vw, 22px);
 }
 
+.artist-fan-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.artist-fan-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.artist-fan-list img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-line);
+}
+
+.artist-fan-list strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 900px) {
-  .new-mv-grid {
+  .new-mv-grid,
+  .artist-video-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

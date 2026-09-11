@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BannerCarousel from '@/components/discover/BannerCarousel.vue'
+import DjCategoryBar from '@/components/music/DjCategoryBar.vue'
 import DjProgramSection from '@/components/music/DjProgramSection.vue'
 import DjRadioRankSection from '@/components/music/DjRadioRankSection.vue'
 import DjRadioSection from '@/components/music/DjRadioSection.vue'
@@ -50,6 +51,15 @@ withDefaults(
     categoryRecommendRadios?: HallRadio[]
     categoryRecommendRadiosError?: string | null
     categoryRecommendRadiosLoading?: boolean
+    extraCategories?: DjCategory[]
+    extraCategoriesError?: string | null
+    extraCategoriesLoading?: boolean
+    paygiftRadios?: HallRadio[]
+    paygiftRadiosError?: string | null
+    paygiftRadiosLoading?: boolean
+    popularRadios?: HallRadio[]
+    popularRadiosError?: string | null
+    popularRadiosLoading?: boolean
   }>(),
   {
     bannersError: null,
@@ -92,6 +102,15 @@ withDefaults(
     categoryRecommendRadios: () => [],
     categoryRecommendRadiosError: null,
     categoryRecommendRadiosLoading: false,
+    extraCategories: () => [],
+    extraCategoriesError: null,
+    extraCategoriesLoading: false,
+    paygiftRadios: () => [],
+    paygiftRadiosError: null,
+    paygiftRadiosLoading: false,
+    popularRadios: () => [],
+    popularRadiosError: null,
+    popularRadiosLoading: false,
   },
 )
 
@@ -110,6 +129,9 @@ defineEmits<{
   'retry-hot-radios': []
   'retry-type-recommend': []
   'retry-category-recommend': []
+  'retry-extra-categories': []
+  'retry-paygift': []
+  'retry-popular': []
   'select-banner': [banner: Banner]
   'select-cat': [id: number]
 }>()
@@ -138,6 +160,64 @@ defineEmits<{
       @load-more="$emit('load-more-radios')"
       @retry="$emit('retry-radios')"
       @select-cat="$emit('select-cat', $event)"
+    />
+    <section class="extra-cats" aria-labelledby="dj-extra-cats-title">
+      <h2 id="dj-extra-cats-title">更多分类</h2>
+      <div
+        v-if="extraCategoriesLoading && !extraCategories.length"
+        class="state-card"
+        data-testid="dj-extra-cats-loading"
+        aria-busy="true"
+      >
+        <strong>正在加载更多分类</strong>
+      </div>
+      <div
+        v-else-if="extraCategoriesError && !extraCategories.length"
+        class="state-card error-state"
+        role="alert"
+      >
+        <div>
+          <strong>更多分类加载失败</strong>
+          <p>{{ extraCategoriesError }}</p>
+        </div>
+        <button
+          type="button"
+          data-testid="dj-extra-cats-retry"
+          @click="$emit('retry-extra-categories')"
+        >
+          重新加载
+        </button>
+      </div>
+      <DjCategoryBar
+        v-else-if="extraCategories.length"
+        label="更多分类"
+        :categories="extraCategories"
+        :selected="cateId"
+        @select="$emit('select-cat', $event)"
+      />
+      <div v-else class="state-card" data-testid="dj-extra-cats-empty">
+        <strong>暂无更多分类</strong>
+      </div>
+    </section>
+    <DjRadioRankSection
+      empty-title="暂无付费精选"
+      error-title="付费精选加载失败"
+      testid="dj-paygift"
+      title="付费精选"
+      :error="paygiftRadiosError"
+      :loading="paygiftRadiosLoading"
+      :radios="paygiftRadios"
+      @retry="$emit('retry-paygift')"
+    />
+    <DjRadioRankSection
+      empty-title="暂无热门电台榜"
+      error-title="热门电台榜加载失败"
+      testid="dj-popular"
+      title="热门电台榜"
+      :error="popularRadiosError"
+      :loading="popularRadiosLoading"
+      :radios="popularRadios"
+      @retry="$emit('retry-popular')"
     />
     <DjRadioRankSection
       empty-title="暂无精选电台"
@@ -250,5 +330,39 @@ defineEmits<{
   grid-template-columns: minmax(0, 1fr);
   gap: 28px;
   min-width: 0;
+}
+
+.extra-cats h2 {
+  margin: 0 0 12px;
+  font-size: 1.2rem;
+}
+
+.state-card {
+  display: flex;
+  min-height: 80px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border: 1px dashed var(--color-border);
+  border-radius: 16px;
+  background: var(--color-well);
+}
+
+.error-state {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
+}
+
+.state-card button {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: var(--color-on-accent);
+  cursor: pointer;
+  font-weight: 700;
 }
 </style>

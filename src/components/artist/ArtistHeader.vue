@@ -4,10 +4,12 @@ import type { ArtistDetail } from '@/models/artist'
 withDefaults(
   defineProps<{
     artist: ArtistDetail
+    fansCount?: number | null
     playable?: boolean
     songCount?: number | null
   }>(),
   {
+    fansCount: null,
     playable: false,
     songCount: null,
   },
@@ -36,6 +38,9 @@ defineEmits<{
         <span>{{ artist.musicSize }} 首</span>
         <span>{{ artist.albumSize }} 张专辑</span>
         <span>{{ artist.mvSize }} 支 MV</span>
+        <span v-if="typeof fansCount === 'number'" data-testid="artist-fans-count"
+          >{{ fansCount }} 粉丝</span
+        >
         <span v-if="typeof songCount === 'number'">已加载 {{ songCount }} 首</span>
       </p>
       <button

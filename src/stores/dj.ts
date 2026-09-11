@@ -18,6 +18,9 @@ import {
   getDjCategoryRecommend,
   getDjNewcomerRadios,
   getDjPayRadios,
+  getDjPaygiftRadios,
+  getDjExcludehotCategories,
+  getDjPopularRadios,
   getDjTodayPrograms,
   getDjProgramHoursToplist,
   getDjRadioHoursToplist,
@@ -67,6 +70,9 @@ let hotCommentSerial = 0
 let radioSubscribersMoreSerial = 0
 let newcomerRadioSerial = 0
 let payRadioSerial = 0
+let paygiftRadioSerial = 0
+let extraCategorySerial = 0
+let popularRadioSerial = 0
 
 export const useDjStore = defineStore('dj', () => {
   const program = ref<DjProgramDetail | null>(null)
@@ -124,6 +130,15 @@ export const useDjStore = defineStore('dj', () => {
   const payRadios = ref<HallRadio[]>([])
   const payRadiosError = ref<string | null>(null)
   const payRadiosLoading = ref(false)
+  const paygiftRadios = ref<HallRadio[]>([])
+  const paygiftRadiosError = ref<string | null>(null)
+  const paygiftRadiosLoading = ref(false)
+  const extraCategories = ref<DjCategory[]>([])
+  const extraCategoriesError = ref<string | null>(null)
+  const extraCategoriesLoading = ref(false)
+  const popularRadios = ref<HallRadio[]>([])
+  const popularRadiosError = ref<string | null>(null)
+  const popularRadiosLoading = ref(false)
   const radio = ref<DjRadioDetail | null>(null)
   const radioError = ref<string | null>(null)
   const radioLoading = ref(false)
@@ -215,6 +230,9 @@ export const useDjStore = defineStore('dj', () => {
     categoryRecommendSerial++
     newcomerRadioSerial++
     payRadioSerial++
+    paygiftRadioSerial++
+    extraCategorySerial++
+    popularRadioSerial++
     programs.value = []
     programsError.value = null
     programsLoading.value = false
@@ -266,6 +284,15 @@ export const useDjStore = defineStore('dj', () => {
     payRadios.value = []
     payRadiosError.value = null
     payRadiosLoading.value = false
+    paygiftRadios.value = []
+    paygiftRadiosError.value = null
+    paygiftRadiosLoading.value = false
+    extraCategories.value = []
+    extraCategoriesError.value = null
+    extraCategoriesLoading.value = false
+    popularRadios.value = []
+    popularRadiosError.value = null
+    popularRadiosLoading.value = false
   }
 
   async function loadBanners(force = false) {
@@ -567,6 +594,66 @@ export const useDjStore = defineStore('dj', () => {
       throw requestError
     } finally {
       if (serial === payRadioSerial) payRadiosLoading.value = false
+    }
+  }
+
+  async function loadPaygiftRadios(force = false) {
+    if (paygiftRadios.value.length && !force && !paygiftRadiosError.value) {
+      return
+    }
+    const serial = ++paygiftRadioSerial
+    paygiftRadiosLoading.value = true
+    paygiftRadiosError.value = null
+    try {
+      const next = await getDjPaygiftRadios()
+      if (serial !== paygiftRadioSerial) return
+      paygiftRadios.value = next
+    } catch (requestError) {
+      if (serial !== paygiftRadioSerial) return
+      paygiftRadiosError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === paygiftRadioSerial) paygiftRadiosLoading.value = false
+    }
+  }
+
+  async function loadExtraCategories(force = false) {
+    if (extraCategories.value.length && !force && !extraCategoriesError.value) {
+      return
+    }
+    const serial = ++extraCategorySerial
+    extraCategoriesLoading.value = true
+    extraCategoriesError.value = null
+    try {
+      const next = await getDjExcludehotCategories()
+      if (serial !== extraCategorySerial) return
+      extraCategories.value = next
+    } catch (requestError) {
+      if (serial !== extraCategorySerial) return
+      extraCategoriesError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === extraCategorySerial) extraCategoriesLoading.value = false
+    }
+  }
+
+  async function loadPopularRadios(force = false) {
+    if (popularRadios.value.length && !force && !popularRadiosError.value) {
+      return
+    }
+    const serial = ++popularRadioSerial
+    popularRadiosLoading.value = true
+    popularRadiosError.value = null
+    try {
+      const next = await getDjPopularRadios()
+      if (serial !== popularRadioSerial) return
+      popularRadios.value = next
+    } catch (requestError) {
+      if (serial !== popularRadioSerial) return
+      popularRadiosError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === popularRadioSerial) popularRadiosLoading.value = false
     }
   }
 
@@ -1052,6 +1139,9 @@ export const useDjStore = defineStore('dj', () => {
     loadCategoryRecommend,
     loadNewcomerRadios,
     loadPayRadios,
+    loadPaygiftRadios,
+    loadExtraCategories,
+    loadPopularRadios,
     loadCategories,
     loadRadios,
     loadMoreRadios,
@@ -1119,6 +1209,15 @@ export const useDjStore = defineStore('dj', () => {
     payRadios,
     payRadiosError,
     payRadiosLoading,
+    paygiftRadios,
+    paygiftRadiosError,
+    paygiftRadiosLoading,
+    extraCategories,
+    extraCategoriesError,
+    extraCategoriesLoading,
+    popularRadios,
+    popularRadiosError,
+    popularRadiosLoading,
     radio,
     radioError,
     radioLoading,

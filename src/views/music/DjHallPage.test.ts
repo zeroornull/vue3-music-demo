@@ -22,6 +22,9 @@ import {
   getDjTodayPrograms,
   getDjProgramHoursToplist,
   getDjRadioHoursToplist,
+  getDjPaygiftRadios,
+  getDjExcludehotCategories,
+  getDjPopularRadios,
 } from '@/api/dj'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
@@ -56,6 +59,9 @@ vi.mock('@/api/dj', async (importOriginal) => {
     getDjTodayPrograms: vi.fn(),
     getDjProgramHoursToplist: vi.fn(),
     getDjRadioHoursToplist: vi.fn(),
+    getDjPaygiftRadios: vi.fn(),
+    getDjExcludehotCategories: vi.fn(),
+    getDjPopularRadios: vi.fn(),
   }
 })
 
@@ -121,6 +127,15 @@ const HallStub = defineComponent({
     'categoryRecommendRadiosLoading',
     'categories',
     'cateId',
+    'extraCategories',
+    'extraCategoriesError',
+    'extraCategoriesLoading',
+    'paygiftRadios',
+    'paygiftRadiosError',
+    'paygiftRadiosLoading',
+    'popularRadios',
+    'popularRadiosError',
+    'popularRadiosLoading',
   ],
   emits: [
     'retry-banners',
@@ -136,6 +151,9 @@ const HallStub = defineComponent({
     'retry-hot-radios',
     'retry-type-recommend',
     'retry-category-recommend',
+    'retry-extra-categories',
+    'retry-paygift',
+    'retry-popular',
     'select-banner',
     'select-cat',
     'load-more-radios',
@@ -190,7 +208,17 @@ const HallStub = defineComponent({
       <span v-if="typeRecommendRadiosError" data-testid="type-recommend-error">{{ typeRecommendRadiosError }}</span>
       <span data-testid="category-recommend-count">{{ categoryRecommendRadios.length }}</span>
       <span v-if="categoryRecommendRadiosError" data-testid="category-recommend-error">{{ categoryRecommendRadiosError }}</span>
+      <span data-testid="extra-cat-count">{{ extraCategories.length }}</span>
+      <span v-if="extraCategoriesLoading" data-testid="extra-cat-loading">loading</span>
+      <span v-if="extraCategoriesError" data-testid="extra-cat-error">{{ extraCategoriesError }}</span>
+      <span data-testid="paygift-count">{{ paygiftRadios.length }}</span>
+      <span v-if="paygiftRadiosLoading" data-testid="paygift-loading">loading</span>
+      <span v-if="paygiftRadiosError" data-testid="paygift-error">{{ paygiftRadiosError }}</span>
+      <span data-testid="popular-count">{{ popularRadios.length }}</span>
+      <span v-if="popularRadiosLoading" data-testid="popular-loading">loading</span>
+      <span v-if="popularRadiosError" data-testid="popular-error">{{ popularRadiosError }}</span>
       <button data-testid="page-cat" @click="$emit('select-cat', 6)">cat</button>
+      <button data-testid="page-extra-cat" @click="$emit('select-cat', 9)">extra cat</button>
       <button data-testid="page-radio-retry" @click="$emit('retry-radios')">retry radios</button>
       <button data-testid="page-banner-retry" @click="$emit('retry-banners')">retry banners</button>
       <button data-testid="page-program-retry" @click="$emit('retry-programs')">retry programs</button>
@@ -204,6 +232,9 @@ const HallStub = defineComponent({
       <button data-testid="page-hot-retry" @click="$emit('retry-hot-radios')">retry hot</button>
       <button data-testid="page-type-recommend-retry" @click="$emit('retry-type-recommend')">retry type</button>
       <button data-testid="page-category-recommend-retry" @click="$emit('retry-category-recommend')">retry category</button>
+      <button data-testid="page-extra-cats-retry" @click="$emit('retry-extra-categories')">retry extra</button>
+      <button data-testid="page-paygift-retry" @click="$emit('retry-paygift')">retry paygift</button>
+      <button data-testid="page-popular-retry" @click="$emit('retry-popular')">retry popular</button>
       <button
         data-testid="select-song-banner"
         @click="$emit('select-banner', banners[0])"
@@ -276,6 +307,12 @@ describe('DjHallPage', () => {
     vi.mocked(getDjHotRadios).mockResolvedValue([])
     vi.mocked(getDjRecommendByType).mockResolvedValue([])
     vi.mocked(getDjCategoryRecommend).mockResolvedValue([])
+    vi.mocked(getDjPaygiftRadios).mockReset()
+    vi.mocked(getDjExcludehotCategories).mockReset()
+    vi.mocked(getDjPopularRadios).mockReset()
+    vi.mocked(getDjPaygiftRadios).mockResolvedValue([])
+    vi.mocked(getDjExcludehotCategories).mockResolvedValue([])
+    vi.mocked(getDjPopularRadios).mockResolvedValue([])
     vi.mocked(getDjCategories).mockResolvedValue([{ id: 2, name: '音乐故事' }])
     vi.mocked(getHotDjRadios).mockResolvedValue({
       more: false,
@@ -439,6 +476,61 @@ describe('DjHallPage', () => {
     expect(wrapper.get('[data-testid="hot-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="type-recommend-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="category-recommend-count"]').text()).toBe('1')
+  })
+
+  it('loads paygift, extra categories and popular radios independently', async () => {
+    vi.mocked(getDjPaygiftRadios)
+      .mockRejectedValueOnce(new Error('gift offline'))
+      .mockResolvedValueOnce([
+        {
+          djName: '',
+          id: 881,
+          name: '精选夜航',
+          picUrl: '',
+          playCount: 1,
+          rcmdText: '',
+        },
+      ])
+    vi.mocked(getDjExcludehotCategories)
+      .mockRejectedValueOnce(new Error('extra offline'))
+      .mockResolvedValueOnce([{ id: 9, name: '二次元' }])
+    vi.mocked(getDjPopularRadios)
+      .mockRejectedValueOnce(new Error('popular offline'))
+      .mockResolvedValueOnce([
+        {
+          djName: '',
+          id: 891,
+          name: '热门夜航',
+          picUrl: '',
+          playCount: 1,
+          rcmdText: '',
+        },
+      ])
+    const { router, wrapper } = await mountPage()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="paygift-error"]').text()).toBe('gift offline')
+    expect(wrapper.get('[data-testid="extra-cat-error"]').text()).toBe('extra offline')
+    expect(wrapper.get('[data-testid="popular-error"]').text()).toBe('popular offline')
+    expect(wrapper.get('[data-testid="program-count"]').text()).toBe('1')
+    await wrapper.get('[data-testid="page-paygift-retry"]').trigger('click')
+    await wrapper.get('[data-testid="page-extra-cats-retry"]').trigger('click')
+    await wrapper.get('[data-testid="page-popular-retry"]').trigger('click')
+    await flushPromises()
+    expect(getDjPaygiftRadios).toHaveBeenCalledTimes(2)
+    expect(getDjExcludehotCategories).toHaveBeenCalledTimes(2)
+    expect(getDjPopularRadios).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="paygift-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="extra-cat-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="popular-count"]').text()).toBe('1')
+
+    await wrapper.get('[data-testid="page-extra-cat"]').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.query.cateId).toBe('9')
+    expect(getHotDjRadios).toHaveBeenCalledWith({
+      cateId: 9,
+      limit: DJ_RADIO_PAGE_SIZE,
+      offset: 0,
+    })
   })
 
   it('loads and retries the program toplist independently', async () => {

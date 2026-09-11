@@ -59,6 +59,15 @@ const {
   categoryRecommendRadios,
   categoryRecommendRadiosError,
   categoryRecommendRadiosLoading,
+  extraCategories,
+  extraCategoriesError,
+  extraCategoriesLoading,
+  paygiftRadios,
+  paygiftRadiosError,
+  paygiftRadiosLoading,
+  popularRadios,
+  popularRadiosError,
+  popularRadiosLoading,
 } = storeToRefs(djStore)
 const notice = ref<string | null>(null)
 let playSerial = 0
@@ -130,6 +139,18 @@ function requestTypeRecommend(force = false) {
 
 function requestCategoryRecommend(force = false) {
   void djStore.loadCategoryRecommend(force).catch(() => undefined)
+}
+
+function requestExtraCategories(force = false) {
+  void djStore.loadExtraCategories(force).catch(() => undefined)
+}
+
+function requestPaygift(force = false) {
+  void djStore.loadPaygiftRadios(force).catch(() => undefined)
+}
+
+function requestPopular(force = false) {
+  void djStore.loadPopularRadios(force).catch(() => undefined)
 }
 
 async function requestCategories(force = false) {
@@ -220,6 +241,9 @@ onMounted(() => {
   requestRecommendPrograms()
   requestHotRadios()
   requestCategoryRecommend()
+  requestExtraCategories()
+  requestPaygift()
+  requestPopular()
   void requestCategories()
 })
 </script>
@@ -270,6 +294,15 @@ onMounted(() => {
       :category-recommend-radios="categoryRecommendRadios"
       :category-recommend-radios-error="categoryRecommendRadiosError"
       :category-recommend-radios-loading="categoryRecommendRadiosLoading"
+      :extra-categories="extraCategories"
+      :extra-categories-error="extraCategoriesError"
+      :extra-categories-loading="extraCategoriesLoading"
+      :paygift-radios="paygiftRadios"
+      :paygift-radios-error="paygiftRadiosError"
+      :paygift-radios-loading="paygiftRadiosLoading"
+      :popular-radios="popularRadios"
+      :popular-radios-error="popularRadiosError"
+      :popular-radios-loading="popularRadiosLoading"
       @load-more-radios="loadMoreRadios"
       @retry-banners="requestBanners(true)"
       @retry-programs="requestPrograms(true)"
@@ -284,6 +317,9 @@ onMounted(() => {
       @retry-hot-radios="requestHotRadios(true)"
       @retry-type-recommend="requestTypeRecommend(true)"
       @retry-category-recommend="requestCategoryRecommend(true)"
+      @retry-extra-categories="requestExtraCategories(true)"
+      @retry-paygift="requestPaygift(true)"
+      @retry-popular="requestPopular(true)"
       @select-banner="selectBanner"
       @select-cat="selectCat"
     />

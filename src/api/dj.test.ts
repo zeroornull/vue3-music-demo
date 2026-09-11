@@ -38,6 +38,11 @@ import {
   getDjRadioSubscribers,
   getDjNewcomerRadios,
   getDjPayRadios,
+  getDjPaygiftRadios,
+  getDjExcludehotCategories,
+  getDjPopularRadios,
+  DJ_PAYGIFT_LIMIT,
+  DJ_POPULAR_LIMIT,
   DJ_NEWCOMER_LIMIT,
   DJ_PAY_RADIO_LIMIT,
 } from '@/api/dj'
@@ -1019,5 +1024,103 @@ describe('DJ API', () => {
     await expect(
       getDjPayRadios(client({ data: { list: many } }).client),
     ).resolves.toHaveLength(DJ_PAY_RADIO_LIMIT)
+  })
+
+  it('unwraps paygift radios, extra categories and the popular board', async () => {
+    const gifts = client({
+      data: {
+        list: [
+          {
+            extra: true,
+            id: 881,
+            name: '精选夜航',
+            originalPrice: 19800,
+            picUrl: 'https://images.example.com/gift.jpg',
+            radioFeeType: 2,
+          },
+        ],
+      },
+    })
+    await expect(getDjPaygiftRadios(gifts.client)).resolves.toEqual([
+      {
+        djName: '',
+        id: 881,
+        name: '精选夜航',
+        paid: true,
+        picUrl: 'https://images.example.com/gift.jpg',
+        playCount: 0,
+        rcmdText: '',
+      },
+    ])
+    expect(gifts.get).toHaveBeenCalledWith('/dj/paygift', {
+      limit: DJ_PAYGIFT_LIMIT,
+      offset: 0,
+    })
+    await expect(
+      getDjPaygiftRadios(
+        client({
+          data: { products: [{ id: 882, name: '礼品夜航', picUrl: '' }] },
+        }).client,
+      ),
+    ).resolves.toEqual([
+      {
+        djName: '',
+        id: 882,
+        name: '礼品夜航',
+        paid: true,
+        picUrl: '',
+        playCount: 0,
+        rcmdText: '',
+      },
+    ])
+    const manyGifts = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `精选 ${index + 1}`,
+    }))
+    await expect(
+      getDjPaygiftRadios(client({ data: { list: manyGifts } }).client),
+    ).resolves.toHaveLength(DJ_PAYGIFT_LIMIT)
+    await expect(
+      getDjPaygiftRadios(client({ data: null }).client),
+    ).rejects.toThrow('付费精选电台响应格式不正确')
+
+    const extra = client({
+      data: [{ extra: true, id: 9, name: '  二次元  ' }, { id: 0, name: '无效' }],
+    })
+    await expect(getDjExcludehotCategories(extra.client)).resolves.toEqual([
+      { id: 9, name: '二次元' },
+    ])
+    expect(extra.get).toHaveBeenCalledWith('/dj/category/excludehot')
+    await expect(
+      getDjExcludehotCategories(client({ data: null }).client),
+    ).rejects.toThrow('非热门电台分类响应格式不正确')
+
+    const popular = client({
+      data: { list: [{ id: 891, name: '热门夜航', picUrl: '' }] },
+    })
+    await expect(getDjPopularRadios(popular.client)).resolves.toEqual([
+      {
+        djName: '',
+        id: 891,
+        name: '热门夜航',
+        paid: false,
+        picUrl: '',
+        playCount: 0,
+        rcmdText: '',
+      },
+    ])
+    expect(popular.get).toHaveBeenCalledWith('/dj/toplist/popular', {
+      limit: DJ_POPULAR_LIMIT,
+    })
+    const manyPopular = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `热门 ${index + 1}`,
+    }))
+    await expect(
+      getDjPopularRadios(client({ data: { list: manyPopular } }).client),
+    ).resolves.toHaveLength(DJ_POPULAR_LIMIT)
+    await expect(
+      getDjPopularRadios(client({ data: null }).client),
+    ).rejects.toThrow('热门电台榜响应格式不正确')
   })
 })

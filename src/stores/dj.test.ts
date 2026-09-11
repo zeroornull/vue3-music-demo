@@ -22,6 +22,9 @@ import {
   getDjRadioSubscriberPage,
   getDjNewcomerRadios,
   getDjPayRadios,
+  getDjPaygiftRadios,
+  getDjExcludehotCategories,
+  getDjPopularRadios,
   DJ_SUBSCRIBER_TIME_START,
   getHotDjRadios,
   getPersonalizedDjPrograms,
@@ -65,6 +68,9 @@ vi.mock('@/api/dj', async (importOriginal) => {
     getDjRadioSubscriberPage: vi.fn(),
     getDjNewcomerRadios: vi.fn(),
     getDjPayRadios: vi.fn(),
+    getDjPaygiftRadios: vi.fn(),
+    getDjExcludehotCategories: vi.fn(),
+    getDjPopularRadios: vi.fn(),
   }
 })
 
@@ -184,6 +190,9 @@ describe('dj store', () => {
     )
     vi.mocked(getDjNewcomerRadios).mockReset()
     vi.mocked(getDjPayRadios).mockReset()
+    vi.mocked(getDjPaygiftRadios).mockReset()
+    vi.mocked(getDjExcludehotCategories).mockReset()
+    vi.mocked(getDjPopularRadios).mockReset()
   })
 
   it('loads hall banners once and treats a failed page as a cache miss', async () => {
@@ -1662,5 +1671,65 @@ describe('dj store', () => {
 
     expect(store.newcomerRadios).toEqual([])
     expect(store.payRadios).toEqual([])
+  })
+
+  it('loads paygift, extra categories and popular radios independently', async () => {
+    const gift = { ...radio, id: 881, name: '精选夜航' }
+    const extra = { id: 9, name: '二次元' }
+    const popular = { ...radio, id: 891, name: '热门夜航' }
+    vi.mocked(getDjPaygiftRadios).mockResolvedValue([gift])
+    vi.mocked(getDjExcludehotCategories).mockResolvedValue([extra])
+    vi.mocked(getDjPopularRadios).mockResolvedValue([popular])
+    const store = useDjStore()
+    await store.loadPaygiftRadios()
+    await store.loadPaygiftRadios()
+    await store.loadExtraCategories()
+    await store.loadExtraCategories()
+    await store.loadPopularRadios()
+    await store.loadPopularRadios()
+    expect(store.paygiftRadios).toEqual([gift])
+    expect(store.extraCategories).toEqual([extra])
+    expect(store.popularRadios).toEqual([popular])
+    expect(getDjPaygiftRadios).toHaveBeenCalledTimes(1)
+    expect(getDjExcludehotCategories).toHaveBeenCalledTimes(1)
+    expect(getDjPopularRadios).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps popular radios when paygift fails', async () => {
+    const popular = { ...radio, id: 891, name: '热门夜航' }
+    vi.mocked(getDjPaygiftRadios).mockRejectedValue(new Error('gift offline'))
+    vi.mocked(getDjPopularRadios).mockResolvedValue([popular])
+    const store = useDjStore()
+    await expect(store.loadPaygiftRadios()).rejects.toThrow('gift offline')
+    await store.loadPopularRadios()
+    expect(store.paygiftRadiosError).toBe('gift offline')
+    expect(store.popularRadios).toEqual([popular])
+  })
+
+  it('drops in-flight paygift, extra categories and popular radios after reset', async () => {
+    const pendingGift = deferred<typeof radio[]>()
+    const pendingExtra = deferred<{ id: number; name: string }[]>()
+    const pendingPopular = deferred<typeof radio[]>()
+    vi.mocked(getDjPaygiftRadios).mockReturnValueOnce(pendingGift.promise)
+    vi.mocked(getDjExcludehotCategories).mockReturnValueOnce(pendingExtra.promise)
+    vi.mocked(getDjPopularRadios).mockReturnValueOnce(pendingPopular.promise)
+    const store = useDjStore()
+    const gift = store.loadPaygiftRadios()
+    const extra = store.loadExtraCategories()
+    const popular = store.loadPopularRadios()
+    store.reset()
+    pendingGift.resolve([{ ...radio, id: 881, name: '精选夜航' }])
+    pendingExtra.resolve([{ id: 9, name: '二次元' }])
+    pendingPopular.resolve([{ ...radio, id: 891, name: '热门夜航' }])
+    await gift
+    await extra
+    await popular
+
+    expect(store.paygiftRadios).toEqual([])
+    expect(store.paygiftRadiosLoading).toBe(false)
+    expect(store.extraCategories).toEqual([])
+    expect(store.extraCategoriesLoading).toBe(false)
+    expect(store.popularRadios).toEqual([])
+    expect(store.popularRadiosLoading).toBe(false)
   })
 })
