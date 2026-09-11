@@ -3,6 +3,7 @@ import { parseMediaComment, type MediaComment } from '@/models/comment'
 
 export const COMMENT_FLOOR_LIMIT = 10
 export const COMMENT_FLOOR_TYPE = {
+  dj: 4,
   mv: 1,
   playlist: 2,
   song: 0,
@@ -118,6 +119,23 @@ export async function getVideoCommentFloor(
     vid,
     parentCommentId,
     '视频评论楼层响应格式不正确',
+    client,
+  )
+}
+
+export async function getDjCommentFloor(
+  id: number,
+  parentCommentId: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的电台节目 ID')
+  }
+  return getCommentFloor(
+    COMMENT_FLOOR_TYPE.dj,
+    id,
+    parentCommentId,
+    '电台节目评论楼层响应格式不正确',
     client,
   )
 }

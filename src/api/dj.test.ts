@@ -32,6 +32,10 @@ import {
   DJ_PROGRAM_RECOMMEND_LIMIT,
   DJ_TYPE_RECOMMEND_LIMIT,
   DJ_CATEGORY_RECOMMEND_LIMIT,
+  DJ_SUBSCRIBER_LIMIT,
+  DJ_SUBSCRIBER_TIME_START,
+  getDjRadioSubscriberPage,
+  getDjRadioSubscribers,
 } from '@/api/dj'
 
 const client = (response: unknown) => {
@@ -868,5 +872,76 @@ describe('DJ API', () => {
     await expect(
       getDjCategoryRecommend(client({ data: many }).client),
     ).resolves.toHaveLength(DJ_CATEGORY_RECOMMEND_LIMIT)
+  })
+
+  it('unwraps /dj/subscriber and maps blank nicknames to 匿名', async () => {
+    const request = client({
+      hasMore: true,
+      subscribers: [
+        {
+          avatarUrl: 'https://images.example.com/user.jpg',
+          extra: true,
+          nickname: '  林间电台  ',
+          userId: 8,
+        },
+        { nickname: '   ', userId: 9 },
+        { nickname: '无效', userId: 0 },
+        { nickname: '重复', userId: 8 },
+      ],
+      time: 77,
+    })
+    await expect(
+      getDjRadioSubscriberPage(801, DJ_SUBSCRIBER_TIME_START, request.client),
+    ).resolves.toEqual({
+      more: true,
+      subscribers: [
+        {
+          avatarUrl: 'https://images.example.com/user.jpg',
+          nickname: '林间电台',
+          userId: 8,
+        },
+        { nickname: '匿名', userId: 9 },
+      ],
+      time: 77,
+    })
+    expect(request.get).toHaveBeenCalledWith('/dj/subscriber', {
+      id: 801,
+      limit: DJ_SUBSCRIBER_LIMIT,
+      time: DJ_SUBSCRIBER_TIME_START,
+    })
+    await expect(
+      getDjRadioSubscribers(
+        801,
+        client({
+          hasMore: false,
+          subscribers: [{ nickname: '林间电台', userId: 8 }],
+          time: 1,
+        }).client,
+      ),
+    ).resolves.toEqual([{ nickname: '林间电台', userId: 8 }])
+  })
+
+  it('rejects a missing subscriber array and an invalid radio id', async () => {
+    await expect(getDjRadioSubscriberPage(0, -1, client({}).client)).rejects.toThrow(
+      '缺少有效的电台 ID',
+    )
+    await expect(
+      getDjRadioSubscriberPage(801, -1, client({ subscribers: null }).client),
+    ).rejects.toThrow('电台订阅者响应格式不正确')
+    const full = Array.from({ length: DJ_SUBSCRIBER_LIMIT }, (_, index) => ({
+      nickname: `订阅者 ${index + 1}`,
+      userId: index + 1,
+    }))
+    await expect(
+      getDjRadioSubscriberPage(
+        801,
+        DJ_SUBSCRIBER_TIME_START,
+        client({ subscribers: full, time: 12 }).client,
+      ),
+    ).resolves.toEqual({
+      more: true,
+      subscribers: full,
+      time: 12,
+    })
   })
 })

@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  getDjCommentFloor,
   getMvCommentFloor,
   getPlaylistCommentFloor,
   getSongCommentFloor,
@@ -11,7 +12,8 @@ import { useCommentFloorStore } from '@/stores/commentFloor'
 
 vi.mock('@/api/commentFloor', () => ({
   COMMENT_FLOOR_LIMIT: 10,
-  COMMENT_FLOOR_TYPE: { mv: 1, playlist: 2, song: 0, video: 5 },
+  COMMENT_FLOOR_TYPE: { dj: 4, mv: 1, playlist: 2, song: 0, video: 5 },
+  getDjCommentFloor: vi.fn(),
   getMvCommentFloor: vi.fn(),
   getPlaylistCommentFloor: vi.fn(),
   getSongCommentFloor: vi.fn(),
@@ -35,6 +37,7 @@ describe('comment floor store', () => {
     vi.mocked(getSongCommentFloor).mockReset()
     vi.mocked(getMvCommentFloor).mockReset()
     vi.mocked(getVideoCommentFloor).mockReset()
+    vi.mocked(getDjCommentFloor).mockReset()
   })
 
   it('caches an empty floor success', async () => {
@@ -71,6 +74,16 @@ describe('comment floor store', () => {
     expect(getSongCommentFloor).toHaveBeenCalledWith(301, 11)
     expect(getMvCommentFloor).toHaveBeenCalledWith(701, 11)
     expect(getVideoCommentFloor).toHaveBeenCalledWith('VID001', 11)
+  })
+
+  it('loads DJ program floors', async () => {
+    vi.mocked(getDjCommentFloor).mockResolvedValue([reply])
+    const store = useCommentFloorStore()
+    await store.loadFloor('dj', 901, 11)
+    await store.loadFloor('dj', 901, 11)
+    expect(getDjCommentFloor).toHaveBeenCalledTimes(1)
+    expect(getDjCommentFloor).toHaveBeenCalledWith(901, 11)
+    expect(store.floor('dj', 901, 11)?.replies).toEqual([reply])
   })
 
   it('drops in-flight floors after reset', async () => {

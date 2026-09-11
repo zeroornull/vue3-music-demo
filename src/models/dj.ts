@@ -65,3 +65,15 @@ export interface DjRadioProgramPage {
   programs: DjProgram[]
   more: boolean
 }
+
+export interface DjRadioSubscriber {
+  userId: number
+  nickname: string
+  avatarUrl?: string
+}
+
+export interface DjRadioSubscriberPage {
+  more: boolean
+  subscribers: DjRadioSubscriber[]
+  time: number
+}

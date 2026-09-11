@@ -4,6 +4,7 @@ import type { HttpClient } from '@/api/http'
 import {
   COMMENT_FLOOR_LIMIT,
   COMMENT_FLOOR_TYPE,
+  getDjCommentFloor,
   getMvCommentFloor,
   getPlaylistCommentFloor,
   getSongCommentFloor,
@@ -73,6 +74,14 @@ describe('Comment floor API', () => {
         type: COMMENT_FLOOR_TYPE.video,
       }),
     )
+    const dj = client(floor)
+    await expect(getDjCommentFloor(901, 11, dj.client)).resolves.toHaveLength(1)
+    expect(dj.get).toHaveBeenCalledWith('/comment/floor', {
+      id: 901,
+      limit: COMMENT_FLOOR_LIMIT,
+      parentCommentId: 11,
+      type: COMMENT_FLOOR_TYPE.dj,
+    })
   })
 
   it('rejects missing ids and missing comment arrays', async () => {
@@ -84,6 +93,9 @@ describe('Comment floor API', () => {
     )
     await expect(getVideoCommentFloor('  ', 11, client({}).client)).rejects.toThrow(
       '缺少有效的视频 ID',
+    )
+    await expect(getDjCommentFloor(0, 11, client({}).client)).rejects.toThrow(
+      '缺少有效的电台节目 ID',
     )
     await expect(
       getMvCommentFloor(701, 11, client({ comments: null }).client),

@@ -6,6 +6,8 @@ import type {
   DjProgramDetail,
   DjRadioDetail,
   DjRadioProgramPage,
+  DjRadioSubscriber,
+  DjRadioSubscriberPage,
   HallRadio,
   HallRadioPage,
 } from '@/models/dj'
@@ -24,6 +26,8 @@ export const DJ_PROGRAM_RECOMMEND_LIMIT = 10
 export const DJ_HOT_RADIO_LIMIT = 10
 export const DJ_TYPE_RECOMMEND_LIMIT = 10
 export const DJ_CATEGORY_RECOMMEND_LIMIT = 10
+export const DJ_SUBSCRIBER_LIMIT = 20
+export const DJ_SUBSCRIBER_TIME_START = -1
 
 export interface HotDjRadioQuery {
   cateId: number
@@ -551,4 +555,74 @@ export async function getDjRadioPrograms(
     more:
       typeof response.more === 'boolean' ? response.more : programs.length >= limit,
   }
+}
+
+function readRadioSubscriber(value: unknown): DjRadioSubscriber | null {
+  if (
+    !isRecord(value) ||
+    typeof value.userId !== 'number' ||
+    !Number.isInteger(value.userId) ||
+    value.userId <= 0
+  ) {
+    return null
+  }
+  const nickname =
+    typeof value.nickname === 'string' ? value.nickname.trim() : ''
+  return {
+    userId: value.userId,
+    nickname: nickname || '匿名',
+    ...(typeof value.avatarUrl === 'string' && value.avatarUrl
+      ? { avatarUrl: value.avatarUrl }
+      : {}),
+  }
+}
+
+export async function getDjRadioSubscriberPage(
+  id: number,
+  time = DJ_SUBSCRIBER_TIME_START,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<DjRadioSubscriberPage> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的电台 ID')
+  }
+  const response = await client.get<{
+    hasMore?: unknown
+    subscribers?: unknown
+    time?: unknown
+  }>('/dj/subscriber', {
+    id,
+    limit: DJ_SUBSCRIBER_LIMIT,
+    time,
+  })
+  if (!Array.isArray(response.subscribers)) {
+    throw new Error('电台订阅者响应格式不正确')
+  }
+  const seen = new Set<number>()
+  const subscribers: DjRadioSubscriber[] = []
+  for (const raw of response.subscribers) {
+    const item = readRadioSubscriber(raw)
+    if (!item || seen.has(item.userId)) continue
+    seen.add(item.userId)
+    subscribers.push(item)
+    if (subscribers.length >= DJ_SUBSCRIBER_LIMIT) break
+  }
+  const nextTime =
+    typeof response.time === 'number' && Number.isFinite(response.time)
+      ? response.time
+      : time
+  const more =
+    response.hasMore === true
+      ? true
+      : response.hasMore === false
+        ? false
+        : subscribers.length >= DJ_SUBSCRIBER_LIMIT && nextTime !== time
+  return { more, subscribers, time: nextTime }
+}
+
+export async function getDjRadioSubscribers(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<DjRadioSubscriber[]> {
+  const page = await getDjRadioSubscriberPage(id, DJ_SUBSCRIBER_TIME_START, client)
+  return page.subscribers
 }

@@ -24,6 +24,10 @@ const {
   radioCommentsMore,
   radioCommentsMoreLoading,
   radioCommentsMoreError,
+  radioSubscribers,
+  radioSubscribersMore,
+  radioSubscribersMoreLoading,
+  radioSubscribersMoreError,
 } = storeToRefs(djStore)
 
 const radioId = computed(() => {
@@ -44,6 +48,10 @@ function loadMore() {
 
 function loadMoreComments() {
   void djStore.loadMoreRadioComments().catch(() => undefined)
+}
+
+function loadMoreSubscribers() {
+  void djStore.loadMoreRadioSubscribers().catch(() => undefined)
 }
 
 watch(
@@ -180,6 +188,39 @@ watch(
         </button>
       </section>
       <section
+        v-if="radioSubscribers !== null"
+        class="dj-radio-subscribers"
+        data-testid="dj-radio-subscribers"
+        aria-labelledby="dj-radio-subscribers-title"
+      >
+        <h2 id="dj-radio-subscribers-title">订阅者</h2>
+        <p v-if="!radioSubscribers.length" class="subscribers-empty">暂无订阅者</p>
+        <ul v-else class="subscriber-list">
+          <li v-for="item in radioSubscribers" :key="item.userId">
+            <img
+              v-if="item.avatarUrl"
+              :src="item.avatarUrl"
+              alt=""
+              width="32"
+              height="32"
+            />
+            <strong>{{ item.nickname }}</strong>
+          </li>
+        </ul>
+        <p v-if="radioSubscribersMoreError" class="subscribers-more-error" role="alert">
+          {{ radioSubscribersMoreError }}
+        </p>
+        <button
+          v-if="radioSubscribers.length && radioSubscribersMore"
+          type="button"
+          data-testid="dj-radio-subscribers-more"
+          :disabled="radioSubscribersMoreLoading"
+          @click="loadMoreSubscribers"
+        >
+          {{ radioSubscribersMoreLoading ? '正在加载订阅者' : '加载更多订阅者' }}
+        </button>
+      </section>
+      <section
         v-if="relatedRadios?.length"
         class="related-radios"
         data-testid="related-radios"
@@ -217,6 +258,7 @@ watch(
 }
 
 .dj-radio-comments,
+.dj-radio-subscribers,
 .related-radios {
   display: grid;
   gap: 16px;
@@ -224,6 +266,7 @@ watch(
 }
 
 .dj-radio-comments h2,
+.dj-radio-subscribers h2,
 .related-radios h2 {
   margin: 0;
   font-size: 1.2rem;
@@ -264,8 +307,52 @@ watch(
   color: var(--color-danger);
 }
 
-.dj-radio-comments button {
+.dj-radio-comments button,
+.dj-radio-subscribers button {
   justify-self: start;
+}
+
+.subscribers-empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.subscriber-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px 16px;
+}
+
+.subscriber-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.subscriber-list img {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--color-well);
+}
+
+.subscriber-list strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+
+.subscribers-more-error {
+  margin: 12px 0 0;
+  color: var(--color-danger);
 }
 
 .related-grid {

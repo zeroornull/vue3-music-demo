@@ -40,10 +40,14 @@ vi.mock('@/api/privateContent', () => ({
   getPrivateContents: vi.fn(),
 }))
 
-vi.mock('@/api/dj', () => ({
-  getPersonalizedDjPrograms: vi.fn(),
-  getDjProgramDetail: vi.fn(),
-}))
+vi.mock('@/api/dj', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/dj')>()
+  return {
+    ...actual,
+    getPersonalizedDjPrograms: vi.fn(),
+    getDjProgramDetail: vi.fn(),
+  }
+})
 
 const PickedViewStub = defineComponent({
   name: 'PickedView',

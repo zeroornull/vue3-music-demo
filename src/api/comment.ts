@@ -4,6 +4,7 @@ import { parseMediaComment, type MediaComment } from '@/models/comment'
 export const COMMENT_LIMIT = 20
 export const COMMENT_HOT_LIMIT = 10
 export const COMMENT_HOT_TYPE = {
+  dj: 4,
   mv: 1,
   playlist: 2,
   song: 0,
@@ -306,6 +307,21 @@ export async function getSongHotComments(
     COMMENT_HOT_TYPE.song,
     id,
     '歌曲热门评论响应格式不正确',
+    client,
+  )
+}
+
+export async function getDjHotComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的电台节目 ID')
+  }
+  return getHotCommentList(
+    COMMENT_HOT_TYPE.dj,
+    id,
+    '电台节目热门评论响应格式不正确',
     client,
   )
 }

@@ -7,7 +7,12 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getDjRadioCommentPage } from '@/api/comment'
-import { getDjRadioDetail, getDjRadioPrograms, getHotDjRadios } from '@/api/dj'
+import {
+  getDjRadioDetail,
+  getDjRadioPrograms,
+  getDjRadioSubscriberPage,
+  getHotDjRadios,
+} from '@/api/dj'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import DjRadioView from '@/views/DjRadioView.vue'
@@ -15,6 +20,7 @@ import DjRadioView from '@/views/DjRadioView.vue'
 vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getDjCommentPage: vi.fn(),
+  getDjHotComments: vi.fn(),
   getDjRadioCommentPage: vi.fn(),
 }))
 
@@ -24,6 +30,7 @@ vi.mock('@/api/dj', async (importOriginal) => {
     ...actual,
     getDjRadioDetail: vi.fn(),
     getDjRadioPrograms: vi.fn(),
+    getDjRadioSubscriberPage: vi.fn(),
     getHotDjRadios: vi.fn(),
   }
 })
@@ -76,6 +83,10 @@ describe('DjRadioView', () => {
     vi.mocked(getHotDjRadios).mockRejectedValue(new Error('no radios'))
     vi.mocked(getDjRadioCommentPage).mockReset()
     vi.mocked(getDjRadioCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getDjRadioSubscriberPage).mockReset()
+    vi.mocked(getDjRadioSubscriberPage).mockRejectedValue(
+      new Error('no subscribers'),
+    )
   })
 
   it('shows a missing-id empty state', async () => {
@@ -192,5 +203,60 @@ describe('DjRadioView', () => {
     expect(wrapper.find('[data-testid="dj-radio-comments-more"]').exists()).toBe(
       false,
     )
+  })
+
+  it('renders radio subscribers without blocking programs', async () => {
+    vi.mocked(getDjRadioSubscriberPage).mockResolvedValue({
+      more: true,
+      subscribers: [
+        {
+          avatarUrl: 'https://images.example.com/user.jpg',
+          nickname: '林间电台',
+          userId: 8,
+        },
+      ],
+      time: 77,
+    })
+    const wrapper = await mountView({ id: '801' })
+    await flushPromises()
+    expect(wrapper.get('h1').text()).toBe('夜航电台')
+    expect(wrapper.text()).toContain('深夜民谣')
+    const block = wrapper.get('[data-testid="dj-radio-subscribers"]')
+    expect(block.text()).toContain('林间电台')
+    expect(block.find('a').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="dj-radio-subscribers-more"]').text()).toBe(
+      '加载更多订阅者',
+    )
+  })
+
+  it('loads more radio subscribers without dropping the first page', async () => {
+    vi.mocked(getDjRadioSubscriberPage)
+      .mockResolvedValueOnce({
+        more: true,
+        subscribers: [{ nickname: '林间电台', userId: 8 }],
+        time: 77,
+      })
+      .mockResolvedValueOnce({
+        more: false,
+        subscribers: [{ nickname: '夜航乐队', userId: 21 }],
+        time: 88,
+      })
+    const wrapper = await mountView({ id: '801' })
+    await flushPromises()
+    await wrapper.get('[data-testid="dj-radio-subscribers-more"]').trigger('click')
+    await flushPromises()
+    const block = wrapper.get('[data-testid="dj-radio-subscribers"]')
+    expect(block.text()).toContain('林间电台')
+    expect(block.text()).toContain('夜航乐队')
+    expect(wrapper.find('[data-testid="dj-radio-subscribers-more"]').exists()).toBe(
+      false,
+    )
+  })
+
+  it('hides radio subscribers when the request fails', async () => {
+    const wrapper = await mountView({ id: '801' })
+    await flushPromises()
+    expect(wrapper.get('h1').text()).toBe('夜航电台')
+    expect(wrapper.find('[data-testid="dj-radio-subscribers"]').exists()).toBe(false)
   })
 })

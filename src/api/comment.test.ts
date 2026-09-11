@@ -18,6 +18,7 @@ import {
   getSongCommentPage,
   getSongComments,
   getSongHotComments,
+  getDjHotComments,
   getVideoCommentPage,
   getVideoComments,
   getVideoHotComments,
@@ -719,6 +720,26 @@ describe('Hot comment API', () => {
     })
   })
 
+  it('unwraps DJ program hot comments', async () => {
+    const request = client({ hotComments: [hot] })
+    await expect(getDjHotComments(901, request.client)).resolves.toEqual([
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/comment/hot', {
+      id: 901,
+      limit: COMMENT_HOT_LIMIT,
+      type: COMMENT_HOT_TYPE.dj,
+    })
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      commentId: index + 1,
+      content: `热评${index + 1}`,
+      user: { nickname: '热评用户' },
+    }))
+    await expect(
+      getDjHotComments(901, client({ hotComments: many }).client),
+    ).resolves.toHaveLength(COMMENT_HOT_LIMIT)
+  })
+
   it('rejects missing ids or a body without hotComments', async () => {
     await expect(getPlaylistHotComments(0, client({}).client)).rejects.toThrow(
       '缺少有效的歌单 ID',
@@ -732,6 +753,12 @@ describe('Hot comment API', () => {
     await expect(getSongHotComments(0, client({}).client)).rejects.toThrow(
       '缺少有效的歌曲 ID',
     )
+    await expect(getDjHotComments(0, client({}).client)).rejects.toThrow(
+      '缺少有效的电台节目 ID',
+    )
+    await expect(
+      getDjHotComments(901, client({ comments: [] }).client),
+    ).rejects.toThrow('电台节目热门评论响应格式不正确')
     await expect(
       getPlaylistHotComments(101, client({ comments: [] }).client),
     ).rejects.toThrow('歌单热门评论响应格式不正确')

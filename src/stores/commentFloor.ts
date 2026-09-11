@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 
 import {
   COMMENT_FLOOR_TYPE,
+  getDjCommentFloor,
   getMvCommentFloor,
   getPlaylistCommentFloor,
   getSongCommentFloor,
@@ -46,6 +47,7 @@ export const useCommentFloorStore = defineStore('commentFloor', () => {
     if (kind === 'playlist') return getPlaylistCommentFloor(Number(resourceId), parentId)
     if (kind === 'song') return getSongCommentFloor(Number(resourceId), parentId)
     if (kind === 'mv') return getMvCommentFloor(Number(resourceId), parentId)
+    if (kind === 'dj') return getDjCommentFloor(Number(resourceId), parentId)
     return getVideoCommentFloor(String(resourceId), parentId)
   }
 

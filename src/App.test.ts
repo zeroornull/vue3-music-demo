@@ -30,6 +30,9 @@ import { useHostStore } from '@/stores/host'
 
 vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
+  getDjCommentPage: vi.fn(),
+  getDjHotComments: vi.fn(),
+  getDjRadioCommentPage: vi.fn(),
   getSongComments: vi.fn(),
   getSongCommentPage: vi.fn(),
   getSongHotComments: vi.fn(),
@@ -516,6 +519,17 @@ describe('App host gate', () => {
     djStore.comments = [
       { commentId: 1, content: '走过林间。', nickname: '林间电台' },
     ]
+    djStore.hotComments = [
+      { commentId: 11, content: '热评', nickname: '林间电台' },
+    ]
+    djStore.hotCommentsError = 'stale'
+    djStore.radioSubscribers = [
+      { nickname: '林间电台', userId: 8 },
+    ]
+    djStore.radioSubscribersMore = true
+    djStore.radioSubscribersMoreError = 'stale'
+    djStore.radioSubscribersMoreLoading = true
+    djStore.radioSubscriberTime = 99
     djStore.commentsMore = true
     djStore.commentsMoreError = 'stale'
     djStore.commentsMoreLoading = true
@@ -566,6 +580,13 @@ describe('App host gate', () => {
     expect(djStore.commentsMoreError).toBeNull()
     expect(djStore.commentsMoreLoading).toBe(false)
     expect(djStore.commentOffset).toBe(0)
+    expect(djStore.hotComments).toBeNull()
+    expect(djStore.hotCommentsError).toBeNull()
+    expect(djStore.radioSubscribers).toBeNull()
+    expect(djStore.radioSubscribersMore).toBe(false)
+    expect(djStore.radioSubscribersMoreError).toBeNull()
+    expect(djStore.radioSubscribersMoreLoading).toBe(false)
+    expect(djStore.radioSubscriberTime).toBe(-1)
     expect(djStore.radioComments).toBeNull()
     expect(djStore.radioCommentsMore).toBe(false)
     expect(djStore.radioCommentsMoreError).toBeNull()

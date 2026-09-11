@@ -3,8 +3,11 @@ import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 
+import CommentHotSection from '@/components/comment/CommentHotSection.vue'
+import CommentThread from '@/components/comment/CommentThread.vue'
 import DjProgramHeader from '@/components/dj/DjProgramHeader.vue'
 import DjProgramCard from '@/components/music/DjProgramCard.vue'
+import { excludeSeenComments } from '@/models/comment'
 import { Pages } from '@/router/pages'
 import { useDjStore } from '@/stores/dj'
 import { usePlayerStore } from '@/stores/player'
@@ -20,6 +23,8 @@ const {
   commentsMore,
   commentsMoreLoading,
   commentsMoreError,
+  hotComments,
+  hotCommentsError,
   loading,
   error,
 } = storeToRefs(djStore)
@@ -41,6 +46,14 @@ function requestProgram(force = false) {
 function loadMoreComments() {
   void djStore.loadMoreComments().catch(() => undefined)
 }
+
+function retryHotComments() {
+  void djStore.loadHotComments(true).catch(() => undefined)
+}
+
+const latestComments = computed(() =>
+  excludeSeenComments(comments.value, hotComments.value),
+)
 
 function playProgram() {
   const current = program.value
@@ -121,6 +134,15 @@ watch(
         @play="playProgram"
       />
       <p v-if="notice" class="notice" role="status">{{ notice }}</p>
+      <CommentHotSection
+        error-title="电台节目热门评论加载失败"
+        kind="dj"
+        testid="dj-hot-comments"
+        :comments="hotComments"
+        :error="hotCommentsError"
+        :resource-id="programId"
+        @retry="retryHotComments"
+      />
       <section
         v-if="comments !== null"
         class="dj-comments"
@@ -128,12 +150,16 @@ watch(
         aria-labelledby="dj-comments-title"
       >
         <h2 id="dj-comments-title">评论</h2>
-        <p v-if="!comments.length" class="comments-empty">暂无评论</p>
+        <p v-if="!latestComments?.length" class="comments-empty">暂无评论</p>
         <ul v-else class="comment-list">
-          <li v-for="item in comments" :key="item.commentId">
-            <strong>{{ item.nickname }}</strong>
-            <p>{{ item.content }}</p>
-          </li>
+          <CommentThread
+            v-for="item in latestComments"
+            :key="item.commentId"
+            kind="dj"
+            testid="dj-comments"
+            :comment="item"
+            :resource-id="programId!"
+          />
         </ul>
         <p v-if="commentsMoreError" class="comments-more-error" role="alert">
           {{ commentsMoreError }}

@@ -19,12 +19,15 @@ import {
   getDjTodayPrograms,
   getDjProgramHoursToplist,
   getDjRadioHoursToplist,
+  getDjRadioSubscriberPage,
+  DJ_SUBSCRIBER_TIME_START,
   getHotDjRadios,
   getPersonalizedDjPrograms,
 } from '@/api/dj'
 import {
   COMMENT_LIMIT,
   getDjCommentPage,
+  getDjHotComments,
   getDjRadioCommentPage,
 } from '@/api/comment'
 import { useDjStore } from '@/stores/dj'
@@ -32,6 +35,7 @@ import { useDjStore } from '@/stores/dj'
 vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getDjCommentPage: vi.fn(),
+  getDjHotComments: vi.fn(),
   getDjRadioCommentPage: vi.fn(),
 }))
 
@@ -56,6 +60,7 @@ vi.mock('@/api/dj', async (importOriginal) => {
     getDjRadioHoursToplist: vi.fn(),
     getHotDjRadios: vi.fn(),
     getPersonalizedDjPrograms: vi.fn(),
+    getDjRadioSubscriberPage: vi.fn(),
   }
 })
 
@@ -165,8 +170,14 @@ describe('dj store', () => {
     vi.mocked(getDjRadioHoursToplist).mockReset()
     vi.mocked(getDjCommentPage).mockReset()
     vi.mocked(getDjCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getDjHotComments).mockReset()
+    vi.mocked(getDjHotComments).mockRejectedValue(new Error('no hot comments'))
     vi.mocked(getDjRadioCommentPage).mockReset()
     vi.mocked(getDjRadioCommentPage).mockRejectedValue(new Error('no radio comments'))
+    vi.mocked(getDjRadioSubscriberPage).mockReset()
+    vi.mocked(getDjRadioSubscriberPage).mockRejectedValue(
+      new Error('no subscribers'),
+    )
   })
 
   it('loads hall banners once and treats a failed page as a cache miss', async () => {
@@ -1451,5 +1462,154 @@ describe('dj store', () => {
     expect(store.radioCommentsMore).toBe(true)
     expect(store.comments).toBeNull()
     expect(store.commentsMore).toBe(false)
+  })
+
+  it('loads program hot comments without blocking detail', async () => {
+    const hot = { commentId: 9, content: '林间热评', nickname: '林间电台' }
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjHotComments).mockResolvedValue([hot])
+    const store = useDjStore()
+    await store.load(901)
+    await settle()
+    await store.load(901)
+
+    expect(store.program).toEqual(detail)
+    expect(store.hotComments).toEqual([hot])
+    expect(getDjHotComments).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not keep stale hot comments after the program id changes', async () => {
+    const stale = { commentId: 9, content: '旧热评', nickname: '林间电台' }
+    const next = { commentId: 19, content: '新热评', nickname: '夜航乐队' }
+    const pending = deferred<typeof stale[]>()
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjHotComments)
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce([next])
+    const store = useDjStore()
+    const first = store.load(901)
+    await settle()
+    const second = store.load(902)
+    pending.resolve([stale])
+    await first
+    await second
+    await settle()
+    expect(store.hotComments).toEqual([next])
+    expect(store.hotCommentsError).toBeNull()
+  })
+
+  it('keeps the program when hot comments fail and retries on cache hit', async () => {
+    const hot = { commentId: 9, content: '林间热评', nickname: '林间电台' }
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjHotComments)
+      .mockRejectedValueOnce(new Error('hot offline'))
+      .mockResolvedValueOnce([hot])
+    const store = useDjStore()
+    await store.load(901)
+    await settle()
+    expect(store.program).toEqual(detail)
+    expect(store.hotComments).toBeNull()
+    expect(store.hotCommentsError).toBe('hot offline')
+
+    await store.loadHotComments(true)
+    await settle()
+    expect(store.hotComments).toEqual([hot])
+    expect(store.hotCommentsError).toBeNull()
+  })
+
+  it('loads radio subscribers with the detail and ignores a subscriber failure', async () => {
+    const subscriber = { nickname: '林间电台', userId: 8 }
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getDjRadioSubscriberPage).mockResolvedValue({
+      more: true,
+      subscribers: [subscriber],
+      time: 77,
+    })
+    const store = useDjStore()
+    await store.loadRadio(801)
+    await settle()
+    await store.loadRadio(801)
+
+    expect(store.radio).toEqual(radioDetail)
+    expect(store.radioSubscribers).toEqual([subscriber])
+    expect(store.radioSubscribersMore).toBe(true)
+    expect(store.radioSubscriberTime).toBe(77)
+    expect(getDjRadioSubscriberPage).toHaveBeenCalledTimes(1)
+    expect(getDjRadioSubscriberPage).toHaveBeenCalledWith(
+      801,
+      DJ_SUBSCRIBER_TIME_START,
+    )
+  })
+
+  it('appends more radio subscribers without dropping the first page', async () => {
+    const first = { nickname: '林间电台', userId: 8 }
+    const extra = { nickname: '夜航乐队', userId: 21 }
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getDjRadioSubscriberPage)
+      .mockResolvedValueOnce({
+        more: true,
+        subscribers: [first],
+        time: 77,
+      })
+      .mockResolvedValueOnce({
+        more: false,
+        subscribers: [extra, first],
+        time: 88,
+      })
+    const store = useDjStore()
+    await store.loadRadio(801)
+    await settle()
+    await store.loadMoreRadioSubscribers()
+
+    expect(store.radioSubscribers).toEqual([first, extra])
+    expect(store.radioSubscribersMore).toBe(false)
+    expect(getDjRadioSubscriberPage).toHaveBeenNthCalledWith(2, 801, 77)
+  })
+
+  it('keeps loaded radio subscribers when load more fails', async () => {
+    const first = { nickname: '林间电台', userId: 8 }
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getDjRadioSubscriberPage)
+      .mockResolvedValueOnce({
+        more: true,
+        subscribers: [first],
+        time: 77,
+      })
+      .mockRejectedValueOnce(new Error('more offline'))
+    const store = useDjStore()
+    await store.loadRadio(801)
+    await settle()
+    await expect(store.loadMoreRadioSubscribers()).rejects.toThrow('more offline')
+    expect(store.radioSubscribers).toEqual([first])
+    expect(store.radioSubscribersMore).toBe(true)
+    expect(store.radioSubscribersMoreError).toBe('more offline')
+  })
+
+  it('does not keep stale subscribers after the radio id changes', async () => {
+    const stale = { nickname: '林间电台', userId: 8 }
+    const next = { nickname: '夜航乐队', userId: 9 }
+    const pending = deferred<{
+      more: boolean
+      subscribers: typeof stale[]
+      time: number
+    }>()
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getDjRadioSubscriberPage)
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValueOnce({ more: false, subscribers: [next], time: 2 })
+    const store = useDjStore()
+    const first = store.loadRadio(801)
+    await settle()
+    const second = store.loadRadio(802)
+    pending.resolve({ more: true, subscribers: [stale], time: 1 })
+    await first
+    await second
+    await settle()
+    expect(store.radioSubscribers).toEqual([next])
+    expect(store.radioSubscribersMore).toBe(false)
   })
 })
