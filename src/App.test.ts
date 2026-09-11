@@ -17,6 +17,7 @@ import { useArtistStore } from '@/stores/artist'
 import { useCategoryStore } from '@/stores/category'
 import { useStyleStore } from '@/stores/style'
 import { useVoiceStore } from '@/stores/voice'
+import { useDigitalStore } from '@/stores/digital'
 import { useCommonStore } from '@/stores/common'
 import { useMusicStore } from '@/stores/music'
 import { useMvStore } from '@/stores/mv'
@@ -232,6 +233,36 @@ describe('App host gate', () => {
     expect(voiceStore.voices).toEqual([])
     expect(voiceStore.lyric).toBe('')
     expect(voiceStore.voiceId).toBe(0)
+  })
+
+  it('clears digital album hall cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const digitalStore = useDigitalStore()
+    digitalStore.albums = [
+      {
+        artist: { id: 401, name: '林间电台' },
+        id: 511,
+        name: '数字夜航',
+        picUrl: '',
+        publishTime: 0,
+      },
+    ]
+    digitalStore.area = 'JP'
+    digitalStore.styleAlbums = [{ ...digitalStore.albums[0]!, id: 515, name: '日本数字' }]
+    digitalStore.albumBoard = [{ ...digitalStore.albums[0]!, id: 513, name: '周榜专辑' }]
+    digitalStore.singleBoard = [{ ...digitalStore.albums[0]!, id: 514, name: '周榜单曲' }]
+    digitalStore.sales = [{ id: 511, name: '数字夜航', saleNum: 128 }]
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(digitalStore.albums).toEqual([])
+    expect(digitalStore.area).toBe('Z_H')
+    expect(digitalStore.styleAlbums).toEqual([])
+    expect(digitalStore.albumBoard).toEqual([])
+    expect(digitalStore.singleBoard).toEqual([])
+    expect(digitalStore.sales).toEqual([])
   })
 
   it('clears artist detail cache when the host gate closes', async () => {

@@ -3,6 +3,7 @@ export const Pages = {
   artist: 'artist',
   artistDetail: 'artistDetail',
   category: 'category',
+  digital: 'digital',
   discover: 'discover',
   fm: 'fm',
   dj: 'dj',

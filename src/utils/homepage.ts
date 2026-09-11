@@ -82,6 +82,13 @@ export function resolveDragonBallTarget(url: string): HomeTarget {
   if (playlistId && lower.includes('playlist')) {
     return { kind: 'route', name: Pages.playlist, id: playlistId }
   }
+  if (
+    lower.includes('digitalalbum') ||
+    lower.includes('nm/digital') ||
+    /\/digital(?:\/|\?|$)/.test(lower)
+  ) {
+    return { kind: 'route', name: Pages.digital }
+  }
   const albumId =
     (lower.includes('album') && parsed ? queryId(parsed, ['id']) : null) ??
     hostId(['album'])

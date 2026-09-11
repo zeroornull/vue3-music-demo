@@ -147,6 +147,17 @@ export const routes: RouteRecordRaw[] = [
           title: '声音',
         },
       },
+      {
+        path: 'digital',
+        name: Pages.digital,
+        component: () => import('@/views/music/DigitalHallPage.vue'),
+        meta: {
+          keepAlive: true,
+          menu: 'music',
+          requiresApiHost: true,
+          title: '数字专辑',
+        },
+      },
     ],
   },
   {

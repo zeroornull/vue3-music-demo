@@ -43,6 +43,16 @@ describe('homepage targets', () => {
       id: 801,
       name: Pages.voice,
     })
+    expect(resolveDragonBallTarget('orpheus://nm/digital')).toEqual({
+      kind: 'route',
+      name: Pages.digital,
+    })
+    expect(
+      resolveDragonBallTarget('https://music.163.com/store/digitalalbum/detail?id=511'),
+    ).toEqual({
+      kind: 'route',
+      name: Pages.digital,
+    })
     expect(resolveDragonBallTarget('https://music.163.com/playlist?id=101')).toEqual({
       kind: 'route',
       id: 101,

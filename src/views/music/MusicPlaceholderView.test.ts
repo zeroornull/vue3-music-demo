@@ -28,5 +28,7 @@ describe('MusicPlaceholderView', () => {
     expect(wrapper.get('[data-testid="style-shortcut"]').text()).toContain('曲风馆')
     expect(wrapper.text()).toContain('声音馆')
     expect(wrapper.get('[data-testid="voice-shortcut"]').text()).toContain('声音馆')
+    expect(wrapper.text()).toContain('数字专辑馆')
+    expect(wrapper.get('[data-testid="digital-shortcut"]').text()).toContain('数字专辑馆')
   })
 })

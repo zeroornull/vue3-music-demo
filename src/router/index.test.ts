@@ -71,10 +71,12 @@ describe('router contract', () => {
     expect(router.resolve({ name: Pages.category }).path).toBe('/music/category')
     expect(router.resolve({ name: Pages.style }).path).toBe('/music/style')
     expect(router.resolve({ name: Pages.voice }).path).toBe('/music/voice')
+    expect(router.resolve({ name: Pages.digital }).path).toBe('/music/digital')
     expect(router.resolve({ name: Pages.toplist }).meta.title).toBe('排行榜')
     expect(router.resolve({ name: Pages.djHall }).meta.title).toBe('电台大厅')
     expect(router.resolve({ name: Pages.style }).meta.title).toBe('曲风')
     expect(router.resolve({ name: Pages.voice }).meta.title).toBe('声音')
+    expect(router.resolve({ name: Pages.digital }).meta.title).toBe('数字专辑')
   })
 
   it('preserves the legacy artist detail route name and query id', () => {
