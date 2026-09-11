@@ -28,9 +28,13 @@ const RouterLinkStub = defineComponent({
 
 function mountSection(
   props: Partial<{
+    emptyTitle: string
     error: string | null
+    hint: string
     loading: boolean
     playlists: typeof playlist[]
+    testid: string
+    title: string
   }> = {},
 ) {
   return mount(PersonalizedSection, {
@@ -61,7 +65,27 @@ describe('PersonalizedSection', () => {
 
   it('renders an explicit empty state', () => {
     const wrapper = mountSection()
+    expect(wrapper.get('#personalized-title').text()).toBe('你的专属歌单')
     expect(wrapper.get('[data-testid="personalized-empty"]').text()).toContain('暂无专属歌单')
+    expect(wrapper.text()).toContain('依据当前 API 返回的个性化推荐')
+  })
+
+  it('uses a hall-specific title and testid', () => {
+    const wrapper = mountSection({
+      emptyTitle: '暂无曲风歌单',
+      hint: '点击封面即可打开歌单',
+      testid: 'style-playlists',
+      title: '曲风歌单',
+    })
+    expect(wrapper.get('#style-playlists-title').text()).toBe('曲风歌单')
+    expect(wrapper.get('[data-testid="style-playlists-empty"]').text()).toContain(
+      '暂无曲风歌单',
+    )
+    expect(wrapper.get('[data-testid="style-playlists-empty"]').text()).toContain(
+      '曲风歌单',
+    )
+    expect(wrapper.text()).toContain('点击封面即可打开歌单')
+    expect(wrapper.text()).not.toContain('依据当前 API 返回的个性化推荐')
   })
 
   it('limits the visible grid to ten playlists', () => {

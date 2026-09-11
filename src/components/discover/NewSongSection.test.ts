@@ -66,6 +66,7 @@ describe('NewSongSection', () => {
       title: '新歌榜',
     })
     expect(empty.get('[data-testid="top-song-empty"]').text()).toContain('暂无新歌榜')
+    expect(empty.get('[data-testid="top-song-empty"]').text()).toContain('新歌榜')
   })
 
   it('renders an error and emits retry', async () => {

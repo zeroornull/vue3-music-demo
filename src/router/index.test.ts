@@ -69,8 +69,10 @@ describe('router contract', () => {
     expect(router.resolve({ name: Pages.toplist }).path).toBe('/music/toplist')
     expect(router.resolve({ name: Pages.artist }).path).toBe('/music/artist')
     expect(router.resolve({ name: Pages.category }).path).toBe('/music/category')
+    expect(router.resolve({ name: Pages.style }).path).toBe('/music/style')
     expect(router.resolve({ name: Pages.toplist }).meta.title).toBe('排行榜')
     expect(router.resolve({ name: Pages.djHall }).meta.title).toBe('电台大厅')
+    expect(router.resolve({ name: Pages.style }).meta.title).toBe('曲风')
   })
 
   it('preserves the legacy artist detail route name and query id', () => {

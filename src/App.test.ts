@@ -15,6 +15,7 @@ import { setAudioAdapter, usePlayerStore } from '@/stores/player'
 import { useAlbumStore } from '@/stores/album'
 import { useArtistStore } from '@/stores/artist'
 import { useCategoryStore } from '@/stores/category'
+import { useStyleStore } from '@/stores/style'
 import { useCommonStore } from '@/stores/common'
 import { useMusicStore } from '@/stores/music'
 import { useMvStore } from '@/stores/mv'
@@ -138,6 +139,60 @@ describe('App host gate', () => {
     expect(categoryStore.sort).toBe('hq')
     expect(categoryStore.catlist).toEqual([])
     expect(categoryStore.hotTags).toEqual([])
+  })
+
+  it('clears style hall cache when the host gate closes', async () => {
+    localStorage.setItem('BASE_URL', 'https://api.example.com')
+    const styleStore = useStyleStore()
+    styleStore.tags = [{ id: 1000, name: '电子' }]
+    styleStore.tagId = 1000
+    styleStore.songs = [
+      {
+        alg: '',
+        canDislike: false,
+        id: 301,
+        name: '晚风来信',
+        picUrl: '',
+        song: { artists: [], id: 301, name: '晚风来信' },
+        type: 0,
+      },
+    ]
+    styleStore.playlists = [
+      {
+        alg: '',
+        canDislike: false,
+        copywriter: '',
+        highQuality: false,
+        id: 101,
+        name: '电子夜航',
+        picUrl: '',
+        playCount: 1,
+        trackCount: 0,
+        trackNumberUpdateTime: 0,
+        type: 0,
+      },
+    ]
+    styleStore.albums = [
+      {
+        artist: { id: 401, name: '林间电台' },
+        id: 511,
+        name: '曲风专辑',
+        picUrl: '',
+        publishTime: 0,
+      },
+    ]
+    styleStore.artists = [{ id: 401, img1v1Url: '', name: '林间电台' }]
+    mountApp()
+
+    useHostStore().clearHost()
+    await flushPromises()
+
+    expect(styleStore.tags).toEqual([])
+    expect(styleStore.tagId).toBe(0)
+    expect(styleStore.songs).toEqual([])
+    expect(styleStore.playlists).toEqual([])
+    expect(styleStore.albums).toEqual([])
+    expect(styleStore.artists).toEqual([])
   })
 
   it('clears artist detail cache when the host gate closes', async () => {

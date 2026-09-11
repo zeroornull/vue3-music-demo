@@ -125,6 +125,17 @@ export const routes: RouteRecordRaw[] = [
           title: '分类歌单',
         },
       },
+      {
+        path: 'style',
+        name: Pages.style,
+        component: () => import('@/views/music/StyleHallPage.vue'),
+        meta: {
+          keepAlive: true,
+          menu: 'music',
+          requiresApiHost: true,
+          title: '曲风',
+        },
+      },
     ],
   },
   {

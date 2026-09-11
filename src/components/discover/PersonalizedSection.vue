@@ -6,13 +6,25 @@ import type { PersonalizedPlaylist } from '@/models/personalized'
 
 const props = withDefaults(
   defineProps<{
+    emptyTitle?: string
     error?: string | null
+    errorTitle?: string
+    eyebrow?: string
+    hint?: string
     loading?: boolean
     playlists: PersonalizedPlaylist[]
+    testid?: string
+    title?: string
   }>(),
   {
+    emptyTitle: '暂无专属歌单',
     error: null,
+    errorTitle: '专属歌单加载失败',
+    eyebrow: 'Made for you',
+    hint: '依据当前 API 返回的个性化推荐',
     loading: false,
+    testid: 'personalized',
+    title: '你的专属歌单',
   },
 )
 
@@ -24,21 +36,21 @@ const visiblePlaylists = computed(() => props.playlists.slice(0, 10))
 </script>
 
 <template>
-  <section class="personalized-section" aria-labelledby="personalized-title">
+  <section class="personalized-section" :aria-labelledby="`${testid}-title`">
     <div class="section-heading">
       <div>
-        <p class="eyebrow">Made for you</p>
-        <h2 id="personalized-title">你的专属歌单</h2>
+        <p class="eyebrow">{{ eyebrow }}</p>
+        <h2 :id="`${testid}-title`">{{ title }}</h2>
       </div>
-      <p>依据当前 API 返回的个性化推荐</p>
+      <p>{{ hint }}</p>
     </div>
 
     <div
       v-if="loading"
       class="playlist-grid"
-      data-testid="personalized-loading"
+      :data-testid="`${testid}-loading`"
       aria-busy="true"
-      aria-label="正在加载专属歌单"
+      :aria-label="`正在加载${title}`"
     >
       <div v-for="index in 5" :key="index" class="playlist-skeleton" data-testid="playlist-skeleton">
         <div />
@@ -49,22 +61,22 @@ const visiblePlaylists = computed(() => props.playlists.slice(0, 10))
 
     <div v-else-if="error" class="state-card error-state" role="alert">
       <div>
-        <strong>专属歌单加载失败</strong>
+        <strong>{{ errorTitle }}</strong>
         <p>{{ error }}</p>
       </div>
-      <button type="button" data-testid="personalized-retry" @click="emit('retry')">
+      <button type="button" :data-testid="`${testid}-retry`" @click="emit('retry')">
         重新加载
       </button>
     </div>
 
-    <div v-else-if="!visiblePlaylists.length" class="state-card" data-testid="personalized-empty">
+    <div v-else-if="!visiblePlaylists.length" class="state-card" :data-testid="`${testid}-empty`">
       <div>
-        <strong>暂无专属歌单</strong>
-        <p>API 已连接，但本次没有返回个性化歌单。</p>
+        <strong>{{ emptyTitle }}</strong>
+        <p>API 已连接，但本次没有返回{{ title }}。</p>
       </div>
     </div>
 
-    <div v-else class="playlist-grid">
+    <div v-else class="playlist-grid" :data-testid="testid">
       <PlaylistCard v-for="playlist in visiblePlaylists" :key="playlist.id" :playlist="playlist" />
     </div>
   </section>

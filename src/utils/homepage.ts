@@ -107,6 +107,12 @@ export function resolveDragonBallTarget(url: string): HomeTarget {
   if (lower.includes('catalog') || lower.includes('category')) {
     return { kind: 'route', name: Pages.category }
   }
+  if (lower.includes('nm/style') || /\/style(?:\/|\?|$)/.test(lower)) {
+    const tagId = parsed ? queryId(parsed, ['tagId', 'id']) : null
+    return tagId
+      ? { kind: 'route', name: Pages.style, id: tagId }
+      : { kind: 'route', name: Pages.style }
+  }
   const songMatch = raw.match(/songId=(\d+)/i)
   if (songMatch) {
     const id = Number(songMatch[1])

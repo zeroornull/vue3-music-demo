@@ -16,6 +16,7 @@ export const Pages = {
   picked: 'picked',
   playlist: 'playlist',
   search: 'search',
+  style: 'style',
   toplist: 'toplist',
   video: 'video',
   videoDetail: 'videoDetail',

@@ -9,6 +9,7 @@ import PlayerBar from '@/components/player/PlayerBar.vue'
 import { useAlbumStore } from '@/stores/album'
 import { useArtistStore } from '@/stores/artist'
 import { useCategoryStore } from '@/stores/category'
+import { useStyleStore } from '@/stores/style'
 import { useDjStore } from '@/stores/dj'
 import { useCommonStore } from '@/stores/common'
 import { useSearchStore } from '@/stores/search'
@@ -30,6 +31,7 @@ const albumStore = useAlbumStore()
 const mvStore = useMvStore()
 const musicStore = useMusicStore()
 const categoryStore = useCategoryStore()
+const styleStore = useStyleStore()
 const videoStore = useVideoStore()
 const videoDetailStore = useVideoDetailStore()
 const commonStore = useCommonStore()
@@ -48,6 +50,7 @@ watch(isConfigured, (configured) => {
     mvStore.reset()
     musicStore.reset()
     categoryStore.reset()
+    styleStore.reset()
     videoStore.reset()
     videoDetailStore.reset()
     commonStore.reset()

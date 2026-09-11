@@ -68,7 +68,7 @@ const visibleItems = computed(() => props.items.slice(0, 10))
     <div v-else-if="!visibleItems.length" class="state-card" :data-testid="`${testid}-empty`">
       <div>
         <strong>{{ emptyTitle }}</strong>
-        <p>API 已连接，但本次没有返回新歌推荐。</p>
+        <p>API 已连接，但本次没有返回{{ title }}。</p>
       </div>
     </div>
 

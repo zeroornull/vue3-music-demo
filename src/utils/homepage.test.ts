@@ -25,6 +25,15 @@ describe('homepage targets', () => {
       kind: 'route',
       name: Pages.video,
     })
+    expect(resolveDragonBallTarget('orpheus://nm/style')).toEqual({
+      kind: 'route',
+      name: Pages.style,
+    })
+    expect(resolveDragonBallTarget('https://music.163.com/style?tagId=1000')).toEqual({
+      kind: 'route',
+      id: 1000,
+      name: Pages.style,
+    })
     expect(resolveDragonBallTarget('https://music.163.com/playlist?id=101')).toEqual({
       kind: 'route',
       id: 101,
