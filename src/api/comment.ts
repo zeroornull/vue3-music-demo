@@ -13,7 +13,14 @@ export const COMMENT_HOT_TYPE = {
 export const COMMENT_NEW_LIMIT = 20
 export const COMMENT_NEW_PAGE_NO = 1
 export const COMMENT_NEW_SORT_RECOMMEND = 99
-export const COMMENT_NEW_TYPE = COMMENT_HOT_TYPE
+export const COMMENT_NEW_TYPE = {
+  dj: 4,
+  mv: 1,
+  playlist: 2,
+  radio: 7,
+  song: 0,
+  video: 5,
+} as const
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -350,20 +357,36 @@ function readNewComment(value: unknown): MediaComment | null {
   return readComment({ ...value, commentId })
 }
 
+function isValidNewCommentId(id: number | string): boolean {
+  if (typeof id === 'string') return Boolean(id.trim())
+  return Number.isInteger(id) && id > 0
+}
+
+function missingNewCommentId(type: number): string {
+  switch (type) {
+    case COMMENT_NEW_TYPE.playlist:
+      return '缺少有效的歌单 ID'
+    case COMMENT_NEW_TYPE.mv:
+      return '缺少有效的 MV ID'
+    case COMMENT_NEW_TYPE.video:
+      return '缺少有效的视频 ID'
+    case COMMENT_NEW_TYPE.dj:
+      return '缺少有效的电台节目 ID'
+    case COMMENT_NEW_TYPE.radio:
+      return '缺少有效的电台 ID'
+    default:
+      return '缺少有效的歌曲 ID'
+  }
+}
+
 async function getNewCommentList(
   type: number,
-  id: number,
+  id: number | string,
   errorMessage: string,
   client: Pick<HttpClient, 'get'>,
 ): Promise<MediaComment[]> {
-  if (!Number.isInteger(id) || id <= 0) {
-    throw new Error(
-      type === COMMENT_NEW_TYPE.playlist
-        ? '缺少有效的歌单 ID'
-        : type === COMMENT_NEW_TYPE.mv
-          ? '缺少有效的 MV ID'
-          : '缺少有效的歌曲 ID',
-    )
+  if (!isValidNewCommentId(id)) {
+    throw new Error(missingNewCommentId(type))
   }
   const response = await client.get<unknown>('/comment/new', {
     cursor: 0,
@@ -421,6 +444,42 @@ export async function getMvNewComments(
     COMMENT_NEW_TYPE.mv,
     id,
     'MV 新版评论响应格式不正确',
+    client,
+  )
+}
+
+export async function getVideoNewComments(
+  id: string,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  return getNewCommentList(
+    COMMENT_NEW_TYPE.video,
+    id.trim(),
+    '视频新版评论响应格式不正确',
+    client,
+  )
+}
+
+export async function getDjNewComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  return getNewCommentList(
+    COMMENT_NEW_TYPE.dj,
+    id,
+    '电台节目新版评论响应格式不正确',
+    client,
+  )
+}
+
+export async function getDjRadioNewComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  return getNewCommentList(
+    COMMENT_NEW_TYPE.radio,
+    id,
+    '电台新版评论响应格式不正确',
     client,
   )
 }

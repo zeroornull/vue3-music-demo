@@ -33,7 +33,9 @@ import {
   COMMENT_LIMIT,
   getDjCommentPage,
   getDjHotComments,
+  getDjNewComments,
   getDjRadioCommentPage,
+  getDjRadioNewComments,
 } from '@/api/comment'
 import { getErrorMessage } from '@/api/http'
 import type { MediaComment } from '@/models/comment'
@@ -67,6 +69,8 @@ let radioDetailSerial = 0
 let radioProgramSerial = 0
 let radioCommentsMoreSerial = 0
 let hotCommentSerial = 0
+let newCommentSerial = 0
+let radioNewCommentSerial = 0
 let radioSubscribersMoreSerial = 0
 let newcomerRadioSerial = 0
 let payRadioSerial = 0
@@ -161,6 +165,10 @@ export const useDjStore = defineStore('dj', () => {
   const radioCommentOffset = ref(0)
   const hotComments = ref<MediaComment[] | null>(null)
   const hotCommentsError = ref<string | null>(null)
+  const newComments = ref<MediaComment[] | null>(null)
+  const newCommentsError = ref<string | null>(null)
+  const radioNewComments = ref<MediaComment[] | null>(null)
+  const radioNewCommentsError = ref<string | null>(null)
   const radioSubscribers = ref<DjRadioSubscriber[] | null>(null)
   const radioSubscribersMore = ref(false)
   const radioSubscribersMoreLoading = ref(false)
@@ -171,6 +179,7 @@ export const useDjStore = defineStore('dj', () => {
     requestSerial++
     commentsMoreSerial++
     hotCommentSerial++
+    newCommentSerial++
     program.value = null
     relatedPrograms.value = null
     comments.value = null
@@ -180,6 +189,8 @@ export const useDjStore = defineStore('dj', () => {
     commentOffset.value = 0
     hotComments.value = null
     hotCommentsError.value = null
+    newComments.value = null
+    newCommentsError.value = null
     error.value = null
     loading.value = false
     loadedId.value = null
@@ -190,6 +201,7 @@ export const useDjStore = defineStore('dj', () => {
     radioProgramSerial++
     radioCommentsMoreSerial++
     radioSubscribersMoreSerial++
+    radioNewCommentSerial++
     radio.value = null
     radioError.value = null
     radioLoading.value = false
@@ -200,6 +212,8 @@ export const useDjStore = defineStore('dj', () => {
     radioProgramsMore.value = false
     relatedRadios.value = null
     radioComments.value = null
+    radioNewComments.value = null
+    radioNewCommentsError.value = null
     radioCommentsMore.value = false
     radioCommentsMoreLoading.value = false
     radioCommentsMoreError.value = null
@@ -668,6 +682,7 @@ export const useDjStore = defineStore('dj', () => {
       if (relatedPrograms.value === null) requestRelatedPrograms(id, program.value)
       if (comments.value === null) requestComments(id, requestSerial)
       if (hotComments.value === null) requestHotComments(id, requestSerial)
+      if (newComments.value === null) requestNewComments(id, requestSerial)
       return true
     }
 
@@ -683,6 +698,8 @@ export const useDjStore = defineStore('dj', () => {
       comments.value = null
       hotComments.value = null
       hotCommentsError.value = null
+      newComments.value = null
+      newCommentsError.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -695,6 +712,7 @@ export const useDjStore = defineStore('dj', () => {
       requestRelatedPrograms(id, next)
       requestComments(id, serial)
       requestHotComments(id, serial)
+      requestNewComments(id, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -728,6 +746,31 @@ export const useDjStore = defineStore('dj', () => {
     if (id === null) return
     if (!force && hotComments.value && !hotCommentsError.value) return
     requestHotComments(id, requestSerial)
+  }
+
+  function requestNewComments(id: number, loadSerial: number) {
+    const serial = ++newCommentSerial
+    newCommentsError.value = null
+    void getDjNewComments(id)
+      .then((next) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== newCommentSerial) return
+        if (loadedId.value !== id) return
+        newComments.value = next
+      })
+      .catch((requestError) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== newCommentSerial) return
+        newComments.value = null
+        newCommentsError.value = getErrorMessage(requestError)
+      })
+  }
+
+  async function loadNewComments(force = false) {
+    const id = loadedId.value
+    if (id === null) return
+    if (!force && newComments.value && !newCommentsError.value) return
+    requestNewComments(id, requestSerial)
   }
 
   function requestComments(id: number, serial: number) {
@@ -890,6 +933,7 @@ export const useDjStore = defineStore('dj', () => {
     ) {
       if (relatedRadios.value === null) requestRelated(id, radio.value)
       if (radioComments.value === null) requestRadioComments(id, radioDetailSerial)
+      if (radioNewComments.value === null) requestRadioNewComments(id, radioDetailSerial)
       if (radioSubscribers.value === null) {
         requestRadioSubscribers(id, radioDetailSerial)
       }
@@ -900,6 +944,7 @@ export const useDjStore = defineStore('dj', () => {
     const programSerial = ++radioProgramSerial
     radioCommentsMoreSerial++
     radioSubscribersMoreSerial++
+    radioNewCommentSerial++
     radioCommentsMore.value = false
     radioCommentsMoreLoading.value = false
     radioCommentsMoreError.value = null
@@ -915,6 +960,8 @@ export const useDjStore = defineStore('dj', () => {
       radioProgramsMore.value = false
       relatedRadios.value = null
       radioComments.value = null
+      radioNewComments.value = null
+      radioNewCommentsError.value = null
       radioSubscribers.value = null
     }
     radioLoading.value = true
@@ -935,6 +982,7 @@ export const useDjStore = defineStore('dj', () => {
         radioLoadedId.value = id
         requestRelated(id, next)
         requestRadioComments(id, detailSerial)
+        requestRadioNewComments(id, detailSerial)
         requestRadioSubscribers(id, detailSerial)
       }
       if (programSerial === radioProgramSerial) {
@@ -1028,6 +1076,31 @@ export const useDjStore = defineStore('dj', () => {
         radioSubscribersMoreLoading.value = false
       }
     }
+  }
+
+  function requestRadioNewComments(id: number, loadSerial: number) {
+    const serial = ++radioNewCommentSerial
+    radioNewCommentsError.value = null
+    void getDjRadioNewComments(id)
+      .then((next) => {
+        if (loadSerial !== radioDetailSerial) return
+        if (serial !== radioNewCommentSerial) return
+        if (radioLoadedId.value !== id) return
+        radioNewComments.value = next
+      })
+      .catch((requestError) => {
+        if (loadSerial !== radioDetailSerial) return
+        if (serial !== radioNewCommentSerial) return
+        radioNewComments.value = null
+        radioNewCommentsError.value = getErrorMessage(requestError)
+      })
+  }
+
+  async function loadRadioNewComments(force = false) {
+    const id = radioLoadedId.value
+    if (id === null) return
+    if (!force && radioNewComments.value && !radioNewCommentsError.value) return
+    requestRadioNewComments(id, radioDetailSerial)
   }
 
   function requestRadioComments(id: number, serial: number) {
@@ -1152,6 +1225,8 @@ export const useDjStore = defineStore('dj', () => {
     loadMoreRadioSubscribers,
     loadMoreComments,
     loadHotComments,
+    loadNewComments,
+    loadRadioNewComments,
     resetDetail,
     resetRadio,
     reset,
@@ -1240,6 +1315,10 @@ export const useDjStore = defineStore('dj', () => {
     radioCommentOffset,
     hotComments,
     hotCommentsError,
+    newComments,
+    newCommentsError,
+    radioNewComments,
+    radioNewCommentsError,
     radioSubscribers,
     radioSubscribersMore,
     radioSubscribersMoreLoading,

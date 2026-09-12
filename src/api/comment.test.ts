@@ -29,6 +29,9 @@ import {
   getPlaylistNewComments,
   getSongNewComments,
   getMvNewComments,
+  getVideoNewComments,
+  getDjNewComments,
+  getDjRadioNewComments,
 } from '@/api/comment'
 
 const client = (response: unknown) => {
@@ -847,5 +850,69 @@ describe('New comment API', () => {
     await expect(
       getPlaylistNewComments(101, client({ data: null }).client),
     ).rejects.toThrow('歌单新版评论响应格式不正确')
+  })
+
+  it('unwraps /comment/new video, dj program and radio recommend comments', async () => {
+    const videos = client({ data: { comments: [raw] } })
+    await expect(getVideoNewComments('VID001', videos.client)).resolves.toEqual([
+      { commentId: 21, content: '林间新评', nickname: '林间电台' },
+    ])
+    expect(COMMENT_NEW_TYPE.video).toBe(5)
+    expect(COMMENT_NEW_TYPE.dj).toBe(4)
+    expect(COMMENT_NEW_TYPE.radio).toBe(7)
+    expect(COMMENT_HOT_TYPE).not.toHaveProperty('radio')
+    expect(videos.get).toHaveBeenCalledWith('/comment/new', {
+      cursor: 0,
+      id: 'VID001',
+      pageNo: COMMENT_NEW_PAGE_NO,
+      pageSize: COMMENT_NEW_LIMIT,
+      sortType: COMMENT_NEW_SORT_RECOMMEND,
+      type: 5,
+    })
+
+    const programs = client({ comments: [raw] })
+    await expect(getDjNewComments(901, programs.client)).resolves.toEqual([
+      { commentId: 21, content: '林间新评', nickname: '林间电台' },
+    ])
+    expect(programs.get).toHaveBeenCalledWith('/comment/new', {
+      cursor: 0,
+      id: 901,
+      pageNo: COMMENT_NEW_PAGE_NO,
+      pageSize: COMMENT_NEW_LIMIT,
+      sortType: COMMENT_NEW_SORT_RECOMMEND,
+      type: 4,
+    })
+
+    const radios = client({ data: { comments: [raw] } })
+    await expect(getDjRadioNewComments(801, radios.client)).resolves.toEqual([
+      { commentId: 21, content: '林间新评', nickname: '林间电台' },
+    ])
+    expect(radios.get).toHaveBeenCalledWith('/comment/new', {
+      cursor: 0,
+      id: 801,
+      pageNo: COMMENT_NEW_PAGE_NO,
+      pageSize: COMMENT_NEW_LIMIT,
+      sortType: COMMENT_NEW_SORT_RECOMMEND,
+      type: 7,
+    })
+
+    await expect(getVideoNewComments('  ', client({}).client)).rejects.toThrow(
+      '缺少有效的视频 ID',
+    )
+    await expect(getDjNewComments(0, client({}).client)).rejects.toThrow(
+      '缺少有效的电台节目 ID',
+    )
+    await expect(getDjRadioNewComments(0, client({}).client)).rejects.toThrow(
+      '缺少有效的电台 ID',
+    )
+    await expect(
+      getVideoNewComments('VID001', client({ data: null }).client),
+    ).rejects.toThrow('视频新版评论响应格式不正确')
+    await expect(
+      getDjNewComments(901, client({ data: null }).client),
+    ).rejects.toThrow('电台节目新版评论响应格式不正确')
+    await expect(
+      getDjRadioNewComments(801, client({ data: null }).client),
+    ).rejects.toThrow('电台新版评论响应格式不正确')
   })
 })

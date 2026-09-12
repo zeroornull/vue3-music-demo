@@ -44,6 +44,9 @@ vi.mock('@/api/comment', () => ({
   getPlaylistNewComments: vi.fn(),
   getSongNewComments: vi.fn(),
   getMvNewComments: vi.fn(),
+  getVideoNewComments: vi.fn(),
+  getDjNewComments: vi.fn(),
+  getDjRadioNewComments: vi.fn(),
 }))
 vi.mock('@/api/playlist', () => ({
   getSimiPlaylists: vi.fn(),

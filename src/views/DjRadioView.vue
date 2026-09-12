@@ -3,9 +3,11 @@ import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
+import CommentHotSection from '@/components/comment/CommentHotSection.vue'
 import DjRadioHeader from '@/components/dj/DjRadioHeader.vue'
 import DjProgramCard from '@/components/music/DjProgramCard.vue'
 import DjRadioCard from '@/components/music/DjRadioCard.vue'
+import { excludeSeenComments } from '@/models/comment'
 import { Pages } from '@/router/pages'
 import { useDjStore } from '@/stores/dj'
 
@@ -21,6 +23,8 @@ const {
   radioProgramsMore,
   relatedRadios,
   radioComments,
+  radioNewComments,
+  radioNewCommentsError,
   radioCommentsMore,
   radioCommentsMoreLoading,
   radioCommentsMoreError,
@@ -49,6 +53,14 @@ function loadMore() {
 function loadMoreComments() {
   void djStore.loadMoreRadioComments().catch(() => undefined)
 }
+
+function retryNewComments() {
+  void djStore.loadRadioNewComments(true).catch(() => undefined)
+}
+
+const latestRadioComments = computed(() =>
+  excludeSeenComments(radioComments.value, radioNewComments.value),
+)
 
 function loadMoreSubscribers() {
   void djStore.loadMoreRadioSubscribers().catch(() => undefined)
@@ -160,6 +172,14 @@ watch(
           加载更多
         </button>
       </section>
+      <CommentHotSection
+        error-title="电台新版评论加载失败"
+        testid="dj-radio-new-comments"
+        title="新版评论"
+        :comments="radioNewComments"
+        :error="radioNewCommentsError"
+        @retry="retryNewComments"
+      />
       <section
         v-if="radioComments !== null"
         class="dj-radio-comments"
@@ -167,9 +187,9 @@ watch(
         aria-labelledby="dj-radio-comments-title"
       >
         <h2 id="dj-radio-comments-title">评论</h2>
-        <p v-if="!radioComments.length" class="comments-empty">暂无评论</p>
+        <p v-if="!latestRadioComments?.length" class="comments-empty">暂无评论</p>
         <ul v-else class="comment-list">
-          <li v-for="item in radioComments" :key="item.commentId">
+          <li v-for="item in latestRadioComments" :key="item.commentId">
             <strong>{{ item.nickname }}</strong>
             <p>{{ item.content }}</p>
           </li>

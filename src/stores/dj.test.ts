@@ -33,6 +33,8 @@ import {
   COMMENT_LIMIT,
   getDjCommentPage,
   getDjHotComments,
+  getDjNewComments,
+  getDjRadioNewComments,
   getDjRadioCommentPage,
 } from '@/api/comment'
 import { useDjStore } from '@/stores/dj'
@@ -41,7 +43,9 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getDjCommentPage: vi.fn(),
   getDjHotComments: vi.fn(),
+  getDjNewComments: vi.fn(),
   getDjRadioCommentPage: vi.fn(),
+  getDjRadioNewComments: vi.fn(),
 }))
 
 vi.mock('@/api/dj', async (importOriginal) => {
@@ -182,6 +186,10 @@ describe('dj store', () => {
     vi.mocked(getDjCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getDjHotComments).mockReset()
     vi.mocked(getDjHotComments).mockRejectedValue(new Error('no hot comments'))
+    vi.mocked(getDjNewComments).mockReset()
+    vi.mocked(getDjNewComments).mockRejectedValue(new Error('no new comments'))
+    vi.mocked(getDjRadioNewComments).mockReset()
+    vi.mocked(getDjRadioNewComments).mockRejectedValue(new Error('no radio new'))
     vi.mocked(getDjRadioCommentPage).mockReset()
     vi.mocked(getDjRadioCommentPage).mockRejectedValue(new Error('no radio comments'))
     vi.mocked(getDjRadioSubscriberPage).mockReset()
@@ -1530,6 +1538,69 @@ describe('dj store', () => {
     await settle()
     expect(store.hotComments).toEqual([hot])
     expect(store.hotCommentsError).toBeNull()
+  })
+
+  it('loads program new comments independently of hot comments', async () => {
+    const next = { commentId: 21, content: '林间新评', nickname: '林间电台' }
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    vi.mocked(getDjHotComments).mockResolvedValue([
+      { commentId: 9, content: '林间热评', nickname: '林间电台' },
+    ])
+    vi.mocked(getDjNewComments)
+      .mockRejectedValueOnce(new Error('new offline'))
+      .mockResolvedValueOnce([next])
+    const store = useDjStore()
+    await store.load(901)
+    await settle()
+    expect(store.program).toEqual(detail)
+    expect(store.hotComments?.[0]?.content).toBe('林间热评')
+    expect(store.newCommentsError).toBe('new offline')
+    await store.loadNewComments(true)
+    await settle()
+    expect(store.newComments).toEqual([next])
+    expect(store.newCommentsError).toBeNull()
+  })
+
+  it('loads radio new comments independently of radio comments', async () => {
+    const next = { commentId: 21, content: '林间新评', nickname: '林间电台' }
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getDjRadioCommentPage).mockResolvedValue({
+      comments: [{ commentId: 1, content: '走过林间。', nickname: '林间电台' }],
+      more: false,
+    })
+    vi.mocked(getDjRadioNewComments)
+      .mockRejectedValueOnce(new Error('radio new offline'))
+      .mockResolvedValueOnce([next])
+    const store = useDjStore()
+    await store.loadRadio(801)
+    await settle()
+    expect(store.radio).toEqual(radioDetail)
+    expect(store.radioComments?.[0]?.content).toBe('走过林间。')
+    expect(store.radioNewCommentsError).toBe('radio new offline')
+    await store.loadRadioNewComments(true)
+    await settle()
+    expect(store.radioNewComments).toEqual([next])
+    expect(store.radioNewCommentsError).toBeNull()
+  })
+
+  it('keeps radio new comments when program detail resets', async () => {
+    const radioNew = { commentId: 21, content: '林间新评', nickname: '林间电台' }
+    vi.mocked(getDjRadioDetail).mockResolvedValue(radioDetail)
+    vi.mocked(getDjRadioPrograms).mockResolvedValue({ more: false, programs: [program] })
+    vi.mocked(getDjRadioNewComments).mockResolvedValue([radioNew])
+    vi.mocked(getDjProgramDetail).mockResolvedValue(detail)
+    const store = useDjStore()
+    await store.loadRadio(801)
+    await settle()
+    expect(store.radioNewComments).toEqual([radioNew])
+    await store.load(901)
+    await settle()
+    store.resetDetail()
+    expect(store.radioNewComments).toEqual([radioNew])
+    expect(store.newComments).toBeNull()
+    expect(getDjRadioNewComments).toHaveBeenCalledTimes(1)
+    expect(getDjNewComments).toHaveBeenCalledTimes(1)
   })
 
   it('loads radio subscribers with the detail and ignores a subscriber failure', async () => {

@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getDjRadioCommentPage } from '@/api/comment'
+import { getDjRadioCommentPage, getDjRadioNewComments } from '@/api/comment'
 import {
   getDjRadioDetail,
   getDjRadioPrograms,
@@ -21,7 +21,9 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getDjCommentPage: vi.fn(),
   getDjHotComments: vi.fn(),
+  getDjNewComments: vi.fn(),
   getDjRadioCommentPage: vi.fn(),
+  getDjRadioNewComments: vi.fn(),
 }))
 
 vi.mock('@/api/dj', async (importOriginal) => {
@@ -83,6 +85,8 @@ describe('DjRadioView', () => {
     vi.mocked(getHotDjRadios).mockRejectedValue(new Error('no radios'))
     vi.mocked(getDjRadioCommentPage).mockReset()
     vi.mocked(getDjRadioCommentPage).mockRejectedValue(new Error('no comments'))
+    vi.mocked(getDjRadioNewComments).mockReset()
+    vi.mocked(getDjRadioNewComments).mockRejectedValue(new Error('no new'))
     vi.mocked(getDjRadioSubscriberPage).mockReset()
     vi.mocked(getDjRadioSubscriberPage).mockRejectedValue(
       new Error('no subscribers'),
@@ -159,6 +163,44 @@ describe('DjRadioView', () => {
     expect(comments.text()).toContain('走过林间。')
     expect(comments.get('strong').text()).toBe('林间电台')
     expect(comments.find('a').exists()).toBe(false)
+  })
+
+  it('loads and retries radio new comments without blocking programs', async () => {
+    vi.mocked(getDjRadioNewComments)
+      .mockRejectedValueOnce(new Error('new offline'))
+      .mockResolvedValueOnce([
+        { commentId: 21, content: '林间新评', nickname: '林间电台' },
+      ])
+    const wrapper = await mountView({ id: '801' })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="dj-radio-new-comments-error"]').text()).toContain(
+      '电台新版评论加载失败',
+    )
+    expect(wrapper.get('h1').text()).toBe('夜航电台')
+    await wrapper.get('[data-testid="dj-radio-new-comments-retry"]').trigger('click')
+    await flushPromises()
+    expect(getDjRadioNewComments).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('#dj-radio-new-comments-title').text()).toBe('新版评论')
+    expect(wrapper.get('[data-testid="dj-radio-new-comments"]').text()).toContain(
+      '林间新评',
+    )
+  })
+
+  it('does not repeat a new comment in the latest radio list', async () => {
+    const shared = { commentId: 21, content: '林间新评', nickname: '林间电台' }
+    vi.mocked(getDjRadioCommentPage).mockResolvedValue({
+      comments: [shared, { commentId: 2, content: '夜色刚好', nickname: '海岸信号' }],
+      more: false,
+    })
+    vi.mocked(getDjRadioNewComments).mockResolvedValue([shared])
+    const wrapper = await mountView({ id: '801' })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="dj-radio-new-comments"]').text()).toContain(
+      '林间新评',
+    )
+    const latest = wrapper.get('[data-testid="dj-radio-comments"]')
+    expect(latest.text()).toContain('夜色刚好')
+    expect(latest.text()).not.toContain('林间新评')
   })
 
   it('shows an empty radio comments state when the list is empty', async () => {

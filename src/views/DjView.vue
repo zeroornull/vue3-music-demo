@@ -25,6 +25,8 @@ const {
   commentsMoreError,
   hotComments,
   hotCommentsError,
+  newComments,
+  newCommentsError,
   loading,
   error,
 } = storeToRefs(djStore)
@@ -51,8 +53,15 @@ function retryHotComments() {
   void djStore.loadHotComments(true).catch(() => undefined)
 }
 
+function retryNewComments() {
+  void djStore.loadNewComments(true).catch(() => undefined)
+}
+
 const latestComments = computed(() =>
-  excludeSeenComments(comments.value, hotComments.value),
+  excludeSeenComments(
+    excludeSeenComments(comments.value, hotComments.value),
+    newComments.value,
+  ),
 )
 
 function playProgram() {
@@ -142,6 +151,16 @@ watch(
         :error="hotCommentsError"
         :resource-id="programId"
         @retry="retryHotComments"
+      />
+      <CommentHotSection
+        error-title="电台节目新版评论加载失败"
+        kind="dj"
+        testid="dj-new-comments"
+        title="新版评论"
+        :comments="newComments"
+        :error="newCommentsError"
+        :resource-id="programId"
+        @retry="retryNewComments"
       />
       <section
         v-if="comments !== null"

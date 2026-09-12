@@ -5,6 +5,7 @@ import {
   COMMENT_LIMIT,
   getVideoCommentPage,
   getVideoHotComments,
+  getVideoNewComments,
 } from '@/api/comment'
 import { getRelatedVideos, getVideoDetail, getVideoStats, getVideoUrl } from '@/api/video'
 import { useVideoDetailStore } from '@/stores/videoDetail'
@@ -13,6 +14,7 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getVideoCommentPage: vi.fn(),
   getVideoHotComments: vi.fn(),
+  getVideoNewComments: vi.fn(),
 }))
 vi.mock('@/api/video', () => ({
   getRelatedVideos: vi.fn(),
@@ -74,6 +76,8 @@ describe('video detail store', () => {
     vi.mocked(getVideoCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getVideoHotComments).mockReset()
     vi.mocked(getVideoHotComments).mockRejectedValue(new Error('no hot'))
+    vi.mocked(getVideoNewComments).mockReset()
+    vi.mocked(getVideoNewComments).mockRejectedValue(new Error('no new'))
     vi.mocked(getVideoStats).mockReset()
     vi.mocked(getVideoStats).mockRejectedValue(new Error('no stats'))
   })
@@ -339,6 +343,26 @@ describe('video detail store', () => {
     await settle()
     expect(store.playback).toEqual(playback)
     expect(store.hotCommentsError).toBe('hot offline')
+  })
+
+  it('loads new comments independently of hot comments', async () => {
+    const next = { commentId: 21, content: '林间新评', nickname: '林间电台' }
+    vi.mocked(getVideoHotComments).mockResolvedValue([
+      { commentId: 9, content: '林间热评', nickname: '林间电台' },
+    ])
+    vi.mocked(getVideoNewComments)
+      .mockRejectedValueOnce(new Error('new offline'))
+      .mockResolvedValueOnce([next])
+    const store = useVideoDetailStore()
+    await store.load('VID001')
+    await settle()
+    expect(store.playback).toEqual(playback)
+    expect(store.hotComments?.[0]?.content).toBe('林间热评')
+    expect(store.newCommentsError).toBe('new offline')
+    await store.loadNewComments(true)
+    await settle()
+    expect(store.newComments).toEqual([next])
+    expect(store.newCommentsError).toBeNull()
   })
 
   it('keeps playback when comments fail', async () => {

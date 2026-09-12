@@ -28,6 +28,8 @@ const {
   commentsMoreError,
   hotComments,
   hotCommentsError,
+  newComments,
+  newCommentsError,
   stats,
   statsError,
   loading,
@@ -62,8 +64,15 @@ function retryHotComments() {
   void detailStore.loadHotComments(true).catch(() => undefined)
 }
 
+function retryNewComments() {
+  void detailStore.loadNewComments(true).catch(() => undefined)
+}
+
 const latestComments = computed(() =>
-  excludeSeenComments(comments.value, hotComments.value),
+  excludeSeenComments(
+    excludeSeenComments(comments.value, hotComments.value),
+    newComments.value,
+  ),
 )
 
 const extraCounts = computed(() => {
@@ -168,6 +177,16 @@ watch(
         :error="hotCommentsError"
         :resource-id="videoId"
         @retry="retryHotComments"
+      />
+      <CommentHotSection
+        error-title="视频新版评论加载失败"
+        kind="video"
+        testid="video-new-comments"
+        title="新版评论"
+        :comments="newComments"
+        :error="newCommentsError"
+        :resource-id="videoId"
+        @retry="retryNewComments"
       />
       <section
         v-if="comments !== null"

@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getDjCommentPage, getDjHotComments } from '@/api/comment'
+import { getDjCommentPage, getDjHotComments, getDjNewComments } from '@/api/comment'
 import { getDjCommentFloor } from '@/api/commentFloor'
 import { getDjProgramDetail, getDjRadioPrograms } from '@/api/dj'
 
@@ -22,6 +22,9 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getDjCommentPage: vi.fn(),
   getDjHotComments: vi.fn(),
+  getDjNewComments: vi.fn(),
+  getDjRadioCommentPage: vi.fn(),
+  getDjRadioNewComments: vi.fn(),
 }))
 vi.mock('@/api/commentFloor', () => ({
   COMMENT_FLOOR_LIMIT: 10,
@@ -114,6 +117,8 @@ describe('DjView', () => {
     vi.mocked(getDjCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getDjHotComments).mockReset()
     vi.mocked(getDjHotComments).mockRejectedValue(new Error('no hot comments'))
+    vi.mocked(getDjNewComments).mockReset()
+    vi.mocked(getDjNewComments).mockRejectedValue(new Error('no new comments'))
     vi.mocked(getDjCommentFloor).mockReset()
     vi.mocked(getDjCommentFloor).mockRejectedValue(new Error('no floor'))
   })
@@ -294,6 +299,40 @@ describe('DjView', () => {
     await flushPromises()
     expect(getDjHotComments).toHaveBeenCalledTimes(2)
     expect(wrapper.get('[data-testid="dj-hot-comments"]').text()).toContain('林间热评')
+  })
+
+  it('loads and retries DJ new comments without blocking play', async () => {
+    vi.mocked(getDjNewComments)
+      .mockRejectedValueOnce(new Error('new offline'))
+      .mockResolvedValueOnce([
+        { commentId: 21, content: '林间新评', nickname: '林间电台' },
+      ])
+    const { wrapper } = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="dj-new-comments-error"]').text()).toContain(
+      '电台节目新版评论加载失败',
+    )
+    expect(wrapper.get('h1').text()).toBe('深夜民谣')
+    await wrapper.get('[data-testid="dj-new-comments-retry"]').trigger('click')
+    await flushPromises()
+    expect(getDjNewComments).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('#dj-new-comments-title').text()).toBe('新版评论')
+    expect(wrapper.get('[data-testid="dj-new-comments"]').text()).toContain('林间新评')
+  })
+
+  it('does not repeat a new comment in the latest DJ list', async () => {
+    const shared = { commentId: 21, content: '林间新评', nickname: '林间电台' }
+    vi.mocked(getDjCommentPage).mockResolvedValue({
+      comments: [shared, { commentId: 2, content: '夜色刚好', nickname: '海岸信号' }],
+      more: false,
+    })
+    vi.mocked(getDjNewComments).mockResolvedValue([shared])
+    const { wrapper } = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="dj-new-comments"]').text()).toContain('林间新评')
+    const latest = wrapper.get('[data-testid="dj-comments"]')
+    expect(latest.text()).toContain('夜色刚好')
+    expect(latest.text()).not.toContain('林间新评')
   })
 
   it('expands DJ comment floors', async () => {
