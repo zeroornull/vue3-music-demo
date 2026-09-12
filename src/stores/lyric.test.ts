@@ -1,11 +1,12 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getLyric } from '@/api/lyric'
+import { getLyric, getLyricNew } from '@/api/lyric'
 import { useLyricStore } from '@/stores/lyric'
 
 vi.mock('@/api/lyric', () => ({
   getLyric: vi.fn(),
+  getLyricNew: vi.fn(),
 }))
 
 const lyric = {
@@ -26,6 +27,8 @@ describe('lyric store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.mocked(getLyric).mockReset()
+    vi.mocked(getLyricNew).mockReset()
+    vi.mocked(getLyricNew).mockRejectedValue(new Error('no new lyric'))
   })
 
   it('loads lyrics once and treats a failed page as a cache miss', async () => {
@@ -85,5 +88,31 @@ describe('lyric store', () => {
     expect(store.showLyric).toBe(true)
     store.toggle()
     expect(store.showLyric).toBe(false)
+  })
+
+  it('prefers /lyric/new and falls back when it is empty', async () => {
+    vi.mocked(getLyricNew).mockResolvedValueOnce(lyric)
+    const store = useLyricStore()
+    await store.load(301)
+    expect(store.lines).toEqual(lyric.lines)
+    expect(getLyricNew).toHaveBeenCalledWith(301)
+    expect(getLyric).not.toHaveBeenCalled()
+
+    vi.mocked(getLyricNew).mockResolvedValueOnce({ lines: [] })
+    vi.mocked(getLyric).mockResolvedValueOnce({
+      lines: [{ text: '备用歌词', time: 0 }],
+    })
+    await store.load(302)
+    expect(store.lines).toEqual([{ text: '备用歌词', time: 0 }])
+    expect(getLyric).toHaveBeenCalledWith(302)
+    expect(getLyric).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not call /lyric twice when new lyrics are empty and fallback fails', async () => {
+    vi.mocked(getLyricNew).mockResolvedValue({ lines: [] })
+    vi.mocked(getLyric).mockRejectedValue(new Error('lyric offline'))
+    const store = useLyricStore()
+    await expect(store.load(301)).rejects.toThrow('lyric offline')
+    expect(getLyric).toHaveBeenCalledTimes(1)
   })
 })

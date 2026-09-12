@@ -48,6 +48,8 @@ vi.mock('@/api/playlist', () => ({
 vi.mock('@/api/song', () => ({
   getSongDetail: vi.fn(),
   getSongUrl: vi.fn(),
+  getSongUrlV1: vi.fn(),
+  getSongDownloadUrl: vi.fn(),
   getSimiSongs: vi.fn(),
   checkMusic: vi.fn(),
   SONG_URL_MISSING: '歌曲暂无可播放地址',

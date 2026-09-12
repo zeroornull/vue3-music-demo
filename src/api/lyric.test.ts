@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { HttpClient } from '@/api/http'
-import { getLyric } from '@/api/lyric'
+import { getLyric, getLyricNew } from '@/api/lyric'
 
 const client = (response: unknown) => {
   const get = vi.fn(async <T>(_path: string, _params?: unknown) => response as T)
@@ -143,6 +143,39 @@ describe('Lyric API', () => {
 
   it('rejects a missing lrc object', async () => {
     await expect(getLyric(301, client({ lrc: null }).client)).rejects.toThrow(
+      '歌词响应格式不正确',
+    )
+  })
+
+  it('unwraps /lyric/new nested lyrics and klyric karaoke', async () => {
+    const request = client({
+      data: {
+        extra: true,
+        klyric: {
+          lyric: '[12000,1000](12000,800,0)林间(12800,200,0)夜',
+        },
+        lrc: { lyric: '[00:12.00]林间夜\n' },
+        ytlrc: { lyric: '[00:12.00]Night in the woods\n' },
+      },
+    })
+    await expect(getLyricNew(301, request.client)).resolves.toEqual({
+      lines: [
+        {
+          text: '林间夜',
+          time: 12,
+          translation: 'Night in the woods',
+          words: [
+            { text: '林间', time: 12 },
+            { text: '夜', time: 12.8 },
+          ],
+        },
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/lyric/new', { id: 301 })
+    await expect(getLyricNew(0, client({}).client)).rejects.toThrow(
+      '缺少有效的歌曲 ID',
+    )
+    await expect(getLyricNew(301, client({ data: null }).client)).rejects.toThrow(
       '歌词响应格式不正确',
     )
   })

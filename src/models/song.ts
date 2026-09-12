@@ -62,3 +62,20 @@ export interface SongUrl {
   time?: number
   level?: string
 }
+
+export const SONG_URL_LEVEL_LABEL: Record<string, string> = {
+  standard: '标准',
+  higher: '较高',
+  exhigh: '极高',
+  lossless: '无损',
+  hires: 'Hi-Res',
+  jyeffect: '高清环绕',
+  sky: '沉浸环绕',
+  jymaster: '超清母带',
+  download: '备用',
+}
+
+export function songUrlLevelLabel(level?: string): string {
+  if (!level) return ''
+  return SONG_URL_LEVEL_LABEL[level] ?? ''
+}

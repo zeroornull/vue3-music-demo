@@ -7,9 +7,14 @@ import {
   checkMusic,
   getSimiSongs,
   getSongDetail,
+  getSongDownloadUrl,
   getSongUrl,
+  getSongUrlV1,
+  SONG_DOWNLOAD_BR,
   SONG_UNPLAYABLE_FALLBACK,
   SONG_URL_MISSING,
+  SONG_URL_V1_LEVEL,
+  songUrlLevelLabel,
 } from '@/api/song'
 
 const client = (response: unknown) => {
@@ -189,5 +194,58 @@ describe('Check music API', () => {
       message: '亲爱的,暂无版权',
       playable: false,
     })
+  })
+
+  it('unwraps /song/url/v1 object payloads and labels the level', async () => {
+    const request = client({
+      data: {
+        extra: true,
+        id: 301,
+        level: 'exhigh',
+        url: 'https://example.com/v1.mp3',
+      },
+    })
+    await expect(getSongUrlV1(301, request.client)).resolves.toEqual({
+      id: 301,
+      level: 'exhigh',
+      url: 'https://example.com/v1.mp3',
+    })
+    expect(request.get).toHaveBeenCalledWith('/song/url/v1', {
+      id: 301,
+      level: SONG_URL_V1_LEVEL,
+    })
+    expect(songUrlLevelLabel('exhigh')).toBe('极高')
+    await expect(getSongUrlV1(0, client({}).client)).rejects.toThrow(
+      '缺少有效的歌曲 ID',
+    )
+    await expect(
+      getSongUrlV1(301, client({ data: { id: 301, url: '  ' } }).client),
+    ).rejects.toThrow(SONG_URL_MISSING)
+  })
+
+  it('unwraps /song/download/url and marks it as a fallback source', async () => {
+    const request = client({
+      data: { br: SONG_DOWNLOAD_BR, extra: true, id: 301, url: 'https://example.com/dl.mp3' },
+    })
+    await expect(getSongDownloadUrl(301, request.client)).resolves.toEqual({
+      br: SONG_DOWNLOAD_BR,
+      id: 301,
+      level: 'download',
+      url: 'https://example.com/dl.mp3',
+    })
+    expect(request.get).toHaveBeenCalledWith('/song/download/url', {
+      br: SONG_DOWNLOAD_BR,
+      id: 301,
+    })
+    expect(songUrlLevelLabel('download')).toBe('备用')
+    await expect(
+      getSongDownloadUrl(
+        301,
+        client({ data: { id: 301, level: 'exhigh', url: 'https://example.com/dl.mp3' } }).client,
+      ),
+    ).resolves.toMatchObject({ level: 'download' })
+    await expect(
+      getSongDownloadUrl(301, client({ data: null }).client),
+    ).rejects.toThrow(SONG_URL_MISSING)
   })
 })

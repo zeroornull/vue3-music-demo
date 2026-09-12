@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { getLyric } from '@/api/lyric'
+import { getLyric, getLyricNew } from '@/api/lyric'
 import { getErrorMessage } from '@/api/http'
 import type { LyricLine } from '@/models/lyric'
 
@@ -47,7 +47,13 @@ export const useLyricStore = defineStore('lyric', () => {
     loading.value = true
     error.value = null
     try {
-      const next = await getLyric(id)
+      let next
+      try {
+        next = await getLyricNew(id)
+      } catch {
+        next = undefined
+      }
+      if (!next?.lines.length) next = await getLyric(id)
       if (serial !== requestSerial) return
       lines.value = next.lines
       loadedId.value = id

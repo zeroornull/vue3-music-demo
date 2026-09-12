@@ -11,9 +11,12 @@ import {
   checkMusic,
   getSimiSongs,
   getSongDetail,
+  getSongDownloadUrl,
   getSongUrl,
+  getSongUrlV1,
   SONG_URL_MISSING,
 } from '@/api/song'
+import { songUrlLevelLabel } from '@/models/song'
 import { createAudioAdapter, type AudioAdapter } from '@/audio/audioAdapter'
 import { readPlayerVolume, savePlayerVolume } from '@/config/playerVolume'
 import type { MediaComment } from '@/models/comment'
@@ -138,6 +141,7 @@ export const usePlayerStore = defineStore('player', {
     hotComments: null as MediaComment[] | null,
     hotCommentsError: null as string | null,
     isFm: false,
+    sourceQuality: null as string | null,
   }),
   getters: {
     hasSong: (state) => state.current !== null,
@@ -171,6 +175,7 @@ export const usePlayerStore = defineStore('player', {
         injectedAdapter.src = ''
       }
       this.hasPlayableSource = false
+      this.sourceQuality = null
       this.currentTime = 0
       this.duration = 0
       this.loading = true
@@ -196,21 +201,39 @@ export const usePlayerStore = defineStore('player', {
         if (this.hotComments === null) this.requestHotComments(song.id)
         let url
         try {
-          url = await getSongUrl(song.id)
+          try {
+            const next = await getSongUrlV1(song.id)
+            if (next?.url?.trim()) url = next
+          } catch {
+            url = undefined
+          }
+          if (serial !== requestSerial) return false
+          if (!url) url = await getSongUrl(song.id)
         } catch (urlError) {
           if (serial !== requestSerial) return false
-          const missing =
-            urlError instanceof Error && urlError.message === SONG_URL_MISSING
-          if (missing) {
-            const check = await checkMusic(song.id).catch(() => null)
-            if (serial !== requestSerial) return false
-            if (check && !check.playable) {
-              throw new Error(check.message)
+          try {
+            const fallback = await getSongDownloadUrl(song.id)
+            if (fallback?.url?.trim()) {
+              url = fallback
+            } else {
+              throw urlError
             }
+          } catch {
+            if (serial !== requestSerial) return false
+            const missing =
+              urlError instanceof Error && urlError.message === SONG_URL_MISSING
+            if (missing) {
+              const check = await checkMusic(song.id).catch(() => null)
+              if (serial !== requestSerial) return false
+              if (check && !check.playable) {
+                throw new Error(check.message)
+              }
+            }
+            throw urlError
           }
-          throw urlError
         }
         if (serial !== requestSerial) return false
+        if (!url?.url) throw new Error(SONG_URL_MISSING)
         const audio = injectedAdapter ?? createAudioAdapter()
         if (!injectedAdapter) injectedAdapter = audio
         audio.volume = this.volume
@@ -222,6 +245,7 @@ export const usePlayerStore = defineStore('player', {
         })
         audio.src = url.url
         this.hasPlayableSource = true
+        this.sourceQuality = songUrlLevelLabel(url.level) || null
         this.duration = readDuration(audio)
         this.currentTime = 0
         this.loading = false
@@ -353,6 +377,7 @@ export const usePlayerStore = defineStore('player', {
         this.loading = false
         this.isPlaying = false
         this.hasPlayableSource = false
+        this.sourceQuality = null
         this.error = null
         this.currentTime = 0
         this.duration = 0
@@ -660,6 +685,7 @@ export const usePlayerStore = defineStore('player', {
         this.loading = false
         this.isPlaying = false
         this.hasPlayableSource = false
+        this.sourceQuality = null
         this.error = null
         this.currentTime = 0
         this.duration = 0
@@ -707,6 +733,7 @@ export const usePlayerStore = defineStore('player', {
       this.loading = false
       this.isPlaying = false
       this.hasPlayableSource = false
+      this.sourceQuality = null
       this.error = null
       this.currentTime = 0
       this.duration = 0

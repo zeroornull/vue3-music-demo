@@ -3,7 +3,7 @@ import { defineComponent } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { getLyric } from '@/api/lyric'
+import { getLyric, getLyricNew } from '@/api/lyric'
 import {
   getSheetPreview,
   getSongMlogs,
@@ -22,6 +22,7 @@ import {
 
 vi.mock('@/api/lyric', () => ({
   getLyric: vi.fn(),
+  getLyricNew: vi.fn(),
 }))
 vi.mock('@/api/songExtra', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/songExtra')>()
@@ -71,6 +72,8 @@ describe('PlayerBar', () => {
     vi.mocked(getLyric).mockResolvedValue({
       lines: [{ text: '走过林间。', time: 12 }],
     })
+    vi.mocked(getLyricNew).mockReset()
+    vi.mocked(getLyricNew).mockRejectedValue(new Error('no new lyric'))
     vi.mocked(getSongWiki).mockReset()
     vi.mocked(getSongWiki).mockResolvedValue([])
     vi.mocked(getSongSheets).mockReset()
@@ -93,11 +96,21 @@ describe('PlayerBar', () => {
     expect(wrapper.text()).toContain('晚风')
     expect(wrapper.text()).toContain('林间电台')
     expect(wrapper.find('button[aria-label="播放"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="player-quality"]').exists()).toBe(false)
     player.isPlaying = true
     await wrapper.vm.$nextTick()
     expect(wrapper.find('button[aria-label="暂停"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="player-cover"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="player-cover-fallback"]').exists()).toBe(true)
+  })
+
+  it('shows the playable source quality', async () => {
+    const player = usePlayerStore()
+    player.current = { id: 1, name: '晚风', artists: [] }
+    player.hasPlayableSource = true
+    player.sourceQuality = '极高'
+    const wrapper = mountBar()
+    expect(wrapper.get('[data-testid="player-quality"]').text()).toBe('极高')
   })
 
   it('publishes measured height as --player-bar-height', async () => {

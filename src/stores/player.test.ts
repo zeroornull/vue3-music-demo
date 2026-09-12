@@ -8,7 +8,9 @@ import {
   checkMusic,
   getSimiSongs,
   getSongDetail,
+  getSongDownloadUrl,
   getSongUrl,
+  getSongUrlV1,
   SONG_URL_MISSING,
 } from '@/api/song'
 import type { AudioAdapter } from '@/audio/audioAdapter'
@@ -98,6 +100,8 @@ describe('Player store', () => {
     resetAudioAdapter()
     vi.mocked(getSongDetail).mockImplementation(async (id) => song(id))
     vi.mocked(getSongUrl).mockResolvedValue({ id: 1, url: 'x' })
+    vi.mocked(getSongUrlV1).mockReset()
+    vi.mocked(getSongDownloadUrl).mockReset()
     vi.mocked(checkMusic).mockReset()
     vi.mocked(checkMusic).mockRejectedValue(new Error('no check'))
     vi.mocked(getSimiSongs).mockRejectedValue(new Error('no similar'))
@@ -364,7 +368,7 @@ describe('Player store', () => {
     const player = usePlayerStore()
 
     const first = player.play(song(1))
-    await Promise.resolve()
+    await flushPromises()
     const second = player.play(song(2))
     firstUrl.resolve({ id: 1, url: 'first' })
     secondUrl.resolve({ id: 2, url: 'second' })
@@ -422,7 +426,7 @@ describe('Player store', () => {
     setAudioAdapter(mockAdapter({ play }))
     const player = usePlayerStore()
     const pending = player.play(song(1))
-    await Promise.resolve()
+    await flushPromises()
     await expect(player.toggle()).resolves.toBe(true)
     nextUrl.resolve({ id: 1, url: 'x' })
 
@@ -440,7 +444,7 @@ describe('Player store', () => {
     setAudioAdapter(mockAdapter({ play, pause }))
     const player = usePlayerStore()
     const pending = player.play(song(1))
-    await Promise.resolve()
+    await flushPromises()
     player.pause()
     nextUrl.resolve({ id: 1, url: 'x' })
 
@@ -456,7 +460,7 @@ describe('Player store', () => {
     setAudioAdapter(mockAdapter({ play }))
     const player = usePlayerStore()
     const pending = player.play(song(1))
-    await Promise.resolve()
+    await flushPromises()
     expect(player.hasPlayableSource).toBe(true)
     expect(player.loading).toBe(false)
     player.pause()
@@ -471,7 +475,7 @@ describe('Player store', () => {
     setAudioAdapter(mockAdapter({ play }))
     const player = usePlayerStore()
     const pending = player.play(song(1))
-    await Promise.resolve()
+    await flushPromises()
     player.pause()
     started.reject(new DOMException('The play() request was interrupted', 'AbortError'))
 
@@ -489,7 +493,7 @@ describe('Player store', () => {
     setAudioAdapter(mockAdapter({ play }))
     const player = usePlayerStore()
     const pending = player.play(song(1))
-    await Promise.resolve()
+    await flushPromises()
     expect(player.hasPlayableSource).toBe(true)
 
     await expect(player.toggle()).resolves.toBe(true)
@@ -1467,7 +1471,7 @@ describe('Player store', () => {
     setAudioAdapter(adapter)
     const player = usePlayerStore()
     const pending = player.play(song(1))
-    await Promise.resolve()
+    await flushPromises()
     player.openQueue()
 
     await expect(player.removeFromQueue(1)).resolves.toBe(true)
@@ -1790,6 +1794,36 @@ describe('Player store', () => {
     expect(player.current?.id).toBe(303)
     expect(player.queue.map((item) => item.id)).toEqual([303])
     expect(player.isFm).toBe(true)
+  })
+
+  it('plays from /song/url/v1 and records the quality label', async () => {
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getSongUrlV1).mockImplementation(async () => ({
+      id: 1,
+      level: 'exhigh',
+      url: 'https://example.com/v1.mp3',
+    }))
+    const player = usePlayerStore()
+    await expect(player.play(song(1))).resolves.toBe(true)
+    expect(player.sourceQuality).toBe('极高')
+    expect(getSongUrlV1).toHaveBeenCalledWith(1)
+    expect(getSongUrl).not.toHaveBeenCalled()
+    expect(getSongDownloadUrl).not.toHaveBeenCalled()
+  })
+
+  it('falls back to /song/download/url when v1 and url are missing', async () => {
+    setAudioAdapter(mockAdapter())
+    vi.mocked(getSongUrl).mockRejectedValue(new Error(SONG_URL_MISSING))
+    vi.mocked(getSongDownloadUrl).mockImplementation(async () => ({
+      id: 1,
+      level: 'download',
+      url: 'https://example.com/dl.mp3',
+    }))
+    const player = usePlayerStore()
+    await expect(player.play(song(1))).resolves.toBe(true)
+    expect(player.sourceQuality).toBe('备用')
+    expect(getSongUrl).toHaveBeenCalledWith(1)
+    expect(getSongDownloadUrl).toHaveBeenCalledWith(1)
   })
 })
 

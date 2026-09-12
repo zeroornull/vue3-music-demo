@@ -6,6 +6,8 @@ import {
   type SongUrl,
 } from '@/models/song'
 
+export { SONG_URL_LEVEL_LABEL, songUrlLevelLabel } from '@/models/song'
+
 interface SongUrlResponse {
   data?: SongUrl[]
 }
@@ -16,21 +18,77 @@ interface SongDetailResponse {
 
 export const SONG_URL_MISSING = '歌曲暂无可播放地址'
 export const SONG_UNPLAYABLE_FALLBACK = '因版权原因暂无法播放'
+export const SONG_URL_V1_LEVEL = 'exhigh'
+export const SONG_DOWNLOAD_BR = 320_000
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function readSongUrl(response: unknown, id: number): SongUrl | null {
+  if (!isRecord(response)) return null
+  const data = response.data
+  const entries = Array.isArray(data) ? data : isRecord(data) ? [data] : []
+  const item = entries.find(
+    (entry) => isRecord(entry) && typeof entry.id === 'number' && entry.id === id,
+  )
+  const lone = entries.length === 1 && isRecord(entries[0]) ? entries[0] : null
+  const raw =
+    item ??
+    (lone && (typeof lone.id !== 'number' || lone.id === id) ? lone : null)
+  if (!raw || typeof raw.url !== 'string' || !raw.url.trim()) return null
+  return {
+    id: typeof raw.id === 'number' ? raw.id : id,
+    url: raw.url.trim(),
+    ...(typeof raw.size === 'number' ? { size: raw.size } : {}),
+    ...(typeof raw.br === 'number' ? { br: raw.br } : {}),
+    ...(typeof raw.time === 'number' ? { time: raw.time } : {}),
+    ...(typeof raw.level === 'string' && raw.level.trim()
+      ? { level: raw.level.trim() }
+      : {}),
+  }
+}
 
 export async function getSongUrl(
   id: number,
   client: Pick<HttpClient, 'get'> = http,
 ): Promise<SongUrl> {
   const response = await client.get<SongUrlResponse>('/song/url', { id })
-  const item = response.data?.find((entry) => entry.id === id)
-  if (!item || typeof item.url !== 'string' || !item.url.trim()) {
-    throw new Error(SONG_URL_MISSING)
-  }
+  const item = readSongUrl(response, id)
+  if (!item) throw new Error(SONG_URL_MISSING)
   return item
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
+export async function getSongUrlV1(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SongUrl> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的歌曲 ID')
+  }
+  const response = await client.get<unknown>('/song/url/v1', {
+    id,
+    level: SONG_URL_V1_LEVEL,
+  })
+  const item = readSongUrl(response, id)
+  if (!item) throw new Error(SONG_URL_MISSING)
+  return item.level ? item : { ...item, level: SONG_URL_V1_LEVEL }
+}
+
+export async function getSongDownloadUrl(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SongUrl> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的歌曲 ID')
+  }
+  const response = await client.get<unknown>('/song/download/url', {
+    br: SONG_DOWNLOAD_BR,
+    id,
+  })
+  const item = readSongUrl(response, id)
+  if (!item) throw new Error(SONG_URL_MISSING)
+  return { ...item, level: 'download' }
 }
 
 export interface MusicCheck {

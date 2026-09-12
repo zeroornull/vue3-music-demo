@@ -28,6 +28,7 @@ const {
   loopMode,
   queue,
   showQueue,
+  sourceQuality,
 } = storeToRefs(player)
 const { showLyric } = storeToRefs(lyrics)
 const bar = ref<HTMLElement | null>(null)
@@ -284,9 +285,15 @@ onUnmounted(() => {
         </button>
       </div>
       <div class="player-progress">
-        <span data-testid="player-clock"
-          >{{ formatClock(currentTime) }} / {{ formatClock(duration) }}</span
-        >
+        <div class="player-progress-meta">
+          <span
+            v-if="sourceQuality"
+            data-testid="player-quality"
+          >{{ sourceQuality }}</span>
+          <span data-testid="player-clock"
+            >{{ formatClock(currentTime) }} / {{ formatClock(duration) }}</span
+          >
+        </div>
         <input
           type="range"
           min="0"
@@ -481,7 +488,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
 }
-.player-progress span {
+.player-progress-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: #c4d1df;
   font-size: 0.75rem;
   white-space: nowrap;
