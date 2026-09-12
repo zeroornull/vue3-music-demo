@@ -23,6 +23,8 @@ import {
   getDjProgramHoursToplist,
   getDjRadioHoursToplist,
   getDjPaygiftRadios,
+  getDjPersonalizeRecommend,
+  getAiDjContent,
   getDjExcludehotCategories,
   getDjPopularRadios,
 } from '@/api/dj'
@@ -60,6 +62,8 @@ vi.mock('@/api/dj', async (importOriginal) => {
     getDjProgramHoursToplist: vi.fn(),
     getDjRadioHoursToplist: vi.fn(),
     getDjPaygiftRadios: vi.fn(),
+    getDjPersonalizeRecommend: vi.fn(),
+    getAiDjContent: vi.fn(),
     getDjExcludehotCategories: vi.fn(),
     getDjPopularRadios: vi.fn(),
   }
@@ -136,6 +140,11 @@ const HallStub = defineComponent({
     'popularRadios',
     'popularRadiosError',
     'popularRadiosLoading',
+    'personalizeRadios',
+    'personalizeRadiosError',
+    'aiDjPrograms',
+    'aiDjRadios',
+    'aiDjError',
   ],
   emits: [
     'retry-banners',
@@ -154,6 +163,8 @@ const HallStub = defineComponent({
     'retry-extra-categories',
     'retry-paygift',
     'retry-popular',
+    'retry-personalize',
+    'retry-aidj',
     'select-banner',
     'select-cat',
     'load-more-radios',
@@ -217,6 +228,10 @@ const HallStub = defineComponent({
       <span data-testid="popular-count">{{ popularRadios.length }}</span>
       <span v-if="popularRadiosLoading" data-testid="popular-loading">loading</span>
       <span v-if="popularRadiosError" data-testid="popular-error">{{ popularRadiosError }}</span>
+      <span data-testid="personalize-count">{{ personalizeRadios.length }}</span>
+      <span v-if="personalizeRadiosError" data-testid="personalize-error">{{ personalizeRadiosError }}</span>
+      <span data-testid="aidj-count">{{ aiDjPrograms.length }}</span>
+      <span v-if="aiDjError" data-testid="aidj-error">{{ aiDjError }}</span>
       <button data-testid="page-cat" @click="$emit('select-cat', 6)">cat</button>
       <button data-testid="page-extra-cat" @click="$emit('select-cat', 9)">extra cat</button>
       <button data-testid="page-radio-retry" @click="$emit('retry-radios')">retry radios</button>
@@ -235,6 +250,8 @@ const HallStub = defineComponent({
       <button data-testid="page-extra-cats-retry" @click="$emit('retry-extra-categories')">retry extra</button>
       <button data-testid="page-paygift-retry" @click="$emit('retry-paygift')">retry paygift</button>
       <button data-testid="page-popular-retry" @click="$emit('retry-popular')">retry popular</button>
+      <button data-testid="page-personalize-retry" @click="$emit('retry-personalize')">retry personalize</button>
+      <button data-testid="page-aidj-retry" @click="$emit('retry-aidj')">retry aidj</button>
       <button
         data-testid="select-song-banner"
         @click="$emit('select-banner', banners[0])"
@@ -311,6 +328,10 @@ describe('DjHallPage', () => {
     vi.mocked(getDjExcludehotCategories).mockReset()
     vi.mocked(getDjPopularRadios).mockReset()
     vi.mocked(getDjPaygiftRadios).mockResolvedValue([])
+    vi.mocked(getDjPersonalizeRecommend).mockReset()
+    vi.mocked(getDjPersonalizeRecommend).mockResolvedValue([])
+    vi.mocked(getAiDjContent).mockReset()
+    vi.mocked(getAiDjContent).mockResolvedValue({ programs: [], radios: [] })
     vi.mocked(getDjExcludehotCategories).mockResolvedValue([])
     vi.mocked(getDjPopularRadios).mockResolvedValue([])
     vi.mocked(getDjCategories).mockResolvedValue([{ id: 2, name: '音乐故事' }])
@@ -506,22 +527,48 @@ describe('DjHallPage', () => {
           rcmdText: '',
         },
       ])
+    vi.mocked(getDjPersonalizeRecommend)
+      .mockRejectedValueOnce(new Error('personalize offline'))
+      .mockResolvedValueOnce([
+        {
+          djName: '',
+          id: 861,
+          name: '个性夜航',
+          picUrl: '',
+          playCount: 1,
+          rcmdText: '',
+        },
+      ])
+    vi.mocked(getAiDjContent)
+      .mockRejectedValueOnce(new Error('aidj offline'))
+      .mockResolvedValueOnce({
+        programs: [{ copywriter: '', id: 941, name: '私人夜航', paid: false, picUrl: '' }],
+        radios: [],
+      })
     const { router, wrapper } = await mountPage()
     await flushPromises()
     expect(wrapper.get('[data-testid="paygift-error"]').text()).toBe('gift offline')
     expect(wrapper.get('[data-testid="extra-cat-error"]').text()).toBe('extra offline')
     expect(wrapper.get('[data-testid="popular-error"]').text()).toBe('popular offline')
+    expect(wrapper.get('[data-testid="personalize-error"]').text()).toBe('personalize offline')
+    expect(wrapper.get('[data-testid="aidj-error"]').text()).toBe('aidj offline')
     expect(wrapper.get('[data-testid="program-count"]').text()).toBe('1')
     await wrapper.get('[data-testid="page-paygift-retry"]').trigger('click')
     await wrapper.get('[data-testid="page-extra-cats-retry"]').trigger('click')
     await wrapper.get('[data-testid="page-popular-retry"]').trigger('click')
+    await wrapper.get('[data-testid="page-personalize-retry"]').trigger('click')
+    await wrapper.get('[data-testid="page-aidj-retry"]').trigger('click')
     await flushPromises()
     expect(getDjPaygiftRadios).toHaveBeenCalledTimes(2)
     expect(getDjExcludehotCategories).toHaveBeenCalledTimes(2)
     expect(getDjPopularRadios).toHaveBeenCalledTimes(2)
+    expect(getDjPersonalizeRecommend).toHaveBeenCalledTimes(2)
+    expect(getAiDjContent).toHaveBeenCalledTimes(2)
     expect(wrapper.get('[data-testid="paygift-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="extra-cat-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="popular-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="personalize-count"]').text()).toBe('1')
+    expect(wrapper.get('[data-testid="aidj-count"]').text()).toBe('1')
 
     await wrapper.get('[data-testid="page-extra-cat"]').trigger('click')
     await flushPromises()

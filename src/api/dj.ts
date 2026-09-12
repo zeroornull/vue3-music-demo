@@ -32,6 +32,8 @@ export const DJ_PAY_RADIO_LIMIT = 10
 export const DJ_PAYGIFT_LIMIT = 10
 export const DJ_POPULAR_LIMIT = 10
 export const DJ_NEWEST_LIMIT = 10
+export const DJ_PERSONALIZE_LIMIT = 10
+export const DJ_AIDJ_LIMIT = 10
 export const DJ_SUBSCRIBER_TIME_START = -1
 
 export interface HotDjRadioQuery {
@@ -475,6 +477,63 @@ export async function getDjPaygiftRadios(
     .filter((item): item is HallRadio => item !== null)
     .slice(0, DJ_PAYGIFT_LIMIT)
     .map((item) => ({ ...item, paid: true }))
+}
+
+export async function getDjPersonalizeRecommend(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<HallRadio[]> {
+  const response = await client.get<Record<string, unknown>>('/dj/personalize/recommend', {
+    limit: DJ_PERSONALIZE_LIMIT,
+  })
+  const raw = unwrapList(response, ['djRadios', 'data', 'list'])
+  if (!raw) {
+    throw new Error('电台个性推荐响应格式不正确')
+  }
+  return raw
+    .map(readToplistRadio)
+    .filter((item): item is HallRadio => item !== null)
+    .slice(0, DJ_PERSONALIZE_LIMIT)
+}
+
+export interface AiDjContent {
+  programs: DjProgram[]
+  radios: HallRadio[]
+}
+
+export async function getAiDjContent(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<AiDjContent> {
+  const response = await client.get<Record<string, unknown>>('/aidj/content/rcmd', {
+    limit: DJ_AIDJ_LIMIT,
+  })
+  if (!isRecord(response)) {
+    throw new Error('私人 DJ 响应格式不正确')
+  }
+  const nested = isRecord(response.data) ? response.data : response
+  const data = isRecord(nested.data) ? nested.data : nested
+  const programRaw = Array.isArray(data.programs)
+    ? data.programs
+    : Array.isArray(data.djPrograms)
+      ? data.djPrograms
+      : null
+  const radioRaw = Array.isArray(data.djRadios)
+    ? data.djRadios
+    : Array.isArray(data.radios)
+      ? data.radios
+      : null
+  if (!programRaw && !radioRaw) {
+    throw new Error('私人 DJ 响应格式不正确')
+  }
+  return {
+    programs: (programRaw ?? [])
+      .map(readToplistProgram)
+      .filter((item): item is DjProgram => item !== null)
+      .slice(0, DJ_AIDJ_LIMIT),
+    radios: (radioRaw ?? [])
+      .map(readToplistRadio)
+      .filter((item): item is HallRadio => item !== null)
+      .slice(0, DJ_AIDJ_LIMIT),
+  }
 }
 
 export async function getDjExcludehotCategories(

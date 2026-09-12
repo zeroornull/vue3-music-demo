@@ -427,6 +427,7 @@ describe('App host gate', () => {
       },
     ]
     commonStore.privateBrief = [{ id: 803, name: '短列表现场', sPicUrl: '' }]
+    commonStore.starpick = [{ content: '林间星评。', id: 21, likedCount: 8, nickname: '林间电台' }]
     mountApp()
 
     useHostStore().clearHost()
@@ -437,6 +438,7 @@ describe('App host gate', () => {
     expect(commonStore.hotTopics).toEqual([])
     expect(commonStore.calendarEvents).toEqual([])
     expect(commonStore.privateBrief).toEqual([])
+    expect(commonStore.starpick).toEqual([])
   })
 
   it('clears exclusive video cache when the host gate closes', async () => {
@@ -708,6 +710,27 @@ describe('App host gate', () => {
         rcmdText: '',
       },
     ]
+    djStore.personalizeRadios = [
+      {
+        djName: '',
+        id: 861,
+        name: '个性夜航',
+        picUrl: '',
+        playCount: 1,
+        rcmdText: '',
+      },
+    ]
+    djStore.aiDjPrograms = [{ copywriter: '', id: 941, name: '私人夜航', paid: false, picUrl: '' }]
+    djStore.aiDjRadios = [
+      {
+        djName: '',
+        id: 862,
+        name: '私人电台',
+        picUrl: '',
+        playCount: 1,
+        rcmdText: '',
+      },
+    ]
     djStore.cateId = 2
     djStore.radio = {
       category: '音乐故事',
@@ -792,6 +815,9 @@ describe('App host gate', () => {
     expect(djStore.categoryRecommendRadios).toEqual([])
     expect(djStore.newcomerRadios).toEqual([])
     expect(djStore.payRadios).toEqual([])
+    expect(djStore.personalizeRadios).toEqual([])
+    expect(djStore.aiDjPrograms).toEqual([])
+    expect(djStore.aiDjRadios).toEqual([])
     expect(djStore.cateId).toBe(0)
     expect(djStore.radio).toBeNull()
     expect(djStore.radioPrograms).toEqual([])

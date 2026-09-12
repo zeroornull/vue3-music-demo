@@ -15,6 +15,7 @@ import {
   getHomepagePlaylists,
   getHotTopics,
   getMusicCalendar,
+  getStarpickComments,
 } from '@/api/homepage'
 import { getPrivateContentBrief } from '@/api/privateContent'
 import { getPersonalizedPlaylists } from '@/api/personalized'
@@ -63,6 +64,7 @@ vi.mock('@/api/homepage', () => ({
   getHomepagePlaylists: vi.fn(),
   getHotTopics: vi.fn(),
   getMusicCalendar: vi.fn(),
+  getStarpickComments: vi.fn(),
 }))
 vi.mock('@/api/privateContent', () => ({
   getPrivateContentBrief: vi.fn(),
@@ -366,6 +368,8 @@ describe('DiscoverView', () => {
     vi.mocked(getHomepageDragonBalls).mockResolvedValue([])
     vi.mocked(getHotTopics).mockReset()
     vi.mocked(getHotTopics).mockResolvedValue([])
+    vi.mocked(getStarpickComments).mockReset()
+    vi.mocked(getStarpickComments).mockResolvedValue([])
     vi.mocked(getMusicCalendar).mockReset()
     vi.mocked(getMusicCalendar).mockResolvedValue([])
     vi.mocked(getPrivateContentBrief).mockReset()
@@ -386,7 +390,7 @@ describe('DiscoverView', () => {
 
     expect(wrapper.get('h1').text()).toBe('推荐')
     expect(wrapper.get('.summary').text()).toBe(
-      '五个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转、顶栏视频入口、Host 文案、主题已接入、内容卡片主题、歌曲 MV、队列和新歌 MV、顶栏搜索 MV、歌曲行专辑、播放条封面、新歌卡片专辑、播放条封面进专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、歌曲行歌手、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类、电台页头分类、相似歌曲、视频大厅分类、歌手馆筛选、搜索视频、相似歌曲露出、歌词露出、队列删歌、音量记住、歌单评论、MV 评论、视频评论、搜索分页、私人 FM、歌单搜索分页、歌手搜索分页、专辑搜索分页、MV 搜索分页、电台搜索分页、视频搜索分页、私人 FM 垃圾桶、私人 FM 页、电台节目评论、电台评论、歌曲评论、相似歌单、新碟上架、电台节目榜、MV 排行、电台榜、最新 MV、版权检查、歌单评论分页、MV 评论分页、视频评论分页、电台节目评论分页、电台评论分页、歌曲评论分页、歌单收藏者、搜索页不走建议、搜索默认词、搜索最佳匹配、歌单评论分页锁、新歌榜、热门歌手、专辑榜、独家 MV、精选电台、今日优选、24小时节目榜、24小时电台榜、MV 计数、视频计数、歌单动态、专辑动态、歌单热评、MV 热评、视频热评、歌曲热评、歌单分类、热门标签、热门歌单、最新歌单、推荐视频、视频分类、热门全部 MV、最新全部 MV、歌手热门50、歌手最新歌曲、歌手最新 MV、歌单评论楼层、歌曲评论楼层、MV 评论楼层、视频评论楼层、推荐节目、热门电台、分类精选电台、分类推荐、电台节目热评、电台节目评论楼层、电台订阅者、全部新碟、歌手榜、新晋电台、付费精品、圆形入口、热门话题、音乐日历、独家放送短列表、曲风馆、声音馆、数字专辑馆、歌曲百科、乐谱、相关 Mlog、话题详情、付费精选、更多分类、热门电台榜、最新单曲、粉丝、关注数、歌手视频、极高音质、备用地址、新版歌词、歌曲介绍、Mlog 播放、Mlog 转视频、首页歌单、精选节目、最新电台、搜索歌词、搜索综合、搜索声音、新版歌单评论、新版歌曲评论、新版 MV 评论、新版视频评论、新版电台节目评论、新版电台评论。',
+      '五个推荐内容模块、最小播放器、歌单详情、MV 播放、排行榜、分类歌单、精选、歌手详情、歌手 MV、歌手馆分类字母、电台大厅、搜索多类型、专辑详情、应用壳和播放器进度音量、上一首下一首、循环随机、静音、播放列表、歌词翻译、歌词罗马音、歌词逐字、视频大厅分页和全部分类、歌手专辑、歌手介绍、专辑介绍、电台分类、付费电台、顶栏搜索、Banner 详情跳转、顶栏视频入口、Host 文案、主题已接入、内容卡片主题、歌曲 MV、队列和新歌 MV、顶栏搜索 MV、歌曲行专辑、播放条封面、新歌卡片专辑、播放条封面进专辑、新歌卡片歌手、播放条歌手、队列歌手、队列专辑、顶栏搜索歌手、顶栏搜索专辑、播放条 MV、MV 卡片歌手、MV 详情歌手、歌手 MV 歌手、MV 详情资料、相关 MV、视频详情资料、相关视频、歌曲行歌手、专辑页头歌手、相关歌单、搜索 MV、搜索电台、相似歌手、更多专辑、更多电台、更多节目、节目页头电台、歌单页头分类、电台页头分类、相似歌曲、视频大厅分类、歌手馆筛选、搜索视频、相似歌曲露出、歌词露出、队列删歌、音量记住、歌单评论、MV 评论、视频评论、搜索分页、私人 FM、歌单搜索分页、歌手搜索分页、专辑搜索分页、MV 搜索分页、电台搜索分页、视频搜索分页、私人 FM 垃圾桶、私人 FM 页、电台节目评论、电台评论、歌曲评论、相似歌单、新碟上架、电台节目榜、MV 排行、电台榜、最新 MV、版权检查、歌单评论分页、MV 评论分页、视频评论分页、电台节目评论分页、电台评论分页、歌曲评论分页、歌单收藏者、搜索页不走建议、搜索默认词、搜索最佳匹配、歌单评论分页锁、新歌榜、热门歌手、专辑榜、独家 MV、精选电台、今日优选、24小时节目榜、24小时电台榜、MV 计数、视频计数、歌单动态、专辑动态、歌单热评、MV 热评、视频热评、歌曲热评、歌单分类、热门标签、热门歌单、最新歌单、推荐视频、视频分类、热门全部 MV、最新全部 MV、歌手热门50、歌手最新歌曲、歌手最新 MV、歌单评论楼层、歌曲评论楼层、MV 评论楼层、视频评论楼层、推荐节目、热门电台、分类精选电台、分类推荐、电台节目热评、电台节目评论楼层、电台订阅者、全部新碟、歌手榜、新晋电台、付费精品、圆形入口、热门话题、音乐日历、独家放送短列表、曲风馆、声音馆、数字专辑馆、歌曲百科、乐谱、相关 Mlog、话题详情、付费精选、更多分类、热门电台榜、最新单曲、粉丝、关注数、歌手视频、极高音质、备用地址、新版歌词、歌曲介绍、Mlog 播放、Mlog 转视频、首页歌单、精选节目、最新电台、搜索歌词、搜索综合、搜索声音、新版歌单评论、新版歌曲评论、新版 MV 评论、新版视频评论、新版电台节目评论、新版电台评论、星评馆、电台个性推荐、私人 DJ。',
     )
     expect(wrapper.find('.next-slices').exists()).toBe(false)
     expect(wrapper.text()).toContain('打开视频大厅')
@@ -409,6 +413,7 @@ describe('DiscoverView', () => {
     expect(wrapper.get('[data-testid="top-album-stub"]').text()).toContain('专辑榜')
     expect(getHomepageDragonBalls).toHaveBeenCalledTimes(1)
     expect(getHotTopics).toHaveBeenCalledTimes(1)
+    expect(getStarpickComments).toHaveBeenCalledTimes(1)
     expect(getMusicCalendar).toHaveBeenCalledTimes(1)
     expect(getPrivateContentBrief).toHaveBeenCalledTimes(1)
   })
@@ -777,6 +782,11 @@ describe('DiscoverView', () => {
       .mockResolvedValueOnce([
         { id: 803, name: '短列表现场', sPicUrl: '' },
       ])
+    vi.mocked(getStarpickComments)
+      .mockRejectedValueOnce(new Error('starpick offline'))
+      .mockResolvedValueOnce([
+        { content: '林间星评。', id: 21, likedCount: 8, nickname: '林间电台' },
+      ])
 
     const { router, wrapper } = await mountView()
     await flushPromises()
@@ -786,17 +796,21 @@ describe('DiscoverView', () => {
     expect(wrapper.get('[data-testid="discover-private-error"]').text()).toBe(
       'brief offline',
     )
+    expect(wrapper.find('[data-testid="starpick-retry"]').exists()).toBe(true)
 
     await wrapper.get('[data-testid="dragon-ball-retry"]').trigger('click')
     await wrapper.get('[data-testid="hot-topic-retry"]').trigger('click')
     await wrapper.get('[data-testid="calendar-retry"]').trigger('click')
     await wrapper.get('[data-testid="discover-private-retry"]').trigger('click')
+    await wrapper.get('[data-testid="starpick-retry"]').trigger('click')
     await flushPromises()
 
     expect(getHomepageDragonBalls).toHaveBeenCalledTimes(2)
     expect(getHotTopics).toHaveBeenCalledTimes(2)
     expect(getMusicCalendar).toHaveBeenCalledTimes(2)
     expect(getPrivateContentBrief).toHaveBeenCalledTimes(2)
+    expect(getStarpickComments).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="starpick-comments"]').text()).toContain('林间星评。')
     expect(wrapper.get('[data-testid="dragon-ball-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="hot-topic-count"]').text()).toBe('1')
     expect(wrapper.get('[data-testid="calendar-count"]').text()).toBe('1')

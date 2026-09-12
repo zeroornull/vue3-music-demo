@@ -39,11 +39,15 @@ import {
   getDjNewcomerRadios,
   getDjPayRadios,
   getDjPaygiftRadios,
+  getDjPersonalizeRecommend,
+  getAiDjContent,
   getDjExcludehotCategories,
   getDjPopularRadios,
   getProgramRecommend,
   getDjNewestRadios,
   DJ_PAYGIFT_LIMIT,
+  DJ_PERSONALIZE_LIMIT,
+  DJ_AIDJ_LIMIT,
   DJ_POPULAR_LIMIT,
   DJ_NEWEST_LIMIT,
   DJ_NEWCOMER_LIMIT,
@@ -1125,6 +1129,62 @@ describe('DJ API', () => {
     await expect(
       getDjPopularRadios(client({ data: null }).client),
     ).rejects.toThrow('热门电台榜响应格式不正确')
+  })
+
+  it('unwraps personalize radios and private DJ content', async () => {
+    const personalize = client({
+      data: [
+        {
+          extra: true,
+          id: 861,
+          name: '个性夜航',
+          picUrl: 'https://images.example.com/p.jpg',
+        },
+      ],
+    })
+    await expect(getDjPersonalizeRecommend(personalize.client)).resolves.toEqual([
+      {
+        djName: '',
+        id: 861,
+        name: '个性夜航',
+        paid: false,
+        picUrl: 'https://images.example.com/p.jpg',
+        playCount: 0,
+        rcmdText: '',
+      },
+    ])
+    expect(personalize.get).toHaveBeenCalledWith('/dj/personalize/recommend', {
+      limit: DJ_PERSONALIZE_LIMIT,
+    })
+    await expect(getDjPersonalizeRecommend(client({ data: null }).client)).rejects.toThrow(
+      '电台个性推荐响应格式不正确',
+    )
+
+    const aidj = client({
+      data: {
+        programs: [{ extra: true, id: 941, name: '私人夜航', picUrl: '' }],
+        djRadios: [{ extra: true, id: 862, name: '私人电台', picUrl: '' }],
+      },
+    })
+    await expect(getAiDjContent(aidj.client)).resolves.toEqual({
+      programs: [{ copywriter: '', id: 941, name: '私人夜航', paid: false, picUrl: '' }],
+      radios: [
+        {
+          djName: '',
+          id: 862,
+          name: '私人电台',
+          paid: false,
+          picUrl: '',
+          playCount: 0,
+          rcmdText: '',
+        },
+      ],
+    })
+    expect(aidj.get).toHaveBeenCalledWith('/aidj/content/rcmd', { limit: DJ_AIDJ_LIMIT })
+    await expect(getAiDjContent(client({ data: null }).client)).rejects.toThrow(
+      '私人 DJ 响应格式不正确',
+    )
+    expect(DJ_AIDJ_LIMIT).toBe(10)
   })
 
   it('unwraps /program/recommend programs and /dj/radio/newest radios', async () => {

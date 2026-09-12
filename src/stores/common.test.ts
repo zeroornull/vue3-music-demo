@@ -7,6 +7,7 @@ import {
   getHomepageDragonBalls,
   getHomepagePlaylists,
   getHotTopics,
+  getStarpickComments,
   getMusicCalendar,
 } from '@/api/homepage'
 import { getPrivateContentBrief } from '@/api/privateContent'
@@ -27,6 +28,7 @@ vi.mock('@/api/homepage', () => ({
   getHomepageDragonBalls: vi.fn(),
   getHomepagePlaylists: vi.fn(),
   getHotTopics: vi.fn(),
+  getStarpickComments: vi.fn(),
   getMusicCalendar: vi.fn(),
 }))
 vi.mock('@/api/privateContent', () => ({
@@ -48,6 +50,8 @@ describe('common store', () => {
     vi.mocked(getBanners).mockReset()
     vi.mocked(getHomepageDragonBalls).mockReset()
     vi.mocked(getHotTopics).mockReset()
+    vi.mocked(getStarpickComments).mockReset()
+    vi.mocked(getStarpickComments).mockResolvedValue([])
     vi.mocked(getMusicCalendar).mockReset()
     vi.mocked(getPrivateContentBrief).mockReset()
     vi.mocked(getHomepagePlaylists).mockReset()
@@ -99,6 +103,22 @@ describe('common store', () => {
     expect(store.loading).toBe(false)
   })
 
+  it('drops in-flight starpick comments after reset', async () => {
+    let resolveComments!: (value: { content: string; id: number; likedCount: number; nickname: string }[]) => void
+    vi.mocked(getStarpickComments).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveComments = resolve
+      }),
+    )
+    const store = useCommonStore()
+    const pending = store.loadStarpick()
+    store.reset()
+    resolveComments([{ content: '林间星评。', id: 21, likedCount: 8, nickname: '林间电台' }])
+    await pending
+    expect(store.starpick).toEqual([])
+    expect(store.starpickLoading).toBe(false)
+  })
+
   it('loads homepage extras independently', async () => {
     const ball = {
       iconUrl: '',
@@ -135,6 +155,19 @@ describe('common store', () => {
     expect(getHotTopics).toHaveBeenCalledTimes(1)
     expect(getMusicCalendar).toHaveBeenCalledTimes(1)
     expect(getPrivateContentBrief).toHaveBeenCalledTimes(1)
+  })
+
+  it('loads starpick comments independently of topics', async () => {
+    const comment = { content: '林间星评。', id: 21, likedCount: 8, nickname: '林间电台' }
+    vi.mocked(getStarpickComments).mockResolvedValue([comment])
+    vi.mocked(getHotTopics).mockRejectedValue(new Error('topics offline'))
+    const store = useCommonStore()
+    await expect(store.loadHotTopics()).rejects.toThrow('topics offline')
+    await store.loadStarpick()
+    await store.loadStarpick()
+    expect(store.starpick).toEqual([comment])
+    expect(store.hotTopicsError).toBe('topics offline')
+    expect(getStarpickComments).toHaveBeenCalledTimes(1)
   })
 
   it('loads homepage playlists, programs and newest radios independently', async () => {

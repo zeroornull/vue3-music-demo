@@ -68,6 +68,13 @@ const {
   popularRadios,
   popularRadiosError,
   popularRadiosLoading,
+  personalizeRadios,
+  personalizeRadiosError,
+  personalizeRadiosLoading,
+  aiDjPrograms,
+  aiDjRadios,
+  aiDjError,
+  aiDjLoading,
 } = storeToRefs(djStore)
 const notice = ref<string | null>(null)
 let playSerial = 0
@@ -151,6 +158,14 @@ function requestPaygift(force = false) {
 
 function requestPopular(force = false) {
   void djStore.loadPopularRadios(force).catch(() => undefined)
+}
+
+function requestPersonalize(force = false) {
+  void djStore.loadPersonalizeRadios(force).catch(() => undefined)
+}
+
+function requestAiDj(force = false) {
+  void djStore.loadAiDj(force).catch(() => undefined)
 }
 
 async function requestCategories(force = false) {
@@ -244,6 +259,8 @@ onMounted(() => {
   requestExtraCategories()
   requestPaygift()
   requestPopular()
+  requestPersonalize()
+  requestAiDj()
   void requestCategories()
 })
 </script>
@@ -303,6 +320,13 @@ onMounted(() => {
       :popular-radios="popularRadios"
       :popular-radios-error="popularRadiosError"
       :popular-radios-loading="popularRadiosLoading"
+      :personalize-radios="personalizeRadios"
+      :personalize-radios-error="personalizeRadiosError"
+      :personalize-radios-loading="personalizeRadiosLoading"
+      :ai-dj-programs="aiDjPrograms"
+      :ai-dj-radios="aiDjRadios"
+      :ai-dj-error="aiDjError"
+      :ai-dj-loading="aiDjLoading"
       @load-more-radios="loadMoreRadios"
       @retry-banners="requestBanners(true)"
       @retry-programs="requestPrograms(true)"
@@ -320,6 +344,8 @@ onMounted(() => {
       @retry-extra-categories="requestExtraCategories(true)"
       @retry-paygift="requestPaygift(true)"
       @retry-popular="requestPopular(true)"
+      @retry-personalize="requestPersonalize(true)"
+      @retry-aidj="requestAiDj(true)"
       @select-banner="selectBanner"
       @select-cat="selectCat"
     />

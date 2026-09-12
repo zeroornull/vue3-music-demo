@@ -23,6 +23,8 @@ import {
   getDjNewcomerRadios,
   getDjPayRadios,
   getDjPaygiftRadios,
+  getDjPersonalizeRecommend,
+  getAiDjContent,
   getDjExcludehotCategories,
   getDjPopularRadios,
   DJ_SUBSCRIBER_TIME_START,
@@ -73,6 +75,8 @@ vi.mock('@/api/dj', async (importOriginal) => {
     getDjNewcomerRadios: vi.fn(),
     getDjPayRadios: vi.fn(),
     getDjPaygiftRadios: vi.fn(),
+    getDjPersonalizeRecommend: vi.fn(),
+    getAiDjContent: vi.fn(),
     getDjExcludehotCategories: vi.fn(),
     getDjPopularRadios: vi.fn(),
   }
@@ -199,6 +203,8 @@ describe('dj store', () => {
     vi.mocked(getDjNewcomerRadios).mockReset()
     vi.mocked(getDjPayRadios).mockReset()
     vi.mocked(getDjPaygiftRadios).mockReset()
+    vi.mocked(getDjPersonalizeRecommend).mockReset()
+    vi.mocked(getAiDjContent).mockReset()
     vi.mocked(getDjExcludehotCategories).mockReset()
     vi.mocked(getDjPopularRadios).mockReset()
   })
@@ -1766,6 +1772,37 @@ describe('dj store', () => {
     expect(getDjPopularRadios).toHaveBeenCalledTimes(1)
   })
 
+  it('loads personalize radios and private DJ independently', async () => {
+    const personalize = { ...radio, id: 861, name: '个性夜航' }
+    const program = { copywriter: '', id: 941, name: '私人夜航', paid: false, picUrl: '' }
+    vi.mocked(getDjPersonalizeRecommend).mockResolvedValue([personalize])
+    vi.mocked(getAiDjContent).mockResolvedValue({
+      programs: [program],
+      radios: [{ ...radio, id: 862, name: '私人电台' }],
+    })
+    const store = useDjStore()
+    await store.loadPersonalizeRadios()
+    await store.loadPersonalizeRadios()
+    await store.loadAiDj()
+    await store.loadAiDj()
+    expect(store.personalizeRadios).toEqual([personalize])
+    expect(store.aiDjPrograms).toEqual([program])
+    expect(store.aiDjRadios[0]?.name).toBe('私人电台')
+    expect(getDjPersonalizeRecommend).toHaveBeenCalledTimes(1)
+    expect(getAiDjContent).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps personalize radios when private DJ fails', async () => {
+    const personalize = { ...radio, id: 861, name: '个性夜航' }
+    vi.mocked(getDjPersonalizeRecommend).mockResolvedValue([personalize])
+    vi.mocked(getAiDjContent).mockRejectedValue(new Error('aidj offline'))
+    const store = useDjStore()
+    await store.loadPersonalizeRadios()
+    await expect(store.loadAiDj()).rejects.toThrow('aidj offline')
+    expect(store.personalizeRadios).toEqual([personalize])
+    expect(store.aiDjError).toBe('aidj offline')
+  })
+
   it('keeps popular radios when paygift fails', async () => {
     const popular = { ...radio, id: 891, name: '热门夜航' }
     vi.mocked(getDjPaygiftRadios).mockRejectedValue(new Error('gift offline'))
@@ -1802,5 +1839,28 @@ describe('dj store', () => {
     expect(store.extraCategoriesLoading).toBe(false)
     expect(store.popularRadios).toEqual([])
     expect(store.popularRadiosLoading).toBe(false)
+  })
+
+  it('drops in-flight personalize radios and private DJ after reset', async () => {
+    const pendingPersonalize = deferred<typeof radio[]>()
+    const pendingAi = deferred<{ programs: { copywriter: string; id: number; name: string; paid: boolean; picUrl: string }[]; radios: typeof radio[] }>()
+    vi.mocked(getDjPersonalizeRecommend).mockReturnValueOnce(pendingPersonalize.promise)
+    vi.mocked(getAiDjContent).mockReturnValueOnce(pendingAi.promise)
+    const store = useDjStore()
+    const personalize = store.loadPersonalizeRadios()
+    const aidj = store.loadAiDj()
+    store.reset()
+    pendingPersonalize.resolve([{ ...radio, id: 861, name: '个性夜航' }])
+    pendingAi.resolve({
+      programs: [{ copywriter: '', id: 941, name: '私人夜航', paid: false, picUrl: '' }],
+      radios: [{ ...radio, id: 862, name: '私人电台' }],
+    })
+    await personalize
+    await aidj
+    expect(store.personalizeRadios).toEqual([])
+    expect(store.personalizeRadiosLoading).toBe(false)
+    expect(store.aiDjPrograms).toEqual([])
+    expect(store.aiDjRadios).toEqual([])
+    expect(store.aiDjLoading).toBe(false)
   })
 })

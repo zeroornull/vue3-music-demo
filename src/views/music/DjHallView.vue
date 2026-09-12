@@ -60,6 +60,13 @@ withDefaults(
     popularRadios?: HallRadio[]
     popularRadiosError?: string | null
     popularRadiosLoading?: boolean
+    personalizeRadios?: HallRadio[]
+    personalizeRadiosError?: string | null
+    personalizeRadiosLoading?: boolean
+    aiDjPrograms?: DjProgram[]
+    aiDjRadios?: HallRadio[]
+    aiDjError?: string | null
+    aiDjLoading?: boolean
   }>(),
   {
     bannersError: null,
@@ -111,6 +118,13 @@ withDefaults(
     popularRadios: () => [],
     popularRadiosError: null,
     popularRadiosLoading: false,
+    personalizeRadios: () => [],
+    personalizeRadiosError: null,
+    personalizeRadiosLoading: false,
+    aiDjPrograms: () => [],
+    aiDjRadios: () => [],
+    aiDjError: null,
+    aiDjLoading: false,
   },
 )
 
@@ -132,6 +146,8 @@ defineEmits<{
   'retry-extra-categories': []
   'retry-paygift': []
   'retry-popular': []
+  'retry-personalize': []
+  'retry-aidj': []
   'select-banner': [banner: Banner]
   'select-cat': [id: number]
 }>()
@@ -199,6 +215,36 @@ defineEmits<{
         <strong>暂无更多分类</strong>
       </div>
     </section>
+    <DjRadioRankSection
+      empty-title="暂无个性推荐电台"
+      error-title="电台个性推荐加载失败"
+      testid="dj-personalize"
+      title="个性推荐电台"
+      :error="personalizeRadiosError"
+      :loading="personalizeRadiosLoading"
+      :radios="personalizeRadios"
+      @retry="$emit('retry-personalize')"
+    />
+    <DjProgramSection
+      empty-title="暂无私人 DJ"
+      error-title="私人 DJ 加载失败"
+      testid="dj-aidj-programs"
+      title="私人 DJ"
+      :error="aiDjError"
+      :loading="aiDjLoading"
+      :programs="aiDjPrograms"
+      @retry="$emit('retry-aidj')"
+    />
+    <DjRadioRankSection
+      empty-title="暂无私人 DJ 电台"
+      error-title="私人 DJ 加载失败"
+      testid="dj-aidj-radios"
+      title="私人 DJ 电台"
+      :error="aiDjError"
+      :loading="aiDjLoading"
+      :radios="aiDjRadios"
+      @retry="$emit('retry-aidj')"
+    />
     <DjRadioRankSection
       empty-title="暂无付费精选"
       error-title="付费精选加载失败"

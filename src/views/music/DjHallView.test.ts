@@ -33,6 +33,8 @@ const RankStub = defineComponent({
         'dj-category-recommend': 'hall-category-recommend',
         'dj-paygift': 'hall-paygift',
         'dj-popular': 'hall-popular',
+        'dj-personalize': 'hall-personalize',
+        'dj-aidj-radios': 'hall-aidj-radios',
       }
       return map[String(this.testid || '')] || 'hall-radio-toplist'
     },
@@ -60,6 +62,7 @@ const DjStub = defineComponent({
         'dj-today': 'hall-today',
         'dj-program-hours': 'hall-program-hours',
         'dj-recommend-programs': 'hall-recommend-programs',
+        'dj-aidj-programs': 'hall-aidj-programs',
       }
       return map[String(this.testid || '')] || 'hall-programs'
     },
@@ -68,6 +71,7 @@ const DjStub = defineComponent({
       if (this.testid === 'dj-today') return 'dj-today-retry'
       if (this.testid === 'dj-program-hours') return 'dj-program-hours-retry'
       if (this.testid === 'dj-recommend-programs') return 'dj-recommend-programs-retry'
+      if (this.testid === 'dj-aidj-programs') return 'dj-aidj-programs-retry'
       return 'dj-retry'
     },
   },
@@ -175,6 +179,27 @@ describe('DjHallView', () => {
             rcmdText: '',
           },
         ],
+        personalizeRadios: [
+          {
+            djName: '',
+            id: 861,
+            name: '个性夜航',
+            picUrl: '',
+            playCount: 1,
+            rcmdText: '',
+          },
+        ],
+        aiDjPrograms: [{ copywriter: '', id: 941, name: '私人夜航', picUrl: '' }],
+        aiDjRadios: [
+          {
+            djName: '',
+            id: 862,
+            name: '私人电台',
+            picUrl: '',
+            playCount: 1,
+            rcmdText: '',
+          },
+        ],
       },
       global: {
         stubs: {
@@ -201,6 +226,9 @@ describe('DjHallView', () => {
     expect(wrapper.get('#dj-extra-cats-title').text()).toBe('更多分类')
     expect(wrapper.get('[data-testid="hall-paygift"] h2').text()).toBe('付费精选')
     expect(wrapper.get('[data-testid="hall-popular"] h2').text()).toBe('热门电台榜')
+    expect(wrapper.get('[data-testid="hall-personalize"] h2').text()).toBe('个性推荐电台')
+    expect(wrapper.get('[data-testid="hall-aidj-programs"] h2').text()).toBe('私人 DJ')
+    expect(wrapper.get('[data-testid="hall-aidj-radios"] h2').text()).toBe('私人 DJ 电台')
     expect(wrapper.get('#radio-cat-title').text()).toBe('电台分类')
     await wrapper.get('[data-testid="banner-retry"]').trigger('click')
     await wrapper.get('[data-testid="dj-retry"]').trigger('click')
@@ -216,6 +244,8 @@ describe('DjHallView', () => {
     await wrapper.get('[data-testid="dj-category-recommend-retry"]').trigger('click')
     await wrapper.get('[data-testid="dj-paygift-retry"]').trigger('click')
     await wrapper.get('[data-testid="dj-popular-retry"]').trigger('click')
+    await wrapper.get('[data-testid="dj-personalize-retry"]').trigger('click')
+    await wrapper.get('[data-testid="dj-aidj-programs-retry"]').trigger('click')
     const extraChip = wrapper.findAll('.extra-cats button').find((button) => button.text() === '二次元')
     expect(extraChip).toBeTruthy()
     await extraChip!.trigger('click')
@@ -233,6 +263,8 @@ describe('DjHallView', () => {
     expect(wrapper.emitted('retry-category-recommend')).toHaveLength(1)
     expect(wrapper.emitted('retry-paygift')).toHaveLength(1)
     expect(wrapper.emitted('retry-popular')).toHaveLength(1)
+    expect(wrapper.emitted('retry-personalize')).toHaveLength(1)
+    expect(wrapper.emitted('retry-aidj')).toHaveLength(1)
     expect(wrapper.emitted('select-cat')).toEqual([[9]])
   })
 

@@ -19,6 +19,8 @@ import {
   getDjNewcomerRadios,
   getDjPayRadios,
   getDjPaygiftRadios,
+  getDjPersonalizeRecommend,
+  getAiDjContent,
   getDjExcludehotCategories,
   getDjPopularRadios,
   getDjTodayPrograms,
@@ -77,6 +79,8 @@ let payRadioSerial = 0
 let paygiftRadioSerial = 0
 let extraCategorySerial = 0
 let popularRadioSerial = 0
+let personalizeRadioSerial = 0
+let aiDjSerial = 0
 
 export const useDjStore = defineStore('dj', () => {
   const program = ref<DjProgramDetail | null>(null)
@@ -143,6 +147,13 @@ export const useDjStore = defineStore('dj', () => {
   const popularRadios = ref<HallRadio[]>([])
   const popularRadiosError = ref<string | null>(null)
   const popularRadiosLoading = ref(false)
+  const personalizeRadios = ref<HallRadio[]>([])
+  const personalizeRadiosError = ref<string | null>(null)
+  const personalizeRadiosLoading = ref(false)
+  const aiDjPrograms = ref<DjProgram[]>([])
+  const aiDjRadios = ref<HallRadio[]>([])
+  const aiDjError = ref<string | null>(null)
+  const aiDjLoading = ref(false)
   const radio = ref<DjRadioDetail | null>(null)
   const radioError = ref<string | null>(null)
   const radioLoading = ref(false)
@@ -247,6 +258,8 @@ export const useDjStore = defineStore('dj', () => {
     paygiftRadioSerial++
     extraCategorySerial++
     popularRadioSerial++
+    personalizeRadioSerial++
+    aiDjSerial++
     programs.value = []
     programsError.value = null
     programsLoading.value = false
@@ -307,6 +320,13 @@ export const useDjStore = defineStore('dj', () => {
     popularRadios.value = []
     popularRadiosError.value = null
     popularRadiosLoading.value = false
+    personalizeRadios.value = []
+    personalizeRadiosError.value = null
+    personalizeRadiosLoading.value = false
+    aiDjPrograms.value = []
+    aiDjRadios.value = []
+    aiDjError.value = null
+    aiDjLoading.value = false
   }
 
   async function loadBanners(force = false) {
@@ -668,6 +688,51 @@ export const useDjStore = defineStore('dj', () => {
       throw requestError
     } finally {
       if (serial === popularRadioSerial) popularRadiosLoading.value = false
+    }
+  }
+
+  async function loadPersonalizeRadios(force = false) {
+    if (personalizeRadios.value.length && !force && !personalizeRadiosError.value) {
+      return
+    }
+    const serial = ++personalizeRadioSerial
+    personalizeRadiosLoading.value = true
+    personalizeRadiosError.value = null
+    try {
+      const next = await getDjPersonalizeRecommend()
+      if (serial !== personalizeRadioSerial) return
+      personalizeRadios.value = next
+    } catch (requestError) {
+      if (serial !== personalizeRadioSerial) return
+      personalizeRadiosError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === personalizeRadioSerial) personalizeRadiosLoading.value = false
+    }
+  }
+
+  async function loadAiDj(force = false) {
+    if (
+      (aiDjPrograms.value.length || aiDjRadios.value.length) &&
+      !force &&
+      !aiDjError.value
+    ) {
+      return
+    }
+    const serial = ++aiDjSerial
+    aiDjLoading.value = true
+    aiDjError.value = null
+    try {
+      const next = await getAiDjContent()
+      if (serial !== aiDjSerial) return
+      aiDjPrograms.value = next.programs
+      aiDjRadios.value = next.radios
+    } catch (requestError) {
+      if (serial !== aiDjSerial) return
+      aiDjError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === aiDjSerial) aiDjLoading.value = false
     }
   }
 
@@ -1215,6 +1280,8 @@ export const useDjStore = defineStore('dj', () => {
     loadPaygiftRadios,
     loadExtraCategories,
     loadPopularRadios,
+    loadPersonalizeRadios,
+    loadAiDj,
     loadCategories,
     loadRadios,
     loadMoreRadios,
@@ -1293,6 +1360,13 @@ export const useDjStore = defineStore('dj', () => {
     popularRadios,
     popularRadiosError,
     popularRadiosLoading,
+    personalizeRadios,
+    personalizeRadiosError,
+    personalizeRadiosLoading,
+    aiDjPrograms,
+    aiDjRadios,
+    aiDjError,
+    aiDjLoading,
     radio,
     radioError,
     radioLoading,

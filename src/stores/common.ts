@@ -8,6 +8,7 @@ import {
   getHomepagePlaylists,
   getHotTopics,
   getMusicCalendar,
+  getStarpickComments,
 } from '@/api/homepage'
 import { getErrorMessage } from '@/api/http'
 import { getPrivateContentBrief } from '@/api/privateContent'
@@ -16,6 +17,7 @@ import type { DjProgram, HallRadio } from '@/models/dj'
 import type { CalendarEvent, DragonBall, HotTopic } from '@/models/homepage'
 import type { PersonalizedPlaylist } from '@/models/personalized'
 import type { PrivateContent } from '@/models/privateContent'
+import type { HotwallComment } from '@/models/topic'
 
 let bannerSerial = 0
 let dragonBallSerial = 0
@@ -25,6 +27,7 @@ let privateBriefSerial = 0
 let homepagePlaylistSerial = 0
 let programRecommendSerial = 0
 let newestRadioSerial = 0
+let starpickSerial = 0
 
 export const useCommonStore = defineStore('common', () => {
   const banners = ref<Banner[]>([])
@@ -51,6 +54,9 @@ export const useCommonStore = defineStore('common', () => {
   const newestRadios = ref<HallRadio[]>([])
   const newestRadiosError = ref<string | null>(null)
   const newestRadiosLoading = ref(false)
+  const starpick = ref<HotwallComment[]>([])
+  const starpickError = ref<string | null>(null)
+  const starpickLoading = ref(false)
 
   function reset() {
     bannerSerial++
@@ -61,6 +67,7 @@ export const useCommonStore = defineStore('common', () => {
     homepagePlaylistSerial++
     programRecommendSerial++
     newestRadioSerial++
+    starpickSerial++
     banners.value = []
     error.value = null
     loading.value = false
@@ -85,6 +92,9 @@ export const useCommonStore = defineStore('common', () => {
     newestRadios.value = []
     newestRadiosError.value = null
     newestRadiosLoading.value = false
+    starpick.value = []
+    starpickError.value = null
+    starpickLoading.value = false
   }
 
   async function loadBanners(force = false) {
@@ -232,6 +242,24 @@ export const useCommonStore = defineStore('common', () => {
     }
   }
 
+  async function loadStarpick(force = false) {
+    if (starpick.value.length && !force && !starpickError.value) return
+    const serial = ++starpickSerial
+    starpickLoading.value = true
+    starpickError.value = null
+    try {
+      const next = await getStarpickComments()
+      if (serial !== starpickSerial) return
+      starpick.value = next
+    } catch (requestError) {
+      if (serial !== starpickSerial) return
+      starpickError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === starpickSerial) starpickLoading.value = false
+    }
+  }
+
   return {
     banners,
     error,
@@ -265,6 +293,10 @@ export const useCommonStore = defineStore('common', () => {
     newestRadiosError,
     newestRadiosLoading,
     loadNewestRadios,
+    starpick,
+    starpickError,
+    starpickLoading,
+    loadStarpick,
     reset,
   }
 })

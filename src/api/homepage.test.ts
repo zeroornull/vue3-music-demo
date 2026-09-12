@@ -10,6 +10,7 @@ import {
   getHomepagePlaylists,
   getHotTopics,
   getMusicCalendar,
+  getStarpickComments,
   HOMEPAGE_PLAYLIST_LIMIT,
 } from '@/api/homepage'
 
@@ -199,5 +200,93 @@ describe('Homepage API', () => {
     await expect(
       getHomepagePlaylists(client({ blocks: many }).client),
     ).resolves.toHaveLength(HOMEPAGE_PLAYLIST_LIMIT)
+  })
+
+  it('unwraps /starpick/comments/summary', async () => {
+    const request = client({
+      data: {
+        comments: [
+          {
+            commentId: 21,
+            content: '  林间星评。  ',
+            extra: true,
+            likedCount: 8,
+            user: { nickname: '林间电台' },
+          },
+          { commentId: 0, content: '无效' },
+        ],
+      },
+    })
+    await expect(getStarpickComments(request.client)).resolves.toEqual([
+      { content: '林间星评。', id: 21, likedCount: 8, nickname: '林间电台' },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/starpick/comments/summary')
+    await expect(getStarpickComments(client({ data: null }).client)).rejects.toThrow(
+      '星评馆响应格式不正确',
+    )
+    await expect(
+      getStarpickComments(
+        client({
+          data: {
+            blocks: [
+              {
+                blockCode: 'HOMEPAGE_BLOCK_NEW_HOT_COMMENT',
+                creatives: [
+                  {
+                    resources: [
+                      {
+                        extra: true,
+                        resourceExtInfo: {
+                          comment: {
+                            commentId: '22',
+                            content: '首页星评。',
+                            likedCount: 3,
+                            user: { nickname: '海岸信号' },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        }).client,
+      ),
+    ).resolves.toEqual([
+      { content: '首页星评。', id: 22, likedCount: 3, nickname: '海岸信号' },
+    ])
+    await expect(
+      getStarpickComments(
+        client({
+          data: {
+            blocks: [
+              {
+                blockCode: 'HOMEPAGE_BLOCK_NEW_HOT_COMMENT',
+                creatives: [
+                  {
+                    creativeType: 'COMMENT_DETAIL',
+                    resources: [
+                      {
+                        likedCount: 5,
+                        resourceId: '3224801329',
+                        resourceExtInfo: {
+                          users: [{ nickname: '夜航听众' }],
+                        },
+                        uiElement: {
+                          mainTitle: { titleDesc: '走过林间星评。' },
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        }).client,
+      ),
+    ).resolves.toEqual([
+      { content: '走过林间星评。', id: 3224801329, likedCount: 5, nickname: '夜航听众' },
+    ])
   })
 })
