@@ -1,6 +1,14 @@
 import { http, type HttpClient } from '@/api/http'
 import type { NewestAlbum } from '@/models/album'
-import { DIGITAL_DEFAULT_AREA, type DigitalSale } from '@/models/digital'
+import {
+  DIGITAL_DEFAULT_AREA,
+  type DigitalAlbumDetail,
+  type DigitalAlbumMall,
+  type DigitalAlbumSku,
+  type DigitalAlbumSong,
+  type DigitalAlbumWikiBlock,
+  type DigitalSale,
+} from '@/models/digital'
 
 export const DIGITAL_PAGE_SIZE = 10
 export const DIGITAL_BOARD_WEEK = 'week'
@@ -44,8 +52,8 @@ function readAlbum(value: unknown): NewestAlbum | null {
   const nested = isRecord(value.album) ? value.album : null
   const raw = nested ? { ...nested, ...value } : value
   const id =
-    positiveId(raw.albumId) ??
     positiveId(raw.productId) ??
+    positiveId(raw.albumId) ??
     positiveId(raw.id)
   const nameRaw =
     (typeof raw.albumName === 'string' && raw.albumName) ||
@@ -81,8 +89,8 @@ function readAlbum(value: unknown): NewestAlbum | null {
 function readSale(value: unknown): DigitalSale | null {
   if (!isRecord(value)) return null
   const id =
-    positiveId(value.albumId) ??
     positiveId(value.productId) ??
+    positiveId(value.albumId) ??
     positiveId(value.id)
   const nameRaw =
     (typeof value.albumName === 'string' && value.albumName) ||
@@ -201,4 +209,262 @@ export async function getDigitalAlbumSales(
     throw new Error('数字专辑销量响应格式不正确')
   }
   return mapped.slice(0, DIGITAL_PAGE_SIZE)
+}
+
+export const DIGITAL_WIKI_LIMIT = 10
+
+function requireDigitalId(id: number) {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('缺少有效的数字专辑')
+  }
+}
+
+function readMoney(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return 0
+  return Math.round(value)
+}
+
+function readSaleNum(value: Record<string, unknown>): number {
+  const saleNum =
+    typeof value.saleNum === 'number'
+      ? value.saleNum
+      : typeof value.sales === 'number'
+        ? value.sales
+        : typeof value.soldNum === 'number'
+          ? value.soldNum
+          : 0
+  return Number.isFinite(saleNum) && saleNum > 0 ? Math.round(saleNum) : 0
+}
+
+function readProductSource(response: unknown): Record<string, unknown> | null {
+  if (!isRecord(response)) return null
+  if (isRecord(response.product)) return response.product
+  if (isRecord(response.albumProduct)) return response.albumProduct
+  const data = response.data
+  if (isRecord(data)) {
+    if (isRecord(data.product)) return data.product
+    if (isRecord(data.albumProduct)) return data.albumProduct
+    if (isRecord(data.album)) return { ...data.album, ...data }
+    return data
+  }
+  return response
+}
+
+function readSong(value: unknown): DigitalAlbumSong | null {
+  if (!isRecord(value)) return null
+  const nested = isRecord(value.song) ? { ...value.song, ...value } : value
+  const id = positiveId(nested.id) ?? positiveId(nested.songId)
+  const nameRaw =
+    (typeof nested.name === 'string' && nested.name) ||
+    (typeof nested.songName === 'string' && nested.songName) ||
+    ''
+  const name = nameRaw.trim()
+  if (!id || !name) return null
+  return { id, name }
+}
+
+function readSku(value: unknown): DigitalAlbumSku | null {
+  if (!isRecord(value)) return null
+  const id = positiveId(value.skuId) ?? positiveId(value.id) ?? positiveId(value.productId)
+  const nameRaw =
+    (typeof value.skuName === 'string' && value.skuName) ||
+    (typeof value.name === 'string' && value.name) ||
+    ''
+  const name = nameRaw.trim()
+  if (!id || !name) return null
+  return {
+    id,
+    name,
+    price: readMoney(value.price),
+  }
+}
+
+function readDetail(value: unknown): DigitalAlbumDetail | null {
+  if (!isRecord(value)) return null
+  const nested = isRecord(value.album) ? { ...value.album, ...value } : value
+  const id =
+    positiveId(nested.productId) ??
+    positiveId(nested.albumId) ??
+    positiveId(nested.id)
+  const nameRaw =
+    (typeof nested.albumName === 'string' && nested.albumName) ||
+    (typeof nested.name === 'string' && nested.name) ||
+    ''
+  const name = nameRaw.trim()
+  if (!id || !name) return null
+  const artistSource = isRecord(nested.artist)
+    ? nested.artist
+    : Array.isArray(nested.artists) && isRecord(nested.artists[0])
+      ? nested.artists[0]
+      : {
+          id: nested.artistId,
+          name: nested.artistName,
+        }
+  const coverUrl =
+    (typeof nested.coverUrl === 'string' && nested.coverUrl) ||
+    (typeof nested.picUrl === 'string' && nested.picUrl) ||
+    (typeof nested.blurPicUrl === 'string' && nested.blurPicUrl) ||
+    ''
+  const descriptionRaw =
+    (typeof nested.description === 'string' && nested.description) ||
+    (typeof nested.albumDesc === 'string' && nested.albumDesc) ||
+    (typeof nested.desc === 'string' && nested.desc) ||
+    ''
+  const songsRaw = Array.isArray(nested.songs)
+    ? nested.songs
+    : Array.isArray(nested.songList)
+      ? nested.songList
+      : []
+  return {
+    albumId: positiveId(nested.albumId) ?? 0,
+    artist: readArtist(artistSource),
+    coverUrl,
+    description: descriptionRaw.trim(),
+    id,
+    name,
+    originalPrice: readMoney(nested.originalPrice ?? nested.originPrice),
+    price: readMoney(nested.price),
+    publishTime: typeof nested.publishTime === 'number' ? nested.publishTime : 0,
+    saleNum: readSaleNum(nested),
+    songs: songsRaw
+      .map(readSong)
+      .filter((item): item is DigitalAlbumSong => item !== null),
+  }
+}
+
+function readMall(value: unknown): DigitalAlbumMall | null {
+  if (!isRecord(value)) return null
+  const nested = isRecord(value.album) ? { ...value.album, ...value } : value
+  const id =
+    positiveId(nested.productId) ??
+    positiveId(nested.albumId) ??
+    positiveId(nested.id)
+  const nameRaw =
+    (typeof nested.albumName === 'string' && nested.albumName) ||
+    (typeof nested.name === 'string' && nested.name) ||
+    ''
+  const name = nameRaw.trim()
+  if (!id || !name) return null
+  const skuRaw = Array.isArray(nested.skus)
+    ? nested.skus
+    : Array.isArray(nested.skuList)
+      ? nested.skuList
+      : Array.isArray(nested.sku)
+        ? nested.sku
+        : []
+  return {
+    albumId: positiveId(nested.albumId) ?? 0,
+    id,
+    name,
+    originalPrice: readMoney(nested.originalPrice ?? nested.originPrice),
+    price: readMoney(nested.price),
+    saleNum: readSaleNum(nested),
+    skus: skuRaw
+      .map(readSku)
+      .filter((item): item is DigitalAlbumSku => item !== null)
+      .slice(0, DIGITAL_PAGE_SIZE),
+  }
+}
+
+function readWikiTitle(value: unknown): string {
+  if (!isRecord(value)) return ''
+  const main = isRecord(value.mainTitle) ? value.mainTitle : null
+  const title =
+    (typeof value.title === 'string' && value.title) ||
+    (main && typeof main.title === 'string' && main.title) ||
+    (typeof value.name === 'string' && value.name) ||
+    ''
+  return title.trim()
+}
+
+function collectWikiText(value: unknown, out: string[]) {
+  if (typeof value === 'string') {
+    const text = value.trim()
+    if (text) out.push(text)
+    return
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectWikiText(item, out)
+    return
+  }
+  if (!isRecord(value)) return
+  for (const key of ['text', 'description', 'desc', 'content', 'subTitle']) {
+    if (typeof value[key] === 'string') {
+      const text = value[key].trim()
+      if (text) out.push(text)
+    }
+  }
+  if (isRecord(value.uiElement)) collectWikiText(value.uiElement, out)
+  if (Array.isArray(value.descriptions)) collectWikiText(value.descriptions, out)
+  if (Array.isArray(value.creatives)) collectWikiText(value.creatives, out)
+}
+
+function readWikiBlock(value: unknown): DigitalAlbumWikiBlock | null {
+  if (!isRecord(value)) return null
+  const ui = isRecord(value.uiElement) ? value.uiElement : value
+  const title = readWikiTitle(ui) || readWikiTitle(value)
+  const texts: string[] = []
+  collectWikiText(value, texts)
+  const text = [...new Set(texts.filter((item) => item !== title))].join('\n')
+  if (!title && !text) return null
+  return { title: title || '专辑百科', text }
+}
+
+export async function getDigitalAlbumDetail(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<DigitalAlbumDetail> {
+  requireDigitalId(id)
+  const response = await client.get<unknown>('/digitalAlbum/detail', { id })
+  const detail = readDetail(readProductSource(response))
+  if (!detail) {
+    throw new Error('数字专辑详情响应格式不正确')
+  }
+  return detail
+}
+
+export async function getDigitalAlbumMall(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<DigitalAlbumMall> {
+  requireDigitalId(id)
+  const response = await client.get<unknown>('/album/detail', { id })
+  const mall = readMall(readProductSource(response))
+  if (!mall) {
+    throw new Error('数字专辑商品响应格式不正确')
+  }
+  return mall
+}
+
+export async function getDigitalAlbumWiki(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<DigitalAlbumWikiBlock[]> {
+  requireDigitalId(id)
+  const response = await client.get<unknown>('/ugc/album/get', { id })
+  if (!isRecord(response)) {
+    throw new Error('专辑百科响应格式不正确')
+  }
+  if (response.data === null) return []
+  const data = isRecord(response.data) ? response.data : response
+  const raw = unwrapList(response, ['blocks', 'wiki', 'modules', 'list'])
+  if (raw) {
+    return raw
+      .map(readWikiBlock)
+      .filter((item): item is DigitalAlbumWikiBlock => item !== null)
+      .slice(0, DIGITAL_WIKI_LIMIT)
+  }
+  const content =
+    (typeof data.content === 'string' && data.content) ||
+    (typeof data.description === 'string' && data.description) ||
+    (typeof data.desc === 'string' && data.desc) ||
+    ''
+  const text = content.trim()
+  if (!text) return []
+  const creator = isRecord(data.creator) ? data.creator : null
+  const titleRaw =
+    (typeof data.title === 'string' && data.title) ||
+    (creator && typeof creator.nickname === 'string' && creator.nickname) ||
+    ''
+  return [{ title: titleRaw.trim() || '专辑百科', text }].slice(0, DIGITAL_WIKI_LIMIT)
 }

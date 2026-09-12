@@ -262,6 +262,30 @@ describe('App host gate', () => {
     digitalStore.albumBoard = [{ ...digitalStore.albums[0]!, id: 513, name: '周榜专辑' }]
     digitalStore.singleBoard = [{ ...digitalStore.albums[0]!, id: 514, name: '周榜单曲' }]
     digitalStore.sales = [{ id: 511, name: '数字夜航', saleNum: 128 }]
+    digitalStore.productId = 511
+    digitalStore.product = {
+      albumId: 501,
+      artist: { id: 401, name: '林间电台' },
+      coverUrl: '',
+      description: '数字专辑介绍',
+      id: 511,
+      name: '数字夜航',
+      originalPrice: 2000,
+      price: 1800,
+      publishTime: 0,
+      saleNum: 128,
+      songs: [],
+    }
+    digitalStore.mall = {
+      albumId: 501,
+      id: 511,
+      name: '数字夜航',
+      originalPrice: 2000,
+      price: 1800,
+      saleNum: 128,
+      skus: [],
+    }
+    digitalStore.wiki = [{ title: '专辑百科', text: '林间数字专辑百科。' }]
     mountApp()
 
     useHostStore().clearHost()
@@ -273,6 +297,10 @@ describe('App host gate', () => {
     expect(digitalStore.albumBoard).toEqual([])
     expect(digitalStore.singleBoard).toEqual([])
     expect(digitalStore.sales).toEqual([])
+    expect(digitalStore.productId).toBe(0)
+    expect(digitalStore.product).toBeNull()
+    expect(digitalStore.mall).toBeNull()
+    expect(digitalStore.wiki).toEqual([])
   })
 
   it('clears artist detail cache when the host gate closes', async () => {

@@ -7,7 +7,10 @@ import {
   DIGITAL_PAGE_SIZE,
   DIGITAL_SINGLE_BOARD_TYPE,
   getDigitalAlbumBoard,
+  getDigitalAlbumDetail,
+  getDigitalAlbumMall,
   getDigitalAlbumSales,
+  getDigitalAlbumWiki,
   getDigitalAlbums,
   getDigitalAlbumsByStyle,
   getDigitalSingleBoard,
@@ -51,6 +54,23 @@ describe('Digital album API', () => {
     await expect(getDigitalAlbums(client({ data: null }).client)).rejects.toThrow(
       '数字新碟响应格式不正确',
     )
+    await expect(
+      getDigitalAlbums(
+        client({
+          data: {
+            albums: [{ albumId: 501, productId: 511, name: '数字夜航', picUrl: '' }],
+          },
+        }).client,
+      ),
+    ).resolves.toEqual([
+      {
+        artist: { id: 0, name: '未知歌手' },
+        id: 511,
+        name: '数字夜航',
+        picUrl: '',
+        publishTime: 0,
+      },
+    ])
   })
 
   it('loads /album/list/style and both songsaleboard types', async () => {
@@ -132,5 +152,127 @@ describe('Digital album API', () => {
     await expect(
       getDigitalAlbumSales([511], client({ data: { '511': 128 } }).client),
     ).resolves.toEqual([{ id: 511, name: '511', saleNum: 128 }])
+  })
+
+  it('unwraps /digitalAlbum/detail product and price', async () => {
+    const request = client({
+      product: {
+        extra: true,
+        productId: 511,
+        albumId: 501,
+        albumName: '  数字夜航  ',
+        artistId: 401,
+        artistName: '林间电台',
+        coverUrl: 'https://images.example.com/d.jpg',
+        description: '数字专辑介绍',
+        originalPrice: 2000,
+        price: 1800,
+        publishTime: 1_609_459_200_000,
+        saleNum: 128,
+        songs: [
+          { id: 301, name: '晚风来信' },
+          { id: 0, name: '无效' },
+          ...Array.from({ length: 10 }, (_, index) => ({
+            id: 310 + index,
+            name: `曲目 ${index + 1}`,
+          })),
+        ],
+      },
+    })
+    await expect(getDigitalAlbumDetail(511, request.client)).resolves.toEqual({
+      albumId: 501,
+      artist: { id: 401, name: '林间电台' },
+      coverUrl: 'https://images.example.com/d.jpg',
+      description: '数字专辑介绍',
+      id: 511,
+      name: '数字夜航',
+      originalPrice: 2000,
+      price: 1800,
+      publishTime: 1_609_459_200_000,
+      saleNum: 128,
+      songs: [
+        { id: 301, name: '晚风来信' },
+        ...Array.from({ length: 10 }, (_, index) => ({
+          id: 310 + index,
+          name: `曲目 ${index + 1}`,
+        })),
+      ],
+    })
+    expect(request.get).toHaveBeenCalledWith('/digitalAlbum/detail', { id: 511 })
+    await expect(getDigitalAlbumDetail(0, client({}).client)).rejects.toThrow(
+      '缺少有效的数字专辑',
+    )
+    await expect(getDigitalAlbumDetail(511, client({ data: null }).client)).rejects.toThrow(
+      '数字专辑详情响应格式不正确',
+    )
+  })
+
+  it('unwraps /album/detail mall SKUs without calling /album', async () => {
+    const request = client({
+      data: {
+        product: {
+          productId: 511,
+          albumId: 501,
+          albumName: '数字夜航',
+          originPrice: 2000,
+          price: 1800,
+          soldNum: 128,
+          skuList: [
+            { skuId: 71, skuName: '数字专辑', extra: true, price: 1800 },
+            { id: 0, name: '无效' },
+          ],
+        },
+      },
+    })
+    await expect(getDigitalAlbumMall(511, request.client)).resolves.toEqual({
+      albumId: 501,
+      id: 511,
+      name: '数字夜航',
+      originalPrice: 2000,
+      price: 1800,
+      saleNum: 128,
+      skus: [{ id: 71, name: '数字专辑', price: 1800 }],
+    })
+    expect(request.get).toHaveBeenCalledWith('/album/detail', { id: 511 })
+    expect(request.get).not.toHaveBeenCalledWith('/album', expect.anything())
+    expect(request.get).not.toHaveBeenCalledWith('/album/detail/dynamic', expect.anything())
+    await expect(getDigitalAlbumMall(0, client({}).client)).rejects.toThrow(
+      '缺少有效的数字专辑',
+    )
+    await expect(getDigitalAlbumMall(511, client({ data: null }).client)).rejects.toThrow(
+      '数字专辑商品响应格式不正确',
+    )
+  })
+
+  it('unwraps /ugc/album/get wiki content and blocks', async () => {
+    const text = client({
+      data: {
+        content: '林间数字专辑百科。',
+        creator: { nickname: '林间电台' },
+      },
+    })
+    await expect(getDigitalAlbumWiki(501, text.client)).resolves.toEqual([
+      { title: '林间电台', text: '林间数字专辑百科。' },
+    ])
+    expect(text.get).toHaveBeenCalledWith('/ugc/album/get', { id: 501 })
+
+    const blocks = client({
+      data: {
+        blocks: [
+          { title: '创作背景', text: '走过林间。' },
+          { extra: true },
+        ],
+      },
+    })
+    await expect(getDigitalAlbumWiki(501, blocks.client)).resolves.toEqual([
+      { title: '创作背景', text: '走过林间。' },
+    ])
+    await expect(getDigitalAlbumWiki(0, client({}).client)).rejects.toThrow(
+      '缺少有效的数字专辑',
+    )
+    await expect(getDigitalAlbumWiki(501, client({ data: null }).client)).resolves.toEqual([])
+    await expect(getDigitalAlbumWiki(501, client('bad').client)).rejects.toThrow(
+      '专辑百科响应格式不正确',
+    )
   })
 })

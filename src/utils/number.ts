@@ -20,6 +20,11 @@ export function formatDuration(milliseconds: number): string {
   return formatClock(milliseconds / 1000)
 }
 
+export function formatFenPrice(value: number): string {
+  if (!Number.isFinite(value) || value < 0) return ''
+  return `¥${(value / 100).toFixed(2)}`
+}
+
 export function formatPublishDate(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return ''
   const parts = new Intl.DateTimeFormat('en-US', {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatClock, formatDuration, formatPublishDate } from '@/utils/number'
+import { formatClock, formatDuration, formatFenPrice, formatPublishDate } from '@/utils/number'
 
 describe('formatClock', () => {
   it('formats finite seconds as mm:ss', () => {
@@ -19,6 +19,15 @@ describe('formatDuration', () => {
   it('formats milliseconds through the same clock', () => {
     expect(formatDuration(65_900)).toBe('01:05')
     expect(formatDuration(Number.NaN)).toBe('00:00')
+  })
+})
+
+describe('formatFenPrice', () => {
+  it('formats fen as a yuan price and treats invalid as empty', () => {
+    expect(formatFenPrice(1800)).toBe('¥18.00')
+    expect(formatFenPrice(0)).toBe('¥0.00')
+    expect(formatFenPrice(Number.NaN)).toBe('')
+    expect(formatFenPrice(-1)).toBe('')
   })
 })
 

@@ -70,6 +70,16 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/digitalAlbum',
+    name: Pages.digitalAlbum,
+    component: () => import('@/views/DigitalAlbumPage.vue'),
+    meta: {
+      menu: 'music',
+      requiresApiHost: true,
+      title: '数字专辑详情',
+    },
+  },
+  {
     path: '/music',
     name: Pages.music,
     component: () => import('@/views/music/MusicView.vue'),

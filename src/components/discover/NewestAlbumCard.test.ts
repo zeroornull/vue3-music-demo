@@ -63,4 +63,16 @@ describe('NewestAlbumCard', () => {
     expect(wrapper.text()).toContain('匿名厂牌')
     expect(wrapper.findAllComponents(RouterLinkStub)).toHaveLength(1)
   })
+
+  it('can open a digital album detail route', () => {
+    const wrapper = mount(NewestAlbumCard, {
+      props: { album, toName: Pages.digitalAlbum },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    expect(wrapper.findAllComponents(RouterLinkStub)[0]?.props('to')).toEqual({
+      name: Pages.digitalAlbum,
+      query: { id: 501 },
+    })
+    expect(wrapper.get('.album-link').attributes('aria-label')).toBe('打开数字专辑：夜航')
+  })
 })

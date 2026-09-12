@@ -5,23 +5,36 @@ import type { NewestAlbum } from '@/models/album'
 import { Pages } from '@/router/pages'
 import { formatPublishDate } from '@/utils/number'
 
-const props = defineProps<{
-  album: NewestAlbum
-}>()
+const props = withDefaults(
+  defineProps<{
+    album: NewestAlbum
+    toName?: typeof Pages.album | typeof Pages.digitalAlbum
+  }>(),
+  { toName: Pages.album },
+)
 
 const artistName = computed(() => props.album.artist.name.trim() || '未知歌手')
 const artistId = computed(() => {
   const id = props.album.artist.id
   return typeof id === 'number' && Number.isInteger(id) && id > 0 ? id : null
 })
+const albumTo = computed(() => ({
+  name: props.toName,
+  query: { id: props.album.id },
+}))
+const albumLabel = computed(() =>
+  props.toName === Pages.digitalAlbum
+    ? `打开数字专辑：${props.album.name}`
+    : `打开专辑：${props.album.name}`,
+)
 </script>
 
 <template>
   <article class="album-card" data-testid="newest-album-card">
     <RouterLink
-      :to="{ name: Pages.album, query: { id: album.id } }"
+      :to="albumTo"
       class="album-link"
-      :aria-label="`打开专辑：${album.name}`"
+      :aria-label="albumLabel"
     >
       <div class="cover">
         <img

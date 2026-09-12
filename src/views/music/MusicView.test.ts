@@ -48,7 +48,7 @@ describe('MusicView', () => {
     expect(wrapper.get('[aria-current="page"]').text()).toBe('排行')
     expect(wrapper.find('nav[aria-label="页面导航"]').exists()).toBe(false)
     expect(wrapper.get('.summary').text()).toBe(
-      '精选、电台大厅、排行榜、分类歌单、曲风馆、声音馆、数字专辑馆、歌手详情、歌手馆分类字母、电台节目和电台分类已接入。',
+      '精选、电台大厅、排行榜、分类歌单、曲风馆、声音馆、数字专辑馆、数字专辑详情、歌手详情、歌手馆分类字母、电台节目和电台分类已接入。',
     )
   })
 })

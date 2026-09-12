@@ -17,3 +17,48 @@ export interface DigitalSale {
   name: string
   saleNum: number
 }
+
+export interface DigitalAlbumArtist {
+  id: number
+  name: string
+}
+
+export interface DigitalAlbumSong {
+  id: number
+  name: string
+}
+
+export interface DigitalAlbumDetail {
+  albumId: number
+  artist: DigitalAlbumArtist
+  coverUrl: string
+  description: string
+  id: number
+  name: string
+  originalPrice: number
+  price: number
+  publishTime: number
+  saleNum: number
+  songs: DigitalAlbumSong[]
+}
+
+export interface DigitalAlbumSku {
+  id: number
+  name: string
+  price: number
+}
+
+export interface DigitalAlbumMall {
+  albumId: number
+  id: number
+  name: string
+  originalPrice: number
+  price: number
+  saleNum: number
+  skus: DigitalAlbumSku[]
+}
+
+export interface DigitalAlbumWikiBlock {
+  title: string
+  text: string
+}

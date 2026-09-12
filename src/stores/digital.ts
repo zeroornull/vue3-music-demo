@@ -4,7 +4,10 @@ import { defineStore } from 'pinia'
 import { getErrorMessage } from '@/api/http'
 import {
   getDigitalAlbumBoard,
+  getDigitalAlbumDetail,
+  getDigitalAlbumMall,
   getDigitalAlbumSales,
+  getDigitalAlbumWiki,
   getDigitalAlbums,
   getDigitalAlbumsByStyle,
   getDigitalSingleBoard,
@@ -12,6 +15,9 @@ import {
 import type { NewestAlbum } from '@/models/album'
 import {
   DIGITAL_DEFAULT_AREA,
+  type DigitalAlbumDetail,
+  type DigitalAlbumMall,
+  type DigitalAlbumWikiBlock,
   type DigitalSale,
 } from '@/models/digital'
 
@@ -20,6 +26,9 @@ let styleSerial = 0
 let albumBoardSerial = 0
 let singleBoardSerial = 0
 let salesSerial = 0
+let productSerial = 0
+let mallSerial = 0
+let wikiSerial = 0
 
 export const useDigitalStore = defineStore('digital', () => {
   const albums = ref<NewestAlbum[]>([])
@@ -38,6 +47,40 @@ export const useDigitalStore = defineStore('digital', () => {
   const sales = ref<DigitalSale[]>([])
   const salesError = ref<string | null>(null)
   const salesLoading = ref(false)
+  const productId = ref(0)
+  const product = ref<DigitalAlbumDetail | null>(null)
+  const productError = ref<string | null>(null)
+  const productLoading = ref(false)
+  const mall = ref<DigitalAlbumMall | null>(null)
+  const mallError = ref<string | null>(null)
+  const mallLoading = ref(false)
+  const wiki = ref<DigitalAlbumWikiBlock[]>([])
+  const wikiError = ref<string | null>(null)
+  const wikiLoading = ref(false)
+  const wikiReady = ref(false)
+  const wikiSourceId = ref(0)
+
+  function clearDetail() {
+    product.value = null
+    productError.value = null
+    productLoading.value = false
+    mall.value = null
+    mallError.value = null
+    mallLoading.value = false
+    wiki.value = []
+    wikiError.value = null
+    wikiLoading.value = false
+    wikiReady.value = false
+    wikiSourceId.value = 0
+  }
+
+  function resetDetail() {
+    productSerial++
+    mallSerial++
+    wikiSerial++
+    productId.value = 0
+    clearDetail()
+  }
 
   function reset() {
     newSerial++
@@ -61,6 +104,13 @@ export const useDigitalStore = defineStore('digital', () => {
     sales.value = []
     salesError.value = null
     salesLoading.value = false
+    resetDetail()
+  }
+
+  function wikiAlbumId() {
+    if (product.value && product.value.albumId > 0) return product.value.albumId
+    if (mall.value && mall.value.albumId > 0) return mall.value.albumId
+    return productId.value
   }
 
   async function loadAlbums(force = false) {
@@ -192,6 +242,90 @@ export const useDigitalStore = defineStore('digital', () => {
     await loadSales(force).catch(() => undefined)
   }
 
+  async function loadProduct(force = false) {
+    if (productId.value <= 0) return
+    if (product.value && !force && !productError.value) return
+    const serial = ++productSerial
+    const requested = productId.value
+    productLoading.value = true
+    productError.value = null
+    try {
+      const next = await getDigitalAlbumDetail(requested)
+      if (serial !== productSerial) return
+      product.value = next
+    } catch (requestError) {
+      if (serial !== productSerial) return
+      productError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === productSerial) productLoading.value = false
+    }
+  }
+
+  async function loadMall(force = false) {
+    if (productId.value <= 0) return
+    if (mall.value && !force && !mallError.value) return
+    const serial = ++mallSerial
+    const requested = productId.value
+    mallLoading.value = true
+    mallError.value = null
+    try {
+      const next = await getDigitalAlbumMall(requested)
+      if (serial !== mallSerial) return
+      mall.value = next
+    } catch (requestError) {
+      if (serial !== mallSerial) return
+      mallError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === mallSerial) mallLoading.value = false
+    }
+  }
+
+  async function loadWiki(force = false) {
+    const requested = wikiAlbumId()
+    if (requested <= 0) return
+    if (
+      wikiReady.value &&
+      wikiSourceId.value === requested &&
+      !force &&
+      !wikiError.value
+    ) {
+      return
+    }
+    const serial = ++wikiSerial
+    wikiLoading.value = true
+    wikiError.value = null
+    try {
+      const next = await getDigitalAlbumWiki(requested)
+      if (serial !== wikiSerial) return
+      wiki.value = next
+      wikiReady.value = true
+      wikiSourceId.value = requested
+    } catch (requestError) {
+      if (serial !== wikiSerial) return
+      wikiError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === wikiSerial) wikiLoading.value = false
+    }
+  }
+
+  async function loadDetail(id: number, force = false) {
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error('缺少有效的数字专辑')
+    }
+    if (id !== productId.value) {
+      productSerial++
+      mallSerial++
+      wikiSerial++
+      productId.value = id
+      clearDetail()
+    }
+    await Promise.allSettled([loadProduct(force), loadMall(force)])
+    await loadWiki(force).catch(() => undefined)
+  }
+
   return {
     albums,
     albumsError,
@@ -209,6 +343,16 @@ export const useDigitalStore = defineStore('digital', () => {
     sales,
     salesError,
     salesLoading,
+    productId,
+    product,
+    productError,
+    productLoading,
+    mall,
+    mallError,
+    mallLoading,
+    wiki,
+    wikiError,
+    wikiLoading,
     loadAlbums,
     loadStyle,
     loadAlbumBoard,
@@ -216,6 +360,11 @@ export const useDigitalStore = defineStore('digital', () => {
     loadSales,
     setArea,
     loadHall,
+    loadProduct,
+    loadMall,
+    loadWiki,
+    loadDetail,
+    resetDetail,
     reset,
   }
 })

@@ -4,6 +4,7 @@ import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
+import { Pages } from '@/router/pages'
 import DigitalHallView from '@/views/music/DigitalHallView.vue'
 
 const album = {
@@ -16,14 +17,21 @@ const album = {
 
 const AlbumStub = defineComponent({
   name: 'NewestAlbumSection',
-  props: ['albums', 'emptyTitle', 'error', 'errorTitle', 'loading', 'testid', 'title'],
+  props: ['albums', 'emptyTitle', 'error', 'errorTitle', 'loading', 'testid', 'title', 'toName'],
   emits: ['retry'],
   template: `
     <section :data-testid="testid + '-stub'">
       <h2>{{ title }}</h2>
+      <span :data-testid="testid + '-to'">{{ toName }}</span>
       <button :data-testid="testid + '-retry'" @click="$emit('retry')" />
     </section>
   `,
+})
+
+const RouterLinkStub = defineComponent({
+  name: 'RouterLink',
+  props: ['to'],
+  template: '<a><slot /></a>',
 })
 
 const AreaStub = defineComponent({
@@ -47,6 +55,7 @@ function mountView(props: Record<string, unknown> = {}) {
       stubs: {
         DigitalAreaBar: AreaStub,
         NewestAlbumSection: AlbumStub,
+        RouterLink: RouterLinkStub,
       },
     },
   })
@@ -67,7 +76,15 @@ describe('DigitalHallView', () => {
     expect(data.get('[data-testid="digital-single-board-stub"] h2').text()).toBe(
       '数字单曲周榜',
     )
+    expect(data.get('[data-testid="digital-new-to"]').text()).toBe(Pages.digitalAlbum)
+    expect(data.get('[data-testid="digital-style-to"]').text()).toBe(Pages.digitalAlbum)
+    expect(data.get('[data-testid="digital-album-board-to"]').text()).toBe(Pages.digitalAlbum)
+    expect(data.get('[data-testid="digital-single-board-to"]').text()).toBe(Pages.digitalAlbum)
     expect(data.get('[data-testid="digital-sales"]').text()).toContain('数字夜航')
+    expect(data.findAllComponents(RouterLinkStub)[0]?.props('to')).toEqual({
+      name: Pages.digitalAlbum,
+      query: { id: 511 },
+    })
     await data.get('[data-testid="digital-area"]').trigger('click')
     expect(data.emitted('select-area')).toEqual([['JP']])
     await data.get('[data-testid="digital-new-retry"]').trigger('click')

@@ -26,7 +26,7 @@ const currentTab = computed(() => route.name)
       <div>
         <p class="eyebrow">Music hall</p>
         <h1>音乐馆</h1>
-        <p class="summary">精选、电台大厅、排行榜、分类歌单、曲风馆、声音馆、数字专辑馆、歌手详情、歌手馆分类字母、电台节目和电台分类已接入。</p>
+        <p class="summary">精选、电台大厅、排行榜、分类歌单、曲风馆、声音馆、数字专辑馆、数字专辑详情、歌手详情、歌手馆分类字母、电台节目和电台分类已接入。</p>
       </div>
     </header>
 

@@ -3,6 +3,7 @@ import NewestAlbumSection from '@/components/discover/NewestAlbumSection.vue'
 import DigitalAreaBar from '@/components/music/DigitalAreaBar.vue'
 import type { NewestAlbum } from '@/models/album'
 import { DIGITAL_DEFAULT_AREA, type DigitalSale } from '@/models/digital'
+import { Pages } from '@/router/pages'
 import { formatPlayCount } from '@/utils/number'
 
 withDefaults(
@@ -66,6 +67,7 @@ defineEmits<{
       :albums="albums"
       :error="albumsError"
       :loading="albumsLoading"
+      :to-name="Pages.digitalAlbum"
       @retry="$emit('retry-albums')"
     />
 
@@ -79,6 +81,7 @@ defineEmits<{
         :albums="styleAlbums"
         :error="styleError"
         :loading="styleLoading"
+        :to-name="Pages.digitalAlbum"
         @retry="$emit('retry-style')"
       />
     </div>
@@ -91,6 +94,7 @@ defineEmits<{
       :albums="albumBoard"
       :error="albumBoardError"
       :loading="albumBoardLoading"
+      :to-name="Pages.digitalAlbum"
       @retry="$emit('retry-album-board')"
     />
 
@@ -102,6 +106,7 @@ defineEmits<{
       :albums="singleBoard"
       :error="singleBoardError"
       :loading="singleBoardLoading"
+      :to-name="Pages.digitalAlbum"
       @retry="$emit('retry-singles')"
     />
 
@@ -137,7 +142,12 @@ defineEmits<{
       </div>
       <ul v-else data-testid="digital-sales">
         <li v-for="item in sales" :key="item.id">
-          {{ item.name }} · {{ formatPlayCount(item.saleNum) }}
+          <RouterLink
+            :to="{ name: Pages.digitalAlbum, query: { id: item.id } }"
+            :aria-label="`打开数字专辑：${item.name}`"
+          >
+            {{ item.name }} · {{ formatPlayCount(item.saleNum) }}
+          </RouterLink>
         </li>
       </ul>
     </section>
@@ -178,6 +188,21 @@ li {
   padding: 12px 14px;
   border-radius: 12px;
   background: var(--color-well);
+}
+
+li a {
+  color: inherit;
+  text-decoration: none;
+}
+
+li a:hover {
+  color: var(--color-accent);
+}
+
+li a:focus-visible {
+  border-radius: 8px;
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .state-card {

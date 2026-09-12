@@ -3,6 +3,7 @@ import { computed } from 'vue'
 
 import NewestAlbumCard from '@/components/discover/NewestAlbumCard.vue'
 import type { NewestAlbum } from '@/models/album'
+import { Pages } from '@/router/pages'
 
 const props = withDefaults(
   defineProps<{
@@ -14,6 +15,7 @@ const props = withDefaults(
     loading?: boolean
     testid?: string
     title?: string
+    toName?: typeof Pages.album | typeof Pages.digitalAlbum
   }>(),
   {
     emptyTitle: '暂无新碟',
@@ -23,6 +25,7 @@ const props = withDefaults(
     loading: false,
     testid: 'newest-album',
     title: '新碟上架',
+    toName: Pages.album,
   },
 )
 
@@ -40,7 +43,9 @@ const visibleAlbums = computed(() => props.albums.slice(0, 10))
         <p class="eyebrow">{{ eyebrow }}</p>
         <h2 :id="`${testid}-title`">{{ title }}</h2>
       </div>
-      <p>点击封面即可打开专辑</p>
+      <p>
+        {{ toName === Pages.digitalAlbum ? '点击封面即可打开数字专辑' : '点击封面即可打开专辑' }}
+      </p>
     </div>
 
     <div
@@ -78,7 +83,12 @@ const visibleAlbums = computed(() => props.albums.slice(0, 10))
     </div>
 
     <div v-else class="album-grid">
-      <NewestAlbumCard v-for="album in visibleAlbums" :key="album.id" :album="album" />
+      <NewestAlbumCard
+        v-for="album in visibleAlbums"
+        :key="album.id"
+        :album="album"
+        :to-name="toName"
+      />
     </div>
   </section>
 </template>

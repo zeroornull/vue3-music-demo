@@ -5,6 +5,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import NewestAlbumSection from '@/components/discover/NewestAlbumSection.vue'
+import { Pages } from '@/router/pages'
 
 const album = {
   artist: { id: 401, name: '林间电台' },
@@ -16,8 +17,8 @@ const album = {
 
 const NewestAlbumCardStub = defineComponent({
   name: 'NewestAlbumCard',
-  props: ['album'],
-  template: '<article data-testid="newest-album-card">{{ album.name }}</article>',
+  props: ['album', 'toName'],
+  template: '<article data-testid="newest-album-card">{{ album.name }} {{ toName }}</article>',
 })
 
 function mountSection(
@@ -25,6 +26,7 @@ function mountSection(
     albums: typeof album[]
     error: string | null
     loading: boolean
+    toName: typeof Pages.digitalAlbum
   }> = {},
 ) {
   return mount(NewestAlbumSection, {
@@ -68,5 +70,13 @@ describe('NewestAlbumSection', () => {
     const wrapper = mountSection({ albums })
     expect(wrapper.findAll('[data-testid="newest-album-card"]')).toHaveLength(10)
     expect(wrapper.get('h2').text()).toBe('新碟上架')
+  })
+
+  it('forwards a digital album route name to each card', () => {
+    const wrapper = mountSection({
+      albums: [album],
+      toName: Pages.digitalAlbum,
+    })
+    expect(wrapper.get('[data-testid="newest-album-card"]').text()).toContain('digitalAlbum')
   })
 })
