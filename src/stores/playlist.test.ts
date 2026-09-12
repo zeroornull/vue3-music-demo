@@ -5,6 +5,7 @@ import {
   COMMENT_LIMIT,
   getPlaylistCommentPage,
   getPlaylistHotComments,
+  getPlaylistNewComments,
 } from '@/api/comment'
 import {
   getPlaylistDetail,
@@ -21,6 +22,7 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getPlaylistCommentPage: vi.fn(),
   getPlaylistHotComments: vi.fn(),
+  getPlaylistNewComments: vi.fn(),
 }))
 vi.mock('@/api/playlist', () => ({
   SUBSCRIBER_LIMIT: 20,
@@ -104,6 +106,8 @@ describe('playlist store', () => {
     vi.mocked(getPlaylistCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getPlaylistHotComments).mockReset()
     vi.mocked(getPlaylistHotComments).mockRejectedValue(new Error('no hot'))
+    vi.mocked(getPlaylistNewComments).mockReset()
+    vi.mocked(getPlaylistNewComments).mockRejectedValue(new Error('no new'))
     vi.mocked(getPlaylistSubscriberPage).mockReset()
     vi.mocked(getPlaylistSubscriberPage).mockRejectedValue(
       new Error('no subscribers'),
@@ -498,6 +502,27 @@ describe('playlist store', () => {
     await settle()
     expect(store.hotComments).toEqual([hot])
     expect(store.hotCommentsError).toBeNull()
+  })
+
+  it('loads new comments independently of hot comments', async () => {
+    const next = { commentId: 21, content: '林间新评', nickname: '林间电台' }
+    vi.mocked(getPlaylistDetail).mockResolvedValue(playlist)
+    vi.mocked(getPlaylistTracks).mockResolvedValue(songs)
+    vi.mocked(getPlaylistHotComments).mockResolvedValue([
+      { commentId: 9, content: '林间热评', nickname: '林间电台' },
+    ])
+    vi.mocked(getPlaylistNewComments)
+      .mockRejectedValueOnce(new Error('new offline'))
+      .mockResolvedValueOnce([next])
+    const store = usePlaylistStore()
+    await store.load(101)
+    await settle()
+    expect(store.hotComments?.[0]?.content).toBe('林间热评')
+    expect(store.newCommentsError).toBe('new offline')
+    await store.loadNewComments(true)
+    await settle()
+    expect(store.newComments).toEqual([next])
+    expect(store.newCommentsError).toBeNull()
   })
 
   it('retries comments on a cached playlist when the first comment request failed', async () => {

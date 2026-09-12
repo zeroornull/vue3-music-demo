@@ -5,6 +5,10 @@ import {
   COMMENT_HOT_LIMIT,
   COMMENT_HOT_TYPE,
   COMMENT_LIMIT,
+  COMMENT_NEW_LIMIT,
+  COMMENT_NEW_PAGE_NO,
+  COMMENT_NEW_SORT_RECOMMEND,
+  COMMENT_NEW_TYPE,
   getDjCommentPage,
   getDjComments,
   getDjRadioCommentPage,
@@ -22,6 +26,9 @@ import {
   getVideoCommentPage,
   getVideoComments,
   getVideoHotComments,
+  getPlaylistNewComments,
+  getSongNewComments,
+  getMvNewComments,
 } from '@/api/comment'
 
 const client = (response: unknown) => {
@@ -765,5 +772,80 @@ describe('Hot comment API', () => {
     await expect(getMvHotComments(701, client({ data: {} }).client)).rejects.toThrow(
       'MV 热门评论响应格式不正确',
     )
+  })
+})
+
+describe('New comment API', () => {
+  const raw = {
+    commentId: '21',
+    content: '  林间新评  ',
+    extra: true,
+    user: { extra: true, nickname: '  林间电台  ' },
+  }
+
+  it('unwraps /comment/new playlist, song and MV recommend comments', async () => {
+    const playlists = client({
+      data: {
+        comments: [raw, { commentId: 0, content: '无效', user: { nickname: 'x' } }],
+      },
+    })
+    await expect(getPlaylistNewComments(101, playlists.client)).resolves.toEqual([
+      { commentId: 21, content: '林间新评', nickname: '林间电台' },
+    ])
+    expect(playlists.get).toHaveBeenCalledWith('/comment/new', {
+      cursor: 0,
+      id: 101,
+      pageNo: COMMENT_NEW_PAGE_NO,
+      pageSize: COMMENT_NEW_LIMIT,
+      sortType: COMMENT_NEW_SORT_RECOMMEND,
+      type: COMMENT_NEW_TYPE.playlist,
+    })
+
+    const songs = client({ comments: [raw] })
+    await expect(getSongNewComments(301, songs.client)).resolves.toEqual([
+      { commentId: 21, content: '林间新评', nickname: '林间电台' },
+    ])
+    expect(songs.get).toHaveBeenCalledWith('/comment/new', {
+      cursor: 0,
+      id: 301,
+      pageNo: COMMENT_NEW_PAGE_NO,
+      pageSize: COMMENT_NEW_LIMIT,
+      sortType: COMMENT_NEW_SORT_RECOMMEND,
+      type: COMMENT_NEW_TYPE.song,
+    })
+
+    const mvs = client({ data: { comments: [raw] } })
+    await expect(getMvNewComments(701, mvs.client)).resolves.toEqual([
+      { commentId: 21, content: '林间新评', nickname: '林间电台' },
+    ])
+    expect(mvs.get).toHaveBeenCalledWith('/comment/new', {
+      cursor: 0,
+      id: 701,
+      pageNo: COMMENT_NEW_PAGE_NO,
+      pageSize: COMMENT_NEW_LIMIT,
+      sortType: COMMENT_NEW_SORT_RECOMMEND,
+      type: COMMENT_NEW_TYPE.mv,
+    })
+
+    const many = Array.from({ length: 24 }, (_, index) => ({
+      commentId: index + 1,
+      content: `新评${index + 1}`,
+      user: { nickname: '用户' },
+    }))
+    await expect(
+      getPlaylistNewComments(101, client({ data: { comments: many } }).client),
+    ).resolves.toHaveLength(COMMENT_NEW_LIMIT)
+    await expect(getPlaylistNewComments(0, client({}).client)).rejects.toThrow(
+      '缺少有效的歌单 ID',
+    )
+    await expect(getSongNewComments(0, client({}).client)).rejects.toThrow(
+      '缺少有效的歌曲 ID',
+    )
+    await expect(getMvNewComments(0, client({}).client)).rejects.toThrow(
+      '缺少有效的 MV ID',
+    )
+    await expect(
+      getPlaylistNewComments(101, client({ data: null }).client),
+    ).rejects.toThrow('歌单新版评论响应格式不正确')
   })
 })

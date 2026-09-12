@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getSongCommentPage, getSongHotComments } from '@/api/comment'
+import { getSongCommentPage, getSongHotComments, getSongNewComments } from '@/api/comment'
 import { getSongCommentFloor } from '@/api/commentFloor'
 import {
   getMlogUrl,
@@ -23,6 +23,7 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getSongCommentPage: vi.fn(),
   getSongHotComments: vi.fn(),
+  getSongNewComments: vi.fn(),
 }))
 vi.mock('@/api/commentFloor', () => ({
   COMMENT_FLOOR_LIMIT: 10,
@@ -53,6 +54,8 @@ describe('PlayerLyricPanel', () => {
     vi.mocked(getSongCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getSongHotComments).mockReset()
     vi.mocked(getSongHotComments).mockRejectedValue(new Error('no hot'))
+    vi.mocked(getSongNewComments).mockReset()
+    vi.mocked(getSongNewComments).mockRejectedValue(new Error('no new'))
     vi.mocked(getSongCommentFloor).mockReset()
     vi.mocked(getSongCommentFloor).mockRejectedValue(new Error('no floor'))
     vi.mocked(getSongWiki).mockReset()
@@ -239,6 +242,24 @@ describe('PlayerLyricPanel', () => {
     wrapper.unmount()
   })
 
+  it('does not repeat a new comment in the latest song list', async () => {
+    const lyrics = useLyricStore()
+    const player = usePlayerStore()
+    const shared = { commentId: 21, content: '林间新评', nickname: '林间电台' }
+    lyrics.lines = [{ text: '走过林间。', time: 12 }]
+    player.current = { id: 301, name: '晚风来信', artists: [] }
+    player.newComments = [shared]
+    player.comments = [shared, { commentId: 2, content: '夜色刚好', nickname: '海岸信号' }]
+    lyrics.open()
+    const wrapper = mountPanel()
+    await wrapper.vm.$nextTick()
+    expect(bodyEl('[data-testid="song-new-comments"]').textContent).toContain('林间新评')
+    const latest = bodyEl('[data-testid="song-comments"]')
+    expect(latest.textContent).toContain('夜色刚好')
+    expect(latest.textContent).not.toContain('林间新评')
+    wrapper.unmount()
+  })
+
   it('expands song comment floors in the lyric panel', async () => {
     vi.mocked(getSongCommentFloor).mockResolvedValue([
       { commentId: 91, content: '楼中回复', nickname: '海岸信号' },
@@ -287,6 +308,32 @@ describe('PlayerLyricPanel', () => {
     await flushPromises()
     expect(getSongHotComments).toHaveBeenCalledWith(301)
     expect(bodyEl('[data-testid="song-hot-comments"]').textContent).toContain('林间热评')
+    wrapper.unmount()
+  })
+
+  it('retries song new comments in the lyric panel', async () => {
+    vi.mocked(getSongNewComments).mockResolvedValue([
+      { commentId: 21, content: '林间新评', nickname: '林间电台' },
+    ])
+    const lyrics = useLyricStore()
+    const player = usePlayerStore()
+    lyrics.lines = [{ text: '走过林间。', time: 12 }]
+    player.current = { id: 301, name: '晚风来信', artists: [] }
+    player.newCommentsError = 'new offline'
+    player.comments = [
+      { commentId: 1, content: '走过林间。', nickname: '林间电台' },
+    ]
+    lyrics.open()
+    const wrapper = mountPanel()
+    await wrapper.vm.$nextTick()
+    expect(bodyEl('[data-testid="song-new-comments-error"]').textContent).toContain(
+      '歌曲新版评论加载失败',
+    )
+    bodyEl('[data-testid="song-new-comments-retry"]').click()
+    await flushPromises()
+    expect(getSongNewComments).toHaveBeenCalledWith(301)
+    expect(bodyEl('#song-new-comments-title').textContent).toBe('新版评论')
+    expect(bodyEl('[data-testid="song-new-comments"]').textContent).toContain('林间新评')
     wrapper.unmount()
   })
 

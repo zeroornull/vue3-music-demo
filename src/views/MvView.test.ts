@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getMvCommentPage, getMvHotComments } from '@/api/comment'
+import { getMvCommentPage, getMvHotComments, getMvNewComments } from '@/api/comment'
 import { getMvCommentFloor } from '@/api/commentFloor'
 import { getMvDetail, getMvStats, getMvUrl, getSimiMvs } from '@/api/mv'
 import { createAppRouter } from '@/router'
@@ -19,6 +19,7 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getMvCommentPage: vi.fn(),
   getMvHotComments: vi.fn(),
+  getMvNewComments: vi.fn(),
 }))
 vi.mock('@/api/commentFloor', () => ({
   COMMENT_FLOOR_LIMIT: 10,
@@ -112,6 +113,8 @@ describe('MvView', () => {
     vi.mocked(getMvCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getMvHotComments).mockReset()
     vi.mocked(getMvHotComments).mockRejectedValue(new Error('no hot'))
+    vi.mocked(getMvNewComments).mockReset()
+    vi.mocked(getMvNewComments).mockRejectedValue(new Error('no new'))
     vi.mocked(getMvCommentFloor).mockReset()
     vi.mocked(getMvCommentFloor).mockRejectedValue(new Error('no floor'))
     vi.mocked(getMvStats).mockReset()
@@ -435,6 +438,24 @@ describe('MvView', () => {
     expect(wrapper.get('[data-testid="mv-hot-comments"]').text()).toContain('林间热评')
   })
 
+  it('loads and retries MV new comments without blocking playback', async () => {
+    vi.mocked(getMvNewComments)
+      .mockRejectedValueOnce(new Error('new offline'))
+      .mockResolvedValueOnce([
+        { commentId: 21, content: '林间新评', nickname: '林间电台' },
+      ])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="mv-new-comments-error"]').text()).toContain(
+      'MV 新版评论加载失败',
+    )
+    await wrapper.get('[data-testid="mv-new-comments-retry"]').trigger('click')
+    await flushPromises()
+    expect(getMvNewComments).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('#mv-new-comments-title').text()).toBe('新版评论')
+    expect(wrapper.get('[data-testid="mv-new-comments"]').text()).toContain('林间新评')
+  })
+
   it('does not repeat a hot comment in the latest MV list', async () => {
     const shared = { commentId: 1, content: '林间热评', nickname: '林间电台' }
     vi.mocked(getMvCommentPage).mockResolvedValue({
@@ -448,6 +469,21 @@ describe('MvView', () => {
     const latest = wrapper.get('[data-testid="mv-comments"]')
     expect(latest.text()).toContain('夜色刚好')
     expect(latest.text()).not.toContain('林间热评')
+  })
+
+  it('does not repeat a new comment in the latest MV list', async () => {
+    const shared = { commentId: 21, content: '林间新评', nickname: '林间电台' }
+    vi.mocked(getMvCommentPage).mockResolvedValue({
+      comments: [shared, { commentId: 2, content: '夜色刚好', nickname: '海岸信号' }],
+      more: false,
+    })
+    vi.mocked(getMvNewComments).mockResolvedValue([shared])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="mv-new-comments"]').text()).toContain('林间新评')
+    const latest = wrapper.get('[data-testid="mv-comments"]')
+    expect(latest.text()).toContain('夜色刚好')
+    expect(latest.text()).not.toContain('林间新评')
   })
 
   it('shows an empty comments state when the list is empty', async () => {

@@ -10,6 +10,10 @@ export const COMMENT_HOT_TYPE = {
   song: 0,
   video: 5,
 } as const
+export const COMMENT_NEW_LIMIT = 20
+export const COMMENT_NEW_PAGE_NO = 1
+export const COMMENT_NEW_SORT_RECOMMEND = 99
+export const COMMENT_NEW_TYPE = COMMENT_HOT_TYPE
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -322,6 +326,101 @@ export async function getDjHotComments(
     COMMENT_HOT_TYPE.dj,
     id,
     '电台节目热门评论响应格式不正确',
+    client,
+  )
+}
+
+function unwrapNewComments(response: unknown): unknown[] | null {
+  if (!isRecord(response)) return null
+  if (Array.isArray(response.comments)) return response.comments
+  const data = isRecord(response.data) ? response.data : null
+  if (data && Array.isArray(data.comments)) return data.comments
+  return null
+}
+
+function readNewComment(value: unknown): MediaComment | null {
+  if (!isRecord(value)) return null
+  const rawId = value.commentId
+  const commentId =
+    typeof rawId === 'number'
+      ? rawId
+      : typeof rawId === 'string'
+        ? Number(rawId)
+        : NaN
+  return readComment({ ...value, commentId })
+}
+
+async function getNewCommentList(
+  type: number,
+  id: number,
+  errorMessage: string,
+  client: Pick<HttpClient, 'get'>,
+): Promise<MediaComment[]> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error(
+      type === COMMENT_NEW_TYPE.playlist
+        ? '缺少有效的歌单 ID'
+        : type === COMMENT_NEW_TYPE.mv
+          ? '缺少有效的 MV ID'
+          : '缺少有效的歌曲 ID',
+    )
+  }
+  const response = await client.get<unknown>('/comment/new', {
+    cursor: 0,
+    id,
+    pageNo: COMMENT_NEW_PAGE_NO,
+    pageSize: COMMENT_NEW_LIMIT,
+    sortType: COMMENT_NEW_SORT_RECOMMEND,
+    type,
+  })
+  const raw = unwrapNewComments(response)
+  if (!raw) {
+    throw new Error(errorMessage)
+  }
+  const seen = new Set<number>()
+  const list: MediaComment[] = []
+  for (const entry of raw) {
+    const item = readNewComment(entry)
+    if (!item || seen.has(item.commentId)) continue
+    seen.add(item.commentId)
+    list.push(item)
+    if (list.length >= COMMENT_NEW_LIMIT) break
+  }
+  return list
+}
+
+export async function getPlaylistNewComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  return getNewCommentList(
+    COMMENT_NEW_TYPE.playlist,
+    id,
+    '歌单新版评论响应格式不正确',
+    client,
+  )
+}
+
+export async function getSongNewComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  return getNewCommentList(
+    COMMENT_NEW_TYPE.song,
+    id,
+    '歌曲新版评论响应格式不正确',
+    client,
+  )
+}
+
+export async function getMvNewComments(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<MediaComment[]> {
+  return getNewCommentList(
+    COMMENT_NEW_TYPE.mv,
+    id,
+    'MV 新版评论响应格式不正确',
     client,
   )
 }

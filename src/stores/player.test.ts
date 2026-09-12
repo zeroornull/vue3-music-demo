@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
-import { COMMENT_LIMIT, getSongCommentPage, getSongHotComments } from '@/api/comment'
+import {
+  COMMENT_LIMIT,
+  getSongCommentPage,
+  getSongHotComments,
+  getSongNewComments,
+} from '@/api/comment'
 import { getPersonalFm, trashPersonalFm } from '@/api/fm'
 import { getSimiPlaylists } from '@/api/playlist'
 import {
@@ -24,6 +29,7 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getSongCommentPage: vi.fn(),
   getSongHotComments: vi.fn(),
+  getSongNewComments: vi.fn(),
 }))
 vi.mock('@/api/fm', () => ({
   getPersonalFm: vi.fn(),
@@ -111,6 +117,8 @@ describe('Player store', () => {
     vi.mocked(getSongCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getSongHotComments).mockReset()
     vi.mocked(getSongHotComments).mockRejectedValue(new Error('no hot'))
+    vi.mocked(getSongNewComments).mockReset()
+    vi.mocked(getSongNewComments).mockRejectedValue(new Error('no new'))
     vi.mocked(getPersonalFm).mockReset()
     vi.mocked(getPersonalFm).mockRejectedValue(new Error('no fm'))
     vi.mocked(trashPersonalFm).mockReset()
@@ -1160,6 +1168,26 @@ describe('Player store', () => {
     expect(player.current).toEqual(song(1))
     expect(player.hotComments).toBeNull()
     expect(player.hotCommentsError).toBe('hot offline')
+  })
+
+  it('loads new comments independently of hot comments', async () => {
+    const next = { commentId: 21, content: '林间新评', nickname: '林间电台' }
+    vi.mocked(getSongHotComments).mockResolvedValue([
+      { commentId: 9, content: '林间热评', nickname: '林间电台' },
+    ])
+    vi.mocked(getSongNewComments)
+      .mockRejectedValueOnce(new Error('new offline'))
+      .mockResolvedValueOnce([next])
+    setAudioAdapter(mockAdapter())
+    const player = usePlayerStore()
+    await player.play(song(1))
+    await flushPromises()
+    expect(player.hotComments?.[0]?.content).toBe('林间热评')
+    expect(player.newCommentsError).toBe('new offline')
+    await player.loadNewComments(true)
+    await flushPromises()
+    expect(player.newComments).toEqual([next])
+    expect(player.newCommentsError).toBeNull()
   })
 
   it('retries comments on a cached current when the first comment request failed', async () => {

@@ -2,7 +2,12 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
-import { COMMENT_LIMIT, getMvCommentPage, getMvHotComments } from '@/api/comment'
+import {
+  COMMENT_LIMIT,
+  getMvCommentPage,
+  getMvHotComments,
+  getMvNewComments,
+} from '@/api/comment'
 import { getMvDetail, getMvStats, getMvUrl, getSimiMvs } from '@/api/mv'
 import type { MediaComment } from '@/models/comment'
 import type { MvDetail, MvStats, MvUrl, SimiMv } from '@/models/mv'
@@ -11,6 +16,7 @@ let requestSerial = 0
 let commentsMoreSerial = 0
 let statsSerial = 0
 let hotCommentSerial = 0
+let newCommentSerial = 0
 
 export const useMvStore = defineStore('mv', () => {
   const playback = ref<MvUrl | null>(null)
@@ -23,6 +29,8 @@ export const useMvStore = defineStore('mv', () => {
   const commentOffset = ref(0)
   const hotComments = ref<MediaComment[] | null>(null)
   const hotCommentsError = ref<string | null>(null)
+  const newComments = ref<MediaComment[] | null>(null)
+  const newCommentsError = ref<string | null>(null)
   const stats = ref<MvStats | null>(null)
   const statsError = ref<string | null>(null)
   const error = ref<string | null>(null)
@@ -34,6 +42,7 @@ export const useMvStore = defineStore('mv', () => {
     commentsMoreSerial++
     statsSerial++
     hotCommentSerial++
+    newCommentSerial++
     playback.value = null
     detail.value = null
     relatedMvs.value = null
@@ -44,6 +53,8 @@ export const useMvStore = defineStore('mv', () => {
     commentOffset.value = 0
     hotComments.value = null
     hotCommentsError.value = null
+    newComments.value = null
+    newCommentsError.value = null
     stats.value = null
     statsError.value = null
     loadedId.value = null
@@ -64,6 +75,7 @@ export const useMvStore = defineStore('mv', () => {
       if (comments.value === null) requestComments(id, requestSerial)
       if (stats.value === null) requestStats(id, requestSerial)
       if (hotComments.value === null) requestHotComments(id, requestSerial)
+      if (newComments.value === null) requestNewComments(id, requestSerial)
       return true
     }
 
@@ -82,6 +94,8 @@ export const useMvStore = defineStore('mv', () => {
       statsError.value = null
       hotComments.value = null
       hotCommentsError.value = null
+      newComments.value = null
+      newCommentsError.value = null
       loadedId.value = null
     }
     loading.value = true
@@ -96,6 +110,7 @@ export const useMvStore = defineStore('mv', () => {
       requestComments(id, serial)
       requestStats(id, serial)
       requestHotComments(id, serial)
+      requestNewComments(id, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -141,6 +156,31 @@ export const useMvStore = defineStore('mv', () => {
     if (id === null) return
     if (!force && hotComments.value && !hotCommentsError.value) return
     requestHotComments(id, requestSerial)
+  }
+
+  function requestNewComments(id: number, loadSerial: number) {
+    const serial = ++newCommentSerial
+    newCommentsError.value = null
+    void getMvNewComments(id)
+      .then((next) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== newCommentSerial) return
+        if (loadedId.value !== id) return
+        newComments.value = next
+      })
+      .catch((requestError) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== newCommentSerial) return
+        newComments.value = null
+        newCommentsError.value = getErrorMessage(requestError)
+      })
+  }
+
+  async function loadNewComments(force = false) {
+    const id = loadedId.value
+    if (id === null) return
+    if (!force && newComments.value && !newCommentsError.value) return
+    requestNewComments(id, requestSerial)
   }
 
   function requestComments(id: number, serial: number) {
@@ -233,6 +273,7 @@ export const useMvStore = defineStore('mv', () => {
     loadMoreComments,
     loadStats,
     loadHotComments,
+    loadNewComments,
     reset,
     playback,
     detail,
@@ -244,6 +285,8 @@ export const useMvStore = defineStore('mv', () => {
     commentOffset,
     hotComments,
     hotCommentsError,
+    newComments,
+    newCommentsError,
     stats,
     statsError,
     error,

@@ -28,6 +28,8 @@ const {
   commentsMoreError,
   hotComments,
   hotCommentsError,
+  newComments,
+  newCommentsError,
   stats,
   statsError,
   loading,
@@ -75,8 +77,15 @@ function retryHotComments() {
   void mvStore.loadHotComments(true).catch(() => undefined)
 }
 
+function retryNewComments() {
+  void mvStore.loadNewComments(true).catch(() => undefined)
+}
+
 const latestComments = computed(() =>
-  excludeSeenComments(comments.value, hotComments.value),
+  excludeSeenComments(
+    excludeSeenComments(comments.value, hotComments.value),
+    newComments.value,
+  ),
 )
 
 const extraCounts = computed(() => {
@@ -205,6 +214,16 @@ watch(
         :comments="hotComments"
         :error="hotCommentsError"
         @retry="retryHotComments"
+      />
+      <CommentHotSection
+        error-title="MV 新版评论加载失败"
+        kind="mv"
+        testid="mv-new-comments"
+        title="新版评论"
+        :resource-id="mvId"
+        :comments="newComments"
+        :error="newCommentsError"
+        @retry="retryNewComments"
       />
       <section
         v-if="comments !== null"

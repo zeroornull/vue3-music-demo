@@ -50,12 +50,17 @@ const {
   commentsMoreError,
   hotComments,
   hotCommentsError,
+  newComments,
+  newCommentsError,
   currentTime,
   current,
 } = storeToRefs(player)
 
 const latestComments = computed(() =>
-  excludeSeenComments(comments.value, hotComments.value),
+  excludeSeenComments(
+    excludeSeenComments(comments.value, hotComments.value),
+    newComments.value,
+  ),
 )
 
 const activeIndex = computed(() => {
@@ -262,6 +267,17 @@ onUnmounted(() => {
             :error="hotCommentsError"
             :resource-id="current?.id ?? null"
             @retry="player.loadHotComments(true).catch(() => undefined)"
+          />
+          <CommentHotSection
+            error-title="歌曲新版评论加载失败"
+            heading="h3"
+            kind="song"
+            testid="song-new-comments"
+            title="新版评论"
+            :comments="newComments"
+            :error="newCommentsError"
+            :resource-id="current?.id ?? null"
+            @retry="player.loadNewComments(true).catch(() => undefined)"
           />
           <section
             v-if="comments !== null"

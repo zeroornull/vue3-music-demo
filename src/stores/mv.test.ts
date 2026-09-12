@@ -1,7 +1,12 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { COMMENT_LIMIT, getMvCommentPage, getMvHotComments } from '@/api/comment'
+import {
+  COMMENT_LIMIT,
+  getMvCommentPage,
+  getMvHotComments,
+  getMvNewComments,
+} from '@/api/comment'
 import { getMvDetail, getMvStats, getMvUrl, getSimiMvs } from '@/api/mv'
 import { useMvStore } from '@/stores/mv'
 
@@ -9,6 +14,7 @@ vi.mock('@/api/comment', () => ({
   COMMENT_LIMIT: 20,
   getMvCommentPage: vi.fn(),
   getMvHotComments: vi.fn(),
+  getMvNewComments: vi.fn(),
 }))
 vi.mock('@/api/mv', () => ({
   getMvDetail: vi.fn(),
@@ -73,6 +79,8 @@ describe('mv store', () => {
     vi.mocked(getMvCommentPage).mockRejectedValue(new Error('no comments'))
     vi.mocked(getMvHotComments).mockReset()
     vi.mocked(getMvHotComments).mockRejectedValue(new Error('no hot'))
+    vi.mocked(getMvNewComments).mockReset()
+    vi.mocked(getMvNewComments).mockRejectedValue(new Error('no new'))
     vi.mocked(getMvStats).mockReset()
     vi.mocked(getMvStats).mockRejectedValue(new Error('no stats'))
   })
@@ -458,6 +466,26 @@ describe('mv store', () => {
     expect(store.playback).toEqual(playback)
     expect(store.hotComments).toBeNull()
     expect(store.hotCommentsError).toBe('hot offline')
+  })
+
+  it('loads new comments independently of hot comments', async () => {
+    const next = { commentId: 21, content: '林间新评', nickname: '林间电台' }
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvHotComments).mockResolvedValue([
+      { commentId: 9, content: '林间热评', nickname: '林间电台' },
+    ])
+    vi.mocked(getMvNewComments)
+      .mockRejectedValueOnce(new Error('new offline'))
+      .mockResolvedValueOnce([next])
+    const store = useMvStore()
+    await store.load(701)
+    await settle()
+    expect(store.hotComments?.[0]?.content).toBe('林间热评')
+    expect(store.newCommentsError).toBe('new offline')
+    await store.loadNewComments(true)
+    await settle()
+    expect(store.newComments).toEqual([next])
+    expect(store.newCommentsError).toBeNull()
   })
 
   it('keeps playback when comments fail', async () => {

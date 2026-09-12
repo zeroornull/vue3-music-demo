@@ -27,6 +27,8 @@ const {
   commentsMoreError,
   hotComments,
   hotCommentsError,
+  newComments,
+  newCommentsError,
   subscribers,
   subscribersMore,
   subscribersMoreLoading,
@@ -68,8 +70,15 @@ function retryHotComments() {
   void playlistStore.loadHotComments(true).catch(() => undefined)
 }
 
+function retryNewComments() {
+  void playlistStore.loadNewComments(true).catch(() => undefined)
+}
+
 const latestComments = computed(() =>
-  excludeSeenComments(comments.value, hotComments.value),
+  excludeSeenComments(
+    excludeSeenComments(comments.value, hotComments.value),
+    newComments.value,
+  ),
 )
 
 function playAll() {
@@ -183,6 +192,16 @@ watch(
         :error="hotCommentsError"
         :resource-id="playlistId"
         @retry="retryHotComments"
+      />
+      <CommentHotSection
+        error-title="歌单新版评论加载失败"
+        kind="playlist"
+        testid="playlist-new-comments"
+        title="新版评论"
+        :comments="newComments"
+        :error="newCommentsError"
+        :resource-id="playlistId"
+        @retry="retryNewComments"
       />
       <section
         v-if="comments !== null"

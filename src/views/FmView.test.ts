@@ -24,6 +24,7 @@ vi.mock('@/api/comment', () => ({
   getSongComments: vi.fn(),
   getSongCommentPage: vi.fn(),
   getSongHotComments: vi.fn(),
+  getSongNewComments: vi.fn(),
 }))
 vi.mock('@/api/fm', () => ({
   getPersonalFm: vi.fn(),
