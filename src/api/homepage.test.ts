@@ -7,8 +7,10 @@ import {
   DRAGON_BALL_LIMIT,
   HOT_TOPIC_LIMIT,
   getHomepageDragonBalls,
+  getHomepagePlaylists,
   getHotTopics,
   getMusicCalendar,
+  HOMEPAGE_PLAYLIST_LIMIT,
 } from '@/api/homepage'
 
 const client = (response: unknown) => {
@@ -130,5 +132,72 @@ describe('Homepage API', () => {
     await expect(
       getMusicCalendar(client({ calendarEvents: many }).client, now),
     ).resolves.toHaveLength(CALENDAR_EVENT_LIMIT)
+  })
+
+  it('unwraps /homepage/block/page playlist creatives', async () => {
+    const request = client({
+      data: {
+        blocks: [
+          {
+            blockCode: 'HOMEPAGE_BLOCK_BANNER',
+            creatives: [
+              {
+                creativeId: 999,
+                uiElement: { mainTitle: { title: '广告位' } },
+                resources: [{ resourceId: 999 }],
+              },
+            ],
+          },
+          {
+            blockCode: 'HOMEPAGE_BLOCK_PLAYLIST_RCMD',
+            creatives: [
+              {
+                creativeId: 201,
+                extra: true,
+                uiElement: {
+                  image: { imageUrl: 'https://images.example.com/pl.jpg' },
+                  mainTitle: { title: '  林间歌单  ' },
+                },
+                resources: [
+                  {
+                    resourceExtInfo: { playCount: 88, trackCount: 12 },
+                    resourceId: 201,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    })
+    await expect(getHomepagePlaylists(request.client)).resolves.toEqual([
+      {
+        alg: '',
+        canDislike: false,
+        copywriter: '',
+        highQuality: false,
+        id: 201,
+        name: '林间歌单',
+        picUrl: 'https://images.example.com/pl.jpg',
+        playCount: 88,
+        trackCount: 12,
+        trackNumberUpdateTime: 0,
+        type: 0,
+      },
+    ])
+    expect(request.get).toHaveBeenCalledWith('/homepage/block/page', {
+      cursor: '',
+      refresh: false,
+    })
+    await expect(getHomepagePlaylists(client({ data: null }).client)).rejects.toThrow(
+      '首页歌单响应格式不正确',
+    )
+    const many = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `歌单 ${index + 1}`,
+    }))
+    await expect(
+      getHomepagePlaylists(client({ blocks: many }).client),
+    ).resolves.toHaveLength(HOMEPAGE_PLAYLIST_LIMIT)
   })
 })

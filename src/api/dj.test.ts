@@ -41,8 +41,11 @@ import {
   getDjPaygiftRadios,
   getDjExcludehotCategories,
   getDjPopularRadios,
+  getProgramRecommend,
+  getDjNewestRadios,
   DJ_PAYGIFT_LIMIT,
   DJ_POPULAR_LIMIT,
+  DJ_NEWEST_LIMIT,
   DJ_NEWCOMER_LIMIT,
   DJ_PAY_RADIO_LIMIT,
 } from '@/api/dj'
@@ -1122,5 +1125,58 @@ describe('DJ API', () => {
     await expect(
       getDjPopularRadios(client({ data: null }).client),
     ).rejects.toThrow('热门电台榜响应格式不正确')
+  })
+
+  it('unwraps /program/recommend programs and /dj/radio/newest radios', async () => {
+    const programs = client({
+      result: [
+        {
+          extra: true,
+          program: {
+            coverUrl: 'https://images.example.com/p.jpg',
+            extra: true,
+            id: 931,
+            name: '精选夜航',
+            radio: { name: '林间电台' },
+          },
+        },
+        { id: 0, name: '无效' },
+      ],
+    })
+    await expect(getProgramRecommend(programs.client)).resolves.toEqual([
+      {
+        copywriter: '林间电台',
+        id: 931,
+        name: '精选夜航',
+        paid: false,
+        picUrl: 'https://images.example.com/p.jpg',
+      },
+    ])
+    expect(programs.get).toHaveBeenCalledWith('/program/recommend')
+    await expect(
+      getProgramRecommend(client({ data: null }).client),
+    ).rejects.toThrow('精选节目响应格式不正确')
+
+    const newest = client({
+      djRadios: [
+        { extra: true, id: 841, name: '最新夜航', picUrl: 'https://images.example.com/n.jpg' },
+        { id: 0, name: '无效' },
+      ],
+    })
+    await expect(getDjNewestRadios(newest.client)).resolves.toEqual([
+      {
+        djName: '',
+        id: 841,
+        name: '最新夜航',
+        paid: false,
+        picUrl: 'https://images.example.com/n.jpg',
+        playCount: 0,
+        rcmdText: '',
+      },
+    ])
+    expect(newest.get).toHaveBeenCalledWith('/dj/radio/newest', { limit: DJ_NEWEST_LIMIT })
+    await expect(
+      getDjNewestRadios(client({ data: null }).client),
+    ).rejects.toThrow('最新电台响应格式不正确')
   })
 })

@@ -2,15 +2,19 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { getBanners } from '@/api/banner'
+import { getDjNewestRadios, getProgramRecommend } from '@/api/dj'
 import {
   getHomepageDragonBalls,
+  getHomepagePlaylists,
   getHotTopics,
   getMusicCalendar,
 } from '@/api/homepage'
 import { getErrorMessage } from '@/api/http'
 import { getPrivateContentBrief } from '@/api/privateContent'
 import type { Banner } from '@/models/banner'
+import type { DjProgram, HallRadio } from '@/models/dj'
 import type { CalendarEvent, DragonBall, HotTopic } from '@/models/homepage'
+import type { PersonalizedPlaylist } from '@/models/personalized'
 import type { PrivateContent } from '@/models/privateContent'
 
 let bannerSerial = 0
@@ -18,6 +22,9 @@ let dragonBallSerial = 0
 let hotTopicSerial = 0
 let calendarSerial = 0
 let privateBriefSerial = 0
+let homepagePlaylistSerial = 0
+let programRecommendSerial = 0
+let newestRadioSerial = 0
 
 export const useCommonStore = defineStore('common', () => {
   const banners = ref<Banner[]>([])
@@ -35,6 +42,15 @@ export const useCommonStore = defineStore('common', () => {
   const privateBrief = ref<PrivateContent[]>([])
   const privateBriefError = ref<string | null>(null)
   const privateBriefLoading = ref(false)
+  const homepagePlaylists = ref<PersonalizedPlaylist[]>([])
+  const homepagePlaylistsError = ref<string | null>(null)
+  const homepagePlaylistsLoading = ref(false)
+  const recommendPrograms = ref<DjProgram[]>([])
+  const recommendProgramsError = ref<string | null>(null)
+  const recommendProgramsLoading = ref(false)
+  const newestRadios = ref<HallRadio[]>([])
+  const newestRadiosError = ref<string | null>(null)
+  const newestRadiosLoading = ref(false)
 
   function reset() {
     bannerSerial++
@@ -42,6 +58,9 @@ export const useCommonStore = defineStore('common', () => {
     hotTopicSerial++
     calendarSerial++
     privateBriefSerial++
+    homepagePlaylistSerial++
+    programRecommendSerial++
+    newestRadioSerial++
     banners.value = []
     error.value = null
     loading.value = false
@@ -57,6 +76,15 @@ export const useCommonStore = defineStore('common', () => {
     privateBrief.value = []
     privateBriefError.value = null
     privateBriefLoading.value = false
+    homepagePlaylists.value = []
+    homepagePlaylistsError.value = null
+    homepagePlaylistsLoading.value = false
+    recommendPrograms.value = []
+    recommendProgramsError.value = null
+    recommendProgramsLoading.value = false
+    newestRadios.value = []
+    newestRadiosError.value = null
+    newestRadiosLoading.value = false
   }
 
   async function loadBanners(force = false) {
@@ -150,6 +178,60 @@ export const useCommonStore = defineStore('common', () => {
     }
   }
 
+  async function loadHomepagePlaylists(force = false) {
+    if (homepagePlaylists.value.length && !force && !homepagePlaylistsError.value) return
+    const serial = ++homepagePlaylistSerial
+    homepagePlaylistsLoading.value = true
+    homepagePlaylistsError.value = null
+    try {
+      const next = await getHomepagePlaylists()
+      if (serial !== homepagePlaylistSerial) return
+      homepagePlaylists.value = next
+    } catch (requestError) {
+      if (serial !== homepagePlaylistSerial) return
+      homepagePlaylistsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === homepagePlaylistSerial) homepagePlaylistsLoading.value = false
+    }
+  }
+
+  async function loadRecommendPrograms(force = false) {
+    if (recommendPrograms.value.length && !force && !recommendProgramsError.value) return
+    const serial = ++programRecommendSerial
+    recommendProgramsLoading.value = true
+    recommendProgramsError.value = null
+    try {
+      const next = await getProgramRecommend()
+      if (serial !== programRecommendSerial) return
+      recommendPrograms.value = next
+    } catch (requestError) {
+      if (serial !== programRecommendSerial) return
+      recommendProgramsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === programRecommendSerial) recommendProgramsLoading.value = false
+    }
+  }
+
+  async function loadNewestRadios(force = false) {
+    if (newestRadios.value.length && !force && !newestRadiosError.value) return
+    const serial = ++newestRadioSerial
+    newestRadiosLoading.value = true
+    newestRadiosError.value = null
+    try {
+      const next = await getDjNewestRadios()
+      if (serial !== newestRadioSerial) return
+      newestRadios.value = next
+    } catch (requestError) {
+      if (serial !== newestRadioSerial) return
+      newestRadiosError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === newestRadioSerial) newestRadiosLoading.value = false
+    }
+  }
+
   return {
     banners,
     error,
@@ -171,6 +253,18 @@ export const useCommonStore = defineStore('common', () => {
     privateBriefError,
     privateBriefLoading,
     loadPrivateBrief,
+    homepagePlaylists,
+    homepagePlaylistsError,
+    homepagePlaylistsLoading,
+    loadHomepagePlaylists,
+    recommendPrograms,
+    recommendProgramsError,
+    recommendProgramsLoading,
+    loadRecommendPrograms,
+    newestRadios,
+    newestRadiosError,
+    newestRadiosLoading,
+    loadNewestRadios,
     reset,
   }
 })

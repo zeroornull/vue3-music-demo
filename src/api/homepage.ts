@@ -1,10 +1,12 @@
 import { http, type HttpClient } from '@/api/http'
 import type { CalendarEvent, DragonBall, HotTopic } from '@/models/homepage'
+import type { PersonalizedPlaylist } from '@/models/personalized'
 
 export const DRAGON_BALL_LIMIT = 10
 export const HOT_TOPIC_LIMIT = 10
 export const CALENDAR_EVENT_LIMIT = 10
 export const CALENDAR_RANGE_MS = 7 * 24 * 60 * 60 * 1000
+export const HOMEPAGE_PLAYLIST_LIMIT = 10
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -153,4 +155,97 @@ export async function getMusicCalendar(
     .map(readCalendarEvent)
     .filter((item): item is CalendarEvent => item !== null)
     .slice(0, CALENDAR_EVENT_LIMIT)
+}
+
+function positiveId(value: unknown): number | null {
+  const id = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN
+  if (!Number.isInteger(id) || id <= 0) return null
+  return id
+}
+
+function readHomepagePlaylist(value: unknown): PersonalizedPlaylist | null {
+  if (!isRecord(value)) return null
+  const ui = isRecord(value.uiElement) ? value.uiElement : value
+  const resource = Array.isArray(value.resources) && isRecord(value.resources[0])
+    ? value.resources[0]
+    : isRecord(value.resource)
+      ? value.resource
+      : value
+  const id =
+    positiveId(resource.resourceId) ??
+    positiveId(value.creativeId) ??
+    positiveId(value.id) ??
+    positiveId(resource.id)
+  const titleObj = isRecord(ui.mainTitle) ? ui.mainTitle : ui
+  const name =
+    typeof titleObj.title === 'string' && titleObj.title.trim()
+      ? titleObj.title.trim()
+      : typeof value.name === 'string'
+        ? value.name.trim()
+        : ''
+  if (!id || !name) return null
+  const image = isRecord(ui.image) ? ui.image : ui
+  const picUrl =
+    typeof image.imageUrl === 'string' && image.imageUrl
+      ? image.imageUrl
+      : typeof value.picUrl === 'string'
+        ? value.picUrl
+        : ''
+  const ext = isRecord(resource.resourceExt)
+    ? resource.resourceExt
+    : isRecord(resource.resourceExtInfo)
+      ? resource.resourceExtInfo
+      : resource
+  return {
+    alg: '',
+    canDislike: false,
+    copywriter: '',
+    highQuality: false,
+    id,
+    name,
+    picUrl,
+    playCount: typeof ext.playCount === 'number' ? Math.max(0, ext.playCount) : 0,
+    trackCount: typeof ext.trackCount === 'number' ? Math.max(0, ext.trackCount) : 0,
+    trackNumberUpdateTime: 0,
+    type: 0,
+  }
+}
+
+function collectHomepagePlaylists(
+  value: unknown,
+  out: PersonalizedPlaylist[],
+  seen: Set<number>,
+) {
+  if (out.length >= HOMEPAGE_PLAYLIST_LIMIT) return
+  if (Array.isArray(value)) {
+    for (const item of value) collectHomepagePlaylists(item, out, seen)
+    return
+  }
+  if (!isRecord(value)) return
+  const blockCode = typeof value.blockCode === 'string' ? value.blockCode : ''
+  if (blockCode && !/PLAYLIST/i.test(blockCode)) return
+  const item = readHomepagePlaylist(value)
+  if (item && !seen.has(item.id)) {
+    seen.add(item.id)
+    out.push(item)
+  }
+  for (const key of ['blocks', 'creatives', 'resources']) {
+    if (Array.isArray(value[key])) collectHomepagePlaylists(value[key], out, seen)
+  }
+}
+
+export async function getHomepagePlaylists(
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<PersonalizedPlaylist[]> {
+  const response = await client.get<unknown>('/homepage/block/page', {
+    cursor: '',
+    refresh: false,
+  })
+  const raw = unwrapList(response, ['blocks'])
+  if (!raw) {
+    throw new Error('首页歌单响应格式不正确')
+  }
+  const playlists: PersonalizedPlaylist[] = []
+  collectHomepagePlaylists(raw, playlists, new Set())
+  return playlists.slice(0, HOMEPAGE_PLAYLIST_LIMIT)
 }

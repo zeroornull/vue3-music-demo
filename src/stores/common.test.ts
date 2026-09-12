@@ -2,8 +2,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getBanners } from '@/api/banner'
+import { getDjNewestRadios, getProgramRecommend } from '@/api/dj'
 import {
   getHomepageDragonBalls,
+  getHomepagePlaylists,
   getHotTopics,
   getMusicCalendar,
 } from '@/api/homepage'
@@ -13,8 +15,17 @@ import { useCommonStore } from '@/stores/common'
 vi.mock('@/api/banner', () => ({
   getBanners: vi.fn(),
 }))
+vi.mock('@/api/dj', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/dj')>()
+  return {
+    ...actual,
+    getDjNewestRadios: vi.fn(),
+    getProgramRecommend: vi.fn(),
+  }
+})
 vi.mock('@/api/homepage', () => ({
   getHomepageDragonBalls: vi.fn(),
+  getHomepagePlaylists: vi.fn(),
   getHotTopics: vi.fn(),
   getMusicCalendar: vi.fn(),
 }))
@@ -39,6 +50,12 @@ describe('common store', () => {
     vi.mocked(getHotTopics).mockReset()
     vi.mocked(getMusicCalendar).mockReset()
     vi.mocked(getPrivateContentBrief).mockReset()
+    vi.mocked(getHomepagePlaylists).mockReset()
+    vi.mocked(getHomepagePlaylists).mockResolvedValue([])
+    vi.mocked(getProgramRecommend).mockReset()
+    vi.mocked(getProgramRecommend).mockResolvedValue([])
+    vi.mocked(getDjNewestRadios).mockReset()
+    vi.mocked(getDjNewestRadios).mockResolvedValue([])
   })
 
   it('loads banners once and reuses the cached result', async () => {
@@ -118,6 +135,51 @@ describe('common store', () => {
     expect(getHotTopics).toHaveBeenCalledTimes(1)
     expect(getMusicCalendar).toHaveBeenCalledTimes(1)
     expect(getPrivateContentBrief).toHaveBeenCalledTimes(1)
+  })
+
+  it('loads homepage playlists, programs and newest radios independently', async () => {
+    const playlist = {
+      alg: '',
+      canDislike: false,
+      copywriter: '',
+      highQuality: false,
+      id: 201,
+      name: '林间歌单',
+      picUrl: '',
+      playCount: 1,
+      trackCount: 8,
+      trackNumberUpdateTime: 0,
+      type: 0,
+    }
+    const program = {
+      copywriter: '',
+      id: 931,
+      name: '精选夜航',
+      paid: false,
+      picUrl: '',
+    }
+    const radio = {
+      djName: '',
+      id: 841,
+      name: '最新夜航',
+      paid: false,
+      picUrl: '',
+      playCount: 0,
+      rcmdText: '',
+    }
+    vi.mocked(getHomepagePlaylists).mockResolvedValue([playlist])
+    vi.mocked(getProgramRecommend).mockRejectedValue(new Error('programs offline'))
+    vi.mocked(getDjNewestRadios).mockResolvedValue([radio])
+    const store = useCommonStore()
+    await store.loadHomepagePlaylists()
+    await store.loadHomepagePlaylists()
+    await expect(store.loadRecommendPrograms()).rejects.toThrow('programs offline')
+    await store.loadNewestRadios()
+    expect(store.homepagePlaylists).toEqual([playlist])
+    expect(store.recommendProgramsError).toBe('programs offline')
+    expect(store.newestRadios).toEqual([radio])
+    expect(getHomepagePlaylists).toHaveBeenCalledTimes(1)
+    expect(getDjNewestRadios).toHaveBeenCalledTimes(1)
   })
 
   it('keeps other extras when hot topics fail', async () => {
