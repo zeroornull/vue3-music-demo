@@ -29,10 +29,10 @@ const SongStub = defineComponent({
   props: ['emptyTitle', 'error', 'errorTitle', 'items', 'loading', 'testid', 'title'],
   emits: ['retry', 'select'],
   template: `
-    <section data-testid="style-songs-stub">
+    <section :data-testid="testid + '-stub'">
       <h2>{{ title }}</h2>
-      <button data-testid="style-songs-retry" @click="$emit('retry')" />
-      <button v-if="items[0]" data-testid="style-songs-select" @click="$emit('select', items[0])" />
+      <button :data-testid="testid + '-retry'" @click="$emit('retry')" />
+      <button v-if="items[0]" :data-testid="testid + '-select'" @click="$emit('select', items[0])" />
     </section>
   `,
 })
@@ -54,9 +54,9 @@ const AlbumStub = defineComponent({
   props: ['albums', 'emptyTitle', 'error', 'errorTitle', 'loading', 'testid', 'title'],
   emits: ['retry'],
   template: `
-    <section data-testid="style-albums-stub">
+    <section :data-testid="testid + '-stub'">
       <h2>{{ title }}</h2>
-      <button data-testid="style-albums-retry" @click="$emit('retry')" />
+      <button :data-testid="testid + '-retry'" @click="$emit('retry')" />
     </section>
   `,
 })
@@ -127,6 +127,9 @@ describe('StyleHallView', () => {
     expect(data.get('[data-testid="style-playlists-stub"] h2').text()).toBe('曲风歌单')
     expect(data.get('[data-testid="style-albums-stub"] h2').text()).toBe('曲风专辑')
     expect(data.get('[data-testid="style-artists-stub"] h2').text()).toBe('曲风歌手')
+    expect(data.get('[data-testid="style-detail-empty"]').text()).toContain('暂无曲风详情')
+    expect(data.get('[data-testid="style-new-songs-stub"] h2').text()).toBe('最新曲风歌曲')
+    expect(data.get('[data-testid="style-new-albums-stub"] h2').text()).toBe('最新曲风专辑')
 
     await data.get('[data-testid="style-tag"]').trigger('click')
     expect(data.emitted('select-tag')).toEqual([[1001]])
@@ -136,9 +139,38 @@ describe('StyleHallView', () => {
     await data.get('[data-testid="style-playlists-retry"]').trigger('click')
     await data.get('[data-testid="style-albums-retry"]').trigger('click')
     await data.get('[data-testid="style-artists-retry"]').trigger('click')
+    await data.get('[data-testid="style-new-songs-retry"]').trigger('click')
+    await data.get('[data-testid="style-new-albums-retry"]').trigger('click')
     expect(data.emitted('retry-songs')).toHaveLength(1)
     expect(data.emitted('retry-playlists')).toHaveLength(1)
     expect(data.emitted('retry-albums')).toHaveLength(1)
     expect(data.emitted('retry-artists')).toHaveLength(1)
+    expect(data.emitted('retry-new-songs')).toHaveLength(1)
+    expect(data.emitted('retry-new-albums')).toHaveLength(1)
+  })
+
+  it('renders style detail and retries independently', async () => {
+    const hero = mountView({
+      detail: {
+        desc: '林间电子曲风。',
+        enName: 'Electronic',
+        id: 1000,
+        name: '电子',
+        picUrl: '',
+      },
+      tagId: 1000,
+      tags: [{ id: 1000, name: '电子' }],
+    })
+    expect(hero.get('#style-detail-title').text()).toBe('电子')
+    expect(hero.get('[data-testid="style-detail"]').text()).toContain('林间电子曲风。')
+    expect(hero.get('[data-testid="style-detail"]').classes()).toContain('no-cover')
+
+    const failed = mountView({
+      detailError: 'offline',
+      tagId: 1000,
+      tags: [{ id: 1000, name: '电子' }],
+    })
+    await failed.get('[data-testid="style-detail-retry"]').trigger('click')
+    expect(failed.emitted('retry-detail')).toHaveLength(1)
   })
 })

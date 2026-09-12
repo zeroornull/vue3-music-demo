@@ -5,6 +5,9 @@ import { getErrorMessage } from '@/api/http'
 import {
   getStyleAlbums,
   getStyleArtists,
+  getStyleDetail,
+  getStyleNewAlbums,
+  getStyleNewSongs,
   getStylePlaylists,
   getStyleSongs,
   getStyleTags,
@@ -13,13 +16,16 @@ import type { NewestAlbum } from '@/models/album'
 import type { HallArtist } from '@/models/artist'
 import type { PersonalizedNewSong } from '@/models/newSong'
 import type { PersonalizedPlaylist } from '@/models/personalized'
-import type { StyleTag } from '@/models/style'
+import type { StyleDetail, StyleTag } from '@/models/style'
 
 let tagSerial = 0
 let songSerial = 0
 let playlistSerial = 0
 let albumSerial = 0
 let artistSerial = 0
+let detailSerial = 0
+let newSongSerial = 0
+let newAlbumSerial = 0
 
 export const useStyleStore = defineStore('style', () => {
   const tags = ref<StyleTag[]>([])
@@ -38,17 +44,17 @@ export const useStyleStore = defineStore('style', () => {
   const artists = ref<HallArtist[]>([])
   const artistsError = ref<string | null>(null)
   const artistsLoading = ref(false)
+  const detail = ref<StyleDetail | null>(null)
+  const detailError = ref<string | null>(null)
+  const detailLoading = ref(false)
+  const newSongs = ref<PersonalizedNewSong[]>([])
+  const newSongsError = ref<string | null>(null)
+  const newSongsLoading = ref(false)
+  const newAlbums = ref<NewestAlbum[]>([])
+  const newAlbumsError = ref<string | null>(null)
+  const newAlbumsLoading = ref(false)
 
-  function reset() {
-    tagSerial++
-    songSerial++
-    playlistSerial++
-    albumSerial++
-    artistSerial++
-    tags.value = []
-    tagsError.value = null
-    tagsLoading.value = false
-    tagId.value = 0
+  function clearAssets() {
     songs.value = []
     songsError.value = null
     songsLoading.value = false
@@ -61,6 +67,31 @@ export const useStyleStore = defineStore('style', () => {
     artists.value = []
     artistsError.value = null
     artistsLoading.value = false
+    detail.value = null
+    detailError.value = null
+    detailLoading.value = false
+    newSongs.value = []
+    newSongsError.value = null
+    newSongsLoading.value = false
+    newAlbums.value = []
+    newAlbumsError.value = null
+    newAlbumsLoading.value = false
+  }
+
+  function reset() {
+    tagSerial++
+    songSerial++
+    playlistSerial++
+    albumSerial++
+    artistSerial++
+    detailSerial++
+    newSongSerial++
+    newAlbumSerial++
+    tags.value = []
+    tagsError.value = null
+    tagsLoading.value = false
+    tagId.value = 0
+    clearAssets()
   }
 
   async function loadTags(force = false) {
@@ -161,6 +192,66 @@ export const useStyleStore = defineStore('style', () => {
     }
   }
 
+  async function loadDetail(force = false) {
+    if (tagId.value <= 0) return
+    if (detail.value && !force && !detailError.value) return
+    const serial = ++detailSerial
+    const requested = tagId.value
+    detailLoading.value = true
+    detailError.value = null
+    try {
+      const next = await getStyleDetail(requested)
+      if (serial !== detailSerial) return
+      detail.value = next
+    } catch (requestError) {
+      if (serial !== detailSerial) return
+      detailError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === detailSerial) detailLoading.value = false
+    }
+  }
+
+  async function loadNewSongs(force = false) {
+    if (tagId.value <= 0) return
+    if (newSongs.value.length && !force && !newSongsError.value) return
+    const serial = ++newSongSerial
+    const requested = tagId.value
+    newSongsLoading.value = true
+    newSongsError.value = null
+    try {
+      const next = await getStyleNewSongs(requested)
+      if (serial !== newSongSerial) return
+      newSongs.value = next
+    } catch (requestError) {
+      if (serial !== newSongSerial) return
+      newSongsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === newSongSerial) newSongsLoading.value = false
+    }
+  }
+
+  async function loadNewAlbums(force = false) {
+    if (tagId.value <= 0) return
+    if (newAlbums.value.length && !force && !newAlbumsError.value) return
+    const serial = ++newAlbumSerial
+    const requested = tagId.value
+    newAlbumsLoading.value = true
+    newAlbumsError.value = null
+    try {
+      const next = await getStyleNewAlbums(requested)
+      if (serial !== newAlbumSerial) return
+      newAlbums.value = next
+    } catch (requestError) {
+      if (serial !== newAlbumSerial) return
+      newAlbumsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === newAlbumSerial) newAlbumsLoading.value = false
+    }
+  }
+
   async function setTag(id: number) {
     if (!Number.isInteger(id) || id <= 0) {
       throw new Error('缺少有效的曲风')
@@ -170,25 +261,20 @@ export const useStyleStore = defineStore('style', () => {
       playlistSerial++
       albumSerial++
       artistSerial++
+      detailSerial++
+      newSongSerial++
+      newAlbumSerial++
       tagId.value = id
-      songs.value = []
-      songsError.value = null
-      songsLoading.value = false
-      playlists.value = []
-      playlistsError.value = null
-      playlistsLoading.value = false
-      albums.value = []
-      albumsError.value = null
-      albumsLoading.value = false
-      artists.value = []
-      artistsError.value = null
-      artistsLoading.value = false
+      clearAssets()
     }
     await Promise.allSettled([
       loadSongs(),
       loadPlaylists(),
       loadAlbums(),
       loadArtists(),
+      loadDetail(),
+      loadNewSongs(),
+      loadNewAlbums(),
     ])
   }
 
@@ -209,11 +295,23 @@ export const useStyleStore = defineStore('style', () => {
     artists,
     artistsError,
     artistsLoading,
+    detail,
+    detailError,
+    detailLoading,
+    newSongs,
+    newSongsError,
+    newSongsLoading,
+    newAlbums,
+    newAlbumsError,
+    newAlbumsLoading,
     loadTags,
     loadSongs,
     loadPlaylists,
     loadAlbums,
     loadArtists,
+    loadDetail,
+    loadNewSongs,
+    loadNewAlbums,
     setTag,
     reset,
   }

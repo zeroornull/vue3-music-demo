@@ -8,7 +8,7 @@ import type { NewestAlbum } from '@/models/album'
 import type { HallArtist } from '@/models/artist'
 import type { PersonalizedNewSong } from '@/models/newSong'
 import type { PersonalizedPlaylist } from '@/models/personalized'
-import type { StyleTag } from '@/models/style'
+import type { StyleDetail, StyleTag } from '@/models/style'
 
 withDefaults(
   defineProps<{
@@ -18,6 +18,15 @@ withDefaults(
     artists?: HallArtist[]
     artistsError?: string | null
     artistsLoading?: boolean
+    detail?: StyleDetail | null
+    detailError?: string | null
+    detailLoading?: boolean
+    newAlbums?: NewestAlbum[]
+    newAlbumsError?: string | null
+    newAlbumsLoading?: boolean
+    newSongs?: PersonalizedNewSong[]
+    newSongsError?: string | null
+    newSongsLoading?: boolean
     playlists?: PersonalizedPlaylist[]
     playlistsError?: string | null
     playlistsLoading?: boolean
@@ -36,6 +45,15 @@ withDefaults(
     artists: () => [],
     artistsError: null,
     artistsLoading: false,
+    detail: null,
+    detailError: null,
+    detailLoading: false,
+    newAlbums: () => [],
+    newAlbumsError: null,
+    newAlbumsLoading: false,
+    newSongs: () => [],
+    newSongsError: null,
+    newSongsLoading: false,
     playlists: () => [],
     playlistsError: null,
     playlistsLoading: false,
@@ -52,6 +70,9 @@ withDefaults(
 defineEmits<{
   'retry-albums': []
   'retry-artists': []
+  'retry-detail': []
+  'retry-new-albums': []
+  'retry-new-songs': []
   'retry-playlists': []
   'retry-songs': []
   'retry-tags': []
@@ -106,6 +127,50 @@ defineEmits<{
     />
 
     <template v-if="tagId > 0">
+      <div
+        v-if="detailLoading && !detail"
+        class="state-card"
+        data-testid="style-detail-loading"
+        aria-busy="true"
+      >
+        <strong>正在加载曲风详情</strong>
+      </div>
+      <div
+        v-else-if="detailError && !detail"
+        class="state-card error-state"
+        role="alert"
+      >
+        <div>
+          <strong>曲风详情加载失败</strong>
+          <p>{{ detailError }}</p>
+        </div>
+        <button type="button" data-testid="style-detail-retry" @click="$emit('retry-detail')">
+          重新加载
+        </button>
+      </div>
+      <header
+        v-else-if="detail"
+        class="style-hero"
+        :class="{ 'no-cover': !detail.picUrl }"
+        data-testid="style-detail"
+      >
+        <img
+          v-if="detail.picUrl"
+          :src="detail.picUrl"
+          :alt="detail.name"
+          width="120"
+          height="120"
+        />
+        <div>
+          <h3 id="style-detail-title">{{ detail.name }}</h3>
+          <p v-if="detail.enName" class="en-name">{{ detail.enName }}</p>
+          <p v-if="detail.desc">{{ detail.desc }}</p>
+        </div>
+      </header>
+      <div v-else class="state-card" data-testid="style-detail-empty">
+        <strong>暂无曲风详情</strong>
+      </div>
+
       <NewSongSection
         empty-title="暂无曲风歌曲"
         error-title="曲风歌曲加载失败"
@@ -115,6 +180,17 @@ defineEmits<{
         :items="songs"
         :loading="songsLoading"
         @retry="$emit('retry-songs')"
+        @select="$emit('select-song', $event)"
+      />
+      <NewSongSection
+        empty-title="暂无最新曲风歌曲"
+        error-title="最新曲风歌曲加载失败"
+        testid="style-new-songs"
+        title="最新曲风歌曲"
+        :error="newSongsError"
+        :items="newSongs"
+        :loading="newSongsLoading"
+        @retry="$emit('retry-new-songs')"
         @select="$emit('select-song', $event)"
       />
       <PersonalizedSection
@@ -139,6 +215,16 @@ defineEmits<{
         :loading="albumsLoading"
         @retry="$emit('retry-albums')"
       />
+      <NewestAlbumSection
+        empty-title="暂无最新曲风专辑"
+        error-title="最新曲风专辑加载失败"
+        testid="style-new-albums"
+        title="最新曲风专辑"
+        :albums="newAlbums"
+        :error="newAlbumsError"
+        :loading="newAlbumsLoading"
+        @retry="$emit('retry-new-albums')"
+      />
       <HotArtistSection
         empty-title="暂无曲风歌手"
         error-title="曲风歌手加载失败"
@@ -161,9 +247,43 @@ defineEmits<{
   min-width: 0;
 }
 
-h2 {
+h2,
+h3 {
   margin: 0;
+}
+
+h2 {
   font-size: 1.2rem;
+}
+
+.style-hero {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.style-hero.no-cover {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.style-hero img {
+  display: block;
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
+  object-fit: cover;
+  background: var(--color-line);
+}
+
+h3 {
+  font-size: 1.15rem;
+}
+
+.en-name,
+.style-hero p {
+  margin: 8px 0 0;
+  color: var(--color-muted);
 }
 
 .state-card {
@@ -201,6 +321,10 @@ h2 {
 }
 
 @media (max-width: 560px) {
+  .style-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .state-card {
     align-items: stretch;
     flex-direction: column;

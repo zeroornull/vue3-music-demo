@@ -194,6 +194,15 @@ describe('App host gate', () => {
       },
     ]
     styleStore.artists = [{ id: 401, img1v1Url: '', name: '林间电台' }]
+    styleStore.detail = {
+      desc: '林间电子曲风。',
+      enName: 'Electronic',
+      id: 1000,
+      name: '电子',
+      picUrl: '',
+    }
+    styleStore.newSongs = [{ ...styleStore.songs[0]!, id: 302, name: '港口晨曲' }]
+    styleStore.newAlbums = [{ ...styleStore.albums[0]!, id: 512, name: '最新曲风专辑' }]
     mountApp()
 
     useHostStore().clearHost()
@@ -205,6 +214,9 @@ describe('App host gate', () => {
     expect(styleStore.playlists).toEqual([])
     expect(styleStore.albums).toEqual([])
     expect(styleStore.artists).toEqual([])
+    expect(styleStore.detail).toBeNull()
+    expect(styleStore.newSongs).toEqual([])
+    expect(styleStore.newAlbums).toEqual([])
   })
 
   it('clears voice hall cache when the host gate closes', async () => {

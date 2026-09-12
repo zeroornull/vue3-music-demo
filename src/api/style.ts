@@ -3,10 +3,12 @@ import type { NewestAlbum } from '@/models/album'
 import type { HallArtist } from '@/models/artist'
 import type { PersonalizedNewSong } from '@/models/newSong'
 import type { PersonalizedPlaylist } from '@/models/personalized'
-import type { StyleTag } from '@/models/style'
+import type { StyleDetail, StyleTag } from '@/models/style'
 import { isPositiveMvId, normalizeSong, type NetworkSong, type Song } from '@/models/song'
 
 export const STYLE_PAGE_SIZE = 10
+export const STYLE_SORT_HOT = 0
+export const STYLE_SORT_TIME = 1
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -178,6 +180,59 @@ function requireTagId(tagId: number) {
   }
 }
 
+function unwrapRecord(response: unknown): Record<string, unknown> | null {
+  if (!isRecord(response)) return null
+  if (isRecord(response.data)) return response.data
+  if (isRecord(response.tag)) return response.tag
+  if (isRecord(response.detail)) return response.detail
+  return response
+}
+
+function positiveId(value: unknown): number | null {
+  const id = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN
+  if (!Number.isInteger(id) || id <= 0) return null
+  return id
+}
+
+function readDetail(value: unknown): StyleDetail | null {
+  if (!isRecord(value)) return null
+  const nested = isRecord(value.tag)
+    ? value.tag
+    : isRecord(value.detail)
+      ? value.detail
+      : value
+  const id = positiveId(nested.tagId) ?? positiveId(nested.id)
+  const nameRaw =
+    (typeof nested.tagName === 'string' && nested.tagName) ||
+    (typeof nested.name === 'string' && nested.name) ||
+    ''
+  const name = nameRaw.trim()
+  if (!id || !name) return null
+  const enRaw =
+    (typeof nested.enName === 'string' && nested.enName) ||
+    (typeof nested.englishName === 'string' && nested.englishName) ||
+    (typeof nested.enTagName === 'string' && nested.enTagName) ||
+    ''
+  const picUrl =
+    (typeof nested.picUrl === 'string' && nested.picUrl) ||
+    (typeof nested.coverUrl === 'string' && nested.coverUrl) ||
+    (typeof nested.pic === 'string' && nested.pic) ||
+    ''
+  const descRaw =
+    (typeof nested.desc === 'string' && nested.desc) ||
+    (typeof nested.description === 'string' && nested.description) ||
+    (typeof nested.detail === 'string' && nested.detail) ||
+    (typeof nested.text === 'string' && nested.text) ||
+    ''
+  return {
+    desc: descRaw.trim(),
+    enName: enRaw.trim(),
+    id,
+    name,
+    picUrl,
+  }
+}
+
 export async function getStyleTags(
   client: Pick<HttpClient, 'get'> = http,
 ): Promise<StyleTag[]> {
@@ -199,12 +254,46 @@ export async function getStyleSongs(
   const response = await client.get<unknown>('/style/song', {
     cursor: 0,
     size: STYLE_PAGE_SIZE,
-    sort: 0,
+    sort: STYLE_SORT_HOT,
     tagId,
   })
   const raw = unwrapList(response, ['songs', 'records'])
   if (!raw) {
     throw new Error('曲风歌曲响应格式不正确')
+  }
+  return raw
+    .filter(isNetworkSong)
+    .map((item) => toPersonalized(normalizeSong(item)))
+    .slice(0, STYLE_PAGE_SIZE)
+}
+
+export async function getStyleDetail(
+  tagId: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<StyleDetail> {
+  requireTagId(tagId)
+  const response = await client.get<unknown>('/style/detail', { tagId })
+  const detail = readDetail(unwrapRecord(response))
+  if (!detail) {
+    throw new Error('曲风详情响应格式不正确')
+  }
+  return detail
+}
+
+export async function getStyleNewSongs(
+  tagId: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<PersonalizedNewSong[]> {
+  requireTagId(tagId)
+  const response = await client.get<unknown>('/style/song', {
+    cursor: 0,
+    size: STYLE_PAGE_SIZE,
+    sort: STYLE_SORT_TIME,
+    tagId,
+  })
+  const raw = unwrapList(response, ['songs', 'records'])
+  if (!raw) {
+    throw new Error('最新曲风歌曲响应格式不正确')
   }
   return raw
     .filter(isNetworkSong)
@@ -245,6 +334,27 @@ export async function getStyleAlbums(
   const raw = unwrapList(response, ['albums', 'records'])
   if (!raw) {
     throw new Error('曲风专辑响应格式不正确')
+  }
+  return raw
+    .map(readAlbum)
+    .filter((item): item is NewestAlbum => item !== null)
+    .slice(0, STYLE_PAGE_SIZE)
+}
+
+export async function getStyleNewAlbums(
+  tagId: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<NewestAlbum[]> {
+  requireTagId(tagId)
+  const response = await client.get<unknown>('/style/album', {
+    cursor: 0,
+    size: STYLE_PAGE_SIZE,
+    sort: STYLE_SORT_TIME,
+    tagId,
+  })
+  const raw = unwrapList(response, ['albums', 'records'])
+  if (!raw) {
+    throw new Error('最新曲风专辑响应格式不正确')
   }
   return raw
     .map(readAlbum)

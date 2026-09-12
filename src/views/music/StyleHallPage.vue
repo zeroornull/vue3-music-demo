@@ -21,6 +21,15 @@ const {
   artists,
   artistsError,
   artistsLoading,
+  detail,
+  detailError,
+  detailLoading,
+  newAlbums,
+  newAlbumsError,
+  newAlbumsLoading,
+  newSongs,
+  newSongsError,
+  newSongsLoading,
   playlists,
   playlistsError,
   playlistsLoading,
@@ -84,6 +93,9 @@ async function requestHall(force = false) {
       styleStore.loadPlaylists(true),
       styleStore.loadAlbums(true),
       styleStore.loadArtists(true),
+      styleStore.loadDetail(true),
+      styleStore.loadNewSongs(true),
+      styleStore.loadNewAlbums(true),
     ])
     return
   }
@@ -112,6 +124,18 @@ function requestAlbums(force = false) {
 
 function requestArtists(force = false) {
   void styleStore.loadArtists(force).catch(() => undefined)
+}
+
+function requestDetail(force = false) {
+  void styleStore.loadDetail(force).catch(() => undefined)
+}
+
+function requestNewSongs(force = false) {
+  void styleStore.loadNewSongs(force).catch(() => undefined)
+}
+
+function requestNewAlbums(force = false) {
+  void styleStore.loadNewAlbums(force).catch(() => undefined)
 }
 
 function selectSong(item: PersonalizedNewSong) {
@@ -163,6 +187,15 @@ onMounted(() => {
       :artists="artists"
       :artists-error="artistsError"
       :artists-loading="artistsLoading"
+      :detail="detail"
+      :detail-error="detailError"
+      :detail-loading="detailLoading"
+      :new-albums="newAlbums"
+      :new-albums-error="newAlbumsError"
+      :new-albums-loading="newAlbumsLoading"
+      :new-songs="newSongs"
+      :new-songs-error="newSongsError"
+      :new-songs-loading="newSongsLoading"
       :playlists="playlists"
       :playlists-error="playlistsError"
       :playlists-loading="playlistsLoading"
@@ -175,6 +208,9 @@ onMounted(() => {
       :tags-loading="tagsLoading"
       @retry-albums="requestAlbums(true)"
       @retry-artists="requestArtists(true)"
+      @retry-detail="requestDetail(true)"
+      @retry-new-albums="requestNewAlbums(true)"
+      @retry-new-songs="requestNewSongs(true)"
       @retry-playlists="requestPlaylists(true)"
       @retry-songs="requestSongs(true)"
       @retry-tags="requestHall(true)"
