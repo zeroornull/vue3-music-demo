@@ -23,8 +23,14 @@ import {
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useArtistStore } from '@/stores/artist'
+import { getArtistUgcWiki } from '@/api/ugc'
 import ArtistView from '@/views/ArtistView.vue'
 
+vi.mock('@/api/ugc', () => ({
+  getArtistUgcWiki: vi.fn(),
+  getMvUgcWiki: vi.fn(),
+  getSongUgcWiki: vi.fn(),
+}))
 vi.mock('@/api/artist', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/artist')>()
   return {
@@ -235,6 +241,8 @@ describe('ArtistView', () => {
       introduction: [{ text: '从校园电台出发。', title: '经历' }],
     })
     vi.mocked(getSimiArtists).mockRejectedValue(new Error('no similar'))
+    vi.mocked(getArtistUgcWiki).mockReset()
+    vi.mocked(getArtistUgcWiki).mockResolvedValue([])
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -470,6 +478,23 @@ describe('ArtistView', () => {
     expect(wrapper.get('[data-testid="artist-desc"]').text()).toContain('经历')
     expect(getArtistDesc).toHaveBeenCalledTimes(2)
     expect(getArtistDesc).toHaveBeenCalledWith(401)
+  })
+
+  it('loads artist wiki with the desc tab and retries', async () => {
+    vi.mocked(getArtistUgcWiki)
+      .mockRejectedValueOnce(new Error('wiki offline'))
+      .mockResolvedValueOnce([{ title: '歌手百科', text: '林间歌手百科。' }])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(getArtistUgcWiki).not.toHaveBeenCalled()
+    await wrapper.get('[data-testid="artist-tab-desc"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="artist-wiki-retry"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="artist-desc"]').text()).toContain('经历')
+    await wrapper.get('[data-testid="artist-wiki-retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="artist-wiki"]').text()).toContain('林间歌手百科。')
+    expect(getArtistUgcWiki).toHaveBeenCalledTimes(2)
   })
 
   it('renders similar artist cards without blocking songs', async () => {

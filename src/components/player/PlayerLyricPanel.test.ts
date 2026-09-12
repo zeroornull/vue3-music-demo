@@ -14,6 +14,7 @@ import {
   getSongSheets,
   getSongWiki,
 } from '@/api/songExtra'
+import { getSongUgcWiki } from '@/api/ugc'
 import PlayerLyricPanel from '@/components/player/PlayerLyricPanel.vue'
 import { Pages } from '@/router/pages'
 import { useLyricStore } from '@/stores/lyric'
@@ -32,6 +33,11 @@ vi.mock('@/api/commentFloor', () => ({
   getPlaylistCommentFloor: vi.fn(),
   getSongCommentFloor: vi.fn(),
   getVideoCommentFloor: vi.fn(),
+}))
+vi.mock('@/api/ugc', () => ({
+  getArtistUgcWiki: vi.fn(),
+  getMvUgcWiki: vi.fn(),
+  getSongUgcWiki: vi.fn(),
 }))
 vi.mock('@/api/songExtra', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/songExtra')>()
@@ -72,6 +78,8 @@ describe('PlayerLyricPanel', () => {
     vi.mocked(getMlogUrl).mockRejectedValue(new Error('no mlog url'))
     vi.mocked(getMlogVideoId).mockReset()
     vi.mocked(getMlogVideoId).mockRejectedValue(new Error('no mlog video'))
+    vi.mocked(getSongUgcWiki).mockReset()
+    vi.mocked(getSongUgcWiki).mockResolvedValue([])
   })
 
   function mountPanel() {
@@ -387,6 +395,7 @@ describe('PlayerLyricPanel', () => {
     expect(getSongAbout).not.toHaveBeenCalled()
     expect(getSongSheets).not.toHaveBeenCalled()
     expect(getSongMlogs).not.toHaveBeenCalled()
+    expect(getSongUgcWiki).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 
@@ -426,6 +435,9 @@ describe('PlayerLyricPanel', () => {
     vi.mocked(getSongMlogs).mockResolvedValue([
       { coverUrl: '', id: 'ml-9', name: '林间现场', videoId: 'VID001' },
     ])
+    vi.mocked(getSongUgcWiki).mockResolvedValue([
+      { title: '歌曲词条', text: '林间歌曲词条。' },
+    ])
     const lyrics = useLyricStore()
     const player = usePlayerStore()
     player.current = { id: 301, name: '晚风来信', artists: [] }
@@ -437,6 +449,7 @@ describe('PlayerLyricPanel', () => {
     expect(getSheetPreview).toHaveBeenCalledWith(21)
     expect(getSongMlogs).toHaveBeenCalledWith(301)
     expect(bodyEl('[data-testid="song-wiki"]').textContent).toContain('歌曲简介')
+    expect(bodyEl('[data-testid="song-ugc-wiki"]').textContent).toContain('林间歌曲词条')
     expect(bodyEl('[data-testid="song-sheets"]').textContent).toContain('夜航谱')
     expect(bodyEl('[data-testid="song-sheet-preview"]').textContent).toContain('简谱')
     expect(bodyEl('[data-testid="song-mlogs"]').textContent).toContain('林间现场')

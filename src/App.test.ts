@@ -345,6 +345,8 @@ describe('App host gate', () => {
       introduction: [{ text: '从校园电台出发。', title: '经历' }],
     }
     artistStore.descLoadedId = 401
+    artistStore.wiki = [{ title: '歌手百科', text: '林间歌手百科。' }]
+    artistStore.wikiLoadedId = 401
     artistStore.artists = [
       { id: 401, img1v1Url: '', name: '林间电台' },
     ]
@@ -385,6 +387,8 @@ describe('App host gate', () => {
     expect(artistStore.mvs).toEqual([])
     expect(artistStore.desc).toBeNull()
     expect(artistStore.descLoadedId).toBeNull()
+    expect(artistStore.wiki).toEqual([])
+    expect(artistStore.wikiLoadedId).toBeNull()
     expect(artistStore.artists).toEqual([])
     expect(artistStore.relatedArtists).toBeNull()
     expect(artistStore.topSongs).toEqual([])
@@ -1014,6 +1018,7 @@ describe('App host gate', () => {
       shareCount: 32,
     }
     mvStore.statsError = 'stale'
+    mvStore.wiki = [{ title: 'MV百科', text: '林间 MV 百科。' }]
     mountApp()
 
     useHostStore().clearHost()
@@ -1030,6 +1035,7 @@ describe('App host gate', () => {
     expect(mvStore.hotCommentsError).toBeNull()
     expect(mvStore.stats).toBeNull()
     expect(mvStore.statsError).toBeNull()
+    expect(mvStore.wiki).toBeNull()
   })
 
   it('clears video playback cache when the host gate closes', async () => {
@@ -1243,6 +1249,7 @@ describe('App host gate', () => {
     extraStore.sheetId = 21
     extraStore.preview = { id: 21, imageUrl: '', text: '简谱' }
     extraStore.mlogs = [{ coverUrl: '', id: 'ml-9', name: '林间现场', videoId: '' }]
+    extraStore.ugcWiki = [{ title: '歌曲词条', text: '林间歌曲词条。' }]
     mountApp()
 
     useHostStore().clearHost()
@@ -1254,6 +1261,7 @@ describe('App host gate', () => {
     expect(extraStore.sheetId).toBe(0)
     expect(extraStore.preview).toBeNull()
     expect(extraStore.mlogs).toEqual([])
+    expect(extraStore.ugcWiki).toEqual([])
   })
 
   it('clears topic cache when the host gate closes', async () => {

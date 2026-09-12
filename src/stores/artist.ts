@@ -20,6 +20,7 @@ import {
   getArtistTopSongs,
   getSimiArtists,
 } from '@/api/artist'
+import { getArtistUgcWiki } from '@/api/ugc'
 import { getErrorMessage } from '@/api/http'
 import type {
   ArtistAlbum,
@@ -31,6 +32,7 @@ import type {
   HallArtist,
 } from '@/models/artist'
 import type { Song } from '@/models/song'
+import type { SongWikiBlock } from '@/models/songExtra'
 import type { HallVideo } from '@/models/video'
 
 let requestSerial = 0
@@ -44,6 +46,7 @@ let newSongSerial = 0
 let fanSerial = 0
 let followCountSerial = 0
 let videoSerial = 0
+let wikiSerial = 0
 
 export const useArtistStore = defineStore('artist', () => {
   const artist = ref<ArtistDetail | null>(null)
@@ -66,6 +69,10 @@ export const useArtistStore = defineStore('artist', () => {
   const descError = ref<string | null>(null)
   const descLoading = ref(false)
   const descLoadedId = ref<number | null>(null)
+  const wiki = ref<SongWikiBlock[]>([])
+  const wikiError = ref<string | null>(null)
+  const wikiLoading = ref(false)
+  const wikiLoadedId = ref<number | null>(null)
   const relatedArtists = ref<HallArtist[] | null>(null)
   const songSort = ref<ArtistSongSort>('hot')
   const topSongs = ref<Song[]>([])
@@ -174,6 +181,14 @@ export const useArtistStore = defineStore('artist', () => {
     descLoadedId.value = null
   }
 
+  function clearWiki() {
+    wikiSerial++
+    wiki.value = []
+    wikiError.value = null
+    wikiLoading.value = false
+    wikiLoadedId.value = null
+  }
+
   function songOrder(): 'hot' | 'time' {
     return songSort.value === 'new' ? 'time' : 'hot'
   }
@@ -197,6 +212,7 @@ export const useArtistStore = defineStore('artist', () => {
     clearMvs()
     clearAlbums()
     clearDesc()
+    clearWiki()
   }
 
   function reset() {
@@ -239,6 +255,7 @@ export const useArtistStore = defineStore('artist', () => {
       clearMvs()
       clearAlbums()
       clearDesc()
+      clearWiki()
     }
     loading.value = true
     error.value = null
@@ -570,6 +587,34 @@ export const useArtistStore = defineStore('artist', () => {
     }
   }
 
+  async function loadWiki(id: number, force = false) {
+    if (!Number.isInteger(id) || id <= 0) return
+    if (!force && wikiLoading.value) return
+    if (!force && wikiLoadedId.value === id && !wikiError.value) return
+    if (loadedId.value !== null && loadedId.value !== id) return
+    const serial = ++wikiSerial
+    if (wikiLoadedId.value !== id) {
+      wiki.value = []
+      wikiLoadedId.value = null
+    }
+    wikiLoading.value = true
+    wikiError.value = null
+    try {
+      const next = await getArtistUgcWiki(id)
+      if (serial !== wikiSerial) return
+      if (loadedId.value !== null && loadedId.value !== id) return
+      wiki.value = next
+      wikiLoadedId.value = id
+    } catch (requestError) {
+      if (serial !== wikiSerial) return
+      if (loadedId.value !== null && loadedId.value !== id) return
+      wikiError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === wikiSerial) wikiLoading.value = false
+    }
+  }
+
   async function loadMoreMvs() {
     const id = mvsLoadedId.value
     if (!id || !mvsMore.value || mvsLoading.value) return
@@ -727,6 +772,7 @@ export const useArtistStore = defineStore('artist', () => {
     loadAlbums,
     loadMoreAlbums,
     loadDesc,
+    loadWiki,
     loadArtists,
     loadMoreArtists,
     setArea,
@@ -776,6 +822,10 @@ export const useArtistStore = defineStore('artist', () => {
     descError,
     descLoading,
     descLoadedId,
+    wiki,
+    wikiError,
+    wikiLoading,
+    wikiLoadedId,
     artists,
     artistsError,
     artistsLoading,

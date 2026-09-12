@@ -8,6 +8,7 @@ import {
   getMvNewComments,
 } from '@/api/comment'
 import { getMvDetail, getMvStats, getMvUrl, getSimiMvs } from '@/api/mv'
+import { getMvUgcWiki } from '@/api/ugc'
 import { useMvStore } from '@/stores/mv'
 
 vi.mock('@/api/comment', () => ({
@@ -15,6 +16,11 @@ vi.mock('@/api/comment', () => ({
   getMvCommentPage: vi.fn(),
   getMvHotComments: vi.fn(),
   getMvNewComments: vi.fn(),
+}))
+vi.mock('@/api/ugc', () => ({
+  getArtistUgcWiki: vi.fn(),
+  getMvUgcWiki: vi.fn(),
+  getSongUgcWiki: vi.fn(),
 }))
 vi.mock('@/api/mv', () => ({
   getMvDetail: vi.fn(),
@@ -83,6 +89,8 @@ describe('mv store', () => {
     vi.mocked(getMvNewComments).mockRejectedValue(new Error('no new'))
     vi.mocked(getMvStats).mockReset()
     vi.mocked(getMvStats).mockRejectedValue(new Error('no stats'))
+    vi.mocked(getMvUgcWiki).mockReset()
+    vi.mocked(getMvUgcWiki).mockRejectedValue(new Error('no wiki'))
   })
 
   it('loads an MV URL and caches the same id', async () => {
@@ -486,6 +494,23 @@ describe('mv store', () => {
     await settle()
     expect(store.newComments).toEqual([next])
     expect(store.newCommentsError).toBeNull()
+  })
+
+  it('loads MV wiki independently and keeps playback when it fails', async () => {
+    vi.mocked(getMvUrl).mockResolvedValue(playback)
+    vi.mocked(getMvUgcWiki)
+      .mockRejectedValueOnce(new Error('wiki offline'))
+      .mockResolvedValueOnce([{ title: 'MV百科', text: '林间 MV 百科。' }])
+    const store = useMvStore()
+    await store.load(701)
+    await settle()
+    expect(store.playback).toEqual(playback)
+    expect(store.wiki).toBeNull()
+    expect(store.wikiError).toBe('wiki offline')
+    await store.loadWiki(true)
+    await settle()
+    expect(store.wiki).toEqual([{ title: 'MV百科', text: '林间 MV 百科。' }])
+    expect(getMvUgcWiki).toHaveBeenCalledWith(701)
   })
 
   it('keeps playback when comments fail', async () => {

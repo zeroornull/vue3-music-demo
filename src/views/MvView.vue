@@ -8,6 +8,7 @@ import CommentThread from '@/components/comment/CommentThread.vue'
 import MvCard from '@/components/discover/MvCard.vue'
 import MediaCountRow from '@/components/media/MediaCountRow.vue'
 import MvPlayer from '@/components/mv/MvPlayer.vue'
+import SongWikiSection from '@/components/player/SongWikiSection.vue'
 import { excludeSeenComments } from '@/models/comment'
 import { Pages } from '@/router/pages'
 import { useMvStore } from '@/stores/mv'
@@ -34,6 +35,9 @@ const {
   statsError,
   loading,
   error,
+  wiki,
+  wikiError,
+  wikiLoading,
 } = storeToRefs(mvStore)
 const { mvs, privateContents } = storeToRefs(videoStore)
 
@@ -79,6 +83,10 @@ function retryHotComments() {
 
 function retryNewComments() {
   void mvStore.loadNewComments(true).catch(() => undefined)
+}
+
+function retryWiki() {
+  void mvStore.loadWiki(true).catch(() => undefined)
 }
 
 const latestComments = computed(() =>
@@ -206,6 +214,14 @@ watch(
       </header>
       <p v-if="error" class="notice error-notice" role="alert">{{ error }}</p>
       <MvPlayer :src="playback.url" :poster="related?.picUrl" :title="title" />
+      <SongWikiSection
+        testid="mv-wiki"
+        title="MV百科"
+        :blocks="wiki ?? []"
+        :error="wikiError"
+        :loading="wikiLoading"
+        @retry="retryWiki"
+      />
       <CommentHotSection
         error-title="MV 热门评论加载失败"
         kind="mv"

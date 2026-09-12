@@ -20,7 +20,14 @@ import {
   getArtistTopSongs,
   getSimiArtists,
 } from '@/api/artist'
+import { getArtistUgcWiki } from '@/api/ugc'
 import { useArtistStore } from '@/stores/artist'
+
+vi.mock('@/api/ugc', () => ({
+  getArtistUgcWiki: vi.fn(),
+  getMvUgcWiki: vi.fn(),
+  getSongUgcWiki: vi.fn(),
+}))
 
 vi.mock('@/api/artist', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/artist')>()
@@ -114,6 +121,8 @@ describe('artist store', () => {
     vi.mocked(getArtistFans).mockResolvedValue([])
     vi.mocked(getArtistFollowCount).mockResolvedValue(0)
     vi.mocked(getArtistVideos).mockResolvedValue([])
+    vi.mocked(getArtistUgcWiki).mockReset()
+    vi.mocked(getArtistUgcWiki).mockResolvedValue([])
   })
 
   it('loads detail and the first hot page once', async () => {
@@ -535,6 +544,27 @@ describe('artist store', () => {
     expect(store.descLoading).toBe(false)
   })
 
+  it('clears wiki when the artist id changes and drops in-flight work', async () => {
+    const pending = deferred<{ title: string; text: string }[]>()
+    vi.mocked(getArtistDetail).mockResolvedValue(artist)
+    vi.mocked(getArtistSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getArtistUgcWiki).mockReturnValueOnce(pending.promise)
+    const store = useArtistStore()
+    const inflight = store.loadWiki(401)
+    await store.load(402)
+    pending.resolve([{ title: '旧百科', text: '旧内容' }])
+    await inflight
+    expect(store.wiki).toEqual([])
+    expect(store.wikiLoadedId).toBeNull()
+    expect(store.wikiLoading).toBe(false)
+    vi.mocked(getArtistUgcWiki).mockResolvedValueOnce([
+      { title: '歌手百科', text: '浩室百科。' },
+    ])
+    await store.loadWiki(402)
+    expect(getArtistUgcWiki).toHaveBeenLastCalledWith(402)
+    expect(store.wiki).toEqual([{ title: '歌手百科', text: '浩室百科。' }])
+  })
+
   it('loads similar artists with the detail and ignores a similar failure', async () => {
     const related = {
       id: 402,
@@ -838,5 +868,25 @@ describe('artist store', () => {
     expect(store.newSongsLoading).toBe(false)
     expect(store.fansLoading).toBe(false)
     expect(store.videosLoading).toBe(false)
+  })
+
+  it('loads artist wiki independently of desc', async () => {
+    vi.mocked(getArtistDesc).mockResolvedValue({
+      briefDesc: '简介',
+      introduction: [{ text: '走过林间。', title: '经历' }],
+    })
+    vi.mocked(getArtistUgcWiki).mockRejectedValueOnce(new Error('wiki offline'))
+    const store = useArtistStore()
+    await store.loadDesc(401)
+    await store.loadWiki(401).catch(() => undefined)
+    expect(store.desc?.briefDesc).toBe('简介')
+    expect(store.wiki).toEqual([])
+    expect(store.wikiError).toBe('wiki offline')
+    vi.mocked(getArtistUgcWiki).mockResolvedValueOnce([
+      { title: '歌手百科', text: '林间歌手百科。' },
+    ])
+    await store.loadWiki(401, true)
+    expect(store.wiki).toEqual([{ title: '歌手百科', text: '林间歌手百科。' }])
+    expect(getArtistUgcWiki).toHaveBeenCalledWith(401)
   })
 })

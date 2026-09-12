@@ -11,6 +11,7 @@ import {
   getSongSheets,
   getSongWiki,
 } from '@/api/songExtra'
+import { getSongUgcWiki } from '@/api/ugc'
 import type {
   SongMlog,
   SongSheet,
@@ -24,6 +25,7 @@ let previewSerial = 0
 let mlogSerial = 0
 let aboutSerial = 0
 let mlogPlaySerial = 0
+let ugcWikiSerial = 0
 
 export const useSongExtraStore = defineStore('songExtra', () => {
   const songId = ref(0)
@@ -47,6 +49,10 @@ export const useSongExtraStore = defineStore('songExtra', () => {
   const aboutError = ref<string | null>(null)
   const aboutLoading = ref(false)
   const aboutReady = ref(false)
+  const ugcWiki = ref<SongWikiBlock[]>([])
+  const ugcWikiError = ref<string | null>(null)
+  const ugcWikiLoading = ref(false)
+  const ugcWikiReady = ref(false)
   const mlogId = ref('')
   const mlogUrl = ref('')
   const mlogVideoId = ref('')
@@ -74,6 +80,10 @@ export const useSongExtraStore = defineStore('songExtra', () => {
     aboutError.value = null
     aboutLoading.value = false
     aboutReady.value = false
+    ugcWiki.value = []
+    ugcWikiError.value = null
+    ugcWikiLoading.value = false
+    ugcWikiReady.value = false
     mlogId.value = ''
     mlogUrl.value = ''
     mlogVideoId.value = ''
@@ -88,6 +98,7 @@ export const useSongExtraStore = defineStore('songExtra', () => {
     mlogSerial++
     aboutSerial++
     mlogPlaySerial++
+    ugcWikiSerial++
     songId.value = 0
     clearAssets()
   }
@@ -156,6 +167,27 @@ export const useSongExtraStore = defineStore('songExtra', () => {
       throw requestError
     } finally {
       if (serial === aboutSerial) aboutLoading.value = false
+    }
+  }
+
+  async function loadUgcWiki(force = false) {
+    if (songId.value <= 0) return
+    if (ugcWikiReady.value && !force && !ugcWikiError.value) return
+    const serial = ++ugcWikiSerial
+    const requested = songId.value
+    ugcWikiLoading.value = true
+    ugcWikiError.value = null
+    try {
+      const next = await getSongUgcWiki(requested)
+      if (serial !== ugcWikiSerial) return
+      ugcWiki.value = next
+      ugcWikiReady.value = true
+    } catch (requestError) {
+      if (serial !== ugcWikiSerial) return
+      ugcWikiError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === ugcWikiSerial) ugcWikiLoading.value = false
     }
   }
 
@@ -251,6 +283,7 @@ export const useSongExtraStore = defineStore('songExtra', () => {
       mlogSerial++
       aboutSerial++
       mlogPlaySerial++
+      ugcWikiSerial++
       songId.value = id
       clearAssets()
     }
@@ -259,6 +292,7 @@ export const useSongExtraStore = defineStore('songExtra', () => {
       loadSheets(force),
       loadMlogs(force),
       loadAbout(force),
+      loadUgcWiki(force),
     ])
   }
 
@@ -280,6 +314,9 @@ export const useSongExtraStore = defineStore('songExtra', () => {
     about,
     aboutError,
     aboutLoading,
+    ugcWiki,
+    ugcWikiError,
+    ugcWikiLoading,
     mlogId,
     mlogUrl,
     mlogVideoId,
@@ -290,6 +327,7 @@ export const useSongExtraStore = defineStore('songExtra', () => {
     loadSheets,
     loadMlogs,
     loadAbout,
+    loadUgcWiki,
     loadPreview,
     setSheet,
     selectMlog,

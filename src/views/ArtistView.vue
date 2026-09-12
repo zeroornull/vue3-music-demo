@@ -9,6 +9,7 @@ import ArtistHeader from '@/components/artist/ArtistHeader.vue'
 import ArtistMvSection from '@/components/artist/ArtistMvSection.vue'
 import MvCard from '@/components/discover/MvCard.vue'
 import ArtistHallCard from '@/components/music/ArtistHallCard.vue'
+import SongWikiSection from '@/components/player/SongWikiSection.vue'
 import PlaylistSongList from '@/components/playlist/PlaylistSongList.vue'
 import VideoClipCard from '@/components/video/VideoClipCard.vue'
 import type { ArtistSongSort } from '@/models/artist'
@@ -56,6 +57,9 @@ const {
   videos,
   videosError,
   videosLoading,
+  wiki,
+  wikiError,
+  wikiLoading,
 } = storeToRefs(artistStore)
 const { current } = storeToRefs(playerStore)
 const notice = ref<string | null>(null)
@@ -161,11 +165,17 @@ function showDesc() {
   if (artistId.value === null) return
   void artistStore.loadDesc(artistId.value).catch(() => undefined)
   void artistStore.loadFans(artistId.value).catch(() => undefined)
+  void artistStore.loadWiki(artistId.value).catch(() => undefined)
 }
 
 function retryDesc() {
   if (artistId.value === null) return
   void artistStore.loadDesc(artistId.value, true).catch(() => undefined)
+}
+
+function retryWiki() {
+  if (artistId.value === null) return
+  void artistStore.loadWiki(artistId.value, true).catch(() => undefined)
 }
 
 function playAll() {
@@ -488,6 +498,14 @@ watch(
           :error="descError"
           :loading="descLoading"
           @retry="retryDesc"
+        />
+        <SongWikiSection
+          testid="artist-wiki"
+          title="歌手百科"
+          :blocks="wiki"
+          :error="wikiError"
+          :loading="wikiLoading"
+          @retry="retryWiki"
         />
         <section
           class="artist-fans"

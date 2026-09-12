@@ -10,7 +10,14 @@ import {
   getSongSheets,
   getSongWiki,
 } from '@/api/songExtra'
+import { getSongUgcWiki } from '@/api/ugc'
 import { useSongExtraStore } from '@/stores/songExtra'
+
+vi.mock('@/api/ugc', () => ({
+  getArtistUgcWiki: vi.fn(),
+  getMvUgcWiki: vi.fn(),
+  getSongUgcWiki: vi.fn(),
+}))
 
 vi.mock('@/api/songExtra', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/songExtra')>()
@@ -48,6 +55,8 @@ describe('song extra store', () => {
     vi.mocked(getSongMlogs).mockReset()
     vi.mocked(getSongAbout).mockReset()
     vi.mocked(getSongAbout).mockResolvedValue([])
+    vi.mocked(getSongUgcWiki).mockReset()
+    vi.mocked(getSongUgcWiki).mockResolvedValue([])
     vi.mocked(getMlogUrl).mockReset()
     vi.mocked(getMlogUrl).mockRejectedValue(new Error('no mlog url'))
     vi.mocked(getMlogVideoId).mockReset()
@@ -212,5 +221,23 @@ describe('song extra store', () => {
     expect(store.mlogUrl).toBe('')
     expect(store.mlogVideoId).toBe('VID009')
     expect(store.mlogPlayError).toBeNull()
+  })
+
+  it('keeps song wiki when ugc wiki fails', async () => {
+    vi.mocked(getSongWiki).mockResolvedValue([wiki])
+    vi.mocked(getSongSheets).mockResolvedValue([])
+    vi.mocked(getSongMlogs).mockResolvedValue([])
+    vi.mocked(getSongUgcWiki).mockRejectedValue(new Error('ugc offline'))
+    const store = useSongExtraStore()
+    await store.load(301)
+    expect(store.wiki).toEqual([wiki])
+    expect(store.ugcWiki).toEqual([])
+    expect(store.ugcWikiError).toBe('ugc offline')
+    vi.mocked(getSongUgcWiki).mockResolvedValueOnce([
+      { title: '歌曲词条', text: '林间歌曲词条。' },
+    ])
+    await store.loadUgcWiki(true)
+    expect(store.ugcWiki).toEqual([{ title: '歌曲词条', text: '林间歌曲词条。' }])
+    expect(getSongUgcWiki).toHaveBeenCalledWith(301)
   })
 })

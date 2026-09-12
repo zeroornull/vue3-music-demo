@@ -13,6 +13,7 @@ import {
   getSongSheets,
   getSongWiki,
 } from '@/api/songExtra'
+import { getSongUgcWiki } from '@/api/ugc'
 import type { AudioAdapter } from '@/audio/audioAdapter'
 import PlayerBar from '@/components/player/PlayerBar.vue'
 import { Pages } from '@/router/pages'
@@ -26,6 +27,11 @@ import {
 vi.mock('@/api/lyric', () => ({
   getLyric: vi.fn(),
   getLyricNew: vi.fn(),
+}))
+vi.mock('@/api/ugc', () => ({
+  getArtistUgcWiki: vi.fn(),
+  getMvUgcWiki: vi.fn(),
+  getSongUgcWiki: vi.fn(),
 }))
 vi.mock('@/api/songExtra', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/songExtra')>()
@@ -90,6 +96,8 @@ describe('PlayerBar', () => {
     vi.mocked(getSongMlogs).mockResolvedValue([])
     vi.mocked(getSongAbout).mockReset()
     vi.mocked(getSongAbout).mockResolvedValue([])
+    vi.mocked(getSongUgcWiki).mockReset()
+    vi.mocked(getSongUgcWiki).mockResolvedValue([])
     vi.mocked(getMlogUrl).mockReset()
     vi.mocked(getMlogUrl).mockRejectedValue(new Error('no mlog url'))
     vi.mocked(getMlogVideoId).mockReset()

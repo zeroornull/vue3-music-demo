@@ -37,6 +37,9 @@ const {
   about,
   aboutError,
   aboutLoading,
+  ugcWiki,
+  ugcWikiError,
+  ugcWikiLoading,
   mlogId,
   mlogUrl,
   mlogVideoId,
@@ -231,6 +234,14 @@ onUnmounted(() => {
             :error="aboutError"
             :loading="aboutLoading"
             @retry="extras.loadAbout(true).catch(() => undefined)"
+          />
+          <SongWikiSection
+            testid="song-ugc-wiki"
+            title="歌曲词条"
+            :blocks="ugcWiki"
+            :error="ugcWikiError"
+            :loading="ugcWikiLoading"
+            @retry="extras.loadUgcWiki(true).catch(() => undefined)"
           />
           <SongSheetSection
             :error="sheetsError"

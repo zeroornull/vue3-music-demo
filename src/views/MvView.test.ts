@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getMvCommentPage, getMvHotComments, getMvNewComments } from '@/api/comment'
 import { getMvCommentFloor } from '@/api/commentFloor'
 import { getMvDetail, getMvStats, getMvUrl, getSimiMvs } from '@/api/mv'
+import { getMvUgcWiki } from '@/api/ugc'
 import { createAppRouter } from '@/router'
 import { Pages } from '@/router/pages'
 import { useMvStore } from '@/stores/mv'
@@ -28,6 +29,11 @@ vi.mock('@/api/commentFloor', () => ({
   getPlaylistCommentFloor: vi.fn(),
   getSongCommentFloor: vi.fn(),
   getVideoCommentFloor: vi.fn(),
+}))
+vi.mock('@/api/ugc', () => ({
+  getArtistUgcWiki: vi.fn(),
+  getMvUgcWiki: vi.fn(),
+  getSongUgcWiki: vi.fn(),
 }))
 vi.mock('@/api/mv', () => ({
   getMvDetail: vi.fn(),
@@ -119,6 +125,8 @@ describe('MvView', () => {
     vi.mocked(getMvCommentFloor).mockRejectedValue(new Error('no floor'))
     vi.mocked(getMvStats).mockReset()
     vi.mocked(getMvStats).mockRejectedValue(new Error('no stats'))
+    vi.mocked(getMvUgcWiki).mockReset()
+    vi.mocked(getMvUgcWiki).mockResolvedValue([])
   })
 
   it('shows a missing-id empty state without requesting the API', async () => {
@@ -170,6 +178,20 @@ describe('MvView', () => {
       playback.url,
     )
     expect(pauseAudio).toHaveBeenCalled()
+  })
+
+  it('loads MV wiki without blocking playback', async () => {
+    vi.mocked(getMvUgcWiki)
+      .mockRejectedValueOnce(new Error('wiki offline'))
+      .mockResolvedValueOnce([{ title: 'MV百科', text: '林间 MV 百科。' }])
+    const wrapper = await mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="mv-player"]').attributes('src')).toBe(playback.url)
+    expect(wrapper.find('[data-testid="mv-wiki-retry"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="mv-wiki-retry"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="mv-wiki"]').text()).toContain('林间 MV 百科。')
+    expect(getMvUgcWiki).toHaveBeenCalledWith(701)
   })
 
   it('reloads when the route MV id changes', async () => {

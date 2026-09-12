@@ -9,14 +9,17 @@ import {
   getMvNewComments,
 } from '@/api/comment'
 import { getMvDetail, getMvStats, getMvUrl, getSimiMvs } from '@/api/mv'
+import { getMvUgcWiki } from '@/api/ugc'
 import type { MediaComment } from '@/models/comment'
 import type { MvDetail, MvStats, MvUrl, SimiMv } from '@/models/mv'
+import type { SongWikiBlock } from '@/models/songExtra'
 
 let requestSerial = 0
 let commentsMoreSerial = 0
 let statsSerial = 0
 let hotCommentSerial = 0
 let newCommentSerial = 0
+let wikiSerial = 0
 
 export const useMvStore = defineStore('mv', () => {
   const playback = ref<MvUrl | null>(null)
@@ -36,6 +39,9 @@ export const useMvStore = defineStore('mv', () => {
   const error = ref<string | null>(null)
   const loading = ref(false)
   const loadedId = ref<number | null>(null)
+  const wiki = ref<SongWikiBlock[] | null>(null)
+  const wikiError = ref<string | null>(null)
+  const wikiLoading = ref(false)
 
   function reset() {
     requestSerial++
@@ -43,6 +49,7 @@ export const useMvStore = defineStore('mv', () => {
     statsSerial++
     hotCommentSerial++
     newCommentSerial++
+    wikiSerial++
     playback.value = null
     detail.value = null
     relatedMvs.value = null
@@ -60,6 +67,9 @@ export const useMvStore = defineStore('mv', () => {
     loadedId.value = null
     error.value = null
     loading.value = false
+    wiki.value = null
+    wikiError.value = null
+    wikiLoading.value = false
   }
 
   async function load(id: number, force = false): Promise<boolean> {
@@ -76,6 +86,7 @@ export const useMvStore = defineStore('mv', () => {
       if (stats.value === null) requestStats(id, requestSerial)
       if (hotComments.value === null) requestHotComments(id, requestSerial)
       if (newComments.value === null) requestNewComments(id, requestSerial)
+      if (wiki.value === null) requestWiki(id, requestSerial)
       return true
     }
 
@@ -96,6 +107,9 @@ export const useMvStore = defineStore('mv', () => {
       hotCommentsError.value = null
       newComments.value = null
       newCommentsError.value = null
+      wiki.value = null
+      wikiError.value = null
+      wikiLoading.value = false
       loadedId.value = null
     }
     loading.value = true
@@ -111,6 +125,7 @@ export const useMvStore = defineStore('mv', () => {
       requestStats(id, serial)
       requestHotComments(id, serial)
       requestNewComments(id, serial)
+      requestWiki(id, serial)
       return true
     } catch (requestError) {
       if (serial !== requestSerial) return false
@@ -256,6 +271,35 @@ export const useMvStore = defineStore('mv', () => {
     requestStats(id, requestSerial)
   }
 
+  function requestWiki(id: number, loadSerial: number) {
+    const serial = ++wikiSerial
+    wikiLoading.value = true
+    wikiError.value = null
+    void getMvUgcWiki(id)
+      .then((next) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== wikiSerial) return
+        if (loadedId.value !== id) return
+        wiki.value = next
+      })
+      .catch((requestError) => {
+        if (loadSerial !== requestSerial) return
+        if (serial !== wikiSerial) return
+        wiki.value = null
+        wikiError.value = getErrorMessage(requestError)
+      })
+      .finally(() => {
+        if (serial === wikiSerial) wikiLoading.value = false
+      })
+  }
+
+  async function loadWiki(force = false) {
+    const id = loadedId.value
+    if (id === null) return
+    if (!force && wiki.value && !wikiError.value) return
+    requestWiki(id, requestSerial)
+  }
+
   function requestRelated(id: number, serial: number) {
     void getSimiMvs(id)
       .then((list) => {
@@ -274,6 +318,7 @@ export const useMvStore = defineStore('mv', () => {
     loadStats,
     loadHotComments,
     loadNewComments,
+    loadWiki,
     reset,
     playback,
     detail,
@@ -292,5 +337,8 @@ export const useMvStore = defineStore('mv', () => {
     error,
     loading,
     loadedId,
+    wiki,
+    wikiError,
+    wikiLoading,
   }
 })
