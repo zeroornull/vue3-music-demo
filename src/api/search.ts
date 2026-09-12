@@ -5,8 +5,11 @@ import type {
   SearchArtist,
   SearchArtistPage,
   SearchBestMatch,
+  SearchComposite,
   SearchDefaultKeyword,
   SearchHot,
+  SearchLyric,
+  SearchLyricPage,
   SearchMv,
   SearchMvPage,
   SearchPlaylist,
@@ -17,6 +20,8 @@ import type {
   SearchSuggestPage,
   SearchVideo,
   SearchVideoPage,
+  SearchVoice,
+  SearchVoicePage,
 } from '@/models/search'
 import { normalizeSong, type NetworkSong } from '@/models/song'
 
@@ -35,6 +40,12 @@ export const SEARCH_CLOUD_RADIO_LIMIT = 20
 export const SEARCH_CLOUD_RADIO_TYPE = 1009
 export const SEARCH_CLOUD_VIDEO_LIMIT = 20
 export const SEARCH_CLOUD_VIDEO_TYPE = 1014
+export const SEARCH_CLOUD_LYRIC_LIMIT = 20
+export const SEARCH_CLOUD_LYRIC_TYPE = 1006
+export const SEARCH_CLOUD_COMPOSITE_TYPE = 1018
+export const SEARCH_CLOUD_VOICE_LIMIT = 20
+export const SEARCH_CLOUD_VOICE_TYPE = 2000
+export const SEARCH_COMPOSITE_LIMIT = 10
 export const SEARCH_PLAYLIST_LIMIT = 10
 export const SEARCH_ARTIST_LIMIT = 10
 export const SEARCH_ALBUM_LIMIT = 10
@@ -45,6 +56,119 @@ export const SEARCH_HOT_LIMIT = 10
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function positiveId(value: unknown): number | null {
+  const id = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN
+  if (!Number.isInteger(id) || id <= 0) return null
+  return id
+}
+
+function unwrapList(response: unknown, keys: string[]): unknown[] | null {
+  if (Array.isArray(response)) return response
+  if (!isRecord(response)) return null
+  for (const key of keys) {
+    if (Array.isArray(response[key])) return response[key] as unknown[]
+  }
+  const nested = isRecord(response.result)
+    ? response.result
+    : isRecord(response.data)
+      ? response.data
+      : null
+  if (!nested) return null
+  for (const key of keys) {
+    if (Array.isArray(nested[key])) return nested[key] as unknown[]
+  }
+  return null
+}
+
+function resultRecord(response: unknown): Record<string, unknown> | null {
+  if (!isRecord(response)) return null
+  if (isRecord(response.result)) return response.result
+  if (isRecord(response.data)) return response.data
+  return response
+}
+
+function readLyricSnippet(value: unknown): string {
+  if (typeof value === 'string') return value.replace(/\s+/g, ' ').trim()
+  if (!isRecord(value)) return ''
+  const raw = value.txt ?? value.text ?? value.lyric
+  return typeof raw === 'string' ? raw.replace(/\s+/g, ' ').trim() : ''
+}
+
+function readSearchLyric(value: unknown): SearchLyric | null {
+  if (!isRecord(value)) return null
+  const songRaw = isRecord(value.song) ? { ...value.song, ...value } : value
+  if (
+    !isNetworkSong(songRaw) ||
+    !Number.isInteger(songRaw.id) ||
+    songRaw.id <= 0
+  ) {
+    return null
+  }
+  const lyric =
+    readLyricSnippet(value.lyrics) ||
+    readLyricSnippet(value.lyric) ||
+    readLyricSnippet(songRaw.lyrics) ||
+    readLyricSnippet(songRaw.lyric)
+  return { lyric, song: normalizeSong(songRaw) }
+}
+
+function readSearchVoice(value: unknown): SearchVoice | null {
+  if (!isRecord(value)) return null
+  const base = isRecord(value.baseInfo) ? value.baseInfo : value
+  const typeRaw = String(
+    value.resourceType ?? base.resourceType ?? value.type ?? base.type ?? '',
+  )
+  const kind =
+    /list/i.test(typeRaw) ||
+    (!/voice|program/i.test(typeRaw) &&
+      typeof base.voiceListName === 'string' &&
+      Boolean(base.voiceListName.trim()))
+      ? 'list'
+      : 'program'
+  const id =
+    kind === 'list'
+      ? (positiveId(base.voiceListId) ??
+        positiveId(base.id) ??
+        positiveId(value.resourceIdStr) ??
+        positiveId(value.resourceId) ??
+        positiveId(value.id))
+      : (positiveId(base.programId) ??
+        positiveId(base.voiceId) ??
+        positiveId(base.id) ??
+        positiveId(value.resourceIdStr) ??
+        positiveId(value.resourceId) ??
+        positiveId(value.id))
+  const nameRaw =
+    (typeof base.voiceListName === 'string' && base.voiceListName) ||
+    (typeof base.voiceName === 'string' && base.voiceName) ||
+    (typeof base.name === 'string' && base.name) ||
+    (typeof base.title === 'string' && base.title) ||
+    (typeof value.name === 'string' && value.name) ||
+    ''
+  const name = nameRaw.trim()
+  if (!id || !name) return null
+  const picUrl =
+    typeof base.coverUrl === 'string' && base.coverUrl
+      ? base.coverUrl
+      : typeof base.picUrl === 'string' && base.picUrl
+        ? base.picUrl
+        : typeof value.coverUrl === 'string' && value.coverUrl
+          ? value.coverUrl
+          : typeof value.picUrl === 'string'
+            ? value.picUrl
+            : ''
+  return { id, kind, name, picUrl }
+}
+
+function boxedList(box: unknown, keys: string[]): unknown[] {
+  if (Array.isArray(box)) return box
+  if (!isRecord(box)) return []
+  for (const key of keys) {
+    if (Array.isArray(box[key])) return box[key] as unknown[]
+  }
+  return []
 }
 
 function isNetworkSong(value: unknown): value is NetworkSong {
@@ -473,4 +597,111 @@ export async function getCloudSearchVideos(
       ? offset + result.videos.length < videoCount
       : result.videos.length >= SEARCH_CLOUD_VIDEO_LIMIT
   return { more, videos }
+}
+
+export async function getCloudSearchLyrics(
+  keywords: string,
+  query: { offset?: number } = {},
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SearchLyricPage> {
+  const offset = query.offset ?? 0
+  const response = await client.get<unknown>('/cloudsearch', {
+    keywords,
+    limit: SEARCH_CLOUD_LYRIC_LIMIT,
+    offset,
+    type: SEARCH_CLOUD_LYRIC_TYPE,
+  })
+  const raw = unwrapList(response, ['songs', 'lyrics'])
+  if (!raw) {
+    throw new Error('搜索歌词响应格式不正确')
+  }
+  const lyrics = raw
+    .map(readSearchLyric)
+    .filter((item): item is SearchLyric => item !== null)
+  const result = resultRecord(response)
+  const lyricCount = result
+    ? result.songCount ?? result.lyricCount ?? result.lyricsCount
+    : null
+  const more =
+    typeof lyricCount === 'number'
+      ? offset + raw.length < lyricCount
+      : raw.length >= SEARCH_CLOUD_LYRIC_LIMIT
+  return { more, lyrics }
+}
+
+export async function getCloudSearchComposite(
+  keywords: string,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SearchComposite> {
+  const response = await client.get<unknown>('/cloudsearch', {
+    keywords,
+    limit: SEARCH_COMPOSITE_LIMIT,
+    offset: 0,
+    type: SEARCH_CLOUD_COMPOSITE_TYPE,
+  })
+  const result =
+    isRecord(response) && isRecord(response.result)
+      ? response.result
+      : isRecord(response) && isRecord(response.data)
+        ? response.data
+        : null
+  if (!result) {
+    throw new Error('搜索综合响应格式不正确')
+  }
+  const songBox = isRecord(result.song) ? result.song : result
+  const playlistBox = isRecord(result.playList)
+    ? result.playList
+    : isRecord(result.playlist)
+      ? result.playlist
+      : result
+  const artistBox = isRecord(result.artist) ? result.artist : result
+  const albumBox = isRecord(result.album) ? result.album : result
+  return {
+    albums: boxedList(albumBox, ['albums'])
+      .map(readAlbum)
+      .filter((item): item is SearchAlbum => item !== null)
+      .slice(0, SEARCH_COMPOSITE_LIMIT),
+    artists: boxedList(artistBox, ['artists'])
+      .map(readArtist)
+      .filter((item): item is SearchArtist => item !== null)
+      .slice(0, SEARCH_COMPOSITE_LIMIT),
+    playlists: boxedList(playlistBox, ['playLists', 'playlists'])
+      .map(readPlaylist)
+      .filter((item): item is SearchPlaylist => item !== null)
+      .slice(0, SEARCH_COMPOSITE_LIMIT),
+    songs: boxedList(songBox, ['songs'])
+      .filter(isNetworkSong)
+      .map(normalizeSong)
+      .slice(0, SEARCH_COMPOSITE_LIMIT),
+  }
+}
+
+export async function getCloudSearchVoices(
+  keywords: string,
+  query: { offset?: number } = {},
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SearchVoicePage> {
+  const offset = query.offset ?? 0
+  const response = await client.get<unknown>('/cloudsearch', {
+    keywords,
+    limit: SEARCH_CLOUD_VOICE_LIMIT,
+    offset,
+    type: SEARCH_CLOUD_VOICE_TYPE,
+  })
+  const raw = unwrapList(response, ['resources', 'voices', 'list'])
+  if (!raw) {
+    throw new Error('搜索声音响应格式不正确')
+  }
+  const voices = raw
+    .map(readSearchVoice)
+    .filter((item): item is SearchVoice => item !== null)
+  const result = resultRecord(response)
+  const voiceCount = result
+    ? result.totalCount ?? result.voiceCount ?? result.resourceCount
+    : null
+  const more =
+    typeof voiceCount === 'number'
+      ? offset + raw.length < voiceCount
+      : raw.length >= SEARCH_CLOUD_VOICE_LIMIT
+  return { more, voices }
 }

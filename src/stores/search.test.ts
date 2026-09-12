@@ -9,6 +9,9 @@ import {
   getCloudSearchRadios,
   getCloudSearchSongs,
   getCloudSearchVideos,
+  getCloudSearchLyrics,
+  getCloudSearchComposite,
+  getCloudSearchVoices,
   getSearchDefaultKeyword,
   getSearchHotDetail,
   getSearchMultimatch,
@@ -27,6 +30,9 @@ vi.mock('@/api/search', async (importOriginal) => {
     getCloudSearchRadios: vi.fn(),
     getCloudSearchSongs: vi.fn(),
     getCloudSearchVideos: vi.fn(),
+    getCloudSearchLyrics: vi.fn(),
+    getCloudSearchComposite: vi.fn(),
+    getCloudSearchVoices: vi.fn(),
     getSearchDefaultKeyword: vi.fn(),
     getSearchHotDetail: vi.fn(),
     getSearchMultimatch: vi.fn(),
@@ -145,6 +151,17 @@ describe('search store', () => {
       more: false,
       videos: [video],
     })
+    vi.mocked(getCloudSearchLyrics).mockReset()
+    vi.mocked(getCloudSearchLyrics).mockResolvedValue({ more: false, lyrics: [] })
+    vi.mocked(getCloudSearchComposite).mockReset()
+    vi.mocked(getCloudSearchComposite).mockResolvedValue({
+      albums: [],
+      artists: [],
+      playlists: [],
+      songs: [],
+    })
+    vi.mocked(getCloudSearchVoices).mockReset()
+    vi.mocked(getCloudSearchVoices).mockResolvedValue({ more: false, voices: [] })
   })
 
   it('loads hot search once and treats a failed page as a cache miss', async () => {
@@ -1044,5 +1061,32 @@ describe('search store', () => {
     expect(getSearchSuggest).not.toHaveBeenCalled()
     expect(store.videos).toEqual([video])
     expect(store.videosError).toBeNull()
+  })
+
+  it('loads lyrics, composite and voices independently of songs', async () => {
+    const lyric = {
+      lyric: '走过林间。',
+      song: { artists: [{ id: 401, name: '林间电台' }], id: 301, name: '晚风来信' },
+    }
+    const voice = {
+      id: 801,
+      kind: 'list' as const,
+      name: '林间播客',
+      picUrl: '',
+    }
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [song] })
+    vi.mocked(getCloudSearchLyrics).mockResolvedValue({ more: false, lyrics: [lyric] })
+    vi.mocked(getCloudSearchComposite).mockRejectedValue(new Error('composite offline'))
+    vi.mocked(getCloudSearchVoices).mockResolvedValue({ more: false, voices: [voice] })
+    const store = useSearchStore()
+    await store.search('夜航')
+    expect(store.songs).toEqual([song])
+    expect(store.lyrics).toEqual([lyric])
+    expect(store.compositeError).toBe('composite offline')
+    expect(store.voices).toEqual([voice])
+    expect(getCloudSearchLyrics).toHaveBeenCalledWith('夜航', { offset: 0 })
+    expect(getCloudSearchComposite).toHaveBeenCalledWith('夜航')
+    expect(getCloudSearchVoices).toHaveBeenCalledWith('夜航', { offset: 0 })
+    expect(getCloudSearchLyrics).toHaveBeenCalledTimes(1)
   })
 })

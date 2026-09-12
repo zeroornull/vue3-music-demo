@@ -18,6 +18,12 @@ import {
   SEARCH_CLOUD_PLAYLIST_TYPE,
   SEARCH_CLOUD_SONG_LIMIT,
   SEARCH_CLOUD_SONG_TYPE,
+  SEARCH_CLOUD_LYRIC_LIMIT,
+  SEARCH_CLOUD_LYRIC_TYPE,
+  SEARCH_CLOUD_COMPOSITE_TYPE,
+  SEARCH_CLOUD_VOICE_LIMIT,
+  SEARCH_CLOUD_VOICE_TYPE,
+  SEARCH_COMPOSITE_LIMIT,
   SEARCH_MV_LIMIT,
   SEARCH_PLAYLIST_LIMIT,
   SEARCH_RADIO_LIMIT,
@@ -30,6 +36,9 @@ import {
   getCloudSearchRadios,
   getCloudSearchSongs,
   getCloudSearchVideos,
+  getCloudSearchLyrics,
+  getCloudSearchComposite,
+  getCloudSearchVoices,
   getSearchDefaultKeyword,
   getSearchHotDetail,
   getSearchMultimatch,
@@ -1123,5 +1132,140 @@ describe('Search API', () => {
         client({ result: { videos: null } }).client,
       ),
     ).rejects.toThrow('搜索视频响应格式不正确')
+  })
+
+  it('unwraps lyric, composite and voice cloudsearch types', async () => {
+    const lyrics = client({
+      result: {
+        songCount: 40,
+        songs: [
+          {
+            extra: true,
+            id: 301,
+            lyrics: { txt: '  走过林间。\n夜航  ' },
+            name: '晚风来信',
+            ar: [{ id: 401, name: '林间电台' }],
+          },
+          { id: 0, name: '无效' },
+        ],
+      },
+    })
+    await expect(getCloudSearchLyrics('夜航', { offset: 0 }, lyrics.client)).resolves.toMatchObject({
+      more: true,
+      lyrics: [
+        {
+          lyric: '走过林间。 夜航',
+          song: {
+            artists: [{ id: 401, name: '林间电台' }],
+            id: 301,
+            name: '晚风来信',
+          },
+        },
+      ],
+    })
+    expect(lyrics.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '夜航',
+      limit: SEARCH_CLOUD_LYRIC_LIMIT,
+      offset: 0,
+      type: SEARCH_CLOUD_LYRIC_TYPE,
+    })
+    await expect(
+      getCloudSearchLyrics('夜航', {}, client({ data: null }).client),
+    ).rejects.toThrow('搜索歌词响应格式不正确')
+
+    const composite = client({
+      result: {
+        album: {
+          albums: [{ id: 501, name: '夜航', picUrl: 'https://images.example.com/a.jpg' }],
+        },
+        artist: { artists: [{ id: 401, name: '林间电台', img1v1Url: '' }] },
+        playList: {
+          playLists: [{ id: 101, name: '林间歌单', coverImgUrl: '' }],
+        },
+        song: {
+          songs: [{ id: 301, name: '晚风来信', ar: [{ id: 401, name: '林间电台' }] }],
+        },
+      },
+    })
+    await expect(getCloudSearchComposite('夜航', composite.client)).resolves.toMatchObject({
+      albums: [{ id: 501, name: '夜航', picUrl: 'https://images.example.com/a.jpg' }],
+      artists: [{ id: 401, img1v1Url: '', name: '林间电台' }],
+      playlists: [{ coverImgUrl: '', id: 101, name: '林间歌单' }],
+      songs: [
+        {
+          artists: [{ id: 401, name: '林间电台' }],
+          id: 301,
+          name: '晚风来信',
+        },
+      ],
+    })
+    expect(composite.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '夜航',
+      limit: SEARCH_COMPOSITE_LIMIT,
+      offset: 0,
+      type: SEARCH_CLOUD_COMPOSITE_TYPE,
+    })
+    await expect(
+      getCloudSearchComposite('夜航', client({ data: null }).client),
+    ).rejects.toThrow('搜索综合响应格式不正确')
+    await expect(getCloudSearchComposite('夜航', client({ result: {} }).client)).resolves.toEqual({
+      albums: [],
+      artists: [],
+      playlists: [],
+      songs: [],
+    })
+
+    const voices = client({
+      data: {
+        resources: [
+          {
+            baseInfo: {
+              coverUrl: 'https://images.example.com/v.jpg',
+              id: 801,
+              voiceListName: '林间播客',
+            },
+            extra: true,
+            resourceType: 'voiceList',
+          },
+          {
+            baseInfo: {
+              picUrl: '',
+              programId: 931,
+              voiceListId: 801,
+              voiceName: '精选夜航',
+            },
+            resourceType: 'voice',
+          },
+          { id: 0, name: '无效' },
+        ],
+        totalCount: 40,
+      },
+    })
+    await expect(getCloudSearchVoices('夜航', { offset: 0 }, voices.client)).resolves.toEqual({
+      more: true,
+      voices: [
+        {
+          id: 801,
+          kind: 'list',
+          name: '林间播客',
+          picUrl: 'https://images.example.com/v.jpg',
+        },
+        {
+          id: 931,
+          kind: 'program',
+          name: '精选夜航',
+          picUrl: '',
+        },
+      ],
+    })
+    expect(voices.get).toHaveBeenCalledWith('/cloudsearch', {
+      keywords: '夜航',
+      limit: SEARCH_CLOUD_VOICE_LIMIT,
+      offset: 0,
+      type: SEARCH_CLOUD_VOICE_TYPE,
+    })
+    await expect(
+      getCloudSearchVoices('夜航', {}, client({ data: null }).client),
+    ).rejects.toThrow('搜索声音响应格式不正确')
   })
 })

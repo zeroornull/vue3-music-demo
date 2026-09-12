@@ -7,6 +7,7 @@ export interface SearchHit {
   id: number | string
   name: string
   cover: string
+  to?: { name: PageName; query?: Record<string, string> }
 }
 
 const props = defineProps<{
@@ -26,7 +27,7 @@ const headingId = computed(() => props.headingId || `${props.kind}-title`)
     <ul>
       <li v-for="item in hits" :key="item.id">
         <RouterLink
-          :to="{ name: toName, query: { id: item.id } }"
+          :to="item.to || { name: toName, query: { id: item.id } }"
           :aria-label="`打开${kind}：${item.name}`"
         >
           <img

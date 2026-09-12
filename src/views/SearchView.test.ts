@@ -14,6 +14,9 @@ import {
   getCloudSearchRadios,
   getCloudSearchSongs,
   getCloudSearchVideos,
+  getCloudSearchLyrics,
+  getCloudSearchComposite,
+  getCloudSearchVoices,
   getSearchDefaultKeyword,
   getSearchHotDetail,
   getSearchMultimatch,
@@ -34,6 +37,9 @@ vi.mock('@/api/search', async (importOriginal) => {
     getCloudSearchRadios: vi.fn(),
     getCloudSearchSongs: vi.fn(),
     getCloudSearchVideos: vi.fn(),
+    getCloudSearchLyrics: vi.fn(),
+    getCloudSearchComposite: vi.fn(),
+    getCloudSearchVoices: vi.fn(),
     getSearchDefaultKeyword: vi.fn(),
     getSearchHotDetail: vi.fn(),
     getSearchMultimatch: vi.fn(),
@@ -195,6 +201,17 @@ describe('SearchView', () => {
       more: false,
       videos: suggest.videos,
     })
+    vi.mocked(getCloudSearchLyrics).mockReset()
+    vi.mocked(getCloudSearchLyrics).mockResolvedValue({ more: false, lyrics: [] })
+    vi.mocked(getCloudSearchComposite).mockReset()
+    vi.mocked(getCloudSearchComposite).mockResolvedValue({
+      albums: [],
+      artists: [],
+      playlists: [],
+      songs: [],
+    })
+    vi.mocked(getCloudSearchVoices).mockReset()
+    vi.mocked(getCloudSearchVoices).mockResolvedValue({ more: false, voices: [] })
   })
 
   it('loads hot search and searches from a hot word or the form', async () => {
@@ -899,5 +916,72 @@ describe('SearchView', () => {
     await flushPromises()
     expect(wrapper.find('[aria-label="打开视频：潮汐现场"]').exists()).toBe(true)
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
+  it('loads lyrics, composite and voices independently', async () => {
+    vi.mocked(getCloudSearchLyrics).mockResolvedValue({
+      more: false,
+      lyrics: [
+        {
+          lyric: '走过林间。',
+          song: { artists: [{ id: 401, name: '林间电台' }], id: 301, name: '晚风来信' },
+        },
+      ],
+    })
+    vi.mocked(getCloudSearchComposite).mockRejectedValueOnce(new Error('composite offline'))
+    vi.mocked(getCloudSearchVoices).mockResolvedValue({
+      more: false,
+      voices: [{ id: 801, kind: 'list', name: '林间播客', picUrl: '' }],
+    })
+    const { wrapper } = await mountView({ q: '夜航' })
+    await flushPromises()
+    expect(wrapper.get('#search-lyrics-title').text()).toBe('歌词')
+    expect(wrapper.get('[data-testid="search-lyrics"]').text()).toContain('走过林间。')
+    expect(wrapper.get('#search-composite-title').text()).toBe('综合')
+    expect(wrapper.find('[data-testid="search-composite-retry"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="search-voices"]').text()).toContain('林间播客')
+    expect(wrapper.get('[aria-label="打开声音：林间播客"]').attributes('href')).toContain(
+      'listId=801',
+    )
+    await wrapper.get('[data-testid="search-composite-retry"]').trigger('click')
+    await flushPromises()
+    expect(getCloudSearchComposite).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps the main search retry when extras also fail', async () => {
+    vi.mocked(getCloudSearchSongs).mockRejectedValue(new Error('songs offline'))
+    vi.mocked(getCloudSearchLyrics).mockRejectedValue(new Error('lyrics offline'))
+    vi.mocked(getCloudSearchComposite).mockRejectedValue(new Error('composite offline'))
+    vi.mocked(getCloudSearchVoices).mockRejectedValue(new Error('voices offline'))
+    const { wrapper } = await mountView({ q: '夜航' })
+    await flushPromises()
+    expect(wrapper.find('[data-testid="search-retry"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="search-lyrics-retry"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="search-composite-retry"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="search-voices-retry"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
+  })
+
+  it('shows extras-only hits instead of the empty card', async () => {
+    vi.mocked(getCloudSearchSongs).mockResolvedValue({ more: false, songs: [] })
+    vi.mocked(getCloudSearchPlaylists).mockResolvedValue({ more: false, playlists: [] })
+    vi.mocked(getCloudSearchArtists).mockResolvedValue({ more: false, artists: [] })
+    vi.mocked(getCloudSearchAlbums).mockResolvedValue({ more: false, albums: [] })
+    vi.mocked(getCloudSearchMvs).mockResolvedValue({ more: false, mvs: [] })
+    vi.mocked(getCloudSearchRadios).mockResolvedValue({ more: false, radios: [] })
+    vi.mocked(getCloudSearchVideos).mockResolvedValue({ more: false, videos: [] })
+    vi.mocked(getCloudSearchLyrics).mockResolvedValue({
+      more: false,
+      lyrics: [
+        {
+          lyric: '走过林间。',
+          song: { artists: [], id: 301, name: '晚风来信' },
+        },
+      ],
+    })
+    const { wrapper } = await mountView({ q: '夜航' })
+    await flushPromises()
+    expect(wrapper.find('[data-testid="search-empty"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="search-lyrics"]').text()).toContain('走过林间。')
   })
 })

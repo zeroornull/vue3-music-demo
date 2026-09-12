@@ -5,11 +5,14 @@ import { getErrorMessage } from '@/api/http'
 import {
   getCloudSearchAlbums,
   getCloudSearchArtists,
+  getCloudSearchComposite,
+  getCloudSearchLyrics,
   getCloudSearchMvs,
   getCloudSearchPlaylists,
   getCloudSearchRadios,
   getCloudSearchSongs,
   getCloudSearchVideos,
+  getCloudSearchVoices,
   getSearchDefaultKeyword,
   getSearchHotDetail,
   getSearchMultimatch,
@@ -18,12 +21,15 @@ import type {
   SearchAlbum,
   SearchArtist,
   SearchBestMatch,
+  SearchComposite,
   SearchDefaultKeyword,
   SearchHot,
+  SearchLyric,
   SearchMv,
   SearchPlaylist,
   SearchRadio,
   SearchVideo,
+  SearchVoice,
 } from '@/models/search'
 import type { Song } from '@/models/song'
 
@@ -37,6 +43,11 @@ let albumMoreSerial = 0
 let mvMoreSerial = 0
 let radioMoreSerial = 0
 let videoMoreSerial = 0
+let lyricSerial = 0
+let lyricMoreSerial = 0
+let compositeSerial = 0
+let voiceSerial = 0
+let voiceMoreSerial = 0
 
 export const useSearchStore = defineStore('search', () => {
   const keyword = ref('')
@@ -75,6 +86,22 @@ export const useSearchStore = defineStore('search', () => {
   const videosError = ref<string | null>(null)
   const videosLoading = ref(false)
   const videosMore = ref(false)
+  const lyrics = ref<SearchLyric[]>([])
+  const lyricsError = ref<string | null>(null)
+  const lyricsLoading = ref(false)
+  const lyricsMore = ref(false)
+  const composite = ref<SearchComposite>({
+    albums: [],
+    artists: [],
+    playlists: [],
+    songs: [],
+  })
+  const compositeError = ref<string | null>(null)
+  const compositeLoading = ref(false)
+  const voices = ref<SearchVoice[]>([])
+  const voicesError = ref<string | null>(null)
+  const voicesLoading = ref(false)
+  const voicesMore = ref(false)
 
   function clearHits() {
     songs.value = []
@@ -105,6 +132,17 @@ export const useSearchStore = defineStore('search', () => {
     videosError.value = null
     videosLoading.value = false
     videosMore.value = false
+    lyrics.value = []
+    lyricsError.value = null
+    lyricsLoading.value = false
+    lyricsMore.value = false
+    composite.value = { albums: [], artists: [], playlists: [], songs: [] }
+    compositeError.value = null
+    compositeLoading.value = false
+    voices.value = []
+    voicesError.value = null
+    voicesLoading.value = false
+    voicesMore.value = false
     bestMatch.value = null
   }
 
@@ -119,6 +157,11 @@ export const useSearchStore = defineStore('search', () => {
     mvMoreSerial++
     radioMoreSerial++
     videoMoreSerial++
+    lyricSerial++
+    lyricMoreSerial++
+    compositeSerial++
+    voiceSerial++
+    voiceMoreSerial++
     keyword.value = ''
     hots.value = []
     hotsError.value = null
@@ -182,6 +225,11 @@ export const useSearchStore = defineStore('search', () => {
       mvMoreSerial++
       radioMoreSerial++
       videoMoreSerial++
+      lyricSerial++
+      lyricMoreSerial++
+      compositeSerial++
+      voiceSerial++
+      voiceMoreSerial++
       keyword.value = ''
       clearHits()
       return
@@ -196,7 +244,10 @@ export const useSearchStore = defineStore('search', () => {
       albumsError.value === null &&
       mvsError.value === null &&
       radiosError.value === null &&
-      videosError.value === null
+      videosError.value === null &&
+      lyricsError.value === null &&
+      compositeError.value === null &&
+      voicesError.value === null
     ) {
       if (bestMatch.value === null) requestBestMatch(next, searchSerial)
       return
@@ -210,6 +261,11 @@ export const useSearchStore = defineStore('search', () => {
     ++mvMoreSerial
     ++radioMoreSerial
     ++videoMoreSerial
+    const lyricGen = ++lyricSerial
+    ++lyricMoreSerial
+    const compositeGen = ++compositeSerial
+    const voiceGen = ++voiceSerial
+    ++voiceMoreSerial
     keyword.value = next
     bestMatch.value = null
     songs.value = []
@@ -238,8 +294,24 @@ export const useSearchStore = defineStore('search', () => {
     videosMore.value = false
     videosError.value = null
     videosLoading.value = false
+    lyrics.value = []
+    lyricsMore.value = false
+    lyricsError.value = null
+    lyricsLoading.value = true
+    composite.value = { albums: [], artists: [], playlists: [], songs: [] }
+    compositeError.value = null
+    compositeLoading.value = true
+    voices.value = []
+    voicesMore.value = false
+    voicesError.value = null
+    voicesLoading.value = true
     songsLoading.value = true
     songsError.value = null
+    const extras = [
+      runLyrics(next, lyricGen),
+      runComposite(next, compositeGen),
+      runVoices(next, voiceGen),
+    ]
     try {
       const [
         songPage,
@@ -280,6 +352,7 @@ export const useSearchStore = defineStore('search', () => {
       throw requestError
     } finally {
       if (serial === searchSerial) songsLoading.value = false
+      await Promise.allSettled(extras)
     }
   }
 
@@ -469,6 +542,138 @@ export const useSearchStore = defineStore('search', () => {
     }
   }
 
+  async function runLyrics(next: string, serial: number) {
+    lyricsLoading.value = true
+    lyricsError.value = null
+    try {
+      const page = await getCloudSearchLyrics(next, { offset: 0 })
+      if (serial !== lyricSerial) return
+      lyrics.value = page.lyrics
+      lyricsMore.value = page.more
+    } catch (requestError) {
+      if (serial !== lyricSerial) return
+      lyricsError.value = getErrorMessage(requestError)
+    } finally {
+      if (serial === lyricSerial) lyricsLoading.value = false
+    }
+  }
+
+  async function runComposite(next: string, serial: number) {
+    compositeLoading.value = true
+    compositeError.value = null
+    try {
+      const nextComposite = await getCloudSearchComposite(next)
+      if (serial !== compositeSerial) return
+      composite.value = nextComposite
+    } catch (requestError) {
+      if (serial !== compositeSerial) return
+      compositeError.value = getErrorMessage(requestError)
+    } finally {
+      if (serial === compositeSerial) compositeLoading.value = false
+    }
+  }
+
+  async function runVoices(next: string, serial: number) {
+    voicesLoading.value = true
+    voicesError.value = null
+    try {
+      const page = await getCloudSearchVoices(next, { offset: 0 })
+      if (serial !== voiceSerial) return
+      voices.value = page.voices
+      voicesMore.value = page.more
+    } catch (requestError) {
+      if (serial !== voiceSerial) return
+      voicesError.value = getErrorMessage(requestError)
+    } finally {
+      if (serial === voiceSerial) voicesLoading.value = false
+    }
+  }
+
+  async function loadLyrics(force = false) {
+    if (!keyword.value) return
+    if (lyrics.value.length && !force && !lyricsError.value) return
+    const serial = ++lyricSerial
+    await runLyrics(keyword.value, serial)
+    if (lyricsError.value) throw new Error(lyricsError.value)
+  }
+
+  async function loadComposite(force = false) {
+    if (!keyword.value) return
+    if (
+      (composite.value.songs.length ||
+        composite.value.playlists.length ||
+        composite.value.artists.length ||
+        composite.value.albums.length) &&
+      !force &&
+      !compositeError.value
+    ) {
+      return
+    }
+    const serial = ++compositeSerial
+    await runComposite(keyword.value, serial)
+    if (compositeError.value) throw new Error(compositeError.value)
+  }
+
+  async function loadVoices(force = false) {
+    if (!keyword.value) return
+    if (voices.value.length && !force && !voicesError.value) return
+    const serial = ++voiceSerial
+    await runVoices(keyword.value, serial)
+    if (voicesError.value) throw new Error(voicesError.value)
+  }
+
+  async function loadMoreLyrics() {
+    if (!lyricsMore.value || lyricsLoading.value || !keyword.value || !lyrics.value.length) {
+      return
+    }
+    const serial = ++lyricMoreSerial
+    const generation = searchSerial
+    const next = keyword.value
+    const offset = lyrics.value.length
+    lyricsLoading.value = true
+    lyricsError.value = null
+    try {
+      const page = await getCloudSearchLyrics(next, { offset })
+      if (serial !== lyricMoreSerial || generation !== searchSerial) return
+      lyrics.value = [...lyrics.value, ...page.lyrics]
+      lyricsMore.value = page.more
+    } catch (requestError) {
+      if (serial !== lyricMoreSerial || generation !== searchSerial) return
+      lyricsError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === lyricMoreSerial && generation === searchSerial) {
+        lyricsLoading.value = false
+      }
+    }
+  }
+
+  async function loadMoreVoices() {
+    if (!voicesMore.value || voicesLoading.value || !keyword.value || !voices.value.length) {
+      return
+    }
+    const serial = ++voiceMoreSerial
+    const generation = searchSerial
+    const next = keyword.value
+    const offset = voices.value.length
+    voicesLoading.value = true
+    voicesError.value = null
+    try {
+      const page = await getCloudSearchVoices(next, { offset })
+      if (serial !== voiceMoreSerial || generation !== searchSerial) return
+      voices.value = [...voices.value, ...page.voices]
+      voicesMore.value = page.more
+    } catch (requestError) {
+      if (serial !== voiceMoreSerial || generation !== searchSerial) return
+      voicesError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === voiceMoreSerial && generation === searchSerial) {
+        voicesLoading.value = false
+      }
+    }
+  }
+
   async function loadMoreVideos() {
     if (
       !videosMore.value ||
@@ -511,6 +716,11 @@ export const useSearchStore = defineStore('search', () => {
     loadMoreMvs,
     loadMoreRadios,
     loadMoreVideos,
+    loadLyrics,
+    loadComposite,
+    loadVoices,
+    loadMoreLyrics,
+    loadMoreVoices,
     reset,
     keyword,
     hots,
@@ -548,5 +758,16 @@ export const useSearchStore = defineStore('search', () => {
     videosError,
     videosLoading,
     videosMore,
+    lyrics,
+    lyricsError,
+    lyricsLoading,
+    lyricsMore,
+    composite,
+    compositeError,
+    compositeLoading,
+    voices,
+    voicesError,
+    voicesLoading,
+    voicesMore,
   }
 })

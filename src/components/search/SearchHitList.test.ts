@@ -54,6 +54,27 @@ describe('SearchHitList', () => {
     expect(wrapper.get('a').attributes('aria-label')).toBe('打开歌手：林间电台')
   })
 
+  it('uses a per-hit route when provided', () => {
+    const wrapper = mount(SearchHitList, {
+      props: {
+        hits: [
+          {
+            cover: '',
+            id: 801,
+            name: '林间播客',
+            to: { name: Pages.voice, query: { listId: '801' } },
+          },
+        ],
+        kind: '声音',
+        title: '声音',
+        toName: Pages.dj,
+      },
+      global: { stubs: { RouterLink: LinkStub } },
+    })
+    expect(wrapper.get('a').attributes('href')).toContain('"name":"voice"')
+    expect(wrapper.get('a').attributes('href')).toContain('"listId":"801"')
+  })
+
   it('opens album detail for album hits', () => {
     const wrapper = mount(SearchHitList, {
       props: {

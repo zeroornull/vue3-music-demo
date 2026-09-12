@@ -97,3 +97,32 @@ export interface SearchVideoPage {
   more: boolean
   videos: SearchVideo[]
 }
+
+export interface SearchLyric {
+  lyric: string
+  song: Song
+}
+
+export interface SearchLyricPage {
+  more: boolean
+  lyrics: SearchLyric[]
+}
+
+export interface SearchComposite {
+  albums: SearchAlbum[]
+  artists: SearchArtist[]
+  playlists: SearchPlaylist[]
+  songs: Song[]
+}
+
+export interface SearchVoice {
+  id: number
+  kind: 'list' | 'program'
+  name: string
+  picUrl: string
+}
+
+export interface SearchVoicePage {
+  more: boolean
+  voices: SearchVoice[]
+}

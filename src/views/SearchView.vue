@@ -50,11 +50,31 @@ const {
   videosError,
   videosLoading,
   videosMore,
+  lyrics,
+  lyricsError,
+  lyricsLoading,
+  lyricsMore,
+  composite,
+  compositeError,
+  compositeLoading,
+  voices,
+  voicesError,
+  voicesLoading,
+  voicesMore,
 } = storeToRefs(searchStore)
 const { current } = storeToRefs(playerStore)
 const draft = ref('')
 const notice = ref<string | null>(null)
 let playSerial = 0
+
+const hasComposite = computed(
+  () =>
+    composite.value.songs.length +
+      composite.value.playlists.length +
+      composite.value.artists.length +
+      composite.value.albums.length >
+    0,
+)
 
 const hasHits = computed(
   () =>
@@ -64,8 +84,22 @@ const hasHits = computed(
       albums.value.length +
       mvs.value.length +
       radios.value.length +
-      videos.value.length >
-    0,
+      videos.value.length +
+      lyrics.value.length +
+      voices.value.length >
+      0 || hasComposite.value,
+)
+
+const hasExtraError = computed(
+  () => Boolean(lyricsError.value || compositeError.value || voicesError.value),
+)
+
+const isSearching = computed(
+  () =>
+    songsLoading.value ||
+    lyricsLoading.value ||
+    compositeLoading.value ||
+    voicesLoading.value,
 )
 
 const hasBestMatch = computed(
@@ -125,6 +159,45 @@ const videoHits = computed(() =>
   })),
 )
 
+const compositePlaylistHits = computed(() =>
+  composite.value.playlists.map((item) => ({
+    cover: item.coverImgUrl,
+    id: item.id,
+    name: item.name,
+  })),
+)
+
+const compositeArtistHits = computed(() =>
+  composite.value.artists.map((item) => ({
+    cover: item.img1v1Url,
+    id: item.id,
+    name: item.name,
+  })),
+)
+
+const compositeAlbumHits = computed(() =>
+  composite.value.albums.map((item) => ({
+    cover: item.picUrl,
+    id: item.id,
+    name: item.name,
+  })),
+)
+
+const voiceHits = computed(() =>
+  voices.value.map((item) => {
+    const to =
+      item.kind === 'list'
+        ? { name: Pages.voice, query: { listId: String(item.id) } as Record<string, string> }
+        : { name: Pages.dj, query: { id: String(item.id) } as Record<string, string> }
+    return {
+      cover: item.picUrl,
+      id: item.id,
+      name: item.name,
+      to,
+    }
+  }),
+)
+
 const queryKeyword = computed(() => {
   const value = route.query.q
   const raw = Array.isArray(value) ? value[0] : value
@@ -170,6 +243,26 @@ function requestMoreRadios() {
 
 function requestMoreVideos() {
   void searchStore.loadMoreVideos().catch(() => undefined)
+}
+
+function requestLyrics(force = false) {
+  void searchStore.loadLyrics(force).catch(() => undefined)
+}
+
+function requestComposite(force = false) {
+  void searchStore.loadComposite(force).catch(() => undefined)
+}
+
+function requestVoices(force = false) {
+  void searchStore.loadVoices(force).catch(() => undefined)
+}
+
+function requestMoreLyrics() {
+  void searchStore.loadMoreLyrics().catch(() => undefined)
+}
+
+function requestMoreVoices() {
+  void searchStore.loadMoreVoices().catch(() => undefined)
 }
 
 function goSearch(word: string) {
@@ -222,7 +315,7 @@ onMounted(() => {
     <header class="page-header">
       <p class="eyebrow">Search</p>
       <h1>搜索</h1>
-      <p>输入关键词或点选热门搜索。单曲可以播放，歌单、歌手、专辑、MV、电台和视频会打开已有详情页。</p>
+      <p>输入关键词或点选热门搜索。单曲和歌词可以播放，歌单、歌手、专辑、MV、电台、视频、综合和声音会打开已有详情页。</p>
     </header>
 
     <form data-testid="search-submit" @submit.prevent="submit">
@@ -234,7 +327,7 @@ onMounted(() => {
           name="q"
           type="search"
           autocomplete="off"
-          :placeholder="defaultKeyword?.showKeyword || '搜索歌曲、歌单、歌手、专辑、MV、电台或视频'"
+          :placeholder="defaultKeyword?.showKeyword || '搜索歌曲、歌词、歌单、歌手、专辑、MV、电台、视频或声音'"
         />
         <button type="submit">搜索</button>
       </div>
@@ -243,18 +336,18 @@ onMounted(() => {
     <p v-if="notice" class="notice" role="status">{{ notice }}</p>
 
     <div
-      v-if="keyword && songsLoading && !songs.length"
+      v-if="keyword && isSearching && !hasHits && !hasBestMatch"
       class="state-card"
       data-testid="search-loading"
       role="status"
       aria-busy="true"
     >
       <strong>正在搜索</strong>
-      <p>正在查找“{{ keyword }}”的单曲、歌单、歌手、专辑、MV、电台和视频。</p>
+      <p>正在查找“{{ keyword }}”的单曲、歌词、歌单、歌手、专辑、MV、电台、视频、综合和声音。</p>
     </div>
 
     <div
-      v-else-if="keyword && songsError !== null && !songs.length"
+      v-else-if="keyword && songsError !== null && !hasHits && !hasBestMatch && !hasExtraError && !isSearching"
       class="state-card error-state"
       role="alert"
     >
@@ -267,7 +360,20 @@ onMounted(() => {
       </button>
     </div>
 
-    <div v-else-if="keyword && (hasHits || hasBestMatch)" class="result-stack">
+    <div v-else-if="keyword && (hasHits || hasBestMatch || hasExtraError)" class="result-stack">
+      <div
+        v-if="songsError && !songs.length"
+        class="state-card error-state"
+        role="alert"
+      >
+        <div>
+          <strong>搜索失败</strong>
+          <p>{{ songsError }}</p>
+        </div>
+        <button type="button" data-testid="search-retry" @click="requestSearch(true)">
+          重新加载
+        </button>
+      </div>
       <section
         v-if="bestMatch && (bestMatch.artist || bestMatch.album || bestMatch.playlist)"
         class="best-match"
@@ -565,6 +671,159 @@ onMounted(() => {
       >
         加载更多
       </button>
+      <section
+        v-if="lyrics.length || lyricsError"
+        class="lyric-hits"
+        data-testid="search-lyrics"
+        aria-labelledby="search-lyrics-title"
+      >
+        <h2 id="search-lyrics-title">歌词</h2>
+        <ul>
+          <li v-for="(item, index) in lyrics" :key="`${item.song.id}-${index}`">
+            <button type="button" @click="playSong(item.song)">
+              {{ item.song.name }}
+            </button>
+            <p v-if="item.lyric">{{ item.lyric }}</p>
+          </li>
+        </ul>
+        <div
+          v-if="lyricsError"
+          class="state-card error-state"
+          role="alert"
+        >
+          <div>
+            <strong>{{ lyrics.length ? '加载更多失败' : '歌词搜索失败' }}</strong>
+            <p>{{ lyricsError }}</p>
+          </div>
+          <button
+            type="button"
+            data-testid="search-lyrics-retry"
+            @click="lyrics.length ? requestMoreLyrics() : requestLyrics(true)"
+          >
+            重新加载
+          </button>
+        </div>
+        <button
+          v-if="lyricsMore && lyrics.length"
+          type="button"
+          data-testid="search-lyrics-more"
+          aria-label="加载更多歌词"
+          :disabled="lyricsLoading"
+          :aria-busy="lyricsLoading ? 'true' : undefined"
+          @click="requestMoreLyrics"
+        >
+          加载更多
+        </button>
+      </section>
+      <section
+        v-if="hasComposite || compositeError"
+        class="composite-hits"
+        data-testid="search-composite"
+        aria-labelledby="search-composite-title"
+      >
+        <h2 id="search-composite-title">综合</h2>
+        <PlaylistSongList
+          v-if="composite.songs.length"
+          :songs="composite.songs"
+          :current-id="current?.id ?? null"
+          :paginate="false"
+          @play="playSong"
+        />
+        <SearchHitList
+          v-if="composite.playlists.length"
+          heading-id="search-composite-playlists-title"
+          kind="歌单"
+          title="歌单"
+          :hits="compositePlaylistHits"
+          :to-name="Pages.playlist"
+        />
+        <SearchHitList
+          v-if="composite.artists.length"
+          heading-id="search-composite-artists-title"
+          kind="歌手"
+          title="歌手"
+          :hits="compositeArtistHits"
+          :to-name="Pages.artistDetail"
+        />
+        <SearchHitList
+          v-if="composite.albums.length"
+          heading-id="search-composite-albums-title"
+          kind="专辑"
+          title="专辑"
+          :hits="compositeAlbumHits"
+          :to-name="Pages.album"
+        />
+        <div
+          v-if="compositeError"
+          class="state-card error-state"
+          role="alert"
+        >
+          <div>
+            <strong>综合搜索失败</strong>
+            <p>{{ compositeError }}</p>
+          </div>
+          <button type="button" data-testid="search-composite-retry" @click="requestComposite(true)">
+            重新加载
+          </button>
+        </div>
+      </section>
+      <section
+        v-if="voices.length || voicesError"
+        class="voice-hits"
+        data-testid="search-voices"
+        aria-labelledby="search-voices-title"
+      >
+        <SearchHitList
+          v-if="voices.length"
+          heading-id="search-voices-title"
+          kind="声音"
+          title="声音"
+          :hits="voiceHits"
+          :to-name="Pages.voice"
+        />
+        <h2 v-else id="search-voices-title">声音</h2>
+        <div
+          v-if="voicesError && voices.length"
+          class="state-card error-state"
+          role="alert"
+        >
+          <div>
+            <strong>加载更多失败</strong>
+            <p>{{ voicesError }}</p>
+          </div>
+          <button
+            type="button"
+            data-testid="search-voices-more-retry"
+            @click="requestMoreVoices"
+          >
+            重新加载
+          </button>
+        </div>
+        <div
+          v-else-if="voicesError && !voices.length"
+          class="state-card error-state"
+          role="alert"
+        >
+          <div>
+            <strong>声音搜索失败</strong>
+            <p>{{ voicesError }}</p>
+          </div>
+          <button type="button" data-testid="search-voices-retry" @click="requestVoices(true)">
+            重新加载
+          </button>
+        </div>
+        <button
+          v-if="voicesMore && voices.length"
+          type="button"
+          data-testid="search-voices-more"
+          aria-label="加载更多声音"
+          :disabled="voicesLoading"
+          :aria-busy="voicesLoading ? 'true' : undefined"
+          @click="requestMoreVoices"
+        >
+          加载更多
+        </button>
+      </section>
     </div>
 
     <div
@@ -573,7 +832,7 @@ onMounted(() => {
       data-testid="search-empty"
     >
       <strong>没有找到结果</strong>
-      <p>没有找到可播放的单曲或可打开的歌单、歌手、专辑、MV、电台、视频。</p>
+      <p>没有找到可播放的单曲、歌词或可打开的歌单、歌手、专辑、MV、电台、视频、综合、声音。</p>
     </div>
 
     <SearchHotList
@@ -682,6 +941,40 @@ button {
 .best-match > h2 {
   margin: 0;
   font-size: 1.05rem;
+}
+
+.lyric-hits,
+.composite-hits,
+.voice-hits {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lyric-hits h2,
+.composite-hits h2,
+.voice-hits h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.lyric-hits ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lyric-hits button {
+  width: 100%;
+  justify-self: start;
+  text-align: left;
+}
+
+.lyric-hits p {
+  margin: 4px 0 0;
+  color: var(--color-muted);
 }
 
 .state-card {
