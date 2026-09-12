@@ -34,6 +34,14 @@ const {
   wiki,
   wikiError,
   wikiLoading,
+  about,
+  aboutError,
+  aboutLoading,
+  mlogId,
+  mlogUrl,
+  mlogVideoId,
+  mlogPlayError,
+  mlogPlayLoading,
 } = storeToRefs(extras)
 const {
   comments,
@@ -211,6 +219,14 @@ onUnmounted(() => {
             :loading="wikiLoading"
             @retry="extras.loadWiki(true).catch(() => undefined)"
           />
+          <SongWikiSection
+            testid="song-about"
+            title="歌曲介绍"
+            :blocks="about"
+            :error="aboutError"
+            :loading="aboutLoading"
+            @retry="extras.loadAbout(true).catch(() => undefined)"
+          />
           <SongSheetSection
             :error="sheetsError"
             :loading="sheetsLoading"
@@ -227,7 +243,13 @@ onUnmounted(() => {
             :error="mlogsError"
             :loading="mlogsLoading"
             :mlogs="mlogs"
+            :play-error="mlogPlayError"
+            :play-loading="mlogPlayLoading"
+            :play-url="mlogUrl"
+            :play-video-id="mlogVideoId"
+            :selected-id="mlogId"
             @retry="extras.loadMlogs(true).catch(() => undefined)"
+            @select="extras.selectMlog($event).catch(() => undefined)"
           />
           </div>
 

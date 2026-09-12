@@ -6,12 +6,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getSongCommentPage, getSongHotComments } from '@/api/comment'
 import { getSongCommentFloor } from '@/api/commentFloor'
 import {
+  getMlogUrl,
+  getMlogVideoId,
   getSheetPreview,
+  getSongAbout,
   getSongMlogs,
   getSongSheets,
   getSongWiki,
 } from '@/api/songExtra'
 import PlayerLyricPanel from '@/components/player/PlayerLyricPanel.vue'
+import { Pages } from '@/router/pages'
 import { useLyricStore } from '@/stores/lyric'
 import { usePlayerStore } from '@/stores/player'
 
@@ -32,7 +36,10 @@ vi.mock('@/api/songExtra', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/songExtra')>()
   return {
     ...actual,
+    getMlogUrl: vi.fn(),
+    getMlogVideoId: vi.fn(),
     getSheetPreview: vi.fn(),
+    getSongAbout: vi.fn(),
     getSongMlogs: vi.fn(),
     getSongSheets: vi.fn(),
     getSongWiki: vi.fn(),
@@ -56,6 +63,12 @@ describe('PlayerLyricPanel', () => {
     vi.mocked(getSheetPreview).mockRejectedValue(new Error('no preview'))
     vi.mocked(getSongMlogs).mockReset()
     vi.mocked(getSongMlogs).mockResolvedValue([])
+    vi.mocked(getSongAbout).mockReset()
+    vi.mocked(getSongAbout).mockResolvedValue([])
+    vi.mocked(getMlogUrl).mockReset()
+    vi.mocked(getMlogUrl).mockRejectedValue(new Error('no mlog url'))
+    vi.mocked(getMlogVideoId).mockReset()
+    vi.mocked(getMlogVideoId).mockRejectedValue(new Error('no mlog video'))
   })
 
   function mountPanel() {
@@ -65,7 +78,7 @@ describe('PlayerLyricPanel', () => {
         stubs: {
           RouterLink: {
             props: ['to'],
-            template: '<a><slot /></a>',
+            template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
           },
         },
       },
@@ -324,6 +337,7 @@ describe('PlayerLyricPanel', () => {
     const wrapper = mountPanel()
     await flushPromises()
     expect(getSongWiki).not.toHaveBeenCalled()
+    expect(getSongAbout).not.toHaveBeenCalled()
     expect(getSongSheets).not.toHaveBeenCalled()
     expect(getSongMlogs).not.toHaveBeenCalled()
     wrapper.unmount()
@@ -379,6 +393,37 @@ describe('PlayerLyricPanel', () => {
     expect(bodyEl('[data-testid="song-sheets"]').textContent).toContain('夜航谱')
     expect(bodyEl('[data-testid="song-sheet-preview"]').textContent).toContain('简谱')
     expect(bodyEl('[data-testid="song-mlogs"]').textContent).toContain('林间现场')
+    wrapper.unmount()
+  })
+
+  it('loads song about blocks and opens an mlog url and video', async () => {
+    vi.mocked(getSongAbout).mockResolvedValue([
+      { text: '林间写成。', title: '创作背景' },
+    ])
+    vi.mocked(getSongMlogs).mockResolvedValue([
+      { coverUrl: '', id: 'ml-9', name: '林间现场', videoId: '' },
+    ])
+    vi.mocked(getMlogUrl).mockResolvedValue('https://videos.example.com/mlog.mp4')
+    vi.mocked(getMlogVideoId).mockResolvedValue('VID009')
+    const lyrics = useLyricStore()
+    const player = usePlayerStore()
+    player.current = { id: 301, name: '晚风来信', artists: [] }
+    lyrics.open()
+    const wrapper = mountPanel()
+    await flushPromises()
+    expect(bodyEl('[data-testid="song-about"]').textContent).toContain('创作背景')
+    expect(getSongAbout).toHaveBeenCalledWith(301)
+    bodyEl('[data-testid="song-mlog-open"]').click()
+    await flushPromises()
+    expect(getMlogUrl).toHaveBeenCalledWith('ml-9')
+    expect(getMlogVideoId).toHaveBeenCalledWith('ml-9')
+    expect(bodyEl('[data-testid="song-mlog-url"]').getAttribute('href')).toBe(
+      'https://videos.example.com/mlog.mp4',
+    )
+    expect(bodyEl('[data-testid="song-mlog-video"]').textContent).toContain('打开视频')
+    expect(
+      JSON.parse(bodyEl('[data-testid="song-mlog-video"]').getAttribute('data-to') || '{}'),
+    ).toEqual({ name: Pages.videoDetail, query: { id: 'VID009' } })
     wrapper.unmount()
   })
 })

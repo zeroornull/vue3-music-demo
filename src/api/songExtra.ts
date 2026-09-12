@@ -7,6 +7,7 @@ import type {
 } from '@/models/songExtra'
 
 export const SONG_EXTRA_LIMIT = 10
+export const MLOG_URL_RES = 1080
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -50,6 +51,12 @@ function requireSheetId(id: number) {
   }
 }
 
+function requireMlogId(id: string) {
+  if (!id.trim()) {
+    throw new Error('缺少有效的 Mlog')
+  }
+}
+
 function readTitle(value: unknown): string {
   if (!isRecord(value)) return ''
   const main = isRecord(value.mainTitle) ? value.mainTitle : null
@@ -84,7 +91,7 @@ function collectText(value: unknown, out: string[]) {
   if (Array.isArray(value.textLinks)) collectText(value.textLinks, out)
 }
 
-function readWikiBlock(value: unknown): SongWikiBlock | null {
+function readWikiBlock(value: unknown, fallbackTitle = '歌曲百科'): SongWikiBlock | null {
   if (!isRecord(value)) return null
   const ui = isRecord(value.uiElement) ? value.uiElement : value
   const title = readTitle(ui) || readTitle(value)
@@ -92,7 +99,7 @@ function readWikiBlock(value: unknown): SongWikiBlock | null {
   collectText(value, texts)
   const text = [...new Set(texts.filter((item) => item !== title))].join('\n')
   if (!title && !text) return null
-  return { title: title || '歌曲百科', text }
+  return { title: title || fallbackTitle, text }
 }
 
 function readSheet(value: unknown): SongSheet | null {
@@ -188,7 +195,7 @@ export async function getSongWiki(
     throw new Error('歌曲百科响应格式不正确')
   }
   return raw
-    .map(readWikiBlock)
+    .map((item) => readWikiBlock(item))
     .filter((item): item is SongWikiBlock => item !== null)
     .slice(0, SONG_EXTRA_LIMIT)
 }
@@ -239,4 +246,68 @@ export async function getSongMlogs(
     .map(readMlog)
     .filter((item): item is SongMlog => item !== null)
     .slice(0, SONG_EXTRA_LIMIT)
+}
+
+export async function getSongAbout(
+  id: number,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<SongWikiBlock[]> {
+  requireSongId(id)
+  const response = await client.get<unknown>('/song/play/about/block/page', { id })
+  const raw = unwrapList(response, ['blocks', 'modules', 'list'])
+  if (!raw) {
+    throw new Error('歌曲介绍响应格式不正确')
+  }
+  return raw
+    .map((item) => readWikiBlock(item, '歌曲介绍'))
+    .filter((item): item is SongWikiBlock => item !== null)
+    .slice(0, SONG_EXTRA_LIMIT)
+}
+
+export async function getMlogUrl(
+  id: string,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<string> {
+  requireMlogId(id)
+  const response = await client.get<unknown>('/mlog/url', {
+    id: id.trim(),
+    res: MLOG_URL_RES,
+  })
+  const data = unwrapRecord(response)
+  const nested = data && isRecord(data.data) ? data.data : data
+  const urlRaw =
+    (nested && typeof nested.url === 'string' && nested.url) ||
+    (data && typeof data.url === 'string' && data.url) ||
+    ''
+  const url = urlRaw.trim()
+  if (!url) throw new Error('Mlog 暂无可播放地址')
+  return url
+}
+
+export async function getMlogVideoId(
+  id: string,
+  client: Pick<HttpClient, 'get'> = http,
+): Promise<string> {
+  requireMlogId(id)
+  const response = await client.get<unknown>('/mlog/to/video', { id: id.trim() })
+  const data = unwrapRecord(response)
+  const nested = data && isRecord(data.data) ? data.data : data
+  const candidates = [nested?.videoId, nested?.vid, nested?.id, data?.videoId, data?.vid, data?.id]
+  if (typeof response === 'object' && response && 'data' in response) {
+    const top = (response as { data?: unknown }).data
+    if (typeof top === 'string' || typeof top === 'number') candidates.unshift(top)
+  }
+  let videoId = ''
+  for (const raw of candidates) {
+    if (typeof raw === 'string' && raw.trim()) {
+      videoId = raw.trim()
+      break
+    }
+    if (typeof raw === 'number' && Number.isInteger(raw) && raw > 0) {
+      videoId = String(raw)
+      break
+    }
+  }
+  if (!videoId) throw new Error('Mlog 视频响应格式不正确')
+  return videoId
 }

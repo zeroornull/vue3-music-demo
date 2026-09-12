@@ -5,7 +5,10 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getLyric, getLyricNew } from '@/api/lyric'
 import {
+  getMlogUrl,
+  getMlogVideoId,
   getSheetPreview,
+  getSongAbout,
   getSongMlogs,
   getSongSheets,
   getSongWiki,
@@ -28,7 +31,10 @@ vi.mock('@/api/songExtra', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/songExtra')>()
   return {
     ...actual,
+    getMlogUrl: vi.fn(),
+    getMlogVideoId: vi.fn(),
     getSheetPreview: vi.fn(),
+    getSongAbout: vi.fn(),
     getSongMlogs: vi.fn(),
     getSongSheets: vi.fn(),
     getSongWiki: vi.fn(),
@@ -82,6 +88,12 @@ describe('PlayerBar', () => {
     vi.mocked(getSheetPreview).mockRejectedValue(new Error('no preview'))
     vi.mocked(getSongMlogs).mockReset()
     vi.mocked(getSongMlogs).mockResolvedValue([])
+    vi.mocked(getSongAbout).mockReset()
+    vi.mocked(getSongAbout).mockResolvedValue([])
+    vi.mocked(getMlogUrl).mockReset()
+    vi.mocked(getMlogUrl).mockRejectedValue(new Error('no mlog url'))
+    vi.mocked(getMlogVideoId).mockReset()
+    vi.mocked(getMlogVideoId).mockRejectedValue(new Error('no mlog video'))
   })
 
   it('shows song, artist and accessible toggle', async () => {

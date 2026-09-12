@@ -7,12 +7,26 @@ withDefaults(
     error?: string | null
     loading?: boolean
     mlogs: SongMlog[]
+    playError?: string | null
+    playLoading?: boolean
+    playUrl?: string
+    playVideoId?: string
+    selectedId?: string
   }>(),
-  { error: null, loading: false },
+  {
+    error: null,
+    loading: false,
+    playError: null,
+    playLoading: false,
+    playUrl: '',
+    playVideoId: '',
+    selectedId: '',
+  },
 )
 
 defineEmits<{
   retry: []
+  select: [id: string]
 }>()
 </script>
 
@@ -49,8 +63,39 @@ defineEmits<{
           {{ item.name }}
         </RouterLink>
         <span v-else data-testid="song-mlog">{{ item.name }}</span>
+        <button
+          type="button"
+          data-testid="song-mlog-open"
+          @click="$emit('select', item.id)"
+        >
+          打开 Mlog
+        </button>
       </li>
     </ul>
+    <div
+      v-if="selectedId"
+      class="mlog-play"
+      data-testid="song-mlog-play"
+    >
+      <p v-if="playLoading">正在打开 Mlog。</p>
+      <p v-else-if="playError" role="alert">{{ playError }}</p>
+      <p v-else>
+        <a
+          v-if="playUrl"
+          :href="playUrl"
+          data-testid="song-mlog-url"
+          rel="noreferrer"
+          target="_blank"
+        >打开播放</a>
+        <RouterLink
+          v-if="playVideoId"
+          :to="{ name: Pages.videoDetail, query: { id: playVideoId } }"
+          data-testid="song-mlog-video"
+        >
+          打开视频
+        </RouterLink>
+      </p>
+    </div>
   </section>
 </template>
 
@@ -71,6 +116,23 @@ ul {
   list-style: none;
   display: grid;
   gap: 8px;
+}
+
+li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.mlog-play {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mlog-play p {
+  margin: 0;
 }
 
 a,
@@ -110,5 +172,9 @@ button {
   color: var(--color-on-accent);
   cursor: pointer;
   font-weight: 700;
+}
+
+button[data-testid='song-mlog-open'] {
+  background: var(--color-accent);
 }
 </style>

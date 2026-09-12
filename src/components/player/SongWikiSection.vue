@@ -6,8 +6,10 @@ withDefaults(
     blocks: SongWikiBlock[]
     error?: string | null
     loading?: boolean
+    testid?: string
+    title?: string
   }>(),
-  { error: null, loading: false },
+  { error: null, loading: false, testid: 'song-wiki', title: '歌曲百科' },
 )
 
 defineEmits<{
@@ -16,29 +18,29 @@ defineEmits<{
 </script>
 
 <template>
-  <section class="song-wiki" aria-labelledby="song-wiki-title">
-    <h3 id="song-wiki-title">歌曲百科</h3>
+  <section class="song-wiki" :aria-labelledby="`${testid}-title`">
+    <h3 :id="`${testid}-title`">{{ title }}</h3>
     <div
       v-if="loading && !blocks.length"
       class="state-card"
-      data-testid="song-wiki-loading"
+      :data-testid="`${testid}-loading`"
       aria-busy="true"
     >
-      <strong>正在加载歌曲百科</strong>
+      <strong>正在加载{{ title }}</strong>
     </div>
     <div v-else-if="error && !blocks.length" class="state-card error-state" role="alert">
       <div>
-        <strong>歌曲百科加载失败</strong>
+        <strong>{{ title }}加载失败</strong>
         <p>{{ error }}</p>
       </div>
-      <button type="button" data-testid="song-wiki-retry" @click="$emit('retry')">
+      <button type="button" :data-testid="`${testid}-retry`" @click="$emit('retry')">
         重新加载
       </button>
     </div>
-    <div v-else-if="!blocks.length" class="state-card" data-testid="song-wiki-empty">
-      <strong>暂无歌曲百科</strong>
+    <div v-else-if="!blocks.length" class="state-card" :data-testid="`${testid}-empty`">
+      <strong>暂无{{ title }}</strong>
     </div>
-    <ul v-else data-testid="song-wiki">
+    <ul v-else :data-testid="testid">
       <li v-for="(block, index) in blocks" :key="`${block.title}-${index}`">
         <strong>{{ block.title }}</strong>
         <p v-if="block.text">{{ block.text }}</p>

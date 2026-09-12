@@ -3,10 +3,14 @@ import { describe, expect, it, vi } from 'vitest'
 import type { HttpClient } from '@/api/http'
 import {
   SONG_EXTRA_LIMIT,
+  getMlogUrl,
+  getMlogVideoId,
   getSheetPreview,
+  getSongAbout,
   getSongMlogs,
   getSongSheets,
   getSongWiki,
+  MLOG_URL_RES,
 } from '@/api/songExtra'
 
 const client = (response: unknown) => {
@@ -107,5 +111,45 @@ describe('Song extra API', () => {
       limit: SONG_EXTRA_LIMIT,
       songid: 301,
     })
+  })
+
+  it('unwraps song about blocks, mlog urls and converted video ids', async () => {
+    const about = client({
+      data: {
+        blocks: [
+          {
+            extra: true,
+            uiElement: { mainTitle: { title: '  创作背景  ' }, text: '林间写成。' },
+          },
+        ],
+      },
+    })
+    await expect(getSongAbout(301, about.client)).resolves.toEqual([
+      { text: '林间写成。', title: '创作背景' },
+    ])
+    expect(about.get).toHaveBeenCalledWith('/song/play/about/block/page', { id: 301 })
+    await expect(getSongAbout(0, client({}).client)).rejects.toThrow('缺少有效的歌曲')
+    await expect(getSongAbout(301, client({ data: null }).client)).rejects.toThrow(
+      '歌曲介绍响应格式不正确',
+    )
+
+    const play = client({
+      data: { extra: true, url: 'https://videos.example.com/mlog.mp4' },
+    })
+    await expect(getMlogUrl('ml-9', play.client)).resolves.toBe(
+      'https://videos.example.com/mlog.mp4',
+    )
+    expect(play.get).toHaveBeenCalledWith('/mlog/url', { id: 'ml-9', res: MLOG_URL_RES })
+    await expect(getMlogUrl('  ', client({}).client)).rejects.toThrow('缺少有效的 Mlog')
+    await expect(getMlogUrl('ml-9', client({ data: {} }).client)).rejects.toThrow(
+      'Mlog 暂无可播放地址',
+    )
+
+    const video = client({ data: { extra: true, videoId: 'VID009' } })
+    await expect(getMlogVideoId('ml-9', video.client)).resolves.toBe('VID009')
+    expect(video.get).toHaveBeenCalledWith('/mlog/to/video', { id: 'ml-9' })
+    await expect(
+      getMlogVideoId('ml-9', client({ data: { id: 0 } }).client),
+    ).rejects.toThrow('Mlog 视频响应格式不正确')
   })
 })

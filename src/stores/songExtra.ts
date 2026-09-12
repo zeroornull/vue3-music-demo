@@ -3,7 +3,10 @@ import { defineStore } from 'pinia'
 
 import { getErrorMessage } from '@/api/http'
 import {
+  getMlogUrl,
+  getMlogVideoId,
   getSheetPreview,
+  getSongAbout,
   getSongMlogs,
   getSongSheets,
   getSongWiki,
@@ -19,6 +22,8 @@ let wikiSerial = 0
 let sheetSerial = 0
 let previewSerial = 0
 let mlogSerial = 0
+let aboutSerial = 0
+let mlogPlaySerial = 0
 
 export const useSongExtraStore = defineStore('songExtra', () => {
   const songId = ref(0)
@@ -38,6 +43,15 @@ export const useSongExtraStore = defineStore('songExtra', () => {
   const mlogsError = ref<string | null>(null)
   const mlogsLoading = ref(false)
   const mlogsReady = ref(false)
+  const about = ref<SongWikiBlock[]>([])
+  const aboutError = ref<string | null>(null)
+  const aboutLoading = ref(false)
+  const aboutReady = ref(false)
+  const mlogId = ref('')
+  const mlogUrl = ref('')
+  const mlogVideoId = ref('')
+  const mlogPlayError = ref<string | null>(null)
+  const mlogPlayLoading = ref(false)
 
   function clearAssets() {
     wiki.value = []
@@ -56,6 +70,15 @@ export const useSongExtraStore = defineStore('songExtra', () => {
     mlogsError.value = null
     mlogsLoading.value = false
     mlogsReady.value = false
+    about.value = []
+    aboutError.value = null
+    aboutLoading.value = false
+    aboutReady.value = false
+    mlogId.value = ''
+    mlogUrl.value = ''
+    mlogVideoId.value = ''
+    mlogPlayError.value = null
+    mlogPlayLoading.value = false
   }
 
   function reset() {
@@ -63,6 +86,8 @@ export const useSongExtraStore = defineStore('songExtra', () => {
     sheetSerial++
     previewSerial++
     mlogSerial++
+    aboutSerial++
+    mlogPlaySerial++
     songId.value = 0
     clearAssets()
   }
@@ -113,6 +138,27 @@ export const useSongExtraStore = defineStore('songExtra', () => {
     }
   }
 
+  async function loadAbout(force = false) {
+    if (songId.value <= 0) return
+    if (aboutReady.value && !force && !aboutError.value) return
+    const serial = ++aboutSerial
+    const requested = songId.value
+    aboutLoading.value = true
+    aboutError.value = null
+    try {
+      const next = await getSongAbout(requested)
+      if (serial !== aboutSerial) return
+      about.value = next
+      aboutReady.value = true
+    } catch (requestError) {
+      if (serial !== aboutSerial) return
+      aboutError.value = getErrorMessage(requestError)
+      throw requestError
+    } finally {
+      if (serial === aboutSerial) aboutLoading.value = false
+    }
+  }
+
   async function loadMlogs(force = false) {
     if (songId.value <= 0) return
     if (mlogsReady.value && !force && !mlogsError.value) return
@@ -159,6 +205,41 @@ export const useSongExtraStore = defineStore('songExtra', () => {
     await loadPreview(id).catch(() => undefined)
   }
 
+  async function selectMlog(id: string, force = false) {
+    const nextId = id.trim()
+    if (!nextId) return
+    if (
+      !force &&
+      mlogId.value === nextId &&
+      mlogUrl.value &&
+      mlogVideoId.value &&
+      !mlogPlayError.value
+    ) {
+      return
+    }
+    const serial = ++mlogPlaySerial
+    mlogId.value = nextId
+    mlogUrl.value = ''
+    mlogVideoId.value = ''
+    mlogPlayError.value = null
+    mlogPlayLoading.value = true
+    try {
+      const [play, video] = await Promise.allSettled([
+        getMlogUrl(nextId),
+        getMlogVideoId(nextId),
+      ])
+      if (serial !== mlogPlaySerial) return
+      if (play.status === 'fulfilled') mlogUrl.value = play.value
+      if (video.status === 'fulfilled') mlogVideoId.value = video.value
+      if (play.status === 'rejected' && video.status === 'rejected') {
+        mlogPlayError.value = getErrorMessage(play.reason)
+        throw play.reason
+      }
+    } finally {
+      if (serial === mlogPlaySerial) mlogPlayLoading.value = false
+    }
+  }
+
   async function load(id: number, force = false) {
     if (!Number.isInteger(id) || id <= 0) {
       throw new Error('缺少有效的歌曲')
@@ -168,10 +249,17 @@ export const useSongExtraStore = defineStore('songExtra', () => {
       sheetSerial++
       previewSerial++
       mlogSerial++
+      aboutSerial++
+      mlogPlaySerial++
       songId.value = id
       clearAssets()
     }
-    await Promise.allSettled([loadWiki(force), loadSheets(force), loadMlogs(force)])
+    await Promise.allSettled([
+      loadWiki(force),
+      loadSheets(force),
+      loadMlogs(force),
+      loadAbout(force),
+    ])
   }
 
   return {
@@ -189,12 +277,22 @@ export const useSongExtraStore = defineStore('songExtra', () => {
     mlogs,
     mlogsError,
     mlogsLoading,
+    about,
+    aboutError,
+    aboutLoading,
+    mlogId,
+    mlogUrl,
+    mlogVideoId,
+    mlogPlayError,
+    mlogPlayLoading,
     load,
     loadWiki,
     loadSheets,
     loadMlogs,
+    loadAbout,
     loadPreview,
     setSheet,
+    selectMlog,
     reset,
   }
 })

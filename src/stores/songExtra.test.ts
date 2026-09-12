@@ -2,7 +2,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  getMlogUrl,
+  getMlogVideoId,
   getSheetPreview,
+  getSongAbout,
   getSongMlogs,
   getSongSheets,
   getSongWiki,
@@ -13,7 +16,10 @@ vi.mock('@/api/songExtra', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/songExtra')>()
   return {
     ...actual,
+    getMlogUrl: vi.fn(),
+    getMlogVideoId: vi.fn(),
     getSheetPreview: vi.fn(),
+    getSongAbout: vi.fn(),
     getSongMlogs: vi.fn(),
     getSongSheets: vi.fn(),
     getSongWiki: vi.fn(),
@@ -40,6 +46,12 @@ describe('song extra store', () => {
     vi.mocked(getSongSheets).mockReset()
     vi.mocked(getSheetPreview).mockReset()
     vi.mocked(getSongMlogs).mockReset()
+    vi.mocked(getSongAbout).mockReset()
+    vi.mocked(getSongAbout).mockResolvedValue([])
+    vi.mocked(getMlogUrl).mockReset()
+    vi.mocked(getMlogUrl).mockRejectedValue(new Error('no mlog url'))
+    vi.mocked(getMlogVideoId).mockReset()
+    vi.mocked(getMlogVideoId).mockRejectedValue(new Error('no mlog video'))
   })
 
   it('loads wiki, sheets, first preview and mlogs for a song', async () => {
@@ -148,5 +160,57 @@ describe('song extra store', () => {
     await loading
     expect(store.wiki).toEqual([])
     expect(store.songId).toBe(0)
+  })
+
+  it('loads about blocks independently of wiki', async () => {
+    const intro = { text: '林间写成。', title: '创作背景' }
+    vi.mocked(getSongWiki).mockRejectedValue(new Error('wiki offline'))
+    vi.mocked(getSongSheets).mockResolvedValue([])
+    vi.mocked(getSongMlogs).mockResolvedValue([])
+    vi.mocked(getSongAbout).mockResolvedValue([intro])
+    const store = useSongExtraStore()
+    await store.load(301)
+    expect(store.about).toEqual([intro])
+    expect(store.wikiError).toBe('wiki offline')
+    expect(getSongAbout).toHaveBeenCalledTimes(1)
+    await store.loadAbout()
+    expect(getSongAbout).toHaveBeenCalledTimes(1)
+  })
+
+  it('loads mlog url and video id independently', async () => {
+    vi.mocked(getSongWiki).mockResolvedValue([])
+    vi.mocked(getSongSheets).mockResolvedValue([])
+    vi.mocked(getSongMlogs).mockResolvedValue([mlog])
+    vi.mocked(getMlogUrl).mockResolvedValue('https://videos.example.com/mlog.mp4')
+    vi.mocked(getMlogVideoId)
+      .mockRejectedValueOnce(new Error('convert offline'))
+      .mockResolvedValueOnce('VID009')
+    const store = useSongExtraStore()
+    await store.load(301)
+    await store.selectMlog('ml-9')
+    expect(store.mlogUrl).toBe('https://videos.example.com/mlog.mp4')
+    expect(store.mlogVideoId).toBe('')
+    expect(store.mlogPlayError).toBeNull()
+    await store.selectMlog('ml-9')
+    expect(store.mlogVideoId).toBe('VID009')
+    expect(getMlogUrl).toHaveBeenCalledTimes(2)
+    expect(getMlogVideoId).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps mlogs when about fails and keeps a converted video when the url fails', async () => {
+    vi.mocked(getSongWiki).mockResolvedValue([])
+    vi.mocked(getSongSheets).mockResolvedValue([])
+    vi.mocked(getSongMlogs).mockResolvedValue([mlog])
+    vi.mocked(getSongAbout).mockRejectedValue(new Error('about offline'))
+    vi.mocked(getMlogUrl).mockRejectedValue(new Error('url offline'))
+    vi.mocked(getMlogVideoId).mockResolvedValue('VID009')
+    const store = useSongExtraStore()
+    await store.load(301)
+    expect(store.mlogs).toEqual([mlog])
+    expect(store.aboutError).toBe('about offline')
+    await store.selectMlog('ml-9')
+    expect(store.mlogUrl).toBe('')
+    expect(store.mlogVideoId).toBe('VID009')
+    expect(store.mlogPlayError).toBeNull()
   })
 })
